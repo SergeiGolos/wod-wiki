@@ -21,7 +21,7 @@ import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { EFFORT_DATA_METRIC_TYPE } from '@bitcobblers/wod-wiki-engine';
 import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
-import { fixtureRunning, fixtureRowing, fixtureBackSquat } from '@/effort-registry/fixtures';
+import { fixtureRunning, fixtureRowing, fixtureBackSquat } from '@bitcobblers/wod-wiki-lang';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { InMemoryEffortRegistry } from '../InMemoryEffortRegistry';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { InMemoryEffortRegistry } from '../../src/effort-registry/InMemoryEffortRegistry';
 import {
   fixtureRunning,
   fixtureRowing,
   fixtureUserCustom,
   commonFixtureSet,
-} from '../fixtures';
+} from '../../src/effort-registry/fixtures';
 
 describe('InMemoryEffortRegistry', () => {
   let registry: InMemoryEffortRegistry;
@@ -100,9 +100,7 @@ describe('InMemoryEffortRegistry', () => {
     });
 
     it('throws for non-user efforts', async () => {
-      expect(async () => {
-        await registry.upsert(fixtureRunning);
-      }).toThrow(/only user efforts can be written/);
+      await expect(registry.upsert(fixtureRunning)).rejects.toThrow(/only user efforts can be written/);
     });
   });
 
@@ -115,9 +113,7 @@ describe('InMemoryEffortRegistry', () => {
 
     it('throws when deleting bundled effort', async () => {
       registry.seed([fixtureRunning]);
-      expect(async () => {
-        await registry.delete('running-6-mph');
-      }).toThrow(/cannot delete non-user effort/);
+      await expect(registry.delete('running-6-mph')).rejects.toThrow(/cannot delete non-user effort/);
     });
 
     it('does not throw for non-existent slug', async () => {

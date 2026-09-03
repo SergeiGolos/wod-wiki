@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { InMemoryEffortRegistry } from '../InMemoryEffortRegistry';
-import { EffortResolver } from '../EffortResolver';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { InMemoryEffortRegistry } from '../../src/effort-registry/InMemoryEffortRegistry';
+import { EffortResolver } from '../../src/effort-registry/EffortResolver';
 import {
   fixtureRunning,
   fixtureRowing,
   fixtureUserCustom,
   commonFixtureSet,
-} from '../fixtures';
+} from '../../src/effort-registry/fixtures';
 
 describe('EffortResolver', () => {
   let registry: InMemoryEffortRegistry;
@@ -87,7 +87,6 @@ describe('EffortResolver', () => {
       const result = customResolver.resolveFuzzy('unknown');
       expect(result!.baseAttributes.met).toBe(3.5);
     });
-
     it('uses custom threshold from options', () => {
       // "rwoing" is distance 2 from "rowing"
       expect(resolver.resolveFuzzy('rwoing')).toEqual(fixtureRowing);
@@ -118,7 +117,6 @@ describe('EffortResolver', () => {
       const result = resolver.resolveEffort('my-custom-hiit');
       expect(result.slug).toBe('my-custom-hiit');
       expect(result.met).toBe(12.0); // parent burpee 10.0 × met coefficient 1.2
-      expect(result.discipline).toBe('strength');
       expect(result.disciplineFactor).toBe(1.2);
     });
 

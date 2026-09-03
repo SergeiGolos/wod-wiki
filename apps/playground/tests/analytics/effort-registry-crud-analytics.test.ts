@@ -20,8 +20,7 @@ import { StandardAnalyticsProfile } from '@bitcobblers/wod-wiki-engine';
 import type { AnalyticsProfileContext } from '@bitcobblers/wod-wiki-engine';
 import { TwoPassEffortResolutionProcess } from '@bitcobblers/wod-wiki-engine';
 
-import { InMemoryEffortRegistry } from '@/effort-registry/InMemoryEffortRegistry';
-import { EffortResolver } from '@/effort-registry/EffortResolver';
+import { InMemoryEffortRegistry, EffortResolver } from '@bitcobblers/wod-wiki-lang';
 import { OutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';

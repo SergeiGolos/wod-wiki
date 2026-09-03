@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { effortToDocument, documentToEffort } from './effort-markdown';
-import type { IEffort } from '@/effort-registry';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 
 describe('effort-markdown document format', () => {
   const fullEffort: IEffort = {

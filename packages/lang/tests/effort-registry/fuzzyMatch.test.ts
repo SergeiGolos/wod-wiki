@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import {
   levenshteinDistance,
   normalizeForFuzzy,
   isWithinThreshold,
   findBestFuzzyMatch,
-} from '../fuzzyMatch';
+} from '../../src/effort-registry/fuzzyMatch';
 
 describe('levenshteinDistance', () => {
   it('returns 0 for identical strings', () => {
@@ -20,7 +20,6 @@ describe('levenshteinDistance', () => {
   });
 
   it('computes single substitution', () => {
-    expect(levenshteinDistance('rowing', 'rowing')).toBe(0);
     expect(levenshteinDistance('rowing', 'rowinc')).toBe(1);
   });
 
@@ -33,7 +32,6 @@ describe('levenshteinDistance', () => {
   });
 
   it('computes distance 2 for "rwo" vs "row" (transpose)', () => {
-    // Transpose requires 2 ops: delete 'w', insert 'w' after 'o'
     expect(levenshteinDistance('rwo', 'row')).toBe(2);
   });
 

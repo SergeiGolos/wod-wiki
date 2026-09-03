@@ -14,7 +14,7 @@ import { effortToDocument, documentToEffort } from '@/repositories/effort-markdo
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { getEffortMarkdown } from '@/repositories/effort-markdown';
-import type { IEffort } from '@/effort-registry';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { toast } from '@/hooks/use-toast';
 
 export interface UseEffortContentResult {

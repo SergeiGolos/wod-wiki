@@ -1,7 +1,8 @@
 ---
 labels: [wayfinder]
 title: "Unparented open tickets — impact outline"
-tickets: ["#485", "#613", "#582", "#583"]
+tickets: ["#485", "#582", "#583"]
+resolved: ["#613 (2026-09-03)"]
 status: "No owning map — candidates to charter or close"
 audited: 2026-09-01
 ---
@@ -20,17 +21,15 @@ individually; none belongs to the five open maps.
   exist (`apps/storybook` covers only WQL/timer/analytics/workbench). The work
   is authoring stories that pin the per-record-type icon contract.
 
-## #613 — Effort-registry duplication (relocated, not fixed)
+## #613 — Effort-registry duplication (resolved 2026-09-03)
 
-- The original `src/services` vs `src` duplication is gone, but the debt was
-  reborn by the monorepo split: `apps/playground/src/effort-registry/`
-  (Composite/InMemory/IndexedDB registries, resolver, fuzzy match, bundled
-  data, 6 test files) coexists with `packages/lang/src/effort-registry/`, and
-  the app imports its local copy (`@/effort-registry` in
-  `services/queryService.ts`) instead of the package.
-- Change if done: delete the app-local copy, point imports at
-  `@bitcobblers/wod-wiki-lang`. One source of truth for effort resolution;
-  removes a whole parallel test surface.
+- **Done**: `apps/playground/src/effort-registry/` completely deleted.
+  `CompositeEffortRegistry` moved to `@bitcobblers/wod-wiki-lang` with a pure
+  `EffortStorageAdapter` interface. In `apps/playground`, `IndexedDBEffortStorage`
+  and `createAppEffortRegistry` factory provide browser IndexedDB persistence
+  and markdown-backed bundled seeding. All call-sites across `apps/playground`
+  migrated to `@bitcobblers/wod-wiki-lang`, and all 5 unit test suites live in
+  `packages/lang/tests/effort-registry/`. Single source of truth achieved.
 
 ## #582 — Runtime Session implementation (design proposal, never built)
 

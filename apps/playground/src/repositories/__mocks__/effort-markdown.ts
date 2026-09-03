@@ -3,7 +3,7 @@
  */
 
 import { vi } from 'vitest';
-import type { IEffort } from '@/effort-registry/types';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 
 const mockEfforts: IEffort[] = [
   {

@@ -31,7 +31,7 @@ import { formatDateHeader } from '../../lib/dateFormat';
 import { LibraryRow } from '../library/LibraryRow';
 import { QueryToDashboardDialog } from './QueryToDashboardDialog';
 import type { Entry } from '../../lib/entryMapper';
-import type { IEffort } from '@/effort-registry';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import {
   QueryValue,
   useChartShape,

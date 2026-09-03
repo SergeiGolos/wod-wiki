@@ -1,12 +1,12 @@
-import type {
-  IEffort,
-  IEffortResolver,
-  EffortResolverOptions,
-  EffortResolutionOptions,
-  ResolvedEffort,
-  EffortResolvedFrom,
-} from '@/effort-registry/types';
-import { DEFAULT_RESOLVER_OPTIONS } from '@/effort-registry/types';
+import {
+  type IEffort,
+  type IEffortResolver,
+  type EffortResolverOptions,
+  type EffortResolutionOptions,
+  type ResolvedEffort,
+  type EffortResolvedFrom,
+  DEFAULT_RESOLVER_OPTIONS,
+} from '@bitcobblers/wod-wiki-lang';
 
 /**
  * Mock Effort Resolver — Deterministic Test Harness

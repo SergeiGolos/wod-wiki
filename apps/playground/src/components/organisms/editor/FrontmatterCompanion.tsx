@@ -13,7 +13,7 @@ import { EditorState } from "@codemirror/state";
 import { Plus, X } from "lucide-react";
 import { sectionField, type EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extractYouTubeVideoId, detectUrlSubtype, type ParsedFrontmatter } from "@/lib/frontmatter";
-import { EFFORT_DISCIPLINES } from "@/effort-registry/disciplines";
+import { EFFORT_DISCIPLINES } from "@bitcobblers/wod-wiki-lang";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/atoms/primitives/label";
 

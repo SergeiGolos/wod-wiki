@@ -31,7 +31,7 @@ import {
     SegmentDataType,
 } from '../../types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import type { IEffort } from '@/effort-registry/types';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { createParser } from '@bitcobblers/wod-wiki-engine';

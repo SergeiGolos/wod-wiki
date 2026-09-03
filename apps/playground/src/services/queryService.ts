@@ -22,7 +22,7 @@ import {
 // wql's own IEffort — the engine umbrella re-exports lang's IEffort under the
 // same name, and the two differ on baseAttributes' index signature (0.6.36).
 import type { IEffort } from '@bitcobblers/wod-wiki-wql';
-import { CompositeEffortRegistry } from '@/effort-registry';
+import { getAppEffortRegistry } from '@/services/effortRegistry';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { staticNoteStore, staticBlockStore } from '@/services/content/staticBlockIndex';
 
@@ -56,13 +56,12 @@ export const indexedDbBlockStore: BlockQueryStore = {
  * IndexedDB-backed), lazily constructed on first query.
  */
 export class RegistryEffortStore implements EffortQueryStore {
-  private registry?: CompositeEffortRegistry;
   async getAllEfforts(): Promise<IEffort[]> {
-    if (!this.registry) {
-      this.registry = new CompositeEffortRegistry();
-      await this.registry.loadBundled();
+    const registry = getAppEffortRegistry();
+    if (!registry.isInitialized()) {
+      await registry.loadBundled();
     }
-    return [...this.registry.list()] as unknown as IEffort[]; // lang's IEffort.baseAttributes lacks the index signature wql's IEffort declares (engine-internal inconsistency, 0.6.36)
+    return [...registry.list()] as unknown as IEffort[]; // lang's IEffort.baseAttributes lacks the index signature wql's IEffort declares (engine-internal inconsistency, 0.6.36)
   }
 }
 

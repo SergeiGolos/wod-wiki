@@ -1,7 +1,7 @@
-import { beforeAll, describe, expect, it } from 'bun:test';
-import { InMemoryEffortRegistry } from '../InMemoryEffortRegistry';
-import { EffortResolver } from '../EffortResolver';
-import { bundledEfforts } from '../data/bundled-efforts';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { InMemoryEffortRegistry } from '../../src/effort-registry/InMemoryEffortRegistry';
+import { EffortResolver } from '../../src/effort-registry/EffortResolver';
+import { bundledEfforts } from '../../src/effort-registry/data/bundled-efforts';
 
 /**
  * Effort Registry Performance Tests
@@ -12,7 +12,6 @@ import { bundledEfforts } from '../data/bundled-efforts';
  * - No I/O during analytics pass (efforts pre-loaded)
  */
 
-// Generate a large catalog for benchmarking
 function generateLargeCatalog(count: number) {
   const efforts = [...bundledEfforts];
   for (let i = 0; i < count - bundledEfforts.length; i++) {
