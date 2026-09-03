@@ -1,0 +1,125 @@
+/**
+ * streamProfile — profile contract and presets for QueriableStreamView (Ticket 003).
+ *
+ * Encapsulates the routing, default WQL query, entity level, and presentation
+ * metadata for each unified stream route (/journal, /collections, /feeds,
+ * /library, /efforts, /results).
+ */
+import type { ReactNode } from 'react'
+import type { EntityLevel } from '../../lib/fieldProjection'
+import type { LibraryScope } from '../library/SourceScopeRadio'
+
+export interface StreamProfile {
+  /** Route path matching this stream (e.g. '/journal', '/library', '/efforts'). */
+  route: string
+  /** Header title displayed in StickyPageHeader. */
+  title: string
+  /** Subtitle or dynamic subtitle builder. */
+  subtitle?: string | ((wql: string, scope?: string) => ReactNode)
+  /** Default canonical WQL query loaded when no query param is present. */
+  defaultWql: string
+  /** Active entity level for field projection and view settings. */
+  level: EntityLevel
+  /** Fixed scope lock if the route restricts sources (e.g. 'notes' for /journal). */
+  scopeLock?: LibraryScope | 'efforts' | 'results' | 'all'
+  /** When true, hides the SourceScopeRadio pill row in the subheader. */
+  hideScopeRadio?: boolean
+  /** When true, renders the undated Sessions shelf alongside the dated stream. */
+  shelfVisible?: boolean
+  /** Optional message displayed when query yields zero results. */
+  emptyMessage?: string
+}
+
+export const JOURNAL_STREAM_PROFILE: StreamProfile = {
+  route: '/journal',
+  title: 'Journal',
+  subtitle: 'Your training log — notes and results from every session.',
+  defaultWql: 'find:note{source:journal} last 2w',
+  level: 'note',
+  scopeLock: 'notes',
+  hideScopeRadio: true,
+}
+
+export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
+  route: '/collections',
+  title: 'Collections',
+  subtitle: 'Curated workout collections, ready to run or add to today.',
+  defaultWql: 'find:note{source:collections} last 2w',
+  level: 'session',
+  scopeLock: 'collections',
+  hideScopeRadio: true,
+  shelfVisible: true,
+}
+
+export const FEEDS_STREAM_PROFILE: StreamProfile = {
+  route: '/feeds',
+  title: 'Feeds',
+  subtitle: 'Programming feeds you follow, newest first.',
+  defaultWql: 'find:note{source:feeds} last 2w',
+  level: 'note',
+  scopeLock: 'feeds',
+  hideScopeRadio: true,
+}
+
+export const LIBRARY_STREAM_PROFILE: StreamProfile = {
+  route: '/library',
+  title: 'Library',
+  subtitle: 'Notes, collections, and feeds — one query over everything.',
+  defaultWql: 'find:note last 2w',
+  level: 'note',
+  scopeLock: 'all',
+  hideScopeRadio: false,
+  shelfVisible: true,
+}
+
+export const EFFORTS_STREAM_PROFILE: StreamProfile = {
+  route: '/efforts',
+  title: 'Efforts',
+  subtitle: 'Catalog of registered movements, benchmarks, and standards.',
+  defaultWql: 'find:effort',
+  level: 'effort',
+  scopeLock: 'efforts',
+  hideScopeRadio: true,
+  emptyMessage: 'No matching movements or efforts found.',
+}
+
+export const RESULTS_STREAM_PROFILE: StreamProfile = {
+  route: '/results',
+  title: 'Results',
+  subtitle: 'Chronological stream of completed workouts and execution telemetry.',
+  defaultWql: 'rows:all last 4w',
+  level: 'result',
+  scopeLock: 'results',
+  hideScopeRadio: true,
+  emptyMessage: 'No completed session results recorded in this period.',
+}
+
+export const SEGMENTS_STREAM_PROFILE: StreamProfile = {
+  route: '/results/segments',
+  title: 'Segments',
+  subtitle: 'Interval split progression and round-by-round pacing history.',
+  defaultWql: 'rows:segment last 8w',
+  level: 'segment',
+  scopeLock: 'results',
+  hideScopeRadio: true,
+  emptyMessage: 'No interval or segment splits recorded in this period.',
+}
+
+const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
+  '/journal': JOURNAL_STREAM_PROFILE,
+  '/collections': COLLECTIONS_STREAM_PROFILE,
+  '/feeds': FEEDS_STREAM_PROFILE,
+  '/library': LIBRARY_STREAM_PROFILE,
+  '/efforts': EFFORTS_STREAM_PROFILE,
+  '/results': RESULTS_STREAM_PROFILE,
+  '/results/segments': SEGMENTS_STREAM_PROFILE,
+}
+
+export function getStreamProfile(route: string): StreamProfile | undefined {
+  const clean = route.endsWith('/') && route.length > 1 ? route.slice(0, -1) : route
+  return PROFILES_BY_ROUTE[clean]
+}
+
+export function resolveStreamProfile(route: string): StreamProfile {
+  return getStreamProfile(route) ?? LIBRARY_STREAM_PROFILE
+}

@@ -1,5 +1,5 @@
 ---
-state: open
+state: closed
 assignee: null
 labels: [wayfinder:task]
 title: "Deep QueriableStreamView component and View Settings dialog"

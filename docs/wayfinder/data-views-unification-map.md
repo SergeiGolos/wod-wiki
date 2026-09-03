@@ -23,6 +23,7 @@ A unified, deep `QueriableStreamView` in `apps/playground` that mounts directly 
 <!-- the index — one line per closed ticket: enough to judge relevance, then zoom the link for the detail the ticket holds -->
 - [001: StreamQueryEngine across content, efforts, and rows planes](data-views-unification/tickets/001-stream-query-engine.md): Unified query intake seam accepting any find or rows query string/AST, dispatching to queryService, and mapping into extended Entry model with effort and telemetry metadata.
 - [002: FieldProjection seam and view configuration model](data-views-unification/tickets/002-field-projection-seam.md): Level-configurable FieldProjection registries across note, session, result, segment, and effort entity levels with PropertyTable, ViewSettingsDialog, and per-route client storage persistence.
+- [003: Deep QueriableStreamView component and View Settings dialog](data-views-unification/tickets/003-deep-queriable-stream-view.md): Unified QueriableStreamView taking a StreamProfile, powered by StreamQueryEngine, rendering progressive date group streams or adaptable PropertyTable layouts with modal ViewSettingsDialog.
 
 ## Not yet specified
 
