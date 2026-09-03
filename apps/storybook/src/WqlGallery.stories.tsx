@@ -37,3 +37,4 @@ export const ZoneDistributionSection: Story = sectionStory('zone-distribution');
 export const TableSection: Story = sectionStory('table');
 export const RowsFindSection: Story = sectionStory('rows');
 export const FindSection: Story = sectionStory('find');
+export const EdgeStatesSection: Story = sectionStory('edge');

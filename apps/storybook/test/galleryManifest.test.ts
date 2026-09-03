@@ -78,6 +78,7 @@ describe('gallery manifest coverage', () => {
       GALLERY_CARDS.some((card) => !card.query.startsWith('rows:') && !card.query.startsWith('find:')),
     ).toBe(true);
     for (const card of GALLERY_CARDS) {
+      if (card.expectError) continue;
       const parsed = parseQuery(card.query);
       expect(parsed.error, `${card.title}: ${card.query}`).toBeUndefined();
       if (card.query.startsWith('rows:')) {
@@ -96,6 +97,10 @@ describe('gallery manifest coverage', () => {
       );
       expect(query, card.title).toBe(card.query);
       const parsed = parseQuery(query);
+      if (card.expectError) {
+        expect(parsed.error, `${card.title}: expected parse error for "${card.query}"`).toBeDefined();
+        continue;
+      }
       expect(parsed.error, `${card.title}: ${card.query}`).toBeUndefined();
       if (card.widgetType !== 'auto' && card.widgetType !== 'rows' && card.widgetType !== 'find') {
         const suffix = parseQueryWidgetSuffix(card.widgetType);
@@ -115,5 +120,24 @@ describe('gallery manifest coverage', () => {
     for (const card of GALLERY_CARDS) {
       expect(SECTION_ORDER).toContain(card.section);
     }
+  });
+
+  it('covers edge states: empty query, parse error, in-flight loading, and query families', () => {
+    const edgeCards = cardsForSection('edge');
+    expect(edgeCards.length, 'edge section should have cards').toBeGreaterThanOrEqual(3);
+    expect(edgeCards.some((c) => c.expectError), 'needs parse error card').toBe(true);
+    expect(
+      edgeCards.some((c) => !c.expectError && c.query.includes('nonexistent') && !c.query.startsWith('rows:') && !c.query.startsWith('find:')),
+      'needs empty aggregate card',
+    ).toBe(true);
+    expect(edgeCards.some((c) => c.simulateLoading), 'needs in-flight loading card').toBe(true);
+    expect(
+      edgeCards.some((c) => c.query.startsWith('rows:') && c.query.includes('nonexistent')),
+      'needs empty rows card',
+    ).toBe(true);
+    expect(
+      edgeCards.some((c) => c.query.startsWith('find:') && c.query.includes('nonexistent')),
+      'needs empty find card',
+    ).toBe(true);
   });
 });

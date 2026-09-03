@@ -1,5 +1,5 @@
 ---
-state: open
+state: closed
 labels: [wayfinder:task]
 title: "Live edge states — empty, error, loading"
 blocked-by: ["003-gallery-architecture-and-coverage-manifest"]

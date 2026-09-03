@@ -101,6 +101,13 @@ in Storybook and `AnalyticsWidgets.stories.tsx` is deleted.
   app vitest config restructured (stories browser project + node unit
   project) so the coverage guard actually runs — 61/61 green, verified
   live in Storybook.
+- [Live edge states — empty, error, loading](tickets/006-live-edge-states.md) —
+  built: edge-states section and EdgeStatesSection story in Storybook;
+  5 live cards (empty aggregate with honest stages telemetry, malformed WQL
+  surfacing parse errors via useChartShape error branch, in-flight loading
+  suspense via WqlEmptyState, empty rows plane via RowsTable, and empty find
+  plane via FindResultList); mechanical coverage guard in galleryManifest.test.ts
+  enforces edge coverage; no static fixtures survive.
 
 ## Not yet specified
 
