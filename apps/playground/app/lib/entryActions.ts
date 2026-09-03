@@ -31,6 +31,15 @@ export function entryOpenHref(entry: Entry): string {
         const date = entry.date ?? ''
         return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`
       }
+      case 'effort':
+        return `/effort/${encodeURIComponent(entry.id)}`
+      case 'result':
+        return `/results/${encodeURIComponent(entry.id)}`
+      case 'segment':
+      case 'event':
+        return `/results/${encodeURIComponent(entry.execution?.resultId ?? entry.id)}`
+      default:
+        return '/'
     }
   })()
   return entry.block ? `${href}#${encodeURIComponent(entry.block.segmentId)}` : href

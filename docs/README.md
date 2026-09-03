@@ -19,6 +19,8 @@ This folder contains the living documentation for the WOD Wiki application and t
 | [`07-screens-and-workflow.md`](./07-screens-and-workflow.md) | App | Plan → Track → Analyze screens, routing, workbench session, cast, library |
 | [`08-analytics.md`](./08-analytics.md) | Engine / App | Analytics metrics, WQL query language, dashboards, canonical metric keys, rollup math |
 | [`09-wql-deep-dive.md`](./09-wql-deep-dive.md) | Engine | WQL grammar design, AST contract, QueryService execution plan, store seams, fact pipeline, cross-store joins |
+| [`10-wql-composition-style.md`](./10-wql-composition-style.md) | Engine / App | WQL composition style, formula variations, and path to easy filters + graphs |
+| [`11-routes-wql-defaults-and-library-aliases.md`](./11-routes-wql-defaults-and-library-aliases.md) | App / Engine | Complete route inventory, landing WQL defaults, Library route aliases, and future results/segments view |
 | [`home-page-walkthrough.md`](./home-page-walkthrough.md) | App | The marketing home page scroll-runway, slide by slide |
 
 > These docs are drafts. If the code and a doc disagree, the code wins until the doc is updated.
