@@ -1,5 +1,5 @@
 ---
-state: open
+state: closed
 assignee: null
 labels: [wayfinder:prototype]
 title: "FieldProjection seam and view configuration model"

@@ -1,0 +1,130 @@
+import { describe, it, expect, mock, afterEach } from 'bun:test'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { PropertyTable } from './PropertyTable'
+import type { Entry } from '../../lib/entryMapper'
+
+describe('PropertyTable component', () => {
+afterEach(() => {
+  cleanup()
+})
+
+  const sampleEntries: Entry[] = [
+    {
+      id: 'eff-1',
+      kind: 'effort',
+      sourceCatalog: 'canonical',
+      sourceItem: 'back-squat',
+      title: 'Back Squat',
+      date: null,
+      effort: {
+        slug: 'back-squat',
+        label: 'Back Squat',
+        discipline: 'strength',
+        met: 6.0,
+        intensityTier: 'heavy',
+        aliases: ['BS', 'Squat'],
+      },
+    },
+    {
+      id: 'eff-2',
+      kind: 'effort',
+      sourceCatalog: 'canonical',
+      sourceItem: 'pull-up',
+      title: 'Pull-up',
+      date: null,
+      effort: {
+        slug: 'pull-up',
+        label: 'Pull-up',
+        discipline: 'gymnastics',
+        met: 5.0,
+        intensityTier: 'moderate',
+      },
+    },
+  ]
+
+  it('renders table headers for all default visible fields for effort level', () => {
+    render(
+      <MemoryRouter>
+        <PropertyTable entries={sampleEntries} level="effort" />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTestId('property-table')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-label')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-canonicalSlug')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-discipline')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-met')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-intensityTier')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-aliases')).toBeDefined()
+  })
+
+  it('adapts columns dynamically when visibleFieldIds is customized', () => {
+    render(
+      <MemoryRouter>
+        <PropertyTable
+          entries={sampleEntries}
+          level="effort"
+          visibleFieldIds={['label', 'discipline']}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTestId('property-table-header-label')).toBeDefined()
+    expect(screen.getByTestId('property-table-header-discipline')).toBeDefined()
+    expect(screen.queryByTestId('property-table-header-met')).toBeNull()
+    expect(screen.queryByTestId('property-table-header-aliases')).toBeNull()
+  })
+
+  it('renders rows with projected values', () => {
+    render(
+      <MemoryRouter>
+        <PropertyTable
+          entries={sampleEntries}
+          level="effort"
+          visibleFieldIds={['label', 'discipline', 'met']}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTestId('property-table-row-eff-1')).toBeDefined()
+    expect(screen.getByTestId('property-table-row-eff-2')).toBeDefined()
+
+    expect(screen.getByText('Back Squat')).toBeDefined()
+    expect(screen.getByText('strength')).toBeDefined()
+    expect(screen.getByText('6.0')).toBeDefined()
+
+    expect(screen.getByText('Pull-up')).toBeDefined()
+    expect(screen.getByText('gymnastics')).toBeDefined()
+    expect(screen.getByText('5.0')).toBeDefined()
+  })
+
+  it('fires onRowClick when a row is clicked', () => {
+    const handleRowClick = mock()
+    render(
+      <MemoryRouter>
+        <PropertyTable
+          entries={sampleEntries}
+          level="effort"
+          onRowClick={handleRowClick}
+        />
+      </MemoryRouter>,
+    )
+
+    const row = screen.getByTestId('property-table-row-eff-1')
+    fireEvent.click(row)
+
+    expect(handleRowClick).toHaveBeenCalledTimes(1)
+    expect(handleRowClick).toHaveBeenCalledWith(sampleEntries[0])
+  })
+
+  it('renders custom empty message when no entries are provided', () => {
+    render(
+      <MemoryRouter>
+        <PropertyTable entries={[]} level="effort" emptyMessage="No movements found." />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('No movements found.')).toBeDefined()
+  })
+})

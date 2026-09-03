@@ -70,6 +70,7 @@ export interface Entry {
   date: string | null
   subtitle?: string
   detail?: string
+  tags?: string[]
   blockContentId?: string
   /** Set when the Entry represents one block (find:block), not a whole note. */
   block?: EntryBlock
