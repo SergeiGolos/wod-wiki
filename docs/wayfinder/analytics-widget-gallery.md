@@ -108,6 +108,12 @@ in Storybook and `AnalyticsWidgets.stories.tsx` is deleted.
   suspense via WqlEmptyState, empty rows plane via RowsTable, and empty find
   plane via FindResultList); mechanical coverage guard in galleryManifest.test.ts
   enforces edge coverage; no static fixtures survive.
+- [Cutover — absorb AnalyticsWidgets, verify in Storybook](tickets/007-cutover-absorb-analytics-widgets.md) —
+  AnalyticsWidgets.stories.tsx deleted; all 6 widget stories live in
+  WqlGallery.stories.tsx; RangeSelectorWidget dropped (dashboard chrome);
+  Storybook preview.tsx storySort and e2e smoke tests updated; full 12-section
+  gallery verified live with zero console errors in Storybook;
+  [cutover verification asset](assets/007-cutover-verification.md).
 
 ## Not yet specified
 
@@ -123,8 +129,7 @@ in Storybook and `AnalyticsWidgets.stories.tsx` is deleted.
 - Dashboard chrome: `DashboardView`, `DashboardTokenControls`, frontmatter
   `$token` substitution, `RangeSelector` interactivity (ruled out at
   charting — scope is query widgets + rows/find families). The static
-  `RangeSelectorWidget` story dies with AnalyticsWidgets unless ticket 007
-  relocates it.
+  `RangeSelectorWidget` story was dropped at cutover (ticket 007 resolution).
 - New widget types or changes to `packages/ui` widget internals.
 - Implementing the `round` virtual dim in the engine (no `factTagValue`
   case / `dimValue` branch — found unimplementable via fixtures by

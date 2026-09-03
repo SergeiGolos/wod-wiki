@@ -12,7 +12,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 const STORIES = [
   'gallery-wql-composer--default',
-  'gallery-analytics-widgets--query-value-widget',
+  'gallery-wql-example-gallery--value-section',
   'workbench-benchmark-fran--standard-couplet',
 ];
 
