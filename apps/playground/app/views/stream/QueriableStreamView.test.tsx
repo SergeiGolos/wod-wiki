@@ -10,6 +10,8 @@ import {
   EFFORTS_STREAM_PROFILE,
   JOURNAL_STREAM_PROFILE,
   LIBRARY_STREAM_PROFILE,
+  RESULTS_STREAM_PROFILE,
+  createResultDetailProfile,
 } from './streamProfile'
 beforeEach(() => {
   window.localStorage.clear()
@@ -173,5 +175,54 @@ describe('QueriableStreamView component', () => {
     await waitFor(() => {
       expect(engine.query).toHaveBeenCalledWith('find:note{source:journal,text:snatch} last 2w')
     })
+  })
+
+  it('renders Results stream cleanly without error banner on default query', async () => {
+    const engine = createMockEngine([])
+
+    render(
+      <MemoryRouter initialEntries={['/results']}>
+        <QueriableStreamView profile={RESULTS_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Results')).toBeDefined()
+    await waitFor(() => {
+      expect(screen.getByText('No completed session results recorded in this period.')).toBeDefined()
+    })
+    expect(screen.queryByTestId('stream-query-error')).toBeNull()
+  })
+
+  it('renders result detail stream profile at /results/:resultId with segment rows', async () => {
+    const sampleSegmentEntries: Entry[] = [
+      {
+        id: 'res-42:0',
+        kind: 'segment',
+        sourceCatalog: 'results',
+        sourceItem: 'res-42',
+        title: 'Session Result',
+        date: '2026-06-01',
+        segment: {
+          resultId: 'res-42',
+          segmentIndex: 0,
+          splitDurationMs: 120000,
+          workReps: 21,
+          roundIndex: 1,
+        },
+      },
+    ]
+    const engine = createMockEngine(sampleSegmentEntries)
+    const profile = createResultDetailProfile('res-42')
+
+    render(
+      <MemoryRouter initialEntries={['/results/res-42']}>
+        <QueriableStreamView profile={profile} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Session Result')).toBeDefined()
+    })
+    expect(screen.queryByTestId('stream-query-error')).toBeNull()
   })
 })

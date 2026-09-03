@@ -194,8 +194,8 @@ export function QueriableStreamView({
     return profile.subtitle ?? ''
   }, [profile, query, sourceValue])
 
-  // Query error detection
-  const composedError = parsed.error ? parsed.error : null
+  // Query error detection (composed query is the default fallback and has nothing to flag unless edited or invalid from URL)
+  const composedError = parsed.error && query !== profile.defaultWql ? parsed.error : null
   const queryError = urlQueryError ?? composedError
 
   // Empty state remedies

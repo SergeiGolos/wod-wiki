@@ -191,6 +191,8 @@ function deriveWorkout(
     '/feeds': 'Feeds',
     '/collections': 'Collections',
     '/efforts': 'Efforts',
+    '/results': 'Results',
+    '/results/segments': 'Segments',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
     '/guide/analytics': 'Analytics Guide',
@@ -201,6 +203,9 @@ function deriveWorkout(
   const namedMatch = named[pathname] ?? named[cleanPath]
   if (namedMatch) {
     return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
+  }
+  if (cleanPath.startsWith('/results/')) {
+    return { name: 'Result', content: PLAYGROUND_CONTENT, category: 'Results' }
   }
 
   const effectiveName = urlWorkout || urlName
@@ -321,7 +326,9 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
     clean === '/journal' ||
     clean === '/collections' ||
     clean === '/feeds' ||
-    clean === '/efforts'
+    clean === '/efforts' ||
+    clean === '/results' ||
+    clean.startsWith('/results/')
   ) {
     return 'library'
   }

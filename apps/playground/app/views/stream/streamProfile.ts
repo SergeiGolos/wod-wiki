@@ -139,7 +139,7 @@ export const RESULTS_STREAM_PROFILE: StreamProfile = {
   route: '/results',
   title: 'Results',
   subtitle: 'Chronological stream of completed workouts and execution telemetry.',
-  defaultWql: 'rows:all last 4w',
+  defaultWql: 'rows:all{} last 4w',
   level: 'result',
   scopeLock: 'results',
   hideScopeRadio: true,
@@ -150,11 +150,24 @@ export const SEGMENTS_STREAM_PROFILE: StreamProfile = {
   route: '/results/segments',
   title: 'Segments',
   subtitle: 'Interval split progression and round-by-round pacing history.',
-  defaultWql: 'rows:segment last 8w',
+  defaultWql: 'rows:segment{} last 8w',
   level: 'segment',
   scopeLock: 'results',
   hideScopeRadio: true,
   emptyMessage: 'No interval or segment splits recorded in this period.',
+}
+
+export function createResultDetailProfile(resultId: string): StreamProfile {
+  return {
+    route: `/results/${resultId}`,
+    title: 'Session Result',
+    subtitle: 'Detailed tabular breakdown of rounds, intervals, and lap splits.',
+    defaultWql: `rows:segment{result:${resultId}}`,
+    level: 'segment',
+    scopeLock: 'results',
+    hideScopeRadio: true,
+    emptyMessage: `No segment records found for result ${resultId}.`,
+  }
 }
 
 const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
@@ -169,7 +182,17 @@ const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
 
 export function getStreamProfile(route: string): StreamProfile | undefined {
   const clean = cleanRoutePath(route)
-  return PROFILES_BY_ROUTE[clean]
+  const exact = PROFILES_BY_ROUTE[clean]
+  if (exact) return exact
+
+  if (clean.startsWith('/results/')) {
+    const resultId = clean.slice('/results/'.length)
+    if (resultId) {
+      return createResultDetailProfile(resultId)
+    }
+  }
+
+  return undefined
 }
 
 export function resolveStreamProfile(route: string): StreamProfile {

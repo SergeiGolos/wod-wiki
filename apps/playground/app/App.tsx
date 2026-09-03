@@ -400,7 +400,11 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  {/* Retired review screens (#946) — bookmarks land on the explorer with the matching rows query. */}
+                  {/* Dedicated execution telemetry streams and result detail (#946, Ticket 005). */}
+                  <Route path={ROUTE_PATTERNS.results} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.resultsSegments} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.resultDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* Retired review screens (#946, Ticket 005) — bookmarks land on dedicated results routes. */}
                   <Route path="/review/:runtimeId" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review/:sectionId" element={<ReviewRedirect />} />

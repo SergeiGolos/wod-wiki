@@ -38,8 +38,8 @@ export function WallClockPage() {
         createdAt: results.endTime || Date.now(),
       }).then(() => {
         if (results.completed) {
-          // #946: the explorer with the session rows query is the review.
-          navigate(`/dashboard?q=${encodeURIComponent(`rows:{result:${runtimeId}}`)}`, { replace: true })
+          // Ticket 005: post-session completion lands on the dedicated result detail route.
+          navigate(`/results/${encodeURIComponent(runtimeId)}`, { replace: true })
         }
       }).catch(() => {})
     },

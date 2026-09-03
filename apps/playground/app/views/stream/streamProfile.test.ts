@@ -51,7 +51,7 @@ describe('streamProfile presets', () => {
   it('defines the Results stream profile', () => {
     expect(RESULTS_STREAM_PROFILE.route).toBe('/results')
     expect(RESULTS_STREAM_PROFILE.title).toBe('Results')
-    expect(RESULTS_STREAM_PROFILE.defaultWql).toBe('rows:all last 4w')
+    expect(RESULTS_STREAM_PROFILE.defaultWql).toBe('rows:all{} last 4w')
     expect(RESULTS_STREAM_PROFILE.level).toBe('result')
     expect(RESULTS_STREAM_PROFILE.hideScopeRadio).toBe(true)
   })
@@ -59,7 +59,7 @@ describe('streamProfile presets', () => {
   it('defines the Segments stream profile', () => {
     expect(SEGMENTS_STREAM_PROFILE.route).toBe('/results/segments')
     expect(SEGMENTS_STREAM_PROFILE.title).toBe('Segments')
-    expect(SEGMENTS_STREAM_PROFILE.defaultWql).toBe('rows:segment last 8w')
+    expect(SEGMENTS_STREAM_PROFILE.defaultWql).toBe('rows:segment{} last 8w')
     expect(SEGMENTS_STREAM_PROFILE.level).toBe('segment')
     expect(SEGMENTS_STREAM_PROFILE.hideScopeRadio).toBe(true)
   })
@@ -79,6 +79,29 @@ describe('streamProfile presets', () => {
 
     // resolveStreamProfile explicitly falls back to library profile
     expect(resolveStreamProfile('/unknown').route).toBe('/library')
+  })
+
+  it('dynamically resolves result detail stream profile for /results/:resultId', () => {
+    const detail = getStreamProfile('/results/res-42')
+    expect(detail).toBeDefined()
+    expect(detail?.route).toBe('/results/res-42')
+    expect(detail?.title).toBe('Session Result')
+    expect(detail?.defaultWql).toBe('rows:segment{result:res-42}')
+    expect(detail?.level).toBe('segment')
+    expect(detail?.scopeLock).toBe('results')
+    expect(detail?.hideScopeRadio).toBe(true)
+
+    // Trailing slash normalizes
+    const trailing = getStreamProfile('/results/res-42/')
+    expect(trailing?.route).toBe('/results/res-42')
+    expect(trailing?.defaultWql).toBe('rows:segment{result:res-42}')
+
+    // resolveStreamProfile returns the dynamic profile
+    expect(resolveStreamProfile('/results/res-99').defaultWql).toBe('rows:segment{result:res-99}')
+
+    // /results/segments does NOT get treated as a dynamic resultId 'segments'
+    expect(getStreamProfile('/results/segments')?.title).toBe('Segments')
+    expect(getStreamProfile('/results/segments')?.defaultWql).toBe('rows:segment{} last 8w')
   })
 })
 

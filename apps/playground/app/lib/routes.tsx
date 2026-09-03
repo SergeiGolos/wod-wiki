@@ -43,6 +43,9 @@ export const ROUTE_PATTERNS = {
   efforts: '/efforts',
   effort: '/effort/:slug',
   effortDetail: '/effort/:slug',
+  results: '/results',
+  resultsSegments: '/results/segments',
+  resultDetail: '/results/:resultId',
   analytics: '/analytics',
   analyticsExplorer: '/analytics/explorer',
   analyticsDashboard: '/analytics/dashboard',
@@ -250,15 +253,12 @@ export function TrackerRedirect(): ReactNode {
 }
 
 /**
- * Retired review routes (#946): the dedicated results screens are gone — the
- * explorer with a rows query is the review. Bookmarks land on `/dashboard`
- * with the equivalent WQL preselected:
- *   /review/:runtimeId                              → rows:{result:…}
- *   /note/:noteId/review[/…]                        → rows:{note:…}
- *   /note/:noteId/review/:sectionId/:resultId       → rows:{result:…}
- * A section-only URL cannot narrow to `rows:{block:…}` — legacy section ids
- * predate block content ids — so it widens to the note scope (a truthful
- * superset) rather than landing on an empty table.
+ * Retired review routes (#946, Ticket 005): dedicated execution telemetry routes
+ * live on `/results` and `/results/:resultId`. Bookmarks land directly on
+ * `/results/:resultId` (or note-scoped `/results?q=...`) instead of `/dashboard`:
+ *   /review/:runtimeId                              → /results/:runtimeId
+ *   /note/:noteId/review/:sectionId/:resultId       → /results/:resultId
+ *   /note/:noteId/review[/…]                        → /results?q=rows:all{note:…}
  */
 export function ReviewRedirect(): ReactNode {
   const { runtimeId, noteId, resultId } = useParams<{
@@ -268,8 +268,13 @@ export function ReviewRedirect(): ReactNode {
     resultId?: string
   }>()
   const scope = resultId ?? runtimeId
-  const q = scope ? `rows:{result:${scope}}` : `rows:{note:${noteId ?? ''}}`
-  return <Navigate to={`/dashboard?q=${encodeURIComponent(q)}`} replace />
+  if (scope) {
+    return <Navigate to={`/results/${encodeURIComponent(scope)}`} replace />
+  }
+  if (noteId) {
+    return <Navigate to={`/results?q=${encodeURIComponent(`rows:all{note:${noteId}}`)}`} replace />
+  }
+  return <Navigate to="/results" replace />
 }
 
 /** Redirect /getting-started → / (retired: content folded into home) */

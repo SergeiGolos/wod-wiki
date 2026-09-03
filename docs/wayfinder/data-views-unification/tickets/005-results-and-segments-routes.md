@@ -1,5 +1,5 @@
 ---
-state: open
+state: closed
 assignee: null
 labels: [wayfinder:task]
 title: "Mount Results and Segments routes on QueriableStreamView"
