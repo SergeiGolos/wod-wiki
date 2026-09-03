@@ -81,3 +81,30 @@ describe('streamProfile presets', () => {
     expect(resolveStreamProfile('/unknown').route).toBe('/library')
   })
 })
+
+describe('streamProfile legacy configurations', () => {
+  it('migrates legacy content parameters with default source', () => {
+    const journalLegacy = JOURNAL_STREAM_PROFILE.legacy!
+    expect(journalLegacy).toBeDefined()
+    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch'))).toBe('find:note{source:journal,text:snatch} last 2w')
+    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch+clean&timePreset=4w'))).toBe('find:note{source:journal,text:"snatch clean"} last 4w')
+    expect(journalLegacy.toQuery(new URLSearchParams('timePreset=all'))).toBe('find:note{source:journal}')
+  })
+
+  it('migrates legacy tri-state parameters', () => {
+    const libraryLegacy = LIBRARY_STREAM_PROFILE.legacy!
+    expect(libraryLegacy).toBeDefined()
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe('find:note{source:journal} last 2w')
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe('find:note{source:collections} last 2w')
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on'))).toBe('find:note{source:feeds} last 2w')
+  })
+
+  it('migrates legacy efforts parameters and salvages plain text query', () => {
+    const effortsLegacy = EFFORTS_STREAM_PROFILE.legacy!
+    expect(effortsLegacy).toBeDefined()
+    expect(effortsLegacy.toQuery(new URLSearchParams('origin=bundled&discipline=strength'))).toBe('find:effort{origin:bundled,discipline:strength}')
+    expect(effortsLegacy.salvageQ?.('pull-up', new URLSearchParams())).toBe('find:effort{text:pull-up}')
+    expect(effortsLegacy.salvageQ?.('handstand push-up', new URLSearchParams('origin=user'))).toBe('find:effort{text:"handstand push-up",origin:user}')
+    expect(effortsLegacy.salvageQ?.('find:effort', new URLSearchParams())).toBeNull()
+  })
+})

@@ -24,6 +24,7 @@ A unified, deep `QueriableStreamView` in `apps/playground` that mounts directly 
 - [001: StreamQueryEngine across content, efforts, and rows planes](data-views-unification/tickets/001-stream-query-engine.md): Unified query intake seam accepting any find or rows query string/AST, dispatching to queryService, and mapping into extended Entry model with effort and telemetry metadata.
 - [002: FieldProjection seam and view configuration model](data-views-unification/tickets/002-field-projection-seam.md): Level-configurable FieldProjection registries across note, session, result, segment, and effort entity levels with PropertyTable, ViewSettingsDialog, and per-route client storage persistence.
 - [003: Deep QueriableStreamView component and View Settings dialog](data-views-unification/tickets/003-deep-queriable-stream-view.md): Unified QueriableStreamView taking a StreamProfile, powered by StreamQueryEngine, rendering progressive date group streams or adaptable PropertyTable layouts with modal ViewSettingsDialog.
+- [004: Route cutover: replace LibraryRedirect with direct route mounting](data-views-unification/tickets/004-route-cutover-direct-mounting.md): Clean cutover mounting QueriableStreamView directly on /journal, /collections, /feeds, /library, and /efforts with route-aware StreamProfiles, deleting LibraryRedirect and EffortsCatalogPage while preserving legacy parameter migrations.
 
 ## Not yet specified
 

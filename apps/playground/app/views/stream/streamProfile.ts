@@ -8,6 +8,12 @@
 import type { ReactNode } from 'react'
 import type { EntityLevel } from '../../lib/fieldProjection'
 import type { LibraryScope } from '../library/SourceScopeRadio'
+import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
+import type { ComposerLegacyConfig } from '../../hooks/useComposerQueryState'
+
+export function cleanRoutePath(route: string): string {
+  return route.endsWith('/') && route.length > 1 ? route.slice(0, -1) : route
+}
 
 export interface StreamProfile {
   /** Route path matching this stream (e.g. '/journal', '/library', '/efforts'). */
@@ -28,6 +34,47 @@ export interface StreamProfile {
   shelfVisible?: boolean
   /** Optional message displayed when query yields zero results. */
   emptyMessage?: string
+  /** Legacy parameter and salvage configuration for URL migration. */
+  legacy?: StreamProfileLegacyConfig
+}
+
+export type StreamProfileLegacyConfig = ComposerLegacyConfig
+
+export function createContentLegacyConfig(defaultSource?: string): StreamProfileLegacyConfig {
+  const keys = ['note', 'session', 'post', 'text', 'timePreset', 'rangeStart', 'rangeEnd', 's', 'tags', 'mode'] as const
+  return {
+    keys,
+    toQuery(search: URLSearchParams): string | null {
+      const hasAnyLegacy = keys.some(k => search.has(k))
+      if (!hasAnyLegacy) return null
+
+      let sourceFilter: string | null = null
+      const hasTriState = search.has('note') || search.has('session') || search.has('post')
+      if (hasTriState) {
+        const visible: string[] = []
+        if ((search.get('note') ?? 'include') !== 'hide') visible.push('journal')
+        if ((search.get('session') ?? 'include') !== 'hide') visible.push('collections')
+        if ((search.get('post') ?? 'include') !== 'hide') visible.push('feeds')
+        if (visible.length === 1) {
+          sourceFilter = `source:${visible[0]}`
+        }
+      } else if (defaultSource) {
+        sourceFilter = `source:${defaultSource}`
+      }
+
+      const preset = search.get('timePreset') ?? '2w'
+      const window = preset === 'all' || preset === 'custom' ? null : `last ${preset}`
+
+      const text = search.get('text')?.trim()
+      const tags = search.get('tags')?.trim()
+      const textClause = text ? (/\s/.test(text) ? `text:"${text}"` : `text:${text}`) : null
+      const tagsClause = tags ? `tags:${tags}` : null
+
+      const filters = [sourceFilter, textClause, tagsClause].filter(Boolean)
+      const braces = filters.length ? `{${filters.join(',')}}` : ''
+      return [`find:note${braces}`, window].filter(Boolean).join(' ')
+    },
+  }
 }
 
 export const JOURNAL_STREAM_PROFILE: StreamProfile = {
@@ -38,6 +85,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   level: 'note',
   scopeLock: 'notes',
   hideScopeRadio: true,
+  legacy: createContentLegacyConfig('journal'),
 }
 
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
@@ -49,6 +97,7 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   scopeLock: 'collections',
   hideScopeRadio: true,
   shelfVisible: true,
+  legacy: createContentLegacyConfig('collections'),
 }
 
 export const FEEDS_STREAM_PROFILE: StreamProfile = {
@@ -59,6 +108,7 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   level: 'note',
   scopeLock: 'feeds',
   hideScopeRadio: true,
+  legacy: createContentLegacyConfig('feeds'),
 }
 
 export const LIBRARY_STREAM_PROFILE: StreamProfile = {
@@ -70,6 +120,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   scopeLock: 'all',
   hideScopeRadio: false,
   shelfVisible: true,
+  legacy: createContentLegacyConfig(),
 }
 
 export const EFFORTS_STREAM_PROFILE: StreamProfile = {
@@ -81,6 +132,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   scopeLock: 'efforts',
   hideScopeRadio: true,
   emptyMessage: 'No matching movements or efforts found.',
+  legacy: EFFORTS_LEGACY_CONFIG,
 }
 
 export const RESULTS_STREAM_PROFILE: StreamProfile = {
@@ -116,7 +168,7 @@ const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
 }
 
 export function getStreamProfile(route: string): StreamProfile | undefined {
-  const clean = route.endsWith('/') && route.length > 1 ? route.slice(0, -1) : route
+  const clean = cleanRoutePath(route)
   return PROFILES_BY_ROUTE[clean]
 }
 

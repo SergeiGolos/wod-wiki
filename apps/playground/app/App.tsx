@@ -25,7 +25,6 @@ import { useNav } from './nav/NavContext'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import { resolveLibraryRedirect } from './lib/routes'
 import {
   ROUTE_PATTERNS,
   PlanRedirect,
@@ -44,7 +43,8 @@ import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { HomeView } from './views/HomeView'
-import { LibraryPage } from './views/library/LibraryPage'
+import { QueriableStreamView } from './views/stream/QueriableStreamView'
+import { resolveStreamProfile } from './views/stream/streamProfile'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -60,7 +60,6 @@ import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
 import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAuthoringPanel'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
 import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
 
@@ -79,14 +78,6 @@ import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 // props to leaf components — see `MarkdownCanvasPage.test.tsx` for the contract.
 import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
 export type { WorkoutItem }
-
-/** Redirect /journal|/collections|/feeds → /library?… (with tri-state + query
- *  preservation). Uses `useLocation` to capture the search the user typed. */
-function LibraryRedirect(): ReactNode {
-  const { pathname, search } = useLocation()
-  const dest = resolveLibraryRedirect(pathname, search)
-  return <Navigate to={dest ?? '/library'} replace />
-}
 
 /** Redirect /analytics/explorer → /dashboard, preserving the shareable ?q=
  *  (and ?weeks=) query string. The WQL explorer moved to /dashboard. */
@@ -181,11 +172,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    effortsCatalog: () => (
-      <EffortsCatalogPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
-      />
-    ),
     effortDetail: () => <EffortDetailPage />,
     analyticsExplorer: () => (
       <AnalyticsExplorerPage
@@ -242,11 +228,16 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    library: () => (
-      <LibraryPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
-      />
-    ),
+    library: () => {
+      const profile = resolveStreamProfile(location.pathname)
+      return (
+        <QueriableStreamView
+          key={profile.route}
+          profile={profile}
+          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+        />
+      )
+    },
   }
 
   const canvasTitleAccessory =
@@ -390,10 +381,10 @@ export function App() {
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
                   <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
-                  <Route path={ROUTE_PATTERNS.feeds} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collections} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
@@ -405,7 +396,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />

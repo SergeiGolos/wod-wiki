@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { QueriableStreamView } from './QueriableStreamView'
-import { EFFORTS_STREAM_PROFILE, JOURNAL_STREAM_PROFILE } from './streamProfile'
+import type { Entry } from '../../lib/entryMapper'
 import { StreamQueryEngine } from '../../lib/entrySearch'
 import { writeViewSettings } from '../../lib/viewSettingsStorage'
-import type { Entry } from '../../lib/entryMapper'
-
+import type { ParsedFindQuery, ParsedRowsQuery } from '@bitcobblers/wod-wiki-engine'
+import { QueriableStreamView } from './QueriableStreamView'
+import {
+  EFFORTS_STREAM_PROFILE,
+  JOURNAL_STREAM_PROFILE,
+  LIBRARY_STREAM_PROFILE,
+} from './streamProfile'
 beforeEach(() => {
   window.localStorage.clear()
 })
@@ -155,5 +159,19 @@ describe('QueriableStreamView component', () => {
     )
 
     expect(screen.queryByTestId('source-scope-radio')).toBeNull()
+  })
+
+  it('migrates legacy query parameters on mount to canonical WQL query', async () => {
+    const engine = createMockEngine([])
+
+    render(
+      <MemoryRouter initialEntries={['/journal?text=snatch']}>
+        <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(engine.query).toHaveBeenCalledWith('find:note{source:journal,text:snatch} last 2w')
+    })
   })
 })

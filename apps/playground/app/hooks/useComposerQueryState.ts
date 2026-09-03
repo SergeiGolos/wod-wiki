@@ -36,21 +36,23 @@ export interface ComposerQueryState {
   urlQueryError: string | null
 }
 
+export interface ComposerLegacyConfig {
+  /** URL keys consumed by the migration (stripped afterwards). */
+  keys: readonly string[]
+  /** Map legacy URL params to a WQL query; null when nothing to migrate. */
+  toQuery: (search: URLSearchParams) => string | null
+  /**
+   * Interpret an unparseable `q` as legacy state (e.g. the efforts page's
+   * old plain-text `?q=fran`). Return the migrated query, or null to
+   * surface the rejection banner instead.
+   */
+  salvageQ?: (q: string, search: URLSearchParams) => string | null
+}
+
 export interface ComposerQueryStateConfig {
   /** Landing state when no usable URL state exists. */
   defaultQuery: () => string
-  legacy?: {
-    /** URL keys consumed by the migration (stripped afterwards). */
-    keys: readonly string[]
-    /** Map legacy URL params to a WQL query; null when nothing to migrate. */
-    toQuery: (search: URLSearchParams) => string | null
-    /**
-     * Interpret an unparseable `q` as legacy state (e.g. the efforts page's
-     * old plain-text `?q=fran`). Return the migrated query, or null to
-     * surface the rejection banner instead.
-     */
-    salvageQ?: (q: string, search: URLSearchParams) => string | null
-  }
+  legacy?: ComposerLegacyConfig
 }
 
 /** Rejection message for an unparseable `q`, with the parser's own detail. */

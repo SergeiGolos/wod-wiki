@@ -1,5 +1,5 @@
 ---
-state: open
+state: closed
 assignee: null
 labels: [wayfinder:task]
 title: "Route cutover: replace LibraryRedirect with direct route mounting"

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
-import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells'
 import type { Entry } from '../../lib/entryMapper'
@@ -35,6 +35,8 @@ import { SourceScopeRadio, SOURCE_BY_SCOPE, SCOPE_BY_SOURCE, type LibraryScope }
 import { LibraryRow } from '../library/LibraryRow'
 import { PropertyTable } from './PropertyTable'
 import { ViewSettingsDialog } from './ViewSettingsDialog'
+import { journalNotes } from '../../services/journalNotes'
+import { addEntryToTodayInput } from '../../lib/addToToday'
 import type { StreamProfile } from './streamProfile'
 
 function BatchingSentinel({
@@ -76,6 +78,7 @@ export function QueriableStreamView({
   // Synchronize composer state with URL
   const { query, setQuery, urlQueryError } = useComposerQueryState({
     defaultQuery: () => profile.defaultWql,
+    legacy: profile.legacy,
   })
 
   // Per-route view settings (layout + field visibility)
@@ -105,6 +108,32 @@ export function QueriableStreamView({
     },
     [query, setQuery],
   )
+
+  const defaultAddToToday = useCallback(async (entry: Entry) => {
+    const today = todayKey()
+    let rawContent = ''
+    if (entry.kind === 'session' || entry.kind === 'post') {
+      const result = await queryService.runFind({
+        raw: `find:block{note:${entry.id}}`,
+        target: 'block',
+        filters: [{ key: 'note', negate: false, values: [{ value: entry.id, wildcard: false }] }],
+      } as ParsedFindQuery)
+      rawContent = [...result.blocks]
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .filter(b => b.rawContent.trim() !== '')
+        .map(b => (b.dataType === 'frontmatter' ? `---\n${b.rawContent}\n---` : b.rawContent))
+        .join('\n\n')
+    } else if (entry.kind === 'note') {
+      const note = await journalNotes.getById(entry.sourceItem)
+      if (note && typeof note === 'object' && 'rawContent' in note && typeof note.rawContent === 'string') {
+        rawContent = note.rawContent
+      }
+    }
+    const input = addEntryToTodayInput(entry, rawContent, today)
+    await journalNotes.create(input)
+  }, [])
+
+  const handleAddToToday = onAddToToday ?? defaultAddToToday
 
   const execute = useCallback<WqlExecutor>(
     ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
@@ -288,7 +317,7 @@ export function QueriableStreamView({
                       key={entry.id}
                       entry={entry}
                       visibleFieldIds={settings.visibleFields}
-                      onAddToToday={onAddToToday}
+                      onAddToToday={handleAddToToday}
                     />
                   ))}
                   <BatchingSentinel batch={undatedBatch} testId="stream-shelf-load-more" />
@@ -331,7 +360,7 @@ export function QueriableStreamView({
                           entry={entry}
                           visibleFieldIds={settings.visibleFields}
                           tone={isToday ? 'primary' : 'secondary'}
-                          onAddToToday={onAddToToday}
+                          onAddToToday={handleAddToToday}
                         />
                       ))}
                     </div>
@@ -348,7 +377,7 @@ export function QueriableStreamView({
                   key={entry.id}
                   entry={entry}
                   visibleFieldIds={settings.visibleFields}
-                  onAddToToday={onAddToToday}
+                  onAddToToday={handleAddToToday}
                 />
               ))}
               <BatchingSentinel batch={undatedBatch} />

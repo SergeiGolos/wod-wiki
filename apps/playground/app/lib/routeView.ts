@@ -20,6 +20,7 @@ import {
   matchFeedItem,
   matchFeedDetail,
 } from './routes'
+import { cleanRoutePath } from '../views/stream/streamProfile'
 import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { formatDateMedium } from '@/lib/dateFormat'
@@ -68,7 +69,6 @@ export interface CurrentWorkout {
 export type PageKind =
   | 'feedDetail'
   | 'feedItem'
-  | 'effortsCatalog'
   | 'effortDetail'
   | 'analyticsExplorer'
   | 'dashboardExplorer'
@@ -189,14 +189,16 @@ function deriveWorkout(
     '/library': 'Library',
     '/journal': 'Journal',
     '/feeds': 'Feeds',
+    '/collections': 'Collections',
+    '/efforts': 'Efforts',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
     '/guide/analytics': 'Analytics Guide',
-    '/collections': 'Collections',
     '/analytics/dashboard': 'Analytics Dashboard',
     '/analytics/explorer': 'Metric Explorer',
   }
-  const namedMatch = named[pathname]
+  const cleanPath = cleanRoutePath(pathname)
+  const namedMatch = named[pathname] ?? named[cleanPath]
   if (namedMatch) {
     return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
   }
@@ -313,12 +315,18 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  // /journal, /feeds, /collections are LibraryRedirect-owned — the router
-  // normalizes them to /library before AppContent ever resolves a view.
-  if (pathname === '/library' || pathname === '/library/') return 'library'
+  const clean = cleanRoutePath(pathname)
+  if (
+    clean === '/library' ||
+    clean === '/journal' ||
+    clean === '/collections' ||
+    clean === '/feeds' ||
+    clean === '/efforts'
+  ) {
+    return 'library'
+  }
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
-  if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
   if (pathname === '/dashboard') return 'dashboardExplorer'
