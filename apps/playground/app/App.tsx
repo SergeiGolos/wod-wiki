@@ -100,7 +100,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const view = useRouteView()
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
-
+  // General layout breadcrumb: active L1 section › page identity
+  const { tree: l1Items, navState } = useNav()
+  const activeL1 = l1Items.find(item => item.id === navState.activeL1Id) ?? null
+  const crumbTitle = view.shell.title
   // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
@@ -288,14 +291,29 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     <SidebarLayout
       navbar={
         <Navbar>
-          <div className="flex items-center gap-2 min-w-0 truncate">
-            <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
-              {currentWorkout.name}
-            </span>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 min-w-0 truncate text-sm">
+            {activeL1 && (
+              <button
+                type="button"
+                onClick={() => activeL1.action.type === 'route' && navigate(activeL1.action.to)}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {activeL1.label}
+              </button>
+            )}
+            {activeL1 && !!crumbTitle && crumbTitle.toLowerCase() !== activeL1.label.toLowerCase() && (
+              <span aria-hidden="true" className="text-muted-foreground/50 shrink-0">›</span>
+            )}
+            {crumbTitle && crumbTitle.toLowerCase() !== activeL1?.label.toLowerCase() && (
+              <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
+                {crumbTitle}
+              </span>
+            )}
             {canvasTitleAccessory}
-          </div>
-          <NavbarSpacer />
-          <NavbarSection>
+          </nav>
+          {/* Search / cast / actions — mobile navbar only; on desktop the icon
+              rail owns search and each page header keeps its own actions. */}
+          <NavbarSection className="lg:hidden">
             <NavSearchInput onOpen={openSearchPalette} />
             <div className="flex items-center">
               <CastButtonRpc />
@@ -305,6 +323,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         </Navbar>
       }
       sidebar={<NavSidebar />}
+      onSearch={openSearchPalette}
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">

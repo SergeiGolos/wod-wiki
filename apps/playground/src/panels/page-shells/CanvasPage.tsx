@@ -243,8 +243,8 @@ export function CanvasPage({
 
       {/* TOC Sidebar — outside the content card, visible at Desktop XL+ */}
       {index.length > 0 && (
-        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto p-10">
-          <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
+        <aside className="hidden xl:block w-72 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto px-7 py-8">
+          <div className="font-bold text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60 mb-5">
             On this page
           </div>
           <nav className="flex flex-col gap-1 border-l border-border/40 ml-1">

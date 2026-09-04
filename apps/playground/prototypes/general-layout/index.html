@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>General Layout Prototypes | WOD Wiki</title>
+  <!--
+    PROTOTYPE hub — throwaway. Not production code.
+
+    Four HTML prototypes applying the approved Stitch "general layout" to the
+    app's four surfaces. Source frame:
+    https://stitch.withgoogle.com/preview/12700793985128446910?node-id=b14541bec52b435ba95a0131a5901709
+
+    Open: file://.../playground/prototypes/general-layout/index.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="base.css" />
+  <style>
+    .hub { max-width: 1060px; margin: 0 auto; padding: 48px 28px 80px; }
+    .hub h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+    .anatomy { display: grid; grid-template-columns: 56px 200px 1fr 140px; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin: 28px 0 8px; min-height: 130px; height: auto; }
+    .anatomy div { padding: 12px; font-size: 11px; color: var(--fg-3); border-right: 1px solid var(--line-soft); }
+    .anatomy div:last-child { border-right: none; }
+    .anatomy b { display: block; color: var(--fg); font-size: 12px; margin-bottom: 4px; }
+    .anatomy .num { font-family: var(--font-mono); color: var(--accent); font-size: 10px; }
+    .anat-caption { font-size: 12px; color: var(--fg-4); margin-bottom: 34px; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .pcard { display: block; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-raise); padding: 20px; transition: border-color .12s, transform .12s; }
+    .pcard:hover { border-color: #2e3648; transform: translateY(-2px); }
+    .pcard .route { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+    .pcard h2 { font-size: 17px; font-weight: 700; margin: 6px 0 6px; }
+    .pcard p { font-size: 13px; color: var(--fg-3); }
+    .notes { margin-top: 36px; border-top: 1px solid var(--line-soft); padding-top: 22px; }
+    .notes h3 { font-size: 13px; font-weight: 700; letter-spacing: .1em; color: var(--fg-3); margin-bottom: 12px; }
+    .notes li { color: var(--fg-2); font-size: 13px; margin: 7px 0 7px 18px; }
+    .notes a { color: var(--m-time); }
+  </style>
+</head>
+<body>
+  <div class="hub">
+    <h1>General layout — applied</h1>
+    <p class="lead">
+      The approved Stitch prototype (<a href="https://stitch.withgoogle.com/preview/12700793985128446910?node-id=b14541bec52b435ba95a0131a5901709" style="color:var(--m-time)">Layout Explorations</a>)
+      solves the <em>general</em> app layout. These four static pages apply it to every surface.
+      All four share one stylesheet — <span style="font-family:var(--font-mono); font-size:12px; color:var(--accent)">base.css</span> — which is the layout spec.
+    </p>
+
+    <div class="anatomy">
+      <div><span class="num">1</span><b>Icon rail</b>56px · L1: Home, Library, Dashboards, Efforts · search + settings pinned</div>
+      <div><span class="num">2</span><b>Context sidebar</b>240px · swaps payload per L1 (guide groups / dashboard list / doc outline / query surfaces)</div>
+      <div><span class="num">3</span><b>Content</b>sticky topbar: breadcrumb ⟷ ⌘K search · page column · the engine renders inline (code ⇄ output)</div>
+      <div><span class="num">4</span><b>Rail</b>216px · "On this page" outline — or facets + saved views where the page has no outline</div>
+    </div>
+    <div class="anat-caption">Grid: <span style="font-family:var(--font-mono)">56 · 240 · 1fr · 216</span> — TOC drops under 1180px, sidebar under 860px (rail-only).</div>
+
+    <div class="cards">
+      <a class="pcard" href="home.html">
+        <span class="route">/</span>
+        <h2>Home</h2>
+        <p>Landing + guide. Today's session with embedded output, recent journal, REFERENCE sidebar exactly as prototyped (Syntax · Behaviors · Analytics).</p>
+      </a>
+      <a class="pcard" href="dashboard.html">
+        <span class="route">/dashboard</span>
+        <h2>Dashboards</h2>
+        <p>Dashboard Note as widgets: headline values, trend, discipline mix, session table. frontmatter tokens → segmented controls; sidebar = dashboard list.</p>
+      </a>
+      <a class="pcard" href="editor.html">
+        <span class="route">/journal/2026-08-30</span>
+        <h2>Editor</h2>
+        <p>Note as document: markdown source and the LIVE runtime card in one column. Tracking chip in the topbar; sidebar = outline + related.</p>
+      </a>
+      <a class="pcard" href="library.html">
+        <span class="route">/library/journal</span>
+        <h2>Library</h2>
+        <p>Query surfaces (Journal / Collections / Feeds / Efforts). WQL filter strip with token pills; right rail becomes facets + saved views.</p>
+      </a>
+    </div>
+
+    <div class="notes">
+      <h3>WHAT CARRIED OVER FROM THE FRAME</h3>
+      <ul>
+        <li>Warm-yellow active accent (nav + TOC indicator), blue-black surface ramp, hairline dividers.</li>
+        <li>JetBrains Mono for everything the engine produced: syntax, timers, WQL, metric values. Inter for prose.</li>
+        <li>Metric chips with hue semantics (time blue · volume orange · effort green · rounds violet · load red).</li>
+        <li>The embedded output card — AMRAP header chips, dot-bullet segments, footer chips — promoted from docs example to live runtime component.</li>
+        <li>Sidebar payload is contextual per section, never global; the rail is the only constant chrome.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

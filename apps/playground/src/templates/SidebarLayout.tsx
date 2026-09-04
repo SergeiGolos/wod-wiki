@@ -4,6 +4,7 @@ import * as Headless from '@headlessui/react'
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
+import { AppRail } from '../../app/nav/AppRail'
 
 function OpenMenuIcon() {
   return (
@@ -48,8 +49,14 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
 export function SidebarLayout({
   navbar,
   sidebar,
+  onSearch,
   children,
-}: React.PropsWithChildren<{ navbar: React.ReactNode; sidebar: React.ReactNode }>) {
+}: React.PropsWithChildren<{
+  navbar: React.ReactNode
+  sidebar: React.ReactNode
+  /** Opens the global search palette — wired to the icon rail's search button. */
+  onSearch?: () => void
+}>) {
   let [showSidebar, setShowSidebar] = useState(false)
   const location = useLocation()
 
@@ -59,32 +66,39 @@ export function SidebarLayout({
   }, [location])
 
   return (
-    <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row lg:justify-center">
-      <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row lg:max-w-[100rem]">
-        {/* Sidebar — always visible on lg, overlay on mobile */}
-        <nav className="hidden lg:flex lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-screen lg:overflow-y-auto lg:bg-background/72 lg:backdrop-blur-sm">
+    <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row">
+      <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row">
+        {/* Icon rail — L1 destinations; desktop only (general layout) */}
+        <div className="hidden lg:flex w-14 shrink-0 sticky top-0 h-svh flex-col items-center border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm z-40 py-3">
+          <AppRail onSearch={onSearch ?? (() => {})} />
+        </div>
+
+        {/* Context sidebar — active L1's children/panel; overlay on mobile */}
+        <nav className="hidden lg:flex lg:w-60 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:h-svh lg:overflow-y-auto lg:border-r lg:border-zinc-950/5 dark:lg:border-white/5 lg:bg-background/72 lg:backdrop-blur-sm">
           {sidebar}
         </nav>
         <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
           {sidebar}
         </MobileSidebar>
 
-        {/* Mobile header with hamburger + navbar */}
-        <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card lg:hidden">
-          <div className="py-2.5 shrink-0">
-            <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
-              <OpenMenuIcon />
-            </NavbarItem>
-          </div>
-          <div className="min-w-0 flex-1">{navbar}</div>
-        </header>
+        {/* Content column — topbar (static on desktop: page headers own lg:top-0)
+            + page. On mobile the header is the sticky navbar with hamburger. */}
+        <div className="flex flex-1 flex-col min-w-0">
+          <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card lg:static lg:bg-background lg:border-b lg:border-zinc-950/5 dark:lg:border-white/5">
+            <div className="py-2.5 shrink-0 lg:hidden">
+              <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
+                <OpenMenuIcon />
+              </NavbarItem>
+            </div>
+            <div className="min-w-0 flex-1">{navbar}</div>
+          </header>
 
-        {/* Content */}
-        <main className="flex flex-1 flex-col lg:min-w-0 lg:pt-2 lg:pr-2 lg:pb-2">
-          <div className="grow w-full lg:overflow-visible">
-            {children}
-          </div>
-        </main>
+          <main className="flex flex-1 flex-col lg:min-w-0 lg:pt-2 lg:pr-2 lg:pb-2">
+            <div className="grow w-full lg:overflow-visible">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   )

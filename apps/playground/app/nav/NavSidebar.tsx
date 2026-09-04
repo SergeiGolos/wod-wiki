@@ -21,7 +21,7 @@ import { ButtonLink } from '@/components/molecules/ButtonLink'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
-import type { NavItem, NavActionDeps } from './navTypes'
+import type { NavItem, NavActionDeps, NavState } from './navTypes'
 
 // App version injected by Vite define
 declare const __APP_VERSION__: string | undefined
@@ -49,7 +49,7 @@ function useNavAction() {
   return (item: NavItem) => executeNavAction(item.action, deps)
 }
 
-function isItemActive(item: NavItem, navState: ReturnType<typeof useNav>['navState'], location: ReturnType<typeof useLocation>): boolean {
+export function isItemActive(item: NavItem, navState: NavState, location: Location): boolean {
   if (item.isActive) return item.isActive(location as unknown as Location, navState)
   if (item.action.type === 'route') {
     return item.action.to === '/'
@@ -159,38 +159,45 @@ export function NavSidebar() {
     <Sidebar>
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
       <SidebarHeader>
-        <div className="flex items-center px-2 py-4">
-          <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 rotate-3">
-            <Dumbbell size={18} />
+        {/* Logo + L1 items — mobile drawer only; the desktop icon rail owns L1 */}
+        <div className="lg:hidden">
+          <div className="flex items-center px-2 py-4">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 rotate-3">
+              <Dumbbell size={18} />
+            </div>
+            <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">
+              Wod Wiki
+            </span>
+            <AppVersion
+              version={appVersion}
+              className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest"
+            />
           </div>
-          <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">
-            Wod Wiki
-          </span>
-          <AppVersion
-            version={appVersion}
-            className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest"
-          />
+
+          <SidebarSection>
+            {tree.map(item => {
+              const active = isItemActive(item, navState, location)
+              return (
+                <SidebarItem
+                  key={item.id}
+                  onClick={() => handleAction(item)}
+                  current={active}
+                >
+                  {item.icon && <item.icon data-slot="icon" />}
+                  <SidebarLabel className="font-semibold tracking-tight">
+                    {item.label}
+                  </SidebarLabel>
+                  {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
+                </SidebarItem>
+              )
+            })}
+          </SidebarSection>
         </div>
 
-        {/* ── L1 items ───────────────────────────────────────────────────── */}
-        <SidebarSection>
-          {tree.map(item => {
-            const active = isItemActive(item, navState, location)
-            return (
-              <SidebarItem
-                key={item.id}
-                onClick={() => handleAction(item)}
-                current={active}
-              >
-                {item.icon && <item.icon data-slot="icon" />}
-                <SidebarLabel className="font-semibold tracking-tight">
-                  {item.label}
-                </SidebarLabel>
-                {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
-              </SidebarItem>
-            )
-          })}
-        </SidebarSection>
+        {/* Context heading — desktop only; names the active section above its L2 */}
+        <div className="hidden lg:block px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          {activeL1?.label ?? 'Wod Wiki'}
+        </div>
       </SidebarHeader>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
