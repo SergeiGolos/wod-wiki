@@ -10,6 +10,7 @@ import {
   pivotSourceQuery,
   setMetricQuery,
   sourceOfQuery,
+  withoutFilterIndex,
   withoutWindow,
   withoutFilters,
 } from '../lib/wqlEdits';
@@ -83,6 +84,24 @@ describe('setMetricQuery', () => {
     expect(setMetricQuery('find:note{tags:pr} last 2w', 'totalVolume')).toBe(
       'sum:totalVolume{tags:pr} last 2w',
     );
+  });
+});
+
+describe('withoutFilterIndex', () => {
+  it('drops the filter at the parsed index, keeping order and window', () => {
+    expect(withoutFilterIndex('find:note{source:collections,text:"fran",tags:pr} last 2w', 1)).toBe(
+      'find:note{source:collections,tags:pr} last 2w',
+    );
+  });
+
+  it('can drop the source-carrier filter too', () => {
+    expect(withoutFilterIndex('find:note{source:collections,tags:pr}', 0)).toBe('find:note{tags:pr}');
+  });
+
+  it('is a no-op for out-of-range indices and unparseable queries', () => {
+    const q = 'find:note{tags:pr}';
+    expect(withoutFilterIndex(q, 5)).toBe(q);
+    expect(withoutFilterIndex('not a query', 0)).toBe('not a query');
   });
 });
 

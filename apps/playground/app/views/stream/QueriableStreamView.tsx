@@ -20,8 +20,15 @@ import {
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
-import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
-import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells'
+import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
+import { createPortal } from 'react-dom'
+import {
+  StickyPageHeader,
+  useStickyBoundaryOffset,
+  useMobileQuerySlot,
+} from '@/panels/page-shells'
+import { useIsMobile } from '../../hooks/useIsMobile'
+import { StreamQueryBar } from './StreamQueryBar'
 import type { Entry } from '../../lib/entryMapper'
 import {
   groupEntriesByDimension,
@@ -35,8 +42,7 @@ import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useDateLocale } from '../../lib/dateLocale'
 import { useBatchedItems, type BatchedItems } from '../../hooks/useBatchedItems'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
-import { pivotSourceQuery, sourceOfQuery, withoutFilters, withoutWindow } from '../../lib/wqlEdits'
-import { SourceScopeRadio, SOURCE_BY_SCOPE, SCOPE_BY_SOURCE, type LibraryScope } from '../library/SourceScopeRadio'
+import { sourceOfQuery, withoutFilters, withoutWindow } from '../../lib/wqlEdits'
 import { LibraryRow } from '../library/LibraryRow'
 import { PropertyTable } from './PropertyTable'
 import { ViewSettingsDialog } from './ViewSettingsDialog'
@@ -98,21 +104,12 @@ export function QueriableStreamView({
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [liveWql, setLiveWql] = useState<string | null>(null)
+  // Mobile: the query bar portals into the app navbar (no page header).
+  const isMobile = useIsMobile()
+  const mobileSlot = useMobileQuerySlot()
 
-  const activeWql = liveWql ?? query
-  const parsed = useMemo(() => parseQuery(activeWql), [activeWql])
-  const sourceValue = sourceOfQuery(activeWql)
-
-  // Enforce scope lock: only show scope radio if not locked to a specific source
-  const shouldShowScopeRadio = !profile.hideScopeRadio && (!profile.scopeLock || profile.scopeLock === 'all')
-
-  const handleScopeChange = useCallback(
-    (scope: LibraryScope) => {
-      setQuery(pivotSourceQuery(query, SOURCE_BY_SCOPE[scope]))
-    },
-    [query, setQuery],
-  )
+  const parsed = useMemo(() => parseQuery(query), [query])
+  const sourceValue = sourceOfQuery(query)
 
   const defaultAddToToday = useCallback(async (entry: Entry) => {
     const today = todayKey()
@@ -181,7 +178,7 @@ export function QueriableStreamView({
 
     setLoading(true)
     engine
-      .query(activeWql)
+      .query(query)
       .then((results: Entry[]) => {
         if (!cancelled) setEntries(results)
       })
@@ -195,16 +192,16 @@ export function QueriableStreamView({
     return () => {
       cancelled = true
     }
-  }, [activeWql, queryEngine])
+  }, [query, queryEngine])
 
   // Grouping dimension: query `by {dim}` or view setting or default
   const groupDim = useMemo(() => {
-    const fromQuery = parseGroupingDimension(activeWql, parsed)
+    const fromQuery = parseGroupingDimension(query, parsed)
     if (fromQuery) return fromQuery
     if (settings.groupBy) return settings.groupBy
     if (profile.level === 'effort') return 'discipline'
     return 'date'
-  }, [activeWql, parsed, settings.groupBy, profile.level])
+  }, [query, parsed, settings.groupBy, profile.level])
 
   // Full dataset grouped by dimension
   const allGroups = useMemo(
@@ -283,46 +280,53 @@ export function QueriableStreamView({
 
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
-      {/* Sticky Header with Action Bar & Subheader */}
-      <StickyPageHeader
-        title={profile.title}
-        subtitle={renderedSubtitle}
-        actions={
-          <div className="flex items-center gap-2">
-            {actions}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSettingsOpen(true)}
-              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-              title="View Settings"
-              data-testid="stream-view-settings-trigger"
-            >
-              <SlidersHorizontal className="size-3.5" />
-              <span className="hidden sm:inline">View</span>
-            </Button>
-          </div>
-        }
-        subheader={
-          <div className="px-6 py-2.5">
-            {shouldShowScopeRadio && (
-              <div className="mb-2">
-                <SourceScopeRadio
-                  scope={SCOPE_BY_SOURCE[sourceValue] ?? 'all'}
-                  onChange={handleScopeChange}
-                />
-              </div>
-            )}
-            <WqlComposer
+      {/* Desktop: single-line header — the query bar lives IN the title row.
+          Mobile: no page-level header at all (it would stack over the app
+          navbar and hide the menu trigger); the query bar portals up into
+          that navbar instead. */}
+      <div className="max-lg:hidden">
+        <StickyPageHeader
+          title={profile.title}
+          subtitle={renderedSubtitle}
+          actions={
+            <div className="flex items-center gap-2">
+              {actions}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSettingsOpen(true)}
+                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                title="View Settings"
+                data-testid="stream-view-settings-trigger"
+              >
+                <SlidersHorizontal className="size-3.5" />
+                <span className="hidden sm:inline">View</span>
+              </Button>
+            </div>
+          }
+          queryBar={
+            <StreamQueryBar
               query={query}
               onQueryChange={setQuery}
-              onLiveQueryChange={setLiveWql}
+              options={profile.typeOptions}
               execute={execute}
-              hiddenClauseTypes={['source']}
             />
-          </div>
-        }
-      />
+          }
+        />
+      </div>
+      {isMobile && mobileSlot && (
+        createPortal(
+          <StreamQueryBar
+            query={query}
+            onQueryChange={setQuery}
+            options={profile.typeOptions}
+            execute={execute}
+            onViewSettings={() => setIsSettingsOpen(true)}
+            compact
+          />,
+          mobileSlot,
+        )
+      )}
 
       {/* Query error banner */}
       {queryError && (

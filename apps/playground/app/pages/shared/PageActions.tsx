@@ -34,6 +34,12 @@ export interface PageActionsProps {
   /** Opens the command palette / global search. */
   onSearch: () => void
   /**
+   * Render the standalone NavSearchInput. Stream routes pass false — their
+   * header query bar IS the search entry, and a second input next to it
+   * duplicates the controls and starves the bar of width.
+   */
+  showSearch?: boolean
+  /**
    * Playground-only: resets the current page to its default template.
    * Required when mode === 'playground'.
    */
@@ -46,6 +52,7 @@ export function PageActions({
   index,
   onSearch,
   onReset,
+  showSearch = true,
 }: PageActionsProps) {
   const navigate = useNavigate()
   const [isCreating, setIsCreating] = useState(false)
@@ -93,7 +100,7 @@ export function PageActions({
         />
       )}
 
-      <NavSearchInput onOpen={onSearch} />
+      {showSearch && <NavSearchInput onOpen={onSearch} />}
       <CastButtonRpc />
       <ActionsMenu currentWorkout={currentWorkout} items={index && index.length > 0 ? mapIndexToL3(index) : undefined} />
     </div>

@@ -7,13 +7,13 @@ import { MOBILE_BREAKPOINT_PX } from '../canvas/canvasUtils'
  */
 export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined'
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches
       : false,
   )
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`)
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mql.addEventListener('change', handler)

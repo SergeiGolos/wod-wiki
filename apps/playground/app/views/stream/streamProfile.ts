@@ -7,7 +7,6 @@
  */
 import type { ReactNode } from 'react'
 import type { EntityLevel } from '../../lib/fieldProjection'
-import type { LibraryScope } from '../library/SourceScopeRadio'
 import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
 import type { ComposerLegacyConfig } from '../../hooks/useComposerQueryState'
 
@@ -84,8 +83,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Your training log — notes and results from every session.',
   defaultWql: 'find:note{source:journal} last 2w',
   level: 'note',
-  scopeLock: 'notes',
-  hideScopeRadio: true,
+  typeOptions: ['journal'],
   legacy: createContentLegacyConfig('journal'),
 }
 
@@ -95,8 +93,7 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Curated workout collections, ready to run or add to today.',
   defaultWql: 'find:note{source:collections} last 2w',
   level: 'session',
-  scopeLock: 'collections',
-  hideScopeRadio: true,
+  typeOptions: ['collections'],
   shelfVisible: true,
   legacy: createContentLegacyConfig('collections'),
 }
@@ -107,8 +104,7 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Programming feeds you follow, newest first.',
   defaultWql: 'find:note{source:feeds} last 2w',
   level: 'note',
-  scopeLock: 'feeds',
-  hideScopeRadio: true,
+  typeOptions: ['feeds'],
   legacy: createContentLegacyConfig('feeds'),
 }
 
@@ -118,8 +114,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Notes, collections, and feeds — one query over everything.',
   defaultWql: 'find:note last 2w',
   level: 'note',
-  scopeLock: 'all',
-  hideScopeRadio: true,
+  typeOptions: ['notes', 'journal', 'collections', 'feeds', 'blocks'],
   shelfVisible: true,
   legacy: createContentLegacyConfig(),
 }
@@ -130,8 +125,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Catalog of registered movements, benchmarks, and standards.',
   defaultWql: 'find:effort',
   level: 'effort',
-  scopeLock: 'efforts',
-  hideScopeRadio: true,
+  typeOptions: ['efforts'],
   emptyMessage: 'No matching movements or efforts found.',
   legacy: EFFORTS_LEGACY_CONFIG,
 }
@@ -142,8 +136,7 @@ export const RESULTS_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Chronological stream of completed workouts and execution telemetry.',
   defaultWql: 'rows:all{} last 4w',
   level: 'result',
-  scopeLock: 'results',
-  hideScopeRadio: true,
+  typeOptions: ['rows'],
   emptyMessage: 'No completed session results recorded in this period.',
 }
 
@@ -153,8 +146,7 @@ export const SEGMENTS_STREAM_PROFILE: StreamProfile = {
   subtitle: 'Interval split progression and round-by-round pacing history.',
   defaultWql: 'rows:segment{} last 8w',
   level: 'segment',
-  scopeLock: 'results',
-  hideScopeRadio: true,
+  typeOptions: ['rows'],
   emptyMessage: 'No interval or segment splits recorded in this period.',
 }
 
@@ -165,8 +157,7 @@ export function createResultDetailProfile(resultId: string): StreamProfile {
     subtitle: 'Detailed tabular breakdown of rounds, intervals, and lap splits.',
     defaultWql: `rows:segment{result:${resultId}}`,
     level: 'segment',
-    scopeLock: 'results',
-    hideScopeRadio: true,
+    typeOptions: ['rows'],
     emptyMessage: `No segment records found for result ${resultId}.`,
   }
 }

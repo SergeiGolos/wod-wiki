@@ -79,7 +79,8 @@ describe('QueriableStreamView component', () => {
     )
 
     expect(screen.getByTestId('queriable-stream-view')).toBeDefined()
-    expect(screen.getByText('Efforts')).toBeDefined()
+    // The type pill also reads 'Efforts' — assert on the heading specifically.
+    expect(screen.getByRole('heading', { name: 'Efforts' })).toBeDefined()
     expect(screen.getByText('Catalog of registered movements, benchmarks, and standards.')).toBeDefined()
   })
   it('renders entries in card stream layout by default', async () => {

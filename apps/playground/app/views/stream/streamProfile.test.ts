@@ -17,6 +17,7 @@ describe('streamProfile presets', () => {
     expect(JOURNAL_STREAM_PROFILE.title).toBe('Journal')
     expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe('find:note{source:journal} last 2w')
     expect(JOURNAL_STREAM_PROFILE.level).toBe('note')
+    expect(JOURNAL_STREAM_PROFILE.typeOptions).toEqual(['journal'])
   })
 
   it('defines the Collections stream profile', () => {
@@ -24,6 +25,7 @@ describe('streamProfile presets', () => {
     expect(COLLECTIONS_STREAM_PROFILE.title).toBe('Collections')
     expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} last 2w')
     expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
+    expect(COLLECTIONS_STREAM_PROFILE.typeOptions).toEqual(['collections'])
   })
 
   it('defines the Feeds stream profile', () => {
@@ -31,6 +33,7 @@ describe('streamProfile presets', () => {
     expect(FEEDS_STREAM_PROFILE.title).toBe('Feeds')
     expect(FEEDS_STREAM_PROFILE.defaultWql).toBe('find:note{source:feeds} last 2w')
     expect(FEEDS_STREAM_PROFILE.level).toBe('note')
+    expect(FEEDS_STREAM_PROFILE.typeOptions).toEqual(['feeds'])
   })
 
   it('defines the Library stream profile', () => {
@@ -38,6 +41,7 @@ describe('streamProfile presets', () => {
     expect(LIBRARY_STREAM_PROFILE.title).toBe('Library')
     expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe('find:note last 2w')
     expect(LIBRARY_STREAM_PROFILE.level).toBe('note')
+    expect(LIBRARY_STREAM_PROFILE.typeOptions).toEqual(['notes', 'journal', 'collections', 'feeds', 'blocks'])
   })
 
   it('defines the Efforts stream profile', () => {
@@ -45,7 +49,7 @@ describe('streamProfile presets', () => {
     expect(EFFORTS_STREAM_PROFILE.title).toBe('Efforts')
     expect(EFFORTS_STREAM_PROFILE.defaultWql).toBe('find:effort')
     expect(EFFORTS_STREAM_PROFILE.level).toBe('effort')
-    expect(EFFORTS_STREAM_PROFILE.hideScopeRadio).toBe(true)
+    expect(EFFORTS_STREAM_PROFILE.typeOptions).toEqual(['efforts'])
   })
 
   it('defines the Results stream profile', () => {
@@ -53,7 +57,7 @@ describe('streamProfile presets', () => {
     expect(RESULTS_STREAM_PROFILE.title).toBe('Results')
     expect(RESULTS_STREAM_PROFILE.defaultWql).toBe('rows:all{} last 4w')
     expect(RESULTS_STREAM_PROFILE.level).toBe('result')
-    expect(RESULTS_STREAM_PROFILE.hideScopeRadio).toBe(true)
+    expect(RESULTS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
   })
 
   it('defines the Segments stream profile', () => {
@@ -61,7 +65,7 @@ describe('streamProfile presets', () => {
     expect(SEGMENTS_STREAM_PROFILE.title).toBe('Segments')
     expect(SEGMENTS_STREAM_PROFILE.defaultWql).toBe('rows:segment{} last 8w')
     expect(SEGMENTS_STREAM_PROFILE.level).toBe('segment')
-    expect(SEGMENTS_STREAM_PROFILE.hideScopeRadio).toBe(true)
+    expect(SEGMENTS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
   })
 
   it('resolves stream profile by route using getStreamProfile and resolveStreamProfile', () => {
@@ -88,8 +92,7 @@ describe('streamProfile presets', () => {
     expect(detail?.title).toBe('Session Result')
     expect(detail?.defaultWql).toBe('rows:segment{result:res-42}')
     expect(detail?.level).toBe('segment')
-    expect(detail?.scopeLock).toBe('results')
-    expect(detail?.hideScopeRadio).toBe(true)
+    expect(detail?.typeOptions).toEqual(['rows'])
 
     // Trailing slash normalizes
     const trailing = getStreamProfile('/results/res-42/')

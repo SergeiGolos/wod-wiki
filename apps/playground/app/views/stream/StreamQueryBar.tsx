@@ -94,8 +94,6 @@ export function StreamQueryBar({
   const typeMenu = (
     <DropdownMenu open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
       <DropdownMenuTrigger
-        asChild
-        onClick={(e) => e.stopPropagation()}
         data-testid="stream-query-type"
         className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-xs hover:border-border"
       >
@@ -174,6 +172,12 @@ export function StreamQueryBar({
   )
 }
 
+interface Chip {
+  key: string
+  label: string
+  remove: () => void
+}
+
 function DesktopBar({
   query,
   parsed,
@@ -209,24 +213,39 @@ function DesktopBar({
     return out
   }, [parsed, query, onQueryChange])
 
-  // Overflow: hide right-most chips that don't fit behind the +N chip.
+  // Overflow: hide right-most chips that don't fit behind a +N chip.
+  // Single deterministic pass over accumulated chip widths (scrollWidth
+  // races font loading; offsets are stable once fonts settle, so re-measure
+  // on document.fonts.ready too).
   useEffect(() => {
     const el = chipsRef.current
     if (!el) return
     const measure = () => {
       const kids = Array.from(el.querySelectorAll<HTMLElement>('[data-chip]'))
       kids.forEach((k) => (k.style.display = ''))
+      const gap = 4
+      const moreReserve = 44 // room for the +N chip whenever something hides
+      let used = 0
       let hidden = 0
-      for (let i = kids.length - 1; i >= 0; i--) {
-        if (el.scrollWidth <= el.clientWidth + 1) break
-        kids[i].style.display = 'none'
-        hidden++
+      for (let i = 0; i < kids.length; i++) {
+        const w = kids[i].offsetWidth
+        const projected = used + (used > 0 ? gap : 0) + w + (i < kids.length - 1 ? moreReserve : 0)
+        // The first chip always stays visible — an empty bar tells nothing.
+        if (i > 0 && projected > el.clientWidth) {
+          for (let j = i; j < kids.length; j++) {
+            kids[j].style.display = 'none'
+            hidden++
+          }
+          break
+        }
+        used = projected
       }
       setHiddenCount(hidden)
     }
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     measure()
+    document.fonts?.ready.then(measure).catch(() => {})
     return () => ro.disconnect()
   }, [chips])
 

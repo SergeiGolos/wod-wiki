@@ -46,7 +46,7 @@ import { HomeView } from './views/HomeView'
 import { QueriableStreamView } from './views/stream/QueriableStreamView'
 import { resolveStreamProfile } from './views/stream/streamProfile'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
-import { CanvasPage } from '@/panels/page-shells'
+import { CanvasPage, MobileQuerySlotTarget } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
@@ -208,13 +208,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     effortDetail: () => <EffortDetailPage />,
     analyticsExplorer: () => (
       <AnalyticsExplorerPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={view.page !== 'library'} />}
       />
     ),
 
     dashboardExplorer: () => (
       <AnalyticsExplorerPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={view.page !== 'library'} />}
       />
     ),
     dashboardView: () => <DashboardViewPage />,
@@ -267,7 +267,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         <QueriableStreamView
           key={profile.route}
           profile={profile}
-          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={view.page !== 'library'} />}
         />
       )
     },
@@ -321,7 +321,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     <SidebarLayout
       navbar={
         <Navbar>
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 min-w-0 truncate text-sm">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 min-w-0 shrink-2 truncate text-sm">
             {activeL1 && (
               <button
                 type="button"
@@ -341,10 +341,14 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             )}
             {canvasTitleAccessory}
           </nav>
+          {/* Stream routes: the page's query bar floats up into this slot —
+              the route has no page-level header on mobile, and the bar replaces
+              the standalone search input as the query entry point. */}
+          {view.page === 'library' && <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />}
           {/* Search / cast / actions — mobile navbar only; on desktop the icon
               rail owns search and each page header keeps its own actions. */}
           <NavbarSection className="lg:hidden">
-            <NavSearchInput onOpen={openSearchPalette} />
+            {view.page !== 'library' && <NavSearchInput onOpen={openSearchPalette} />}
             <div className="flex items-center">
               <CastButtonRpc />
             </div>

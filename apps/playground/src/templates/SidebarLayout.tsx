@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
+import { MobileQuerySlotProvider } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
 import type { MenuSpec } from '../../app/nav/menuModel'
 
@@ -71,6 +72,7 @@ export function SidebarLayout({
   }, [location])
 
   return (
+    <MobileQuerySlotProvider>
     <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row">
       <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row">
         {/* Icon rail — L1 destinations; desktop only (general layout) */}
@@ -89,7 +91,7 @@ export function SidebarLayout({
         {/* Content column — on desktop, page headers (StickyPageHeader) own lg:top-0.
             On mobile, this sticky navbar carries the hamburger drawer trigger. */}
         <div className="flex flex-1 flex-col min-w-0">
-          <header className="lg:hidden sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card border-b border-border/50">
+          <header data-page-sticky-boundary="true" className="lg:hidden sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card border-b border-border/50">
             <div className="py-2.5 shrink-0">
               <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
                 <OpenMenuIcon />
@@ -112,5 +114,6 @@ export function SidebarLayout({
         </aside>
       </div>
     </div>
+    </MobileQuerySlotProvider>
   )
 }
