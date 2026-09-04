@@ -5,7 +5,7 @@
  * The Add-to-today action is a creation flow (not navigation); it is wired
  * in the Library page, not the row.
  */
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref, entryRunHref, entryCompareHref, entryCanAddToToday } from '../../lib/entryActions'
@@ -118,6 +118,18 @@ export function LibraryRow({
           <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border border-border rounded-full px-1.5 py-0.5">
             {KIND_LABEL[entry.kind]}
           </span>
+          {entry.execution?.effortSlug && (
+            <Link
+              to={`/effort/${encodeURIComponent(entry.execution.effortSlug)}`}
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
+              data-testid="library-row-effort-link"
+              className="text-[9px] font-bold tracking-wide text-primary/80 hover:text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-full px-2 py-0.5 transition-colors shrink-0"
+              title={`View movement history for ${entry.detail ?? entry.execution.effortSlug}`}
+            >
+              {entry.detail ?? entry.execution.effortSlug}
+            </Link>
+          )}
           {entry.subtitle && showSubtitle && (
             <span className="text-[10px] text-muted-foreground/60 truncate">{entry.subtitle}</span>
           )}

@@ -13,6 +13,7 @@ import {
   RESULTS_STREAM_PROFILE,
   createResultDetailProfile,
 } from './streamProfile'
+import { journalNotes } from '../../services/journalNotes'
 beforeEach(() => {
   window.localStorage.clear()
 })
@@ -224,5 +225,100 @@ describe('QueriableStreamView component', () => {
       expect(screen.getByText('Session Result')).toBeDefined()
     })
     expect(screen.queryByTestId('stream-query-error')).toBeNull()
+  })
+
+  it('passes onAddToToday handler to result and segment cards with noteId', async () => {
+    const handleAdd = mock(() => {})
+    const sampleResultEntries: Entry[] = [
+      {
+        id: 'res-42',
+        kind: 'result',
+        sourceCatalog: 'results',
+        sourceItem: 'res-42',
+        title: 'Fran Workout',
+        date: '2026-06-01',
+        execution: {
+          resultId: 'res-42',
+          noteId: 'crossfit-girls/fran',
+          timestamp: 1700000000000,
+          outputType: 'all',
+        },
+      },
+    ]
+    const engine = createMockEngine(sampleResultEntries)
+
+    render(
+      <MemoryRouter initialEntries={['/results']}>
+        <QueriableStreamView
+          profile={RESULTS_STREAM_PROFILE}
+          queryEngine={engine}
+          onAddToToday={handleAdd}
+        />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Fran Workout')).toBeDefined()
+    })
+
+    const addButton = screen.getByTestId('action-add')
+    fireEvent.click(addButton)
+    expect(handleAdd).toHaveBeenCalledTimes(1)
+    expect(handleAdd.mock.calls[0][0].id).toBe('res-42')
+  })
+
+  it('defaultAddToToday resolves parent note and creates journal note', async () => {
+    const originalGetById = journalNotes.getById
+    const originalCreate = journalNotes.create
+    try {
+      journalNotes.getById = mock(async () => ({
+        id: 'crossfit-girls/fran',
+        title: 'Fran',
+        rawContent: '21-15-9\nThrusters\nPull-ups',
+        type: 'journal',
+      } as any))
+      journalNotes.create = mock(async () => ({} as any))
+
+      const sampleResultEntries: Entry[] = [
+        {
+          id: 'res-42',
+          kind: 'result',
+          sourceCatalog: 'results',
+          sourceItem: 'res-42',
+          title: 'Fran Workout',
+          date: '2026-06-01',
+          execution: {
+            resultId: 'res-42',
+            noteId: 'crossfit-girls/fran',
+            timestamp: 1700000000000,
+            outputType: 'all',
+          },
+        },
+      ]
+      const engine = createMockEngine(sampleResultEntries)
+
+      render(
+        <MemoryRouter initialEntries={['/results']}>
+          <QueriableStreamView profile={RESULTS_STREAM_PROFILE} queryEngine={engine} />
+        </MemoryRouter>,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('Fran Workout')).toBeDefined()
+      })
+
+      const addButton = screen.getByTestId('action-add')
+      fireEvent.click(addButton)
+
+      await waitFor(() => {
+        expect(journalNotes.create).toHaveBeenCalledTimes(1)
+      })
+      const createCall = (journalNotes.create as any).mock.calls[0][0]
+      expect(createCall.title).toBe('Fran Workout')
+      expect(createCall.rawContent).toContain('Thrusters')
+    } finally {
+      journalNotes.getById = originalGetById
+      journalNotes.create = originalCreate
+    }
   })
 })

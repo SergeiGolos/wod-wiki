@@ -26,13 +26,12 @@ A unified, deep `QueriableStreamView` in `apps/playground` that mounts directly 
 - [003: Deep QueriableStreamView component and View Settings dialog](data-views-unification/tickets/003-deep-queriable-stream-view.md): Unified QueriableStreamView taking a StreamProfile, powered by StreamQueryEngine, rendering progressive date group streams or adaptable PropertyTable layouts with modal ViewSettingsDialog.
 - [004: Route cutover: replace LibraryRedirect with direct route mounting](data-views-unification/tickets/004-route-cutover-direct-mounting.md): Clean cutover mounting QueriableStreamView directly on /journal, /collections, /feeds, /library, and /efforts with route-aware StreamProfiles, deleting LibraryRedirect and EffortsCatalogPage while preserving legacy parameter migrations.
 - [005: Mount Results and Segments routes on QueriableStreamView](data-views-unification/tickets/005-results-and-segments-routes.md): Direct mounting of /results, /results/:resultId, and /results/segments with dedicated execution telemetry StreamProfiles, replacing ReviewRedirect to point to /results/:resultId and decoupling /dashboard.
+- [006: In-stream execution actions and segment-to-effort navigation](data-views-unification/tickets/006-in-stream-actions-and-effort-navigation.md): Active in-stream execution actions (Re-run block / Add to today) on past results and segment splits via entryRunHref and defaultAddToToday markdown resolution; segment-to-effort cross-navigation deep linking to /effort/:slug in LibraryRow and PropertyTable with propagation guards.
 
 ## Not yet specified
 
 <!-- see "Fog of war": in-scope fog you can't ticket yet; graduates as the frontier advances -->
 
-- **Segment-to-Effort cross navigation**: In-row affordances on segment splits that link directly into movement history or open an effort inspector drawer.
-- **In-stream execution actions**: Enabling "Re-run block" or "Add to today" actions directly from past session result cards and segment splits.
 - **Custom saved views**: User-defined stream presets that pin arbitrary WQL queries into the sidebar navigation.
 
 ## Out of scope

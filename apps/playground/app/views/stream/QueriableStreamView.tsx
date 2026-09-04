@@ -112,23 +112,52 @@ export function QueriableStreamView({
   const defaultAddToToday = useCallback(async (entry: Entry) => {
     const today = todayKey()
     let rawContent = ''
-    if (entry.kind === 'session' || entry.kind === 'post') {
-      const result = await queryService.runFind({
-        raw: `find:block{note:${entry.id}}`,
-        target: 'block',
-        filters: [{ key: 'note', negate: false, values: [{ value: entry.id, wildcard: false }] }],
-      } as ParsedFindQuery)
-      rawContent = [...result.blocks]
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-        .filter(b => b.rawContent.trim() !== '')
-        .map(b => (b.dataType === 'frontmatter' ? `---\n${b.rawContent}\n---` : b.rawContent))
-        .join('\n\n')
-    } else if (entry.kind === 'note') {
-      const note = await journalNotes.getById(entry.sourceItem)
-      if (note && typeof note === 'object' && 'rawContent' in note && typeof note.rawContent === 'string') {
-        rawContent = note.rawContent
+    const targetNoteId =
+      entry.kind === 'result' || entry.kind === 'segment'
+        ? entry.execution?.noteId
+        : entry.kind === 'note'
+          ? entry.sourceItem
+          : entry.id
+
+    if (targetNoteId) {
+      // 1. If segment has a specific blockContentId, resolve that block first
+      if (entry.kind === 'segment' && entry.blockContentId) {
+        const result = await queryService.runFind({
+          raw: `find:block{note:${targetNoteId}}`,
+          target: 'block',
+          filters: [{ key: 'note', negate: false, values: [{ value: targetNoteId, wildcard: false }] }],
+        } as ParsedFindQuery)
+        const matchingBlock = result.blocks.find(b => b.id === entry.blockContentId)
+        if (matchingBlock?.rawContent) {
+          rawContent = matchingBlock.rawContent
+        }
+      }
+
+      // 2. If no block-specific content found, check if it's a journal note
+      if (!rawContent && (entry.kind === 'note' || entry.kind === 'result' || entry.kind === 'segment')) {
+        const note = await journalNotes.getById(targetNoteId)
+        if (note && typeof note === 'object' && 'rawContent' in note && typeof note.rawContent === 'string') {
+          rawContent = note.rawContent
+        }
+      }
+
+      // 3. If still no content, fetch all blocks for the note (catalog sessions, feeds, or indexed notes)
+      if (!rawContent && entry.kind !== 'note') {
+        const result = await queryService.runFind({
+          raw: `find:block{note:${targetNoteId}}`,
+          target: 'block',
+          filters: [{ key: 'note', negate: false, values: [{ value: targetNoteId, wildcard: false }] }],
+        } as ParsedFindQuery)
+        if (result.blocks.length > 0) {
+          rawContent = [...result.blocks]
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+            .filter(b => b.rawContent.trim() !== '')
+            .map(b => (b.dataType === 'frontmatter' ? `---\n${b.rawContent}\n---` : b.rawContent))
+            .join('\n\n')
+        }
       }
     }
+
     const input = addEntryToTodayInput(entry, rawContent, today)
     await journalNotes.create(input)
   }, [])

@@ -58,7 +58,11 @@ export function entryCompareHref(entry: Entry): string | null {
   return `/analytics/explorer?q=${encodeURIComponent(entry.blockContentId)}`
 }
 
-/** Add to today: Note + Post (per spec); Session is undated and cannot be added. */
+/** Add to today: Note + Post (per spec), and Result + Segment when associated with a noteId. */
 export function entryCanAddToToday(entry: Entry): boolean {
-  return entry.kind === 'note' || entry.kind === 'post'
+  if (entry.kind === 'note' || entry.kind === 'post') return true
+  if ((entry.kind === 'result' || entry.kind === 'segment') && !!entry.execution?.noteId) {
+    return true
+  }
+  return false
 }

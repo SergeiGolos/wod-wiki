@@ -127,4 +127,38 @@ afterEach(() => {
 
     expect(screen.getByText('No movements found.')).toBeDefined()
   })
+
+  it('renders clickable effort link for segment rows with effortSlug', () => {
+    const segmentEntries: Entry[] = [
+      {
+        id: 'seg-1',
+        kind: 'segment',
+        sourceCatalog: 'results',
+        sourceItem: 'seg-1',
+        title: 'Round 1',
+        date: '2026-08-15',
+        execution: {
+          resultId: 'res-1',
+          noteId: 'fran',
+          timestamp: 1700000000000,
+          outputType: 'segment',
+          effortSlug: 'thruster',
+        },
+      },
+    ]
+
+    const handleRowClick = mock(() => {})
+    render(
+      <MemoryRouter>
+        <PropertyTable entries={segmentEntries} level="segment" onRowClick={handleRowClick} />
+      </MemoryRouter>,
+    )
+
+    const effortLink = screen.getByTestId('property-table-effort-link')
+    expect(effortLink).toBeDefined()
+    expect(effortLink.getAttribute('href')).toBe('/effort/thruster')
+
+    fireEvent.click(effortLink)
+    expect(handleRowClick).not.toHaveBeenCalled()
+  })
 })

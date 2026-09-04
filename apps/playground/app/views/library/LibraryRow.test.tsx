@@ -82,4 +82,38 @@ describe('LibraryRow — field projection adaptation', () => {
     expect(screen.getByText('Thruster')).toBeDefined()
     expect(screen.getByText('Effort')).toBeDefined()
   })
+
+  it('renders a clickable link to /effort/:slug for segment entries with effortSlug', () => {
+    const segmentEntry: Entry = {
+      id: 'res-123:0',
+      kind: 'segment',
+      sourceCatalog: 'results',
+      sourceItem: 'res-123',
+      title: 'Thruster',
+      date: '2026-08-15',
+      execution: {
+        resultId: 'res-123',
+        noteId: 'crossfit-girls/fran',
+        timestamp: 1700000000000,
+        outputType: 'segment',
+        effortSlug: 'thruster',
+      },
+    }
+
+    render(
+      <MemoryRouter>
+        <LibraryRow entry={segmentEntry} />
+      </MemoryRouter>,
+    )
+
+    const effortLink = screen.getByTestId('library-row-effort-link')
+    expect(effortLink).toBeDefined()
+    expect(effortLink.getAttribute('href')).toBe('/effort/thruster')
+
+    let stopped = false
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+    event.stopPropagation = () => { stopped = true }
+    effortLink.dispatchEvent(event)
+    expect(stopped).toBe(true)
+  })
 })

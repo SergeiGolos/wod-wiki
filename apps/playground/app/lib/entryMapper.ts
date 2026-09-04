@@ -347,6 +347,7 @@ export function rowsRunToEntry(run: RowsRun, options?: { noteTitle?: string }): 
 
   const movements = metrics.effortSlugs.map(formatEffortName)
   const dateStr = formatDateKey(new Date(run.timestamp))
+  const blockContentId = run.events.find(e => !!e.blockContentId)?.blockContentId
 
   return {
     id: run.resultId,
@@ -355,6 +356,7 @@ export function rowsRunToEntry(run: RowsRun, options?: { noteTitle?: string }): 
     sourceItem: run.resultId,
     title: options?.noteTitle ?? deriveTitleFromNoteId(run.noteId),
     date: dateStr,
+    blockContentId,
     subtitle: subtitleParts.join(' • '),
     detail: movements.length > 0 ? movements.join(', ') : undefined,
     execution: {
@@ -432,6 +434,7 @@ export function unifiedEventToEntry(
     sourceItem: event.id,
     title,
     date: dateStr,
+    blockContentId: event.blockContentId,
     subtitle: subtitleParts.join(' • '),
     detail: event.effortSlug ? formatEffortName(event.effortSlug) : undefined,
     execution: {

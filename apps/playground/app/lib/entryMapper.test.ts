@@ -213,8 +213,8 @@ describe('rowsRunToEntry — session level (Mode A)', () => {
         id: 'res-123:0',
         resultId: 'res-123',
         noteId: 'crossfit-girls/fran',
+        blockContentId: 'bc-fran',
         timestamp,
-        grain: 'event',
         outputType: 'segment',
         effortSlug: 'thruster',
         timeSpan: { started: timestamp, ended: timestamp + 120_000 },
@@ -251,6 +251,7 @@ describe('rowsRunToEntry — session level (Mode A)', () => {
     expect(entry.subtitle).toContain('03:20')
     expect(entry.subtitle).toContain('2 splits')
     expect(entry.detail).toContain('Thruster, Pull Up')
+    expect(entry.blockContentId).toBe('bc-fran')
     expect(entry.execution).toMatchObject({
       resultId: 'res-123',
       noteId: 'crossfit-girls/fran',
@@ -268,7 +269,7 @@ describe('unifiedEventToEntry — segment level (Mode B)', () => {
     resultId: 'res-123',
     noteId: 'crossfit-girls/fran',
     timestamp,
-    grain: 'event',
+    blockContentId: 'bc-thruster',
     outputType: 'segment',
     effortSlug: 'thruster',
     timeSpan: { started: timestamp, ended: timestamp + 105_000 },
@@ -287,6 +288,7 @@ describe('unifiedEventToEntry — segment level (Mode B)', () => {
     expect(entry.subtitle).toContain('01:45')
     expect(entry.subtitle).toContain('21 reps')
     expect(entry.subtitle).toContain('95 lbs')
+    expect(entry.blockContentId).toBe('bc-thruster')
     expect(entry.execution).toMatchObject({
       resultId: 'res-123',
       noteId: 'crossfit-girls/fran',

@@ -5,7 +5,7 @@
  * and visible fields. Supports interactive row navigation and custom row click handlers.
  */
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref } from '../../lib/entryActions'
 import {
@@ -129,7 +129,18 @@ export function PropertyTable({
                     className={`px-4 py-3 whitespace-nowrap text-foreground/90 ${alignClass}`}
                     data-testid={`property-table-cell-${field.id}`}
                   >
-                    {field.id === 'title' || field.id === 'label' ? (
+                    {field.id === 'pacingTier' && entry.execution?.effortSlug ? (
+                      <Link
+                        to={`/effort/${encodeURIComponent(entry.execution.effortSlug)}`}
+                        onClick={e => e.stopPropagation()}
+                        onKeyDown={e => e.stopPropagation()}
+                        data-testid="property-table-effort-link"
+                        className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
+                        title={`View movement history for ${entry.detail ?? entry.execution.effortSlug}`}
+                      >
+                        {formatted}
+                      </Link>
+                    ) : field.id === 'title' || field.id === 'label' ? (
                       <span className="font-medium text-foreground group-hover:text-primary transition-colors">
                         {formatted}
                       </span>
