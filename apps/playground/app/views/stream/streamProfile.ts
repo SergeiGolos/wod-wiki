@@ -5,7 +5,6 @@
  * metadata for each unified stream route (/journal, /collections, /feeds,
  * /library, /efforts, /results).
  */
-import type { ReactNode } from 'react'
 import type { EntityLevel } from '../../lib/fieldProjection'
 import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
 import type { ComposerLegacyConfig } from '../../hooks/useComposerQueryState'
@@ -17,10 +16,6 @@ export function cleanRoutePath(route: string): string {
 export interface StreamProfile {
   /** Route path matching this stream (e.g. '/journal', '/library', '/efforts'). */
   route: string
-  /** Header title displayed in StickyPageHeader. */
-  title: string
-  /** Subtitle or dynamic subtitle builder. */
-  subtitle?: string | ((wql: string, scope?: string) => ReactNode)
   /** Default canonical WQL query loaded when no query param is present. */
   defaultWql: string
   /** Active entity level for field projection and view settings. */
@@ -79,8 +74,6 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
 
 export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   route: '/journal',
-  title: 'Journal',
-  subtitle: 'Your training log — notes and results from every session.',
   defaultWql: 'find:note{source:journal} last 2w',
   level: 'note',
   typeOptions: ['journal'],
@@ -89,9 +82,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   route: '/collections',
-  title: 'Collections',
-  subtitle: 'Curated workout collections, ready to run or add to today.',
-  defaultWql: 'find:note{source:collections} last 2w',
+  defaultWql: 'find:note{source:collections}',
   level: 'session',
   typeOptions: ['collections'],
   shelfVisible: true,
@@ -100,8 +91,6 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
 
 export const FEEDS_STREAM_PROFILE: StreamProfile = {
   route: '/feeds',
-  title: 'Feeds',
-  subtitle: 'Programming feeds you follow, newest first.',
   defaultWql: 'find:note{source:feeds} last 2w',
   level: 'note',
   typeOptions: ['feeds'],
@@ -110,8 +99,6 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
 
 export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   route: '/library',
-  title: 'Library',
-  subtitle: 'Notes, collections, and feeds — one query over everything.',
   defaultWql: 'find:note last 2w',
   level: 'note',
   typeOptions: ['notes', 'journal', 'collections', 'feeds', 'blocks'],
@@ -121,8 +108,6 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
 
 export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   route: '/efforts',
-  title: 'Efforts',
-  subtitle: 'Catalog of registered movements, benchmarks, and standards.',
   defaultWql: 'find:effort',
   level: 'effort',
   typeOptions: ['efforts'],
@@ -132,8 +117,6 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
 
 export const RESULTS_STREAM_PROFILE: StreamProfile = {
   route: '/results',
-  title: 'Results',
-  subtitle: 'Chronological stream of completed workouts and execution telemetry.',
   defaultWql: 'rows:all{} last 4w',
   level: 'result',
   typeOptions: ['rows'],
@@ -142,8 +125,6 @@ export const RESULTS_STREAM_PROFILE: StreamProfile = {
 
 export const SEGMENTS_STREAM_PROFILE: StreamProfile = {
   route: '/results/segments',
-  title: 'Segments',
-  subtitle: 'Interval split progression and round-by-round pacing history.',
   defaultWql: 'rows:segment{} last 8w',
   level: 'segment',
   typeOptions: ['rows'],
@@ -153,8 +134,6 @@ export const SEGMENTS_STREAM_PROFILE: StreamProfile = {
 export function createResultDetailProfile(resultId: string): StreamProfile {
   return {
     route: `/results/${resultId}`,
-    title: 'Session Result',
-    subtitle: 'Detailed tabular breakdown of rounds, intervals, and lap splits.',
     defaultWql: `rows:segment{result:${resultId}}`,
     level: 'segment',
     typeOptions: ['rows'],

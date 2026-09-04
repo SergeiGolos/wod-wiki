@@ -185,6 +185,21 @@ function deriveWorkout(
   if (flags.isJournalEntryRoute && flags.journalEntryId) {
     return { name: flags.journalEntryId, content: '', category: 'journal' }
   }
+  // Detail routes carry their identity in the path — surface the slug as the
+  // workout name so the mobile navbar breadcrumb can show it (the page-level
+  // header is hidden below lg).
+  if (pathname.startsWith('/effort/')) {
+    return { name: decodeURIComponent(pathname.split('/')[2] ?? 'Effort'), content: '', category: 'effort' }
+  }
+  if (flags.feedItemMatch) {
+    return { name: decodeURIComponent(flags.feedItemMatch[2]), content: '', category: 'feed' }
+  }
+  if (flags.feedDetailMatch) {
+    return { name: decodeURIComponent(flags.feedDetailMatch), content: '', category: 'feed' }
+  }
+  if (pathname.startsWith('/dashboard/')) {
+    return { name: decodeURIComponent(pathname.split('/')[2] ?? 'Dashboard'), content: '', category: 'dashboard' }
+  }
   if (canvasPage) {
     return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
   }
@@ -202,6 +217,7 @@ function deriveWorkout(
     '/results/segments': 'Segments',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
+    '/dashboard': 'Dashboards',
     '/guide/analytics': 'Analytics Guide',
     '/analytics/dashboard': 'Analytics Dashboard',
     '/analytics/explorer': 'Metric Explorer',

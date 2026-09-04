@@ -8,6 +8,7 @@ import { AppRail } from '../../app/nav/AppRail'
 import { MobileQuerySlotProvider } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
 import type { MenuSpec } from '../../app/nav/menuModel'
+import { SearchFab } from '../../app/nav/SearchFab'
 
 function OpenMenuIcon() {
   return (
@@ -112,6 +113,10 @@ export function SidebarLayout({
         <aside className="hidden xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
           <SecondaryNav spec={secondary} />
         </aside>
+
+      {/* Mobile floating search button — bottom thumb zone (right or left per
+          the appearance preference); desktop search stays in the icon rail. */}
+      {onSearch && <SearchFab onOpen={onSearch} />}
       </div>
     </div>
     </MobileQuerySlotProvider>

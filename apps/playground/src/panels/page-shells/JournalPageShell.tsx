@@ -2,35 +2,20 @@
  * JournalPageShell Component
  *
  * Layout shell for stored-note / journal pages (Configuration 3).
- * Renders a reactive 3-column view:
- * 1. Nav Panel (Sidebar) - Handled by SidebarLayout parent
- * 2. Note Column (Main) - Card-like container with Header + Editor
- * 3. Page Index (TOC) - Combo box on mobile/desktop, outside sidebar on Desktop XL
- *
- * Uses useWorkbenchRuntime for workout lifecycle + analytics.
+ * Renders the note column (card-like container with Header + Editor); the
+ * "On this page" TOC is owned by the common layout — pages publish their
+ * index via useNotePageNav → NavContext L3 → SecondaryNav rail (desktop) /
+ * ⋯ ActionsMenu (mobile), so the shell renders no index of its own.
  */
 
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { useQueryState } from 'nuqs';
-import { PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
-import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
-import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 import { StickyPageHeader } from './StickyPageHeader';
 
 export interface JournalPageShellProps {
   /** Editor panel content — typically a PlanPanel with stored note */
   editor: ReactNode;
-
-  /** Page index links for navigation */
-  index?: PageNavLink[];
-
-  /** Active section ID in the index */
-  activeSectionId?: string;
-
-  /** Callback to scroll to a section */
-  onScrollToSection?: (id: string) => void;
 
   /** Title shown in the sticky header */
   title?: string;
@@ -67,15 +52,11 @@ export interface JournalPageShellProps {
  * JournalPageShell
  *
  * Implements the universal reactive display for notes/canvas:
- * - mobile: nav collapsed, editor full, index in header combo box.
- * - desktop: nav visible, editor full up to 3xl, margin grows to right.
- * - desktop xl: Note column is constrained, Index sidebar appears outside to the right.
+ * - mobile: nav collapsed, editor full, index in the ⋯ header menu.
+ * - desktop: nav visible, editor column constrained, TOC in the SecondaryNav rail.
  */
 export function JournalPageShell({
   editor,
-  index = [],
-  activeSectionId,
-  onScrollToSection,
   title,
   titleTestId,
   actions,
@@ -87,33 +68,6 @@ export function JournalPageShell({
   onCloseReview,
   className,
 }: JournalPageShellProps) {
-  // Use shallow:true + replace so scroll-driven IO updates don't trigger
-  // full router re-renders (same fix as CanvasPage.tsx).
-  const [activeId, setActiveId] = useQueryState('s', {
-    defaultValue: activeSectionId ?? index[0]?.id ?? '',
-    shallow: true,
-    history: 'replace',
-  });
-
-  useActiveScrollSection({
-    ids: index.map((link) => link.id),
-    enabled: index.length > 0,
-    rootMargin: '-10% 0px -40% 0px',
-    threshold: [0, 0.3, 1.0],
-    onChange: (id) => {
-      setActiveId(id);
-    },
-  });
-
-  const scrollToSection = (id: string) => {
-    onScrollToSection?.(id);
-    setActiveId(id, { history: 'push' });
-    const el = document.getElementById(id);
-    if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 100;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  };
 
   return (
     <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
@@ -140,67 +94,6 @@ export function JournalPageShell({
           {editor}
         </main>
       </div>
-
-      {/* Index Sidebar Column — Outside the Note card, visible on Desktop XL */}
-      {index.length > 0 && (
-        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto p-10">
-          <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
-            On this page
-          </div>
-          <nav className="flex flex-col gap-1 border-l border-border/40 ml-1">
-            {index.map((link) => (
-              <div key={link.id} className="flex items-center group -ml-px">
-                <button
-                  onClick={() => scrollToSection(link.id)}
-                  className={cn(
-                    'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
-                    link.type === 'time' || link.type === 'log'
-                      ? activeId === link.id
-                        ? 'font-bold text-foreground border-primary pl-6 text-xs'
-                        : 'text-muted-foreground/70 border-transparent hover:text-foreground hover:border-border pl-6 text-xs'
-                      : activeId === link.id
-                        ? 'font-bold text-foreground border-primary'
-                        : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
-                  )}
-                >
-                  {link.timestamp && <span className="font-bold text-[10px] tabular-nums mr-2 opacity-60">{link.timestamp}</span>}
-                  {link.label}
-                  {(link.type === 'time' || link.type === 'log') && (
-                    <span className="ml-2 inline-flex items-center gap-1">
-                      {link.resultCount && link.resultCount > 1 ? (
-                        <span className="flex items-center justify-center size-4 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-                          {link.resultCount}
-                        </span>
-                      ) : link.hasResult ? (
-                        <CheckIcon className="size-3 text-primary" />
-                      ) : null}
-                    </span>
-                  )}
-                </button>
-                {link.onRun && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      link.onRun?.();
-                    }}
-                    title={link.runIcon === 'link' ? "View workout" : "Start workout"}
-                    className={cn(
-                      "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
-                      link.type === 'time' || link.type === 'log' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    )}
-                  >
-                    {link.runIcon === 'link' ? (
-                      <ArrowTopRightOnSquareIcon className="size-3.5" />
-                    ) : (
-                      <PlayIcon className="size-3.5" />
-                    )}
-                  </button>
-                )}
-              </div>
-            ))}
-          </nav>
-        </aside>
-      )}
 
       {/* Timer dialog overlay */}
       {isTimerOpen && timerOverlay && (

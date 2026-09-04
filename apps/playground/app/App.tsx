@@ -5,7 +5,6 @@ import { Navbar, NavbarSection } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
-import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
 import type { PageKind } from './lib/routeView'
@@ -121,7 +120,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const { tree: l1Items, navState, setL3Items, setSecondarySpec } = useNav()
   const activeL1Id = (navState as { activeL1Id?: string | null }).activeL1Id ?? null
   const activeL1 = l1Items.find(item => item.id === activeL1Id) ?? null
-  const crumbTitle = view.shell.title
+  // Shell title first; bare pages fall back to the route-derived workout name
+  // (journal date, workout/effort/feed/dashboard slug) — on mobile the navbar
+  // crumb is the ONLY page identity, since the page header is hidden below lg.
+  const crumbTitle = view.shell.title ?? currentWorkout.name
   const secondarySpec = view.page === 'library' ? LIBRARY_SECONDARY : view.shell.secondary
 
   useEffect(() => {
@@ -341,14 +343,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             )}
             {canvasTitleAccessory}
           </nav>
-          {/* Stream routes: the page's query bar floats up into this slot —
-              the route has no page-level header on mobile, and the bar replaces
-              the standalone search input as the query entry point. */}
-          {view.page === 'library' && <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />}
-          {/* Search / cast / actions — mobile navbar only; on desktop the icon
-              rail owns search and each page header keeps its own actions. */}
+          {/* Mobile page slot: pages portal their mobile-critical header
+              content here (stream query bar, note Edit toggle, …) — below lg
+              there is no page-level header, so this slot is where it lands. */}
+          <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />
+          {/* Cast / actions — mobile navbar only; search moved to the floating
+              SearchFab (SidebarLayout), desktop keeps rail + page headers. */}
           <NavbarSection className="lg:hidden">
-            {view.page !== 'library' && <NavSearchInput onOpen={openSearchPalette} />}
             <div className="flex items-center">
               <CastButtonRpc />
             </div>

@@ -14,7 +14,7 @@ import { ToastAction } from '@/components/atoms/primitives/toast'
 import { EditorView } from '@codemirror/view'
 import { v7 as uuidv7 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import { JournalPageShell } from '@/panels/page-shells'
+import { JournalPageShell, useMobileQuerySlot } from '@/panels/page-shells'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
@@ -26,6 +26,8 @@ import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
+import { createPortal } from 'react-dom'
+import { useIsMobile } from '../hooks/useIsMobile'
 import {
   INLINE_RUNTIME_CATEGORIES,
   NON_COLLECTION_CATEGORIES,
@@ -62,7 +64,6 @@ export function WorkoutEditorPage({
   runMode,
   hidePlanningCommands,
   onViewCreated,
-  onScrollToSection,
   onSearch,
 }: WorkoutEditorPageProps) {
   const usePopup = runMode ? runMode === 'inline' : INLINE_RUNTIME_CATEGORIES.has(category)
@@ -165,6 +166,29 @@ export function WorkoutEditorPage({
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout })
+  const isMobile = useIsMobile()
+  const mobileSlot = useMobileQuerySlot()
+
+  // The page header is hidden below lg — the Edit/Read toggle is the one
+  // mobile-critical action, so it portals into the navbar slot instead of
+  // rendering in the (hidden) header. Single mount point per breakpoint.
+  const editToggle = (
+    <button
+      type="button"
+      onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
+      className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+    >
+      {viewMode === 'read' ? 'Edit' : 'Read mode'}
+    </button>
+  )
+  const headerActions = isMobile ? (
+    mobileSlot ? createPortal(editToggle, mobileSlot) : undefined
+  ) : (
+    <div className="flex items-center gap-2">
+      {editToggle}
+      <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
+    </div>
+  )
 
   if (loading) {
     return (
@@ -178,20 +202,7 @@ export function WorkoutEditorPage({
     <>
       <JournalPageShell
         title={name}
-        index={index}
-        onScrollToSection={onScrollToSection}
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
-              className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-            >
-              {viewMode === 'read' ? 'Edit' : 'Read mode'}
-            </button>
-            <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
-          </div>
-        }
+        actions={headerActions}
         editor={
           /* Read mode keeps the editor mounted — same markdown surface, just
              non-editable (#1008): widgets (run controls, result inlays) stay

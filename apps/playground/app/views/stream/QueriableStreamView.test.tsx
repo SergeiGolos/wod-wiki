@@ -69,7 +69,7 @@ describe('QueriableStreamView component', () => {
     return engine
   }
 
-  it('renders sticky header with profile title and subtitle', async () => {
+  it('renders the sticky header without a page title — the query bar fills the row', async () => {
     const engine = createMockEngine([])
 
     render(
@@ -79,9 +79,8 @@ describe('QueriableStreamView component', () => {
     )
 
     expect(screen.getByTestId('queriable-stream-view')).toBeDefined()
-    // The type pill also reads 'Efforts' — assert on the heading specifically.
-    expect(screen.getByRole('heading', { name: 'Efforts' })).toBeDefined()
-    expect(screen.getByText('Catalog of registered movements, benchmarks, and standards.')).toBeDefined()
+    expect(screen.queryByRole('heading')).toBeNull()
+    expect(screen.getByTestId('stream-query-bar')).toBeDefined()
   })
   it('renders entries in card stream layout by default', async () => {
     const engine = createMockEngine(sampleEffortEntries)
@@ -203,7 +202,7 @@ describe('QueriableStreamView component', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('Results')).toBeDefined()
+    expect(screen.getByTestId('stream-query-bar')).toBeDefined()
     await waitFor(() => {
       expect(screen.getByText('No completed session results recorded in this period.')).toBeDefined()
     })

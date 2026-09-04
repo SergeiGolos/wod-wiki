@@ -14,7 +14,6 @@ import {
 describe('streamProfile presets', () => {
   it('defines the Journal stream profile', () => {
     expect(JOURNAL_STREAM_PROFILE.route).toBe('/journal')
-    expect(JOURNAL_STREAM_PROFILE.title).toBe('Journal')
     expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe('find:note{source:journal} last 2w')
     expect(JOURNAL_STREAM_PROFILE.level).toBe('note')
     expect(JOURNAL_STREAM_PROFILE.typeOptions).toEqual(['journal'])
@@ -22,7 +21,6 @@ describe('streamProfile presets', () => {
 
   it('defines the Collections stream profile', () => {
     expect(COLLECTIONS_STREAM_PROFILE.route).toBe('/collections')
-    expect(COLLECTIONS_STREAM_PROFILE.title).toBe('Collections')
     expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} last 2w')
     expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
     expect(COLLECTIONS_STREAM_PROFILE.typeOptions).toEqual(['collections'])
@@ -30,7 +28,6 @@ describe('streamProfile presets', () => {
 
   it('defines the Feeds stream profile', () => {
     expect(FEEDS_STREAM_PROFILE.route).toBe('/feeds')
-    expect(FEEDS_STREAM_PROFILE.title).toBe('Feeds')
     expect(FEEDS_STREAM_PROFILE.defaultWql).toBe('find:note{source:feeds} last 2w')
     expect(FEEDS_STREAM_PROFILE.level).toBe('note')
     expect(FEEDS_STREAM_PROFILE.typeOptions).toEqual(['feeds'])
@@ -38,7 +35,6 @@ describe('streamProfile presets', () => {
 
   it('defines the Library stream profile', () => {
     expect(LIBRARY_STREAM_PROFILE.route).toBe('/library')
-    expect(LIBRARY_STREAM_PROFILE.title).toBe('Library')
     expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe('find:note last 2w')
     expect(LIBRARY_STREAM_PROFILE.level).toBe('note')
     expect(LIBRARY_STREAM_PROFILE.typeOptions).toEqual(['notes', 'journal', 'collections', 'feeds', 'blocks'])
@@ -46,7 +42,6 @@ describe('streamProfile presets', () => {
 
   it('defines the Efforts stream profile', () => {
     expect(EFFORTS_STREAM_PROFILE.route).toBe('/efforts')
-    expect(EFFORTS_STREAM_PROFILE.title).toBe('Efforts')
     expect(EFFORTS_STREAM_PROFILE.defaultWql).toBe('find:effort')
     expect(EFFORTS_STREAM_PROFILE.level).toBe('effort')
     expect(EFFORTS_STREAM_PROFILE.typeOptions).toEqual(['efforts'])
@@ -54,7 +49,6 @@ describe('streamProfile presets', () => {
 
   it('defines the Results stream profile', () => {
     expect(RESULTS_STREAM_PROFILE.route).toBe('/results')
-    expect(RESULTS_STREAM_PROFILE.title).toBe('Results')
     expect(RESULTS_STREAM_PROFILE.defaultWql).toBe('rows:all{} last 4w')
     expect(RESULTS_STREAM_PROFILE.level).toBe('result')
     expect(RESULTS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
@@ -62,7 +56,6 @@ describe('streamProfile presets', () => {
 
   it('defines the Segments stream profile', () => {
     expect(SEGMENTS_STREAM_PROFILE.route).toBe('/results/segments')
-    expect(SEGMENTS_STREAM_PROFILE.title).toBe('Segments')
     expect(SEGMENTS_STREAM_PROFILE.defaultWql).toBe('rows:segment{} last 8w')
     expect(SEGMENTS_STREAM_PROFILE.level).toBe('segment')
     expect(SEGMENTS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
@@ -89,7 +82,6 @@ describe('streamProfile presets', () => {
     const detail = getStreamProfile('/results/res-42')
     expect(detail).toBeDefined()
     expect(detail?.route).toBe('/results/res-42')
-    expect(detail?.title).toBe('Session Result')
     expect(detail?.defaultWql).toBe('rows:segment{result:res-42}')
     expect(detail?.level).toBe('segment')
     expect(detail?.typeOptions).toEqual(['rows'])
@@ -103,7 +95,7 @@ describe('streamProfile presets', () => {
     expect(resolveStreamProfile('/results/res-99').defaultWql).toBe('rows:segment{result:res-99}')
 
     // /results/segments does NOT get treated as a dynamic resultId 'segments'
-    expect(getStreamProfile('/results/segments')?.title).toBe('Segments')
+    expect(getStreamProfile('/results/segments')?.route).toBe('/results/segments')
     expect(getStreamProfile('/results/segments')?.defaultWql).toBe('rows:segment{} last 8w')
   })
 })

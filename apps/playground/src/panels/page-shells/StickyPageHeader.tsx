@@ -6,9 +6,11 @@
  *   - Desktop (lg+): the zone sticks to the viewport top (the app has no
  *     desktop navbar) — accent + title + optional subtitle + accessory,
  *     right-aligned actions, subheader below, then a rule.
- *   - Mobile: the title row is hidden (the SidebarLayout navbar covers page
- *     identity) and the zone sticks just below that navbar, leaving the
- *     subheader as the visible sticky bar.
+ *   - Mobile: the zone is hidden entirely (max-lg:hidden) — the SidebarLayout
+ *     navbar is the single mobile header. Page identity (title/slug/date)
+ *     reaches the navbar via the App breadcrumb (route-derived workout name);
+ *     mobile-critical actions (e.g. a note's Edit toggle) portal into the
+ *     navbar's MobileQuerySlot target, mirroring the stream query bar.
  *
  * The zone carries `data-page-sticky-boundary="true"` so stacked sticky
  * elements (date-group headers, scroll targets) can measure the real
@@ -23,8 +25,9 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface StickyPageHeaderProps {
-  /** Page title shown in the sticky bar. */
-  title: string;
+  /** Page title shown in the sticky bar. When omitted, the row space is
+   *  left for the queryBar/actions (e.g. stream pages). */
+  title?: string;
   /** Secondary line under the title (e.g. a dynamic page description). */
   subtitle?: ReactNode;
   /** Content rendered next to the title (e.g. a challenge badge). */
@@ -60,29 +63,31 @@ export function StickyPageHeader({
     <div
       data-page-sticky-boundary="true"
       className={cn(
-        'sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 transition-colors',
+        'max-lg:hidden lg:sticky lg:top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 transition-colors',
         className,
       )}
     >
       {/* Title row */}
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5">
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div className="h-5 w-1.5 shrink-0 rounded-full bg-primary" />
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="min-w-0">
-              <h1
-                data-testid={titleTestId}
-                className="text-base sm:text-lg font-black tracking-tight text-foreground leading-none truncate"
-              >
-                {title}
-              </h1>
-              {subtitle && (
-                <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>
-              )}
+        {title && (
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="h-5 w-1.5 shrink-0 rounded-full bg-primary" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="min-w-0">
+                <h1
+                  data-testid={titleTestId}
+                  className="text-base sm:text-lg font-black tracking-tight text-foreground leading-none truncate"
+                >
+                  {title}
+                </h1>
+                {subtitle && (
+                  <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>
+                )}
+              </div>
+              {titleAccessory}
             </div>
-            {titleAccessory}
           </div>
-        </div>
+        )}
         {queryBar && <div className="min-w-0 flex-1">{queryBar}</div>}
         {actions && (
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

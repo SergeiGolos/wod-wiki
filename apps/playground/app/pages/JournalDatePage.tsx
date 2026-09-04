@@ -9,6 +9,9 @@ import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
 import { useSearchParams } from 'react-router-dom';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
+import { createPortal } from 'react-dom'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { useMobileQuerySlot } from '@/panels/page-shells'
 import { notePersistence } from '@/services/persistence';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
@@ -49,6 +52,8 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     setEditorView(view);
     onViewCreated?.(view);
   }, [onViewCreated]);
+  const isMobile = useIsMobile();
+  const mobileSlot = useMobileQuerySlot();
   // ?note=<uuid> — UI-level sub-selection within the date page. Scrolls the
   // editor to the selected note's first line once both the notes and the
   // editor view are ready (whichever arrives last retriggers the effect).
@@ -204,24 +209,28 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
 
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
 
+  // The page header is hidden below lg — the Edit/Read toggle is the one
+  // mobile-critical action, so it portals into the navbar slot instead
+  // (single mount point, mirroring QueriableStreamView's query bar).
+  const editToggle = notes.length > 0 ? (
+    <button
+      type="button"
+      onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
+      className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+    >
+      {viewMode === 'read' ? 'Edit' : 'Read mode'}
+    </button>
+  ) : undefined;
+
   return (
     <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
       <div className="flex flex-col flex-1 w-full min-h-screen">
         <StickyPageHeader
           title={journalDate}
           subtitle={`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
-          actions={
-            notes.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
-                className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                {viewMode === 'read' ? 'Edit' : 'Read mode'}
-              </button>
-            ) : undefined
-          }
+          actions={isMobile ? undefined : editToggle}
         />
+        {isMobile && mobileSlot && editToggle && createPortal(editToggle, mobileSlot)}
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-6 flex-1">
           {notes.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>

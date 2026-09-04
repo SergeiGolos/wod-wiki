@@ -11,7 +11,7 @@ import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import { v7 as uuidv7 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import { JournalPageShell } from '@/panels/page-shells'
+import { JournalPageShell, useMobileQuerySlot } from '@/panels/page-shells'
 import type { WidgetRegistry } from '@/components/Editor/widgets/types'
 import { PlaygroundRunTipWidget } from '../components/molecules/PlaygroundRunTipWidget'
 import {
@@ -42,6 +42,8 @@ import { useCursorInsert } from '../hooks/useCursorInsert'
 import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
 import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
 import { Pin } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 export interface PlaygroundNotePageProps {
   theme: string
@@ -195,6 +197,46 @@ export function PlaygroundNotePage({
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout, results })
+  const isMobile = useIsMobile()
+  const mobileSlot = useMobileQuerySlot()
+
+  // The page header is hidden below lg — the pinned-effort insert button is
+  // the one mobile-critical action, so it portals into the navbar slot.
+  // Single mount point per breakpoint. (IKEA strong treatment renders only
+  // on the first note the user inserts the pinned effort on; subsequent
+  // notes step down to the regular quiet treatment.)
+  const pinnedEffortButton = pinnedEffort && (
+    <button
+      type="button"
+      onClick={insertPinnedEffort}
+      title={`Insert ${pinnedEffort} at the cursor`}
+      className={!hasInserted
+        ? 'inline-flex items-center gap-1.5 rounded-pill border border-brand/60 border-l-2 border-l-brand bg-brand/10 pl-3 pr-3 py-1.5 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/15 dark:text-brand-light'
+        : 'inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light'}
+    >
+      <Pin
+        className={!hasInserted
+          ? 'size-4 text-brand-deep dark:text-brand-light'
+          : 'size-3'}
+        aria-hidden="true"
+      />
+      {pinnedEffort}
+    </button>
+  )
+  const headerActions = isMobile ? (
+    mobileSlot && pinnedEffortButton ? createPortal(pinnedEffortButton, mobileSlot) : undefined
+  ) : (
+    <div className="flex items-center gap-2">
+      {pinnedEffortButton}
+      <PageActions
+        mode="playground"
+        currentWorkout={{ name: pageTitle, content }}
+        index={index}
+        onSearch={onSearch ?? (() => {})}
+        onReset={resetToOriginal}
+      />
+    </div>
+  )
 
   const commands = useScriptBlockCommands('playground', {
     onPlay: handleStartWorkout,
@@ -285,40 +327,7 @@ export function PlaygroundNotePage({
       <FirstNoteWizard open={wizardOpen} onClose={handleWizardClose} />
       <JournalPageShell
         title={pageTitle}
-        index={index}
-        onScrollToSection={onScrollToSection}
-        actions={
-          <div className="flex items-center gap-2">
-            {pinnedEffort && (
-              // IKEA strong treatment renders only on the first note the
-              // user inserts the pinned effort on. Subsequent notes step
-              // down to the regular quiet treatment.
-              <button
-                type="button"
-                onClick={insertPinnedEffort}
-                title={`Insert ${pinnedEffort} at the cursor`}
-                className={!hasInserted
-                  ? 'inline-flex items-center gap-1.5 rounded-pill border border-brand/60 border-l-2 border-l-brand bg-brand/10 pl-3 pr-3 py-1.5 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/15 dark:text-brand-light'
-                  : 'inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light'}
-              >
-                <Pin
-                  className={!hasInserted
-                    ? 'size-4 text-brand-deep dark:text-brand-light'
-                    : 'size-3'}
-                  aria-hidden="true"
-                />
-                {pinnedEffort}
-              </button>
-            )}
-            <PageActions
-              mode="playground"
-              currentWorkout={{ name: pageTitle, content }}
-              index={index}
-              onSearch={onSearch ?? (() => {})}
-              onReset={resetToOriginal}
-            />
-          </div>
-        }
+        actions={headerActions}
         editor={
           <NoteEditor
             value={content}

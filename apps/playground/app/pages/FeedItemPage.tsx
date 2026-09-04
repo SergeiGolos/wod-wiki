@@ -48,7 +48,6 @@ export function FeedItemPage({
   feedItem,
   theme,
   onViewCreated,
-  onScrollToSection,
   onSearch,
 }: FeedItemPageProps) {
   const navigate = useNavigate();
@@ -165,8 +164,6 @@ export function FeedItemPage({
     <>
       <JournalPageShell
         title={item?.name ?? feedItem}
-        index={index}
-        onScrollToSection={onScrollToSection}
         actions={
           <PageActions
             mode="collection-readonly"

@@ -26,10 +26,14 @@ import {
   Check,
   Paintbrush,
   Sliders,
+  Search,
+  PanelRight,
+  PanelLeft,
 } from 'lucide-react'
 import { StickyPageHeader } from '@/panels/page-shells/StickyPageHeader'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { useDateLocale, DATE_LOCALE_OPTIONS, getDateLocale } from '../lib/dateLocale'
+import { useFabAlignment, FAB_ALIGNMENT_OPTIONS } from '../lib/fabAlignment'
 import { useAudio } from '@/contexts/AudioContext'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { resetUserData } from '../services/resetUserData'
@@ -108,6 +112,8 @@ export function SettingsPage() {
 function AppearanceSection() {
   const { theme, setTheme } = useTheme()
   const [dateLocale, setDateLocale] = useDateLocale()
+  const [fabAlignment, setFabAlignment] = useFabAlignment()
+  const fabAlignmentIcons = { right: PanelRight, left: PanelLeft } as const
 
   const today = useMemo(() => new Date(), [])
 
@@ -276,6 +282,75 @@ function AppearanceSection() {
                   {isSelected && <span className="text-[10px] font-bold">✓</span>}
                 </div>
               </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* 3. Search Button Position */}
+      <section className="space-y-4 pt-4 border-t border-border/50">
+        <div>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <Search className="size-4 text-primary" />
+            Search Button Position
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            On phones, search is a floating button at the bottom of the screen. Place it near
+            your dominant thumb.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {FAB_ALIGNMENT_OPTIONS.map(option => {
+            const isSelected = fabAlignment === option.id
+            const Icon = fabAlignmentIcons[option.id]
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                data-testid={`fab-alignment-${option.id}`}
+                onClick={() => setFabAlignment(option.id)}
+                className={cn(
+                  'relative flex flex-col items-start p-4 rounded-xl border text-left transition-all',
+                  isSelected
+                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5 text-foreground shadow-xs'
+                    : 'border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                )}
+              >
+                <div className="w-full flex items-center justify-between mb-3">
+                  <div
+                    className={cn(
+                      'p-2 rounded-lg',
+                      isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+                    )}
+                  >
+                    <Icon className="size-5" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {option.id === 'right' && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                        Default
+                      </span>
+                    )}
+                    <div
+                      className={cn(
+                        'size-4 rounded-full border flex items-center justify-center transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-muted-foreground/40',
+                      )}
+                    >
+                      {isSelected && <Check className="size-2.5 stroke-[3]" />}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="font-semibold text-foreground text-sm">{option.label}</div>
+                <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  {option.description}
+                </div>
+              </button>
             )
           })}
         </div>

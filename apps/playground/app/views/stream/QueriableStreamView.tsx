@@ -2,7 +2,7 @@
  * QueriableStreamView — unified deep queriable stream across notes, efforts, and results (Ticket 003).
  *
  * Consolidates LibraryPage and EffortsCatalogPage into a single reusable view:
- * 1. Takes a StreamProfile (route, default WQL query, title, subtitle, scope lock, level).
+ * 1. Takes a StreamProfile (route, default WQL query, scope lock, level).
  * 2. Connects to StreamQueryEngine for unified execution across content, efforts, and rows.
  * 3. Renders either the progressive Date Group Stream or the Property Table based on ViewSettings.
  * 4. Provides a discrete "View Settings" modal dialog (sliders button in action bar).
@@ -42,7 +42,7 @@ import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useDateLocale } from '../../lib/dateLocale'
 import { useBatchedItems, type BatchedItems } from '../../hooks/useBatchedItems'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
-import { sourceOfQuery, withoutFilters, withoutWindow } from '../../lib/wqlEdits'
+import { withoutFilters, withoutWindow } from '../../lib/wqlEdits'
 import { LibraryRow } from '../library/LibraryRow'
 import { PropertyTable } from './PropertyTable'
 import { ViewSettingsDialog } from './ViewSettingsDialog'
@@ -109,7 +109,6 @@ export function QueriableStreamView({
   const mobileSlot = useMobileQuerySlot()
 
   const parsed = useMemo(() => parseQuery(query), [query])
-  const sourceValue = sourceOfQuery(query)
 
   const defaultAddToToday = useCallback(async (entry: Entry) => {
     const today = todayKey()
@@ -243,14 +242,6 @@ export function QueriableStreamView({
   const today = todayKey()
   const stickyOffset = useStickyBoundaryOffset(104)
 
-  // Subtitle resolution
-  const renderedSubtitle = useMemo(() => {
-    if (typeof profile.subtitle === 'function') {
-      return profile.subtitle(query, sourceValue)
-    }
-    return profile.subtitle ?? ''
-  }, [profile, query, sourceValue])
-
   // Query error detection (composed query is the default fallback and has nothing to flag unless edited or invalid from URL)
   const composedError = parsed.error && query !== profile.defaultWql ? parsed.error : null
   const queryError = urlQueryError ?? composedError
@@ -280,14 +271,13 @@ export function QueriableStreamView({
 
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
-      {/* Desktop: single-line header — the query bar lives IN the title row.
+      {/* Desktop: single-line header — the query bar fills the row left
+          empty by the removed title.
           Mobile: no page-level header at all (it would stack over the app
           navbar and hide the menu trigger); the query bar portals up into
           that navbar instead. */}
       <div className="max-lg:hidden">
         <StickyPageHeader
-          title={profile.title}
-          subtitle={renderedSubtitle}
           actions={
             <div className="flex items-center gap-2">
               {actions}

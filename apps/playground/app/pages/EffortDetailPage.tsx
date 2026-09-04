@@ -23,7 +23,7 @@ import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { JournalPageShell } from '@/panels/page-shells';
+import { JournalPageShell, useMobileQuerySlot } from '@/panels/page-shells';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { WorkoutResult } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
@@ -39,6 +39,8 @@ import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
 import { indexedDBService } from '@/services/db/IndexedDBService';
+import { createPortal } from 'react-dom';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
 
@@ -170,6 +172,8 @@ export function EffortDetailPage() {
     if (!effort || !isReady) return null;
     return resolver.resolveEffort(effort.slug);
   }, [effort, isReady, resolver]);
+  const isMobile = useIsMobile();
+  const mobileSlot = useMobileQuerySlot();
 
   // ── WOD block handlers ───────────────────────────────────────────────────
   const handleStartWorkout = useCallback((block: ScriptBlock) => {
@@ -207,7 +211,7 @@ export function EffortDetailPage() {
   }, [effort]);
 
   // ── L3 nav from document content ─────────────────────────────────────────
-  const index = useNotePageNav({
+  useNotePageNav({
     content: document,
     scriptBlocks,
     onStartWorkout: handleStartWorkout,
@@ -326,13 +330,44 @@ export function EffortDetailPage() {
 
   const noteId = `effort/${effort.slug}`;
 
+  // The page header is hidden below lg — portal the mobile-relevant actions
+  // (badge / Clone / Resolved toggle) into the navbar slot; the back button
+  // is covered by the breadcrumb. Single mount point per breakpoint so the
+  // testid-carrying controls never duplicate in the DOM.
+  const mobileActions = (
+    <div className="flex items-center gap-2">
+      <Badge
+        data-testid={TEST_IDS.EFFORT_DETAIL_SOURCE}
+        variant={effort.registrySource === 'bundled' ? 'secondary' : 'default'}
+      >
+        {effort.registrySource === 'bundled' ? 'Bundled' : 'Custom'}
+      </Badge>
+      {!isEditable && (
+        <Button variant="outline" size="sm" onClick={handleClone} data-testid={TEST_IDS.EFFORT_DETAIL_CLONE_BTN}>
+          <DocumentDuplicateIcon className="size-4 mr-1.5" />
+          Clone
+        </Button>
+      )}
+      {resolved && (
+        <Button
+          variant={showResolved ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowResolved(v => !v)}
+        >
+          <Eye className="size-4 mr-1.5" />
+          {showResolved ? 'Hide Resolved' : 'Show Resolved'}
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div data-testid={TEST_IDS.EFFORT_DETAIL_ROOT} className="contents">
+      {isMobile && mobileSlot && createPortal(mobileActions, mobileSlot)}
       <JournalPageShell
         title={effort.label}
         titleTestId={TEST_IDS.EFFORT_DETAIL_LABEL}
-        actions={pageActions}
-        index={index}
+        actions={isMobile ? undefined : pageActions}
         editor={
           <div className="relative" data-testid={TEST_IDS.EFFORT_DETAIL_NOTEBOOK_EDITOR}>
             {/* Resolved view inline widget */}
