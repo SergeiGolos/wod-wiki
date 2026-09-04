@@ -120,6 +120,12 @@ export const PaletteShell: React.FC = () => {
     <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
   );
 
+  const applyQuery = useCallback(() => {
+    if (!wqlConfig?.onApply) return;
+    wqlConfig.onApply(activeQuery);
+    _dismiss();
+  }, [wqlConfig, activeQuery, _dismiss]);
+
   const searchRow = wqlConfig ? (
     <div className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
       <WqlComposer
@@ -130,8 +136,21 @@ export const PaletteShell: React.FC = () => {
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}
+        onSubmit={wqlConfig.onApply ? applyQuery : undefined}
         autoFocus
       />
+      {wqlConfig.onApply && (
+        <div className="flex items-center justify-end pt-1.5">
+          <button
+            type="button"
+            onClick={applyQuery}
+            data-testid="palette-apply-query"
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Apply query
+          </button>
+        </div>
+      )}
     </div>
   ) : undefined;
 

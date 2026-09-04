@@ -35,6 +35,11 @@ export interface StickyPageHeaderProps {
    * Content rendered below the title row inside the sticky zone.
    */
   subheader?: ReactNode;
+  /**
+   * Inline query bar rendered in the title row (StreamQueryBar). Keeps the
+   * composer on the same line as the title — the header IS the query bar.
+   */
+  queryBar?: ReactNode;
   /** Optional data-testid on title heading */
   titleTestId?: string;
   /** Optional class names on the sticky header container */
@@ -46,6 +51,7 @@ export function StickyPageHeader({
   subtitle,
   titleAccessory,
   actions,
+  queryBar,
   subheader,
   titleTestId,
   className,
@@ -77,6 +83,7 @@ export function StickyPageHeader({
             {titleAccessory}
           </div>
         </div>
+        {queryBar && <div className="min-w-0 flex-1">{queryBar}</div>}
         {actions && (
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {actions}

@@ -26,10 +26,11 @@ export interface StreamProfile {
   defaultWql: string
   /** Active entity level for field projection and view settings. */
   level: EntityLevel
-  /** Fixed scope lock if the route restricts sources (e.g. 'notes' for /journal). */
-  scopeLock?: LibraryScope | 'efforts' | 'results' | 'all'
-  /** When true, hides the SourceScopeRadio pill row in the subheader. */
-  hideScopeRadio?: boolean
+  /** Source-plane options the header query bar's type selector offers
+   * (wqlEdits vocabulary: notes/journal/collections/feeds/blocks/efforts/
+   * rows). A single-entry list locks the route to that data type — the
+   * selector still renders, stating what the page returns. */
+  typeOptions: readonly string[]
   /** When true, renders the undated Sessions shelf alongside the dated stream. */
   shelfVisible?: boolean
   /** Optional message displayed when query yields zero results. */

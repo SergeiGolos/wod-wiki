@@ -145,3 +145,14 @@ export function withoutFilters(query: string): string {
   if (parsed.error) return query;
   return serialize({ ...parsed, filters: parsed.filters.filter((f) => f.key === 'source') });
 }
+
+/** Drop the filter at `index` (query-bar chip ✕). The index refers to
+ * `parseQuery(query).filters` of the same string — a stale or out-of-range
+ * index is a no-op returning the query unchanged. */
+export function withoutFilterIndex(query: string, index: number): string {
+  const parsed = parseQuery(query);
+  if (parsed.error) return query;
+  if (index < 0 || index >= parsed.filters.length) return query;
+  const filters = parsed.filters.filter((_, i) => i !== index);
+  return serialize({ ...parsed, filters } as AnyParsedQuery);
+}

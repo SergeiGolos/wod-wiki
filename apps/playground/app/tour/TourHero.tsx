@@ -81,13 +81,7 @@ export function TourHeroHeading({ onNavigateSection }: TourHeroHeadingProps = {}
             {row.after}.
           </span>
         ))}
-      </h1>
-      <p className="mt-4 max-w-xl text-[clamp(14px,1.2vw,16px)] leading-[1.6] text-muted-foreground">
-        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
-        into a live Clock timer, then logs every round straight back to your training
-        journal — one file, one loop, no app-switching.
-      </p>
-
+      </h1>      
       {/* Desktop-only: absolutely positioned against the full-height hero.
           On mobile the heading block is short, so the cue overlapped the intro
           paragraph — the short-circuit strip below already carries the

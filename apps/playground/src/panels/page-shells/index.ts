@@ -20,5 +20,10 @@ export { ScopedRuntimeProvider, type ScopedRuntimeProviderProps } from './Scoped
 export { CanvasPage, type CanvasPageProps } from './CanvasPage';
 export { StickyPageHeader, type StickyPageHeaderProps } from './StickyPageHeader';
 export { measureStickyBoundary, useStickyBoundaryOffset, STICKY_BOUNDARY_SELECTOR } from './stickyBoundary';
+export {
+  MobileQuerySlotProvider,
+  MobileQuerySlotTarget,
+  useMobileQuerySlot,
+} from './MobileQuerySlot';
 export { JournalPageShell, type JournalPageShellProps } from './JournalPageShell';
 export { CalendarPageShell, type CalendarPageShellProps } from './CalendarPageShell';

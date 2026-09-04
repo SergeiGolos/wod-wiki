@@ -16,13 +16,18 @@ export interface PaletteWqlConfig {
   customSlots?: React.ReactNode;
   /** Render the composer's diagnostics strip (badge, AST summary, stage counts). Default true. */
   showDiagnostics?: boolean;
-  /**
-   * Executor for live stage counts in the diagnostics strip — dispatch on
+  /** Execute for live stage counts in the diagnostics strip — dispatch on
    * query kind, e.g. `(ast) => isFindQuery(ast) ? queryService.runFind(ast)
    * : queryService.runQuery(ast.raw)`. When omitted, the strip omits counts
-   * and no query is executed.
-   */
+   * and no query is executed. */
   execute?: WqlExecutor;
+  /**
+   * Query-crafting mode (header query bar): when provided, the palette
+   * renders an "Apply query" action (and Enter applies) that receives the
+   * composed WQL and closes the palette — the caller writes the query back
+   * to its own state instead of navigating.
+   */
+  onApply?: (wql: string) => void;
 }
 
 /**
