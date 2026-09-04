@@ -101,4 +101,40 @@ describe('ActionsMenu', () => {
     });
     expect(onDownload).toHaveBeenCalled();
   });
+
+  it('falls back to NavContext l3Items when items prop is empty array', () => {
+    const scrollToSection = mock(() => {});
+    const items: NavItemL3[] = [
+      { id: 'section-1', label: 'Dynamic Section', level: 3, action: { type: 'scroll', sectionId: 'section-1' } },
+    ];
+
+    render(
+      <MemoryRouter>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: items,
+            setL3Items: () => {},
+            secondarySpec: undefined,
+            setSecondarySpec: () => {},
+            scrollToSection,
+            registerScrollFn: () => {},
+          }}
+        >
+          <ActionsMenu currentWorkout={{ name: 'Test', content: '' }} items={[]} />
+        </NavContext.Provider>
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      screen.getByRole('button').click();
+    });
+    expect(screen.getByText('Dynamic Section')).toBeDefined();
+    act(() => {
+      screen.getByText('Dynamic Section').click();
+    });
+    expect(scrollToSection).toHaveBeenCalledWith('section-1');
+  });
 });

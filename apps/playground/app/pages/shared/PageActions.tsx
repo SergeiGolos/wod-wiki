@@ -95,7 +95,7 @@ export function PageActions({
 
       <NavSearchInput onOpen={onSearch} />
       <CastButtonRpc />
-      <ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(index)} />
+      <ActionsMenu currentWorkout={currentWorkout} items={index && index.length > 0 ? mapIndexToL3(index) : undefined} />
     </div>
   )
 }

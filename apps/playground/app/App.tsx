@@ -118,10 +118,17 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // General layout shell state: breadcrumb (active L1 › page identity) and
   // the L3 index channel (canvas pages publish here; note pages publish via
   // useNotePageNav — bare shells, so the writers never overlap).
-  const { tree: l1Items, navState, setL3Items } = useNav()
+  const { tree: l1Items, navState, setL3Items, setSecondarySpec } = useNav()
   const activeL1Id = (navState as { activeL1Id?: string | null }).activeL1Id ?? null
   const activeL1 = l1Items.find(item => item.id === activeL1Id) ?? null
   const crumbTitle = view.shell.title
+  const secondarySpec = view.page === 'library' ? LIBRARY_SECONDARY : view.shell.secondary
+
+  useEffect(() => {
+    setSecondarySpec(secondarySpec)
+    return () => setSecondarySpec(undefined)
+  }, [secondarySpec, setSecondarySpec])
+
   useEffect(() => {
     if (!view.shell.withIndex) return
     setL3Items(mapIndexToL3(currentNavLinks))
@@ -346,7 +353,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         </Navbar>
       }
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
-      secondary={view.page === 'library' ? LIBRARY_SECONDARY : view.shell.secondary}
+      secondary={secondarySpec}
       onSearch={openSearchPalette}
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">

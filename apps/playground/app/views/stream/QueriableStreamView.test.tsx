@@ -14,6 +14,8 @@ import {
   createResultDetailProfile,
 } from './streamProfile'
 import { journalNotes } from '../../services/journalNotes'
+import { NavContext, initialNavState } from '../../nav/NavContext'
+import type { NavItemL3 } from '../../nav/navTypes'
 beforeEach(() => {
   window.localStorage.clear()
 })
@@ -333,5 +335,95 @@ describe('QueriableStreamView component', () => {
       journalNotes.getById = originalGetById
       journalNotes.create = originalCreate
     }
+  })
+
+  it('publishes dynamic section links to NavContext and updates them when WQL grouping changes', async () => {
+    const datedEntries: Entry[] = [
+      {
+        id: 'note-1',
+        kind: 'note',
+        sourceCatalog: 'canonical',
+        sourceItem: 'item-1',
+        title: 'Workout 1',
+        date: '2026-09-04',
+        effort: { slug: 'fran', label: 'Fran', discipline: 'gymnastics' },
+      },
+      {
+        id: 'note-2',
+        kind: 'note',
+        sourceCatalog: 'canonical',
+        sourceItem: 'item-2',
+        title: 'Workout 2',
+        date: '2026-08-15',
+        effort: { slug: 'grace', label: 'Grace', discipline: 'strength' },
+      },
+    ]
+
+    let capturedLinks: NavItemL3[] = []
+    const setL3Items = mock((items: NavItemL3[]) => {
+      capturedLinks = items
+    })
+
+    const engine = createMockEngine(datedEntries)
+
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: [],
+            setL3Items,
+            scrollToSection: () => {},
+            registerScrollFn: () => {},
+          }}
+        >
+          <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
+        </NavContext.Provider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(capturedLinks.length).toBeGreaterThan(0)
+    })
+    // Default date grouping
+    expect(capturedLinks.some(l => l.id.includes('2026-09-04'))).toBe(true)
+    expect(capturedLinks.some(l => l.id.includes('2026-08-15'))).toBe(true)
+
+    unmount()
+    cleanup()
+
+    // When WQL has `by {discipline}`, grouping updates to discipline
+    let disciplineLinks: NavItemL3[] = []
+    const setL3Discipline = mock((items: NavItemL3[]) => {
+      disciplineLinks = items
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: [],
+            setL3Items: setL3Discipline,
+            scrollToSection: () => {},
+            registerScrollFn: () => {},
+          }}
+        >
+          <QueriableStreamView
+            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note in journal by {discipline}' }}
+            queryEngine={engine}
+          />
+        </NavContext.Provider>
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(disciplineLinks.some(l => l.label === 'Gymnastics')).toBe(true)
+      expect(disciplineLinks.some(l => l.label === 'Strength')).toBe(true)
+    })
   })
 })

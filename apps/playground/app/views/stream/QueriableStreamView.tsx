@@ -23,8 +23,13 @@ import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-
 import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells'
 import type { Entry } from '../../lib/entryMapper'
-import { groupEntriesByDate } from '../../lib/entryGrouping'
+import {
+  groupEntriesByDimension,
+  parseGroupingDimension,
+} from '../../lib/entryGrouping'
 import { defaultStreamQueryEngine, StreamQueryEngine } from '../../lib/entrySearch'
+import { useNav } from '../../nav/NavContext'
+import type { NavItemL3 } from '../../nav/navTypes'
 import { useComposerQueryState } from '../../hooks/useComposerQueryState'
 import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useDateLocale } from '../../lib/dateLocale'
@@ -82,7 +87,7 @@ export function QueriableStreamView({
   })
 
   // Per-route view settings (layout + field visibility)
-  const { settings, setLayout, toggleField, resetSettings } = useViewSettings(
+  const { settings, setLayout, toggleField, setGroupBy, resetSettings } = useViewSettings(
     profile.route,
     profile.level,
   )
@@ -192,26 +197,52 @@ export function QueriableStreamView({
     }
   }, [activeWql, queryEngine])
 
-  // Partition entries into dated stream items and undated shelf/catalog items
-  const dated = useMemo(
-    () =>
-      entries
-        .filter(e => e.kind !== 'session' && e.date != null)
-        .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
-    [entries],
-  )
-  const undated = useMemo(
-    () => entries.filter(e => e.kind === 'session' || e.date == null),
-    [entries],
+  // Grouping dimension: query `by {dim}` or view setting or default
+  const groupDim = useMemo(() => {
+    const fromQuery = parseGroupingDimension(activeWql, parsed)
+    if (fromQuery) return fromQuery
+    if (settings.groupBy) return settings.groupBy
+    if (profile.level === 'effort') return 'discipline'
+    return 'date'
+  }, [activeWql, parsed, settings.groupBy, profile.level])
+
+  // Full dataset grouped by dimension
+  const allGroups = useMemo(
+    () => groupEntriesByDimension(entries, groupDim, { shelfVisible: profile.shelfVisible }),
+    [entries, groupDim, profile.shelfVisible],
   )
 
   // Progressive DOM batching
-  const datedBatch = useBatchedItems(dated)
-  const undatedBatch = useBatchedItems(undated)
-  const byDate = useMemo(() => groupEntriesByDate(dated), [dated])
-  const visibleByDate = useMemo(() => groupEntriesByDate(datedBatch.visible), [datedBatch.visible])
-  const countByDate = useMemo(() => new Map(byDate.map(([k, group]) => [k, group.length])), [byDate])
+  const entriesBatch = useBatchedItems(entries)
+  const visibleGroups = useMemo(
+    () => groupEntriesByDimension(entriesBatch.visible, groupDim, { shelfVisible: profile.shelfVisible }),
+    [entriesBatch.visible, groupDim, profile.shelfVisible],
+  )
+  const groupCountMap = useMemo(() => new Map(allGroups.map(g => [g.id, g.entries.length])), [allGroups])
 
+  // Publish dynamic section links to NavContext
+  const { setL3Items } = useNav()
+  useEffect(() => {
+    if (allGroups.length === 0) {
+      setL3Items([])
+      return
+    }
+    const sectionLinks: NavItemL3[] = allGroups.map(g => ({
+      id: g.id,
+      label: g.label,
+      level: 3,
+      action: { type: 'scroll', sectionId: g.id },
+    }))
+    setL3Items(sectionLinks)
+    return () => setL3Items([])
+  }, [allGroups, setL3Items])
+
+  const handleGroupByChange = useCallback(
+    (newGroup: string) => {
+      setGroupBy(newGroup)
+    },
+    [setGroupBy],
+  )
   const today = todayKey()
   const stickyOffset = useStickyBoundaryOffset(104)
 
@@ -321,50 +352,52 @@ export function QueriableStreamView({
       ) : (
         <div className="flex-1 divide-y divide-border/60">
           {/* Undated Shelf (Sessions or Curated Workouts) */}
-          {profile.shelfVisible && undated.length > 0 && (
-            <div className="border-b border-border/60" data-testid="stream-shelf">
-              <button
-                type="button"
-                onClick={() => setShelfOpen(prev => !prev)}
-                className="w-full flex items-center justify-between px-6 py-2.5 bg-muted/20 hover:bg-muted/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2">
-                  {shelfOpen ? (
-                    <ChevronDownIcon className="size-3.5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRightIcon className="size-3.5 text-muted-foreground" />
-                  )}
-                  <FolderIcon className="size-3.5 text-amber-500" />
-                  <span className="text-xs font-bold text-foreground">Catalog Sessions</span>
-                  <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded-full">
-                    {undated.length}
-                  </span>
-                </div>
-              </button>
-              {shelfOpen && (
-                <div className="divide-y divide-border/40">
-                  {undatedBatch.visible.map(entry => (
-                    <LibraryRow
-                      key={entry.id}
-                      entry={entry}
-                      visibleFieldIds={settings.visibleFields}
-                      onAddToToday={handleAddToToday}
-                    />
-                  ))}
-                  <BatchingSentinel batch={undatedBatch} testId="stream-shelf-load-more" />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Dated Progressive Stream */}
-          {dated.length > 0 ? (
+          {/* Grouped Progressive Stream */}
+          {visibleGroups.length > 0 ? (
             <div className="divide-y divide-border/40" data-testid="stream-dated-content">
-              {visibleByDate.map(([dateKey, group]) => {
-                const totalInDate = countByDate.get(dateKey) ?? group.length
-                const isToday = dateKey === today
+              {visibleGroups.map(group => {
+                const totalInGroup = groupCountMap.get(group.id) ?? group.entries.length
+
+                // Undated Shelf (Sessions or Curated Workouts)
+                if (group.key === 'shelf') {
+                  return (
+                    <div key={group.id} id={group.id} className="border-b border-border/60" data-testid="stream-shelf">
+                      <button
+                        type="button"
+                        onClick={() => setShelfOpen(prev => !prev)}
+                        className="w-full flex items-center justify-between px-6 py-2.5 bg-muted/20 hover:bg-muted/40 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          {shelfOpen ? (
+                            <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRightIcon className="size-3.5 text-muted-foreground" />
+                          )}
+                          <FolderIcon className="size-3.5 text-amber-500" />
+                          <span className="text-xs font-bold text-foreground">{group.label}</span>
+                          <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded-full">
+                            {totalInGroup}
+                          </span>
+                        </div>
+                      </button>
+                      {shelfOpen && (
+                        <div className="divide-y divide-border/40">
+                          {group.entries.map(entry => (
+                            <LibraryRow
+                              key={entry.id}
+                              entry={entry}
+                              visibleFieldIds={settings.visibleFields}
+                              onAddToToday={handleAddToToday}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
                 return (
-                  <div key={dateKey} className="group/date" data-testid={`date-group-${dateKey}`}>
+                  <div key={group.id} id={group.id} className="group/date" data-testid={`date-group-${group.key}`}>
                     <div
                       className="sticky z-10 px-6 py-2 bg-card/95 backdrop-blur border-y border-border/60 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
                       style={{ top: `${stickyOffset}px` }}
@@ -372,25 +405,25 @@ export function QueriableStreamView({
                       <div className="flex items-center gap-2">
                         <CalendarIcon className="size-3.5 text-muted-foreground" />
                         <span className="text-xs font-bold text-foreground">
-                          {formatDateHeader(dateKey)}
+                          {group.label}
                         </span>
-                        {isToday && (
+                        {group.isToday && (
                           <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                             Today
                           </span>
                         )}
                       </div>
                       <span className="text-[10px] text-muted-foreground font-mono">
-                        {totalInDate} {totalInDate === 1 ? 'entry' : 'entries'}
+                        {totalInGroup} {totalInGroup === 1 ? 'entry' : 'entries'}
                       </span>
                     </div>
                     <div className="divide-y divide-border/30">
-                      {group.map(entry => (
+                      {group.entries.map(entry => (
                         <LibraryRow
                           key={entry.id}
                           entry={entry}
                           visibleFieldIds={settings.visibleFields}
-                          tone={isToday ? 'primary' : 'secondary'}
+                          tone={group.isToday ? 'primary' : 'secondary'}
                           onAddToToday={handleAddToToday}
                         />
                       ))}
@@ -398,20 +431,7 @@ export function QueriableStreamView({
                   </div>
                 )
               })}
-              <BatchingSentinel batch={datedBatch} />
-            </div>
-          ) : undated.length > 0 && !profile.shelfVisible ? (
-            /* Undated stream (e.g. Efforts catalog) */
-            <div className="divide-y divide-border/40" data-testid="stream-undated-content">
-              {undatedBatch.visible.map(entry => (
-                <LibraryRow
-                  key={entry.id}
-                  entry={entry}
-                  visibleFieldIds={settings.visibleFields}
-                  onAddToToday={handleAddToToday}
-                />
-              ))}
-              <BatchingSentinel batch={undatedBatch} />
+              <BatchingSentinel batch={entriesBatch} />
             </div>
           ) : loading && entries.length === 0 ? (
             /* Initial loading state */
@@ -454,6 +474,8 @@ export function QueriableStreamView({
         route={profile.route}
         level={profile.level}
         settings={settings}
+        activeGroupBy={groupDim}
+        onGroupByChange={handleGroupByChange}
         onLayoutChange={setLayout}
         onToggleField={toggleField}
         onReset={resetSettings}

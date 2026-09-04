@@ -18,6 +18,7 @@ export interface ViewSettings {
   level: EntityLevel
   layout: LayoutMode
   visibleFields: string[]
+  groupBy?: string
 }
 
 export const VIEW_SETTINGS_STORAGE_PREFIX = 'wodwiki.viewSettings.v1'
@@ -32,6 +33,7 @@ export function getDefaultViewSettings(level: EntityLevel): ViewSettings {
     level,
     layout: 'stream',
     visibleFields: getDefaultVisibleFieldIds(level),
+    groupBy: undefined,
   }
 }
 
@@ -54,10 +56,12 @@ export function readViewSettings(route: string, level: EntityLevel): ViewSetting
       ? parsed.visibleFields.filter(id => typeof id === 'string' && availableFieldIds.has(id))
       : defaults.visibleFields
 
+    const groupBy = typeof parsed.groupBy === 'string' ? parsed.groupBy : undefined
     return {
       level,
       layout,
       visibleFields: visibleFields.length > 0 ? visibleFields : defaults.visibleFields,
+      groupBy,
     }
   } catch {
     return defaults
@@ -147,6 +151,12 @@ export function useViewSettings(route: string, level: EntityLevel) {
     [update],
   )
 
+  const setGroupBy = useCallback(
+    (groupBy?: string) => {
+      update(prev => ({ ...prev, groupBy }))
+    },
+    [update],
+  )
   const resetSettings = useCallback(() => {
     const defaults = resetViewSettings(route, level)
     setSettings(defaults)
@@ -157,6 +167,7 @@ export function useViewSettings(route: string, level: EntityLevel) {
     setLayout,
     toggleField,
     setVisibleFields,
+    setGroupBy,
     resetSettings,
   }
 }

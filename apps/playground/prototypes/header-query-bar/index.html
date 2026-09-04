@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Header Query Bar — Redesign Prototypes | WOD Wiki</title>
+  <!--
+    PROTOTYPE hub — throwaway. Not production code.
+
+    Applies the approved Stitch "WQL Composer & Results Views" redesign
+    (project 776198917850443068, Mineral Arctic) to the query-page family
+    (QueriableStreamView profiles). The redesign thesis, in three rules:
+
+      1. The WQL composer lives IN the sticky header bar — one line, never a
+         content-area card.
+      2. The data-type selector is the driver: it states what kind of data
+         the page returns and pivots the query's head clause
+         (Notes=find:note · Blocks=find:block · Efforts=find:effort ·
+          Sessions=rows: · Metrics=sum:).
+      3. Overflow never grows the bar: details open in a dialog that embeds
+         the same composer as the ⌘K command palette (pills + diagnostics +
+         live preview). Apply writes back to the bar and `?q=`.
+
+    Screens: Library — Condensed Query Redesign · Library — Edit Query
+    Dialog · Library — Mobile Redesign · Library — Mobile Edit Query Sheet ·
+    Results — Execution Telemetry Table.
+
+    Open: file://.../playground/prototypes/header-query-bar/index.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --app-bg: #F2EEE6; --surface: #fff8f4; --card: #FBF9F5;
+      --muted: #EDE9E2; --border: #CDC5B8; --muted-text: #6A5F52;
+      --fg: #1f1b15; --fg-2: #42474e;
+      --primary: #375f85; --primary-container: #51789f; --on-primary: #ffffff;
+      --m-time: #5980A8; --m-reps: #A87040; --m-effort: #508860;
+      --m-rounds: #7C62A0; --m-distance: #408888; --m-load: #A05858; --m-action: #948030;
+      --ok: #508860; --warn: #948030; --err: #A05858;
+      --font-ui: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+      --r-md: 0.75rem; --r-lg: 1rem; --r-xl: 1.5rem; --r-full: 9999px;
+      --shadow: 0 2px 4px rgba(43,38,32,.05), 0 1px 2px rgba(43,38,32,.02);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--app-bg); color: var(--fg); font-family: var(--font-ui); }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    .mono { font-family: var(--font-mono); }
+
+    .hub { max-width: 1020px; margin: 0 auto; padding: 52px 28px 90px; }
+    .hub h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+    .hub .lead { font-size: 15px; color: var(--fg-2); margin-top: 12px; max-width: 68ch; line-height: 1.55; }
+    .hub .lead code { font-family: var(--font-mono); font-size: 12.5px; background: var(--muted); padding: 1px 6px; border-radius: 6px; }
+
+    .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 30px 0 8px; }
+    .rule { background: var(--card); border: 1px solid rgba(205,197,184,.5); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); }
+    .rule .num { font-family: var(--font-mono); font-size: 11px; color: var(--primary); font-weight: 600; }
+    .rule b { display: block; font-size: 14px; margin: 6px 0 4px; }
+    .rule p { font-size: 12.5px; color: var(--muted-text); line-height: 1.5; }
+
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 26px; }
+    .pcard { display: block; background: var(--card); border: 1px solid rgba(205,197,184,.5); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow); transition: transform .12s, box-shadow .12s; }
+    .pcard:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(43,38,32,.09); }
+    .pcard .route { font-family: var(--font-mono); font-size: 11px; color: var(--primary); }
+    .pcard h2 { font-size: 16px; font-weight: 700; margin: 6px 0; }
+    .pcard p { font-size: 13px; color: var(--muted-text); line-height: 1.5; }
+
+    .notes { margin-top: 38px; border-top: 1px solid rgba(205,197,184,.5); padding-top: 22px; }
+    .notes h3 { font-size: 12px; font-weight: 800; letter-spacing: .09em; color: var(--muted-text); margin-bottom: 12px; }
+    .notes li { color: var(--fg-2); font-size: 13px; margin: 7px 0 7px 18px; line-height: 1.5; }
+    .notes code { font-family: var(--font-mono); font-size: 11.5px; background: var(--muted); padding: 0 5px; border-radius: 5px; }
+
+    @media (max-width: 760px) { .rules, .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="hub">
+    <h1>Header query bar — the composer moves up</h1>
+    <p class="lead">
+      Stitch redesign for the query-page family (<code>QueriableStreamView</code> profiles:
+      Journal / Collections / Feeds / Library / Efforts / Results). Today the composer is a
+      tall card under the page title. The redesign collapses it into the sticky header:
+      a data-type selector drives the WQL head clause, the composed query reads as one
+      quiet mono line, and every overflow detail opens in a dialog embedding the same
+      composer as the ⌘K command palette.
+    </p>
+
+    <div class="rules">
+      <div class="rule">
+        <span class="num">RULE 1</span>
+        <b>Composer in the header</b>
+        <p>One sticky ~56px line: title → data-type pill → query chips → ⌘K / view / new.
+           No composer card in the content area. The old source-scope radio row is
+           absorbed by the type selector.</p>
+      </div>
+      <div class="rule">
+        <span class="num">RULE 2</span>
+        <b>Type drives the query</b>
+        <p>The selector states the expected result type and pivots the head clause:
+           <code>find:note</code> <code>find:block</code> <code>find:effort</code>
+           <code>rows:…</code> <code>sum:…</code>. Scope filtering (journal/collections/feeds)
+           becomes a filter clause again, crafted in the dialog.</p>
+      </div>
+      <div class="rule">
+        <span class="num">RULE 3</span>
+        <b>Overflow hides, palette crafts</b>
+        <p>Chips that don't fit collapse behind a <code>+N</code> chip. It (and the ⌘K
+           button, and tapping the bar on mobile) opens the palette-composer dialog —
+           segmented type row, pills, live stage counts, Apply writes back to
+           <code>?q=</code>.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <a class="pcard" href="library.html">
+        <span class="route">/library · /journal · /collections · /feeds · /efforts · /results</span>
+        <h2>Header Query Bar — interactive</h2>
+        <p>One page, all states: switch the data type (notes → sessions → efforts), watch
+           the WQL re-base, remove chips inline, overflow the bar, then open the edit
+           dialog (⌘K). Resize under 640px — the dialog becomes the bottom sheet.</p>
+      </a>
+    </div>
+
+    <div class="notes">
+      <h3>IMPLEMENTATION MAP (WHEN THIS LANDS IN THE APP)</h3>
+      <ul>
+        <li><code>StickyPageHeader</code> grows a <code>queryBar</code> slot rendering left-to-right:
+            title, <code>QueryTypeSelect</code>, <code>QueryChipRow</code> (measured overflow → <code>+N</code>), actions.</li>
+        <li><code>QueryTypeSelect</code> maps stream profile → WQL head via the existing
+            <code>pivotSourceQuery</code> / <code>pivotPills</code> seam; scope profiles
+            (journal/collections/feeds) re-base the <code>source:</code> clause instead of hiding it.</li>
+        <li>The dialog is <code>PaletteShell</code> in WQL mode seeded with the page query
+            (<code>usePaletteStore.open({ wql: { initialQuery: q, execute } })</code>) plus an
+            Apply action; no second composer implementation.</li>
+        <li><code>SourceScopeRadio</code> and the subheader composer block retire; view settings
+            (sliders) stays a header action.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -24,6 +24,7 @@ import {
 import { PlusIcon } from '@heroicons/react/16/solid'
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../../components/atoms/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
+import { useResolvedMenu } from '../../nav/MenuList'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import type { NavItemL3 } from '../../nav/navTypes'
 // ── NewEntryButton ───────────────────────────────────────────────────────────
@@ -70,8 +71,10 @@ export function ActionsMenu({
   onDownload?: () => void
   items?: NavItemL3[]
 }) {
-  const { l3Items: contextL3, scrollToSection } = useNav()
-  const l3Items = items || contextL3
+  const navigate = useNavigate()
+  const { l3Items: contextL3, scrollToSection, secondarySpec } = useNav()
+  const l3Items = items && items.length > 0 ? items : contextL3
+  const resolvedSecondary = useResolvedMenu(secondarySpec)
   const handleDownload = () => {
     if (onDownload) {
       onDownload()
@@ -99,49 +102,87 @@ export function ActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
-        {l3Items.length > 0 && (
-          <>
-            <div className="xl:hidden">
-              <DropdownMenuHeading>On this page</DropdownMenuHeading>
-              {l3Items.map(item => {
-                const handleL3Click = () => {
-                  if (item.action.type === 'call') {
-                    item.action.handler()
-                  } else {
-                    scrollToSection(item.id)
-                  }
-                }
+        {(resolvedSecondary.length > 0 || l3Items.length > 0) && (
+          <div className="xl:hidden">
+            {resolvedSecondary.map(section => {
+              if (section.kind === 'section') {
+                if (section.entries.length === 0) return null
                 return (
-                  <DropdownMenuItem
-                    key={item.id}
-                    onClick={handleL3Click}
-                    className="gap-2"
-                  >
-                    <span className={cn('flex-1 truncate', item.level === 3 && item.secondaryAction && 'pr-8')}>
-                      {item.label}
-                    </span>
-                    {item.secondaryAction && (
-                      <button
-                        className="ml-auto flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
-                        title={item.secondaryAction.label}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (item.secondaryAction?.action.type === 'call') {
-                            item.secondaryAction.action.handler()
-                          }
+                  <div key={section.id}>
+                    <DropdownMenuHeading>{section.label}</DropdownMenuHeading>
+                    {section.entries.map(entry => (
+                      <DropdownMenuItem
+                        key={entry.id}
+                        onClick={() => {
+                          if (entry.onRun) entry.onRun()
+                          else if (entry.to) navigate(entry.to)
+                          else if (entry.sectionId) scrollToSection(entry.sectionId)
                         }}
+                        className="gap-2"
                       >
-                        {item.secondaryAction.icon && (
-                          <item.secondaryAction.icon className="size-3.5" />
-                        )}
-                      </button>
-                    )}
-                  </DropdownMenuItem>
+                        <span className="flex-1 truncate">{entry.label}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
                 )
-              })}
-            </div>
-            <DropdownMenuSeparator className="xl:hidden" />
-          </>
+              }
+              return (
+                <DropdownMenuItem
+                  key={section.id}
+                  onClick={() => {
+                    if (section.onRun) section.onRun()
+                    else if (section.to) navigate(section.to)
+                    else if (section.sectionId) scrollToSection(section.sectionId)
+                  }}
+                  className="gap-2"
+                >
+                  <span className="flex-1 truncate">{section.label}</span>
+                </DropdownMenuItem>
+              )
+            })}
+            {l3Items.length > 0 && (
+              <>
+                <DropdownMenuHeading>On this page</DropdownMenuHeading>
+                {l3Items.map(item => {
+                  const handleL3Click = () => {
+                    if (item.action.type === 'call') {
+                      item.action.handler()
+                    } else {
+                      scrollToSection(item.id)
+                    }
+                  }
+                  return (
+                    <DropdownMenuItem
+                      key={item.id}
+                      onClick={handleL3Click}
+                      className="gap-2"
+                    >
+                      <span className={cn('flex-1 truncate', item.level === 3 && item.secondaryAction && 'pr-8')}>
+                        {item.label}
+                      </span>
+                      {item.secondaryAction && (
+                        <button
+                          className="ml-auto flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                          title={item.secondaryAction.label}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (item.secondaryAction?.action.type === 'call') {
+                              item.secondaryAction.action.handler()
+                            }
+                          }}
+                        >
+                          {item.secondaryAction.icon && (
+                            <item.secondaryAction.icon className="size-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </>
+            )}
+            <DropdownMenuSeparator />
+          </div>
         )}
         <DropdownMenuItem onClick={handleDownload} className="gap-2">
           <ArrowDownTrayIcon className="size-4" />

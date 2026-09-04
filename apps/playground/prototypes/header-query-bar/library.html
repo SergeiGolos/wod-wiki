@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library — Header Query Bar | WOD Wiki</title>
+  <!--
+    PROTOTYPE — throwaway. Not production code.
+    Interactive companion to the Stitch "WQL Composer & Results Views" redesign
+    (project 776198917850443068). See index.html for the thesis and the
+    implementation map. Works desktop + mobile: resize under 640px to get the
+    condensed bar and the bottom-sheet edit dialog.
+    Open: file://.../playground/prototypes/header-query-bar/library.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --app-bg: #F2EEE6; --surface: #fff8f4; --card: #FBF9F5;
+      --muted: #EDE9E2; --border: #CDC5B8; --muted-text: #6A5F52;
+      --fg: #1f1b15; --fg-2: #42474e;
+      --primary: #375f85; --on-primary: #fff;
+      --m-time: #5980A8; --m-reps: #A87040; --m-effort: #508860;
+      --m-rounds: #7C62A0; --m-distance: #408888; --m-load: #A05858; --m-action: #948030;
+      --ok: #508860; --warn: #948030; --err: #A05858;
+      --font-ui: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+      --r-md: 0.75rem; --r-lg: 1rem; --r-full: 9999px;
+      --shadow: 0 2px 4px rgba(43,38,32,.05), 0 1px 2px rgba(43,38,32,.02);
+      --hairline: rgba(205,197,184,.5);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--app-bg); color: var(--fg); font-family: var(--font-ui); font-size: 14px; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; font-size: inherit; }
+    .mono { font-family: var(--font-mono); }
+    svg { display: block; }
+
+    /* ── App bar (context chrome; becomes the mobile identity row) ─────── */
+    .appbar {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px; background: rgba(255,248,244,.82); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--hairline);
+    }
+    .wordmark { font-weight: 800; letter-spacing: -0.02em; font-size: 16px; color: var(--primary); }
+    .appbar .right { display: flex; align-items: center; gap: 6px; }
+    .iconbtn { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-full); color: var(--muted-text); }
+    .iconbtn:hover { background: var(--muted); color: var(--fg); }
+
+    /* ── THE header query bar ──────────────────────────────────────────── */
+    .qbar {
+      position: sticky; top: 53px; z-index: 39;
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 24px; min-height: 52px;
+      background: rgba(255,248,244,.88); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--hairline);
+    }
+    .tick { width: 6px; height: 22px; border-radius: var(--r-full); background: var(--primary); flex: none; }
+    .qbar h1 { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; }
+
+    .typeselect {
+      position: relative; display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 10px 5px 12px; border-radius: var(--r-full);
+      border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow);
+      font-size: 12.5px; font-weight: 600; flex: none;
+    }
+    .typeselect:hover { border-color: var(--border); }
+    .typeselect .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .typeselect svg { color: var(--muted-text); }
+
+    .typemenu {
+      position: absolute; top: calc(100% + 6px); left: 0; min-width: 210px; z-index: 60;
+      background: var(--card); border: 1px solid var(--hairline); border-radius: var(--r-md);
+      box-shadow: 0 10px 28px rgba(43,38,32,.14); padding: 5px; display: none;
+    }
+    .typemenu.open { display: block; }
+    .typemenu button { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+    .typemenu button:hover { background: var(--muted); }
+    .typemenu button.on { background: var(--muted); font-weight: 700; }
+    .typemenu .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .typemenu small { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--muted-text); }
+
+    .qchips { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; overflow: hidden; }
+    .qchip {
+      display: inline-flex; align-items: center; gap: 5px; flex: none;
+      font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-2);
+      background: var(--muted); border-radius: var(--r-full); padding: 4px 10px;
+    }
+    .qchip svg { color: var(--muted-text); }
+    .qchip .x { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; color: var(--muted-text); }
+    .qchip .x:hover { background: rgba(31,27,21,.12); color: var(--fg); }
+    .qchip.more { background: transparent; border: 1px dashed var(--border); color: var(--primary); font-weight: 600; cursor: pointer; }
+    .qempty { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted-text); opacity: .7; }
+
+    .qbar .actions { display: flex; align-items: center; gap: 6px; flex: none; }
+    .kbd-hint {
+      display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px;
+      border-radius: 8px; border: 1px solid var(--hairline); background: var(--card);
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted-text);
+    }
+    .kbd-hint:hover { color: var(--fg); border-color: var(--border); }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px; background: var(--primary);
+      color: var(--on-primary); font-size: 12.5px; font-weight: 600;
+      padding: 7px 13px; border-radius: 9px; box-shadow: var(--shadow);
+    }
+    .btn-primary:hover { filter: brightness(1.07); }
+
+    /* ── Status strip ──────────────────────────────────────────────────── */
+    .status {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 7px 24px; font-size: 11px; color: var(--muted-text);
+      border-bottom: 1px solid rgba(205,197,184,.28); background: rgba(255,248,244,.5);
+    }
+    .status .counts { font-family: var(--font-mono); font-size: 11px; }
+    .viewtoggle { display: inline-flex; border: 1px solid var(--hairline); border-radius: var(--r-full); overflow: hidden; }
+    .viewtoggle button { padding: 3px 11px; font-size: 10.5px; font-weight: 600; color: var(--muted-text); }
+    .viewtoggle button.on { background: var(--card); color: var(--primary); box-shadow: var(--shadow); }
+
+    /* ── Content: cards / table / grid ─────────────────────────────────── */
+    main { max-width: 1180px; margin: 0 auto; padding: 22px 24px 120px; }
+    .dategroup { margin-bottom: 30px; }
+    .datehead { display: flex; align-items: center; gap: 14px; margin-bottom: 12px;
+      font-size: 10px; font-weight: 800; letter-spacing: .09em; color: var(--muted-text); }
+    .datehead::after { content: ""; height: 1px; background: rgba(205,197,184,.4); flex: 1; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .mcard { background: var(--card); border: 1px solid var(--hairline); border-radius: var(--r-lg);
+      padding: 16px; box-shadow: var(--shadow); transition: box-shadow .12s; }
+    .mcard:hover { box-shadow: 0 4px 10px rgba(43,38,32,.08); }
+    .mcard .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+    .mcard h3 { font-size: 14px; font-weight: 600; }
+    .badge { font-size: 9px; font-weight: 800; letter-spacing: .07em; padding: 3px 8px; border-radius: 6px; flex: none; }
+    .mcard .body { font-size: 12.5px; color: var(--fg-2); line-height: 1.55; }
+    .mcard .snippet { font-family: var(--font-mono); font-size: 12px; color: var(--fg-2);
+      background: rgba(237,233,226,.55); border: 1px solid rgba(205,197,184,.3);
+      border-radius: 9px; padding: 10px 12px; white-space: pre-line; }
+    .mcard .foot { display: flex; justify-content: flex-end; gap: 4px; margin-top: 12px; color: var(--muted-text); }
+    .mcard .foot .iconbtn { width: 28px; height: 28px; }
+
+    .datatable { width: 100%; border-collapse: collapse; background: var(--card);
+      border: 1px solid var(--hairline); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); }
+    .datatable th { text-align: left; font-size: 9.5px; font-weight: 800; letter-spacing: .08em;
+      color: var(--muted-text); padding: 10px 14px; border-bottom: 1px solid var(--hairline); }
+    .datatable td { padding: 10px 14px; border-bottom: 1px solid rgba(205,197,184,.28); font-size: 12.5px; color: var(--fg-2); }
+    .datatable tr:last-child td { border-bottom: none; }
+    .datatable tr:hover td { background: rgba(237,233,226,.35); }
+    .datatable .num { font-family: var(--font-mono); font-size: 12px; }
+    .c-time { color: var(--m-time); font-weight: 600; } .c-reps { color: var(--m-reps); }
+    .c-load { color: var(--m-load); } .c-dist { color: var(--m-distance); }
+    .pill { font-size: 9px; font-weight: 800; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--r-full); }
+
+    .effgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .methead { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    .mettile { background: var(--card); border: 1px solid var(--hairline); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow); }
+    .mettile .lbl { font-size: 10px; font-weight: 800; letter-spacing: .08em; color: var(--muted-text); }
+    .mettile .val { font-family: var(--font-mono); font-size: 24px; font-weight: 600; margin-top: 6px; }
+    .mettile .delta { font-size: 11px; font-weight: 600; margin-top: 2px; }
+    .up { color: var(--ok); } .down { color: var(--err); }
+
+    /* ── Edit-query dialog (palette composer) ──────────────────────────── */
+    .scrim { position: fixed; inset: 0; z-index: 80; background: rgba(43,38,32,.42);
+      display: none; align-items: flex-start; justify-content: center; padding: 9vh 16px 16px; }
+    .scrim.open { display: flex; }
+    .dialog { width: 640px; max-width: 100%; max-height: 82vh; overflow: auto;
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(43,38,32,.28); display: flex; flex-direction: column; }
+    .dlg-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 18px 0; }
+    .dlg-head b { font-size: 14px; }
+    .dlg-head .cap { font-size: 11px; color: var(--muted-text); margin-top: 2px; }
+    .segrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 18px 0; }
+    .segrow button { padding: 5px 12px; border-radius: var(--r-full); font-size: 11.5px; font-weight: 600;
+      color: var(--muted-text); border: 1px solid var(--hairline); background: transparent; }
+    .segrow button:hover { color: var(--fg); }
+    .segrow button.on { background: var(--card); color: var(--primary); border-color: var(--border); box-shadow: var(--shadow); }
+    .composer { margin: 12px 18px 0; border: 1px solid var(--hairline); border-radius: 11px;
+      background: rgba(237,233,226,.4); padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .composer:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(87,128,168,.18); }
+    .pillchip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono);
+      font-size: 11.5px; background: var(--card); border: 1px solid var(--hairline);
+      border-radius: var(--r-full); padding: 4px 6px 4px 10px; box-shadow: var(--shadow); }
+    .pillchip .k { color: var(--muted-text); }
+    .pillchip .x { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; color: var(--muted-text); }
+    .pillchip .x:hover { background: rgba(31,27,21,.12); color: var(--fg); }
+    .composer input { flex: 1; min-width: 110px; border: none; background: transparent; outline: none;
+      font-family: var(--font-mono); font-size: 12px; color: var(--fg); padding: 4px 6px; }
+    .composer input::placeholder { color: var(--muted-text); opacity: .6; }
+    .addbtn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+      color: var(--muted-text); border: 1px dashed var(--border); border-radius: var(--r-full); padding: 4px 10px; }
+    .addbtn:hover { color: var(--primary); border-color: var(--primary); }
+    .addmenu { position: relative; }
+    .addmenu .menu { position: absolute; bottom: calc(100% + 6px); right: 0; min-width: 190px; z-index: 70;
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 10px;
+      box-shadow: 0 12px 30px rgba(43,38,32,.18); padding: 5px; display: none; }
+    .addmenu .menu.open { display: block; }
+    .addmenu .menu button { display: flex; width: 100%; text-align: left; gap: 8px; padding: 7px 9px; border-radius: 7px; font-size: 12px; }
+    .addmenu .menu button:hover { background: var(--muted); }
+    .diag { padding: 10px 20px 0; font-family: var(--font-mono); font-size: 11px; color: var(--muted-text); }
+    .diag .wql { color: var(--fg-2); }
+    .preview { padding: 6px 10px 4px; }
+    .preview .row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; }
+    .preview .row:hover { background: var(--muted); }
+    .preview .row .t { font-size: 12.5px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview .row .sub { font-size: 10.5px; color: var(--muted-text); font-family: var(--font-mono); }
+    .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px 16px; }
+    .btn-ghost { font-size: 12.5px; font-weight: 600; color: var(--fg-2); padding: 7px 13px; border-radius: 9px; }
+    .btn-ghost:hover { background: var(--muted); color: var(--fg); }
+
+    /* ── Mobile: condensed bar + bottom sheet ──────────────────────────── */
+    @media (max-width: 640px) {
+      .qbar { top: 53px; padding: 8px 14px; gap: 8px; }
+      .qbar h1, .tick, .kbd-hint, .btn-primary span.txt { display: none; }
+      .qchips { display: none; }
+      .qbar .rawq { display: block !important; flex: 1; min-width: 0; font-family: var(--font-mono);
+        font-size: 11.5px; color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      main { padding: 18px 14px 120px; }
+      .grid2 { grid-template-columns: 1fr; }
+      .effgrid, .methead { grid-template-columns: 1fr 1fr; }
+      .scrim { padding: 0; align-items: flex-end; }
+      .dialog { width: 100%; max-height: 88vh; border-radius: 18px 18px 0 0; }
+      .dialog::before { content: ""; width: 40px; height: 4px; border-radius: var(--r-full);
+        background: var(--border); margin: 8px auto 0; }
+      .datatable { display: block; overflow-x: auto; }
+    }
+    .qbar .rawq { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Context chrome -->
+  <div class="appbar">
+    <div class="wordmark">WOD Wiki</div>
+    <div class="right">
+      <button class="iconbtn" id="appbar-search" title="Search (⌘K)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <button class="iconbtn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ THE header query bar ══ -->
+  <header class="qbar" id="qbar">
+    <div class="tick"></div>
+    <h1 id="page-title">Library</h1>
+
+    <button class="typeselect" id="type-btn" aria-haspopup="listbox">
+      <span class="dot" id="type-dot"></span>
+      <span id="type-label">Notes</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+      <div class="typemenu" id="type-menu" role="listbox"></div>
+    </button>
+
+    <div class="qchips" id="qchips"><!-- chips injected --></div>
+    <div class="rawq" id="rawq"><!-- mobile condensed WQL --></div>
+
+    <div class="actions">
+      <button class="kbd-hint" id="open-dialog-kbd" title="Edit query (⌘K)">⌘K</button>
+      <button class="iconbtn" id="open-dialog-sliders" title="Edit query">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h9M17 18h3"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+      </button>
+      <button class="btn-primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg><span class="txt">New Note</span></button>
+    </div>
+  </header>
+
+  <div class="status">
+    <span class="counts" id="status-counts"></span>
+    <span class="viewtoggle">
+      <button class="on" id="vt-stream">Stream</button>
+      <button id="vt-table">Table</button>
+    </span>
+  </div>
+
+  <main id="content"><!-- rendered per type --></main>
+
+  <!-- ══ Edit-query dialog (⌘K palette composer) ══ -->
+  <div class="scrim" id="scrim">
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="Edit query">
+      <div class="dlg-head">
+        <div>
+          <b>Edit query</b>
+          <div class="cap" id="dlg-cap">Searching: Notes — results update live</div>
+        </div>
+        <button class="iconbtn" id="dlg-close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="segrow" id="dlg-seg"></div>
+      <div class="composer" id="dlg-composer"></div>
+      <div class="diag" id="dlg-diag"></div>
+      <div class="preview" id="dlg-preview"></div>
+      <div class="dlg-foot">
+        <button class="btn-ghost" id="dlg-cancel">Cancel</button>
+        <button class="btn-primary" id="dlg-apply">Apply query</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ═══════════════ Model ═══════════════ */
+
+const TYPES = {
+  notes:    { label: 'Notes',    color: 'var(--m-effort)',  head: 'note',  mode: 'notes'    },
+  blocks:   { label: 'Blocks',   color: 'var(--m-rounds)',  head: 'block', mode: 'blocks'   },
+  efforts:  { label: 'Efforts',  color: 'var(--m-reps)',    head: 'effort', mode: 'efforts' },
+  sessions: { label: 'Sessions', color: 'var(--m-load)',    head: null,    mode: 'sessions' },
+  metrics:  { label: 'Metrics',  color: 'var(--m-time)',    head: null,    mode: 'metrics'  },
+};
+
+// clause: { kind, label, value } — kind drives vocabulary; 'time' renders as the window suffix.
+const DEFAULT_CLAUSES = {
+  notes:    [ { kind: 'text', label: 'text', value: 'deadlift' }, { kind: 'time', label: 'time', value: 'last 2w' } ],
+  blocks:   [ { kind: 'type', label: 'type', value: 'wod' },       { kind: 'time', label: 'time', value: 'last 4w' } ],
+  efforts:  [ { kind: 'discipline', label: 'discipline', value: 'strength' }, { kind: 'origin', label: 'origin', value: 'bundled' } ],
+  sessions: [ { kind: 'time', label: 'time', value: 'last 4w' } ],
+  metrics:  [ { kind: 'discipline', label: 'discipline', value: 'strength' }, { kind: 'time', label: 'time', value: 'last 12w' } ],
+};
+
+const FILTER_VOCAB = {
+  notes:    [ ['text','Contains text…'], ['tag','Tag…'], ['catalog','Catalog…'] ],
+  blocks:   [ ['text','Contains text…'], ['type','Block type…'], ['has','Has feature…'], ['time','Time window…'] ],
+  efforts:  [ ['discipline','Discipline…'], ['intensity','Intensity…'], ['origin','Origin…'], ['effort','Movement…'] ],
+  sessions: [ ['result','Session id…'], ['effort','Movement…'], ['time','Time window…'] ],
+  metrics:  [ ['discipline','Discipline…'], ['effort','Movement…'], ['intensity','Intensity…'] ],
+};
+
+const COUNTS = {
+  notes: '24 notes · 6 blocks matched · 38 ms',
+  blocks: '18 blocks · 9 notes · 25 ms',
+  efforts: '86 efforts · 12 bundled · 9 ms',
+  sessions: '312 rows · 4 sessions · 52 ms',
+  metrics: '156 weekly buckets · 41 ms',
+};
+
+const state = {
+  type: 'notes',
+  clauses: JSON.parse(JSON.stringify(DEFAULT_CLAUSES)),
+};
+
+function serialize(type, clauses) {
+  const t = TYPES[type];
+  const time = clauses.find(c => c.kind === 'time');
+  const filters = clauses.filter(c => c.kind !== 'time')
+    .map(c => c.kind === 'text' ? `text:"${c.value}"` : `${c.kind}:${c.value}`).join(',');
+  if (type === 'sessions') return `rows:all{${filters}}${time ? ' ' + time.value : ''}`;
+  if (type === 'metrics')  return `sum:totalVolume{${filters}}${time ? ' ' + time.value : ''} .rollup(1w)`;
+  return `find:${t.head}{${filters}}${time ? ' ' + time.value : ''}`;
+}
+
+/* ═══════════════ Fixtures ═══════════════ */
+
+const FIXTURES = {
+  notes: [
+    { date: 'TODAY — SEP 2', items: [
+      { kind: 'WORKOUT BLOCK', tone: 'var(--m-effort)', title: 'Heavy Day', snippet: '5 rounds:\n400m run,\n15 deadlifts 225lb', icon: '▶ ▤ +' },
+      { kind: 'JOURNAL', tone: 'var(--ok)', title: 'Form Check: Deadlift', body: 'Felt a bit of rounding in the lower back during the 3rd set. Need to focus on bracing core and keeping lats engaged before initiating the pull.', icon: '⧉ +' },
+    ]},
+    { date: 'LAST WEEK — AUG 28', items: [
+      { kind: 'FEED', tone: 'var(--m-time)', title: 'CrossFit Invictus Blog', body: '5 Tips to Improve Your Deadlift Setup — a strong pull starts before the bar even moves off the floor…', icon: '⧉ +' },
+      { kind: 'COLLECTION', tone: 'var(--m-rounds)', title: 'Strength Cycle Q3', body: 'Contains 12 notes and 4 workout blocks related to the Wendler 5/3/1 program focusing on deadlift and press.', meta: '16 items', icon: '⧉' },
+    ]},
+    { date: 'OLDER', items: [
+      { kind: 'JOURNAL', tone: 'var(--ok)', title: '1RM Test Day', body: 'Finally hit 405lb on the deadlift. Hook grip was solid, but felt slow off the floor. Need more deficit pulls next cycle.', icon: '⧉ +' },
+      { kind: 'WORKOUT BLOCK', tone: 'var(--m-effort)', title: 'Diane', snippet: '21-15-9 reps for time:\nDeadlifts 225lb\nHandstand push-ups', foot: 'Time: 4:32', icon: '▶ ▤ +' },
+    ]},
+  ],
+  sessions: [
+    { date: 'Sep 2', workout: 'Heavy Day', time: '12:45', reps: '135', load: '6,750 lb', dist: '—', eff: 'HIGH', tone: 'var(--warn)' },
+    { date: 'Sep 1', workout: 'Diane', time: '4:32', reps: '63', load: '14,175 lb', dist: '—', eff: 'EXTREME', tone: 'var(--err)' },
+    { date: 'Aug 30', workout: '5k Row', time: '19:58', reps: '—', load: '—', dist: '5.0 km', eff: 'MODERATE', tone: 'var(--warn)' },
+    { date: 'Aug 28', workout: 'Fran', time: '5:12', reps: '63', load: '6,300 lb', dist: '—', eff: 'EXTREME', tone: 'var(--err)' },
+    { date: 'Aug 27', workout: 'Deadlift Session', time: '22:10', reps: '30', load: '11,250 lb', dist: '—', eff: 'HIGH', tone: 'var(--warn)' },
+    { date: 'Aug 25', workout: 'Murph', time: '38:04', reps: '600', load: '—', dist: '3.2 km', eff: 'EXTREME', tone: 'var(--err)' },
+    { date: 'Aug 24', workout: 'Power Clean EMOM', time: '15:00', reps: '90', load: '3,060 lb', dist: '—', eff: 'MODERATE', tone: 'var(--warn)' },
+    { date: 'Aug 22', workout: 'Easy 5k', time: '26:40', reps: '—', load: '—', dist: '5.0 km', eff: 'LOW', tone: 'var(--ok)' },
+  ],
+  efforts: [
+    { title: 'Fran', disc: 'Gymnastics · Weightlifting', tone: 'var(--m-rounds)', origin: 'BUNDLED' },
+    { title: 'Heavy Day', disc: 'Weightlifting', tone: 'var(--m-load)', origin: 'BUNDLED' },
+    { title: '5k Row', disc: 'Rowing', tone: 'var(--m-distance)', origin: 'BUNDLED' },
+    { title: 'Murph', disc: 'Gymnastics · Running', tone: 'var(--m-effort)', origin: 'BUNDLED' },
+    { title: 'Deadlift 5×5', disc: 'Weightlifting', tone: 'var(--m-load)', origin: 'CUSTOM' },
+    { title: 'Zone 2 Ride 60m', disc: 'Cycling', tone: 'var(--m-distance)', origin: 'CUSTOM' },
+  ],
+  blocks: [
+    { title: 'Diane — 21-15-9', kind: 'WOD', tone: 'var(--m-effort)', note: 'CrossFit Girls' },
+    { title: 'Heavy Day — 5 rounds', kind: 'WOD', tone: 'var(--m-effort)', note: 'Strength Cycle Q3' },
+    { title: 'Volume dashboard', kind: 'DASHBOARD', tone: 'var(--m-time)', note: 'Training Week 36' },
+    { title: '5k TT', kind: 'WOD', tone: 'var(--m-distance)', note: 'CrossFit Invictus Blog' },
+    { title: 'EMOM 15 Power Clean', kind: 'WOD', tone: 'var(--m-reps)', note: 'Strength Cycle Q3' },
+  ],
+  metrics: [
+    { lbl: 'TOTAL VOLUME', val: '182,340 lb', delta: '▲ 8.2% vs last quarter', up: true, color: 'var(--m-load)' },
+    { lbl: 'SESSION LOAD', val: '41,205', delta: '▲ 3.1% vs last quarter', up: true, color: 'var(--m-action)' },
+    { lbl: 'TIME-IN-MOTION', val: '19.4 h', delta: '▼ 1.4% vs last quarter', up: false, color: 'var(--m-time)' },
+  ],
+};
+
+/* ═══════════════ Rendering ═══════════════ */
+
+const $ = (id) => document.getElementById(id);
+const badge = (label, tone) => `<span class="badge" style="background:color-mix(in srgb, ${tone} 12%, transparent); color:${tone}">${label}</span>`;
+
+function renderBar() {
+  const t = TYPES[state.type];
+  $('type-dot').style.background = t.color;
+  $('type-label').textContent = t.label;
+  $('page-title').textContent = state.type === 'sessions' ? 'Results' : state.type === 'metrics' ? 'Dashboard' : state.type === 'efforts' ? 'Efforts' : state.type === 'blocks' ? 'Blocks' : 'Library';
+  $('status-counts').textContent = COUNTS[state.type];
+
+  const chipsEl = $('qchips');
+  chipsEl.innerHTML = '';
+  const list = state.clauses[state.type];
+  if (!list.length) {
+    chipsEl.innerHTML = '<span class="qempty">' + serialize(state.type, list) + '</span>';
+  }
+  const more = document.createElement('button');
+  more.className = 'qchip more';
+  more.id = 'qchip-more';
+  more.innerHTML = '+<span id="more-n">0</span>';
+  list.forEach((c, i) => {
+    const el = document.createElement('span');
+    el.className = 'qchip';
+    el.innerHTML = `${c.kind === 'time' ? '⏱' : c.kind === 'text' ? '🔍' : ''} ${c.kind}:${c.value}
+      <button class="x" data-i="${i}" title="Remove">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>`;
+    chipsEl.appendChild(el);
+  });
+  chipsEl.appendChild(more);
+  chipsEl.querySelectorAll('.x').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.clauses[state.type].splice(+b.dataset.i, 1);
+    renderAll();
+  }));
+  more.addEventListener('click', openDialog);
+
+  $('rawq').textContent = serialize(state.type, list);
+  measureOverflow();
+}
+
+function measureOverflow() {
+  const chipsEl = $('qchips');
+  const more = $('qchip-more');
+  if (!more) return;
+  more.style.display = '';
+  const kids = [...chipsEl.children].filter(el => el !== more);
+  let hidden = 0;
+  kids.forEach(k => k.style.display = '');
+  const fits = () => chipsEl.scrollWidth <= chipsEl.clientWidth + 1;
+  for (let i = kids.length - 1; i >= 0 && !fits(); i--) {
+    kids[i].style.display = 'none';
+    hidden++;
+  }
+  more.querySelector('#more-n').textContent = hidden;
+  more.style.display = (hidden > 0 && kids.length > 0) ? '' : 'none';
+}
+window.addEventListener('resize', measureOverflow);
+
+function renderContent() {
+  const mode = TYPES[state.type].mode;
+  const main = $('content');
+  if (mode === 'notes') {
+    main.innerHTML = FIXTURES.notes.map(group => `
+      <section class="dategroup">
+        <div class="datehead">${group.date}</div>
+        <div class="grid2">${group.items.map(cardHtml).join('')}</div>
+      </section>`).join('');
+  } else if (mode === 'sessions') {
+    main.innerHTML = `
+      <table class="datatable">
+        <thead><tr><th>DATE</th><th>WORKOUT</th><th>TIME</th><th>REPS</th><th>LOAD</th><th>DISTANCE</th><th>EFFORT</th><th></th></tr></thead>
+        <tbody>${FIXTURES.sessions.map(r => `
+          <tr>
+            <td class="num">${r.date}</td><td style="color:var(--fg);font-weight:500">${r.workout}</td>
+            <td class="num c-time">${r.time}</td><td class="num c-reps">${r.reps}</td>
+            <td class="num c-load">${r.load}</td><td class="num c-dist">${r.dist}</td>
+            <td><span class="pill" style="background:color-mix(in srgb, ${r.tone} 12%, transparent);color:${r.tone}">${r.eff}</span></td>
+            <td style="color:var(--muted-text)">›</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else if (mode === 'efforts') {
+    main.innerHTML = `<div class="effgrid">${FIXTURES.efforts.map(e => `
+      <div class="mcard">
+        <div class="top"><h3>${e.title}</h3>${badge(e.origin, e.tone)}</div>
+        <div class="body">${e.disc}</div>
+      </div>`).join('')}</div>`;
+  } else if (mode === 'blocks') {
+    main.innerHTML = `<div class="grid2">${FIXTURES.blocks.map(b => `
+      <div class="mcard">
+        <div class="top"><h3>${b.title}</h3>${badge(b.kind, b.tone)}</div>
+        <div class="body">in <b>${b.note}</b></div>
+      </div>`).join('')}</div>`;
+  } else if (mode === 'metrics') {
+    main.innerHTML = `
+      <div class="methead">${FIXTURES.metrics.map(m => `
+        <div class="mettile"><div class="lbl">${m.lbl}</div>
+          <div class="val" style="color:${m.color}">${m.val}</div>
+          <div class="delta ${m.up ? 'up' : 'down'}">${m.delta}</div>
+        </div>`).join('')}</div>
+      <div class="datehead">WEEKLY VOLUME — LAST 12W</div>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:120px">
+        ${[42,55,48,61,58,66,72,64,78,84,76,90].map((h) => `
+          <div style="flex:1;background:color-mix(in srgb, var(--m-load) ${20 + h/2}%, transparent);border-radius:6px 6px 0 0;height:${h}%"></div>`).join('')}
+      </div>`;
+  }
+}
+
+function cardHtml(c) {
+  return `
+    <div class="mcard">
+      <div class="top"><h3>${c.title}</h3>${badge(c.kind, c.tone)}</div>
+      ${c.snippet ? `<div class="snippet">${c.snippet}</div>` : `<div class="body">${c.body}</div>`}
+      ${c.foot ? `<div class="body" style="margin-top:10px;font-family:var(--font-mono);color:var(--m-time);font-weight:600">${c.foot}</div>` : ''}
+      ${c.meta ? `<div class="body mono" style="margin-top:10px;font-size:11px">${c.meta}</div>` : ''}
+      <div class="foot">${c.icon.split(' ').map(ic => `<button class="iconbtn">${ic}</button>`).join('')}</div>
+    </div>`;
+}
+
+/* ═══════════════ Type menu ═══════════════ */
+
+function renderTypeMenu() {
+  $('type-menu').innerHTML = Object.entries(TYPES).map(([key, t]) => `
+    <button data-t="${key}" class="${key === state.type ? 'on' : ''}">
+      <span class="dot" style="background:${t.color}"></span>${t.label}
+      <small>${key === 'sessions' ? 'rows:…' : key === 'metrics' ? 'sum:…' : 'find:' + t.head}</small>
+    </button>`).join('');
+  $('type-menu').querySelectorAll('button').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setType(b.dataset.t);
+    $('type-menu').classList.remove('open');
+  }));
+}
+
+function setType(key) {
+  if (!state.clauses[key]) state.clauses[key] = JSON.parse(JSON.stringify(DEFAULT_CLAUSES[key]));
+  state.type = key;
+  renderAll();
+  history.replaceState(null, '', '?q=' + encodeURIComponent(serialize(key, state.clauses[key])));
+}
+
+/* ═══════════════ Edit dialog (palette composer) ═══════════════ */
+
+let dlgType = null;
+
+function renderDialog() {
+  const t = TYPES[dlgType];
+  $('dlg-cap').textContent = `Searching: ${t.label} — results update live`;
+  $('dlg-seg').innerHTML = Object.entries(TYPES).map(([key, tt]) =>
+    `<button data-t="${key}" class="${key === dlgType ? 'on' : ''}">${tt.label}</button>`).join('');
+  $('dlg-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    dlgType = b.dataset.t;
+    renderDialog();
+  }));
+
+  const composer = $('dlg-composer');
+  composer.innerHTML = '';
+  state.clauses[dlgType].forEach((c, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'pillchip';
+    pill.innerHTML = `${c.kind === 'time' ? '⏱' : c.kind === 'text' ? '🔍' : '●'} <span class="k">${c.kind}:</span> ${c.value}
+      <button class="x"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
+    pill.querySelector('.x').addEventListener('click', () => {
+      state.clauses[dlgType].splice(i, 1);
+      renderDialog();
+    });
+    composer.appendChild(pill);
+  });
+
+  const input = document.createElement('input');
+  input.placeholder = 'Type search term and press Enter…';
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      state.clauses[dlgType].push({ kind: 'text', label: 'text', value: input.value.trim() });
+      input.value = '';
+      renderDialog();
+    }
+  });
+  composer.appendChild(input);
+
+  const menuWrap = document.createElement('span');
+  menuWrap.className = 'addmenu';
+  menuWrap.innerHTML = `
+    <button class="addbtn" id="add-filter">+ Filter</button>
+    <div class="menu" id="add-menu">${FILTER_VOCAB[dlgType].map(([k, l]) =>
+      `<button data-k="${k}">● ${k}: <span style="color:var(--muted-text)">${l}</span></button>`).join('')}
+    </div>`;
+  composer.appendChild(menuWrap);
+  composer.appendChild(Object.assign(document.createElement('button'), { className: 'addbtn', textContent: '+ Calc' }));
+
+  const addBtn = menuWrap.querySelector('#add-filter');
+  const addMenu = menuWrap.querySelector('#add-menu');
+  addBtn.addEventListener('click', (e) => { e.stopPropagation(); addMenu.classList.toggle('open'); });
+  addMenu.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    state.clauses[dlgType].push({ kind: b.dataset.k, label: b.dataset.k, value: '…' });
+    addMenu.classList.remove('open');
+    renderDialog();
+  }));
+
+  const wql = serialize(dlgType, state.clauses[dlgType]);
+  $('dlg-diag').innerHTML = `<span class="wql">${wql}</span> — ${COUNTS[dlgType]}`;
+
+  const mode = TYPES[dlgType].mode;
+  const rows = mode === 'notes'
+    ? FIXTURES.notes.flatMap(g => g.items).slice(0, 4).map(i => ({ t: i.title, tone: i.tone, k: i.kind }))
+    : mode === 'sessions'
+      ? FIXTURES.sessions.slice(0, 4).map(r => ({ t: r.workout, tone: r.tone, k: r.eff, sub: `${r.date} · ${r.time}` }))
+      : mode === 'efforts'
+        ? FIXTURES.efforts.slice(0, 4).map(e => ({ t: e.title, tone: e.tone, k: e.origin, sub: e.disc }))
+        : mode === 'blocks'
+          ? FIXTURES.blocks.slice(0, 4).map(b => ({ t: b.title, tone: b.tone, k: b.kind, sub: b.note }))
+          : FIXTURES.metrics.map(m => ({ t: m.lbl, tone: m.color, k: 'ROLLUP', sub: m.val }));
+  $('dlg-preview').innerHTML = rows.map(r => `
+    <div class="row">
+      <span class="dot" style="width:8px;height:8px;border-radius:50%;background:${r.tone}"></span>
+      <span class="t">${r.t}</span>
+      ${r.sub ? `<span class="sub">${r.sub}</span>` : ''}
+      ${badge(r.k, r.tone)}
+    </div>`).join('');
+}
+
+function openDialog() {
+  dlgType = state.type;
+  renderDialog();
+  $('scrim').classList.add('open');
+  setTimeout(() => $('dlg-composer')?.querySelector('input')?.focus(), 30);
+}
+function closeDialog() { $('scrim').classList.remove('open'); }
+
+$('scrim').addEventListener('click', (e) => { if (e.target === $('scrim')) closeDialog(); });
+$('dlg-close').addEventListener('click', closeDialog);
+$('dlg-cancel').addEventListener('click', closeDialog);
+$('dlg-apply').addEventListener('click', () => {
+  state.type = dlgType;
+  renderAll();
+  history.replaceState(null, '', '?q=' + encodeURIComponent(serialize(state.type, state.clauses[state.type])));
+  closeDialog();
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openDialog(); }
+  if (e.key === 'Escape') { closeDialog(); $('type-menu').classList.remove('open'); }
+});
+
+/* ═══════════════ Wiring ═══════════════ */
+
+$('type-btn').addEventListener('click', (e) => { e.stopPropagation(); $('type-menu').classList.toggle('open'); });
+document.addEventListener('click', () => $('type-menu').classList.remove('open'));
+$('open-dialog-kbd').addEventListener('click', openDialog);
+$('open-dialog-sliders').addEventListener('click', openDialog);
+$('appbar-search').addEventListener('click', openDialog);
+$('vt-stream').addEventListener('click', () => { $('vt-stream').classList.add('on'); $('vt-table').classList.remove('on'); });
+$('vt-table').addEventListener('click', () => { $('vt-table').classList.add('on'); $('vt-stream').classList.remove('on'); });
+
+function renderAll() {
+  renderTypeMenu();
+  renderBar();
+  renderContent();
+}
+
+// Seed from ?q= when it names a known type (prototype-grade: substring match)
+(() => {
+  const q = new URLSearchParams(location.search).get('q') || decodeURIComponent(location.search.slice(1));
+  for (const [key, t] of Object.entries(TYPES)) {
+    if (q && (q.startsWith('find:' + t.head) || (key === 'sessions' && q.startsWith('rows:')) || (key === 'metrics' && q.startsWith('sum:')))) {
+      state.type = key;
+    }
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>

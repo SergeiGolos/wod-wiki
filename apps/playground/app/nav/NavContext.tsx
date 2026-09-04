@@ -29,6 +29,7 @@ import type {
   NavStateAction,
   NavDispatch,
 } from './navTypes'
+import type { MenuSpec } from './menuModel'
 
 // ─── Initial State ────────────────────────────────────────────────────────────
 
@@ -76,6 +77,8 @@ interface NavContextValue {
   dispatch: NavDispatch
   l3Items: NavItemL3[]
   setL3Items: (items: NavItemL3[]) => void
+  secondarySpec?: MenuSpec
+  setSecondarySpec: (spec?: MenuSpec) => void
   scrollToSection: (id: string) => void
   /**
    * Register a custom scroll-to handler. Called by AppContent so the sidebar
@@ -99,6 +102,8 @@ export const NavContext = createContext<NavContextValue>({
   dispatch: () => {},
   l3Items: [],
   setL3Items: () => {},
+  secondarySpec: undefined,
+  setSecondarySpec: () => {},
   scrollToSection: defaultScroll,
   registerScrollFn: () => {},
 })
@@ -117,6 +122,7 @@ export interface NavProviderProps {
 export function NavProvider({ tree, children }: NavProviderProps) {
   const [navState, dispatch] = useReducer(navReducer, initialNavState)
   const [l3Items, setL3ItemsInternal] = useState<NavItemL3[]>([])
+  const [secondarySpec, setSecondarySpec] = useState<MenuSpec | undefined>(undefined)
   const location = useLocation()
 
   // Mutable ref so AppContent can override scroll behaviour without re-rendering
@@ -141,12 +147,6 @@ export function NavProvider({ tree, children }: NavProviderProps) {
   useEffect(() => {
     dispatch({ type: 'SET_LEFT_DRAWER', open: false })
   }, [location.pathname])
-
-  const scrollToSection = useCallback((id: string) => {
-    dispatch({ type: 'SET_ACTIVE_L3', id })
-    scrollFnRef.current(id)
-  }, [])
-
   const setL3Items = useCallback((items: NavItemL3[]) => {
     setL3ItemsInternal((prev) => {
       if (
@@ -157,6 +157,10 @@ export function NavProvider({ tree, children }: NavProviderProps) {
       }
       return items
     })
+  }, [])
+  const scrollToSection = useCallback((id: string) => {
+    dispatch({ type: 'SET_ACTIVE_L3', id })
+    scrollFnRef.current(id)
   }, [])
 
   const registerScrollFn = useCallback((fn: (id: string) => void) => {
@@ -170,10 +174,12 @@ export function NavProvider({ tree, children }: NavProviderProps) {
       dispatch,
       l3Items,
       setL3Items,
+      secondarySpec,
+      setSecondarySpec,
       scrollToSection,
       registerScrollFn,
     }),
-    [tree, navState, l3Items, setL3Items, scrollToSection, registerScrollFn],
+    [tree, navState, l3Items, setL3Items, secondarySpec, scrollToSection, registerScrollFn],
   )
   return (
     <NavContext.Provider value={value}>

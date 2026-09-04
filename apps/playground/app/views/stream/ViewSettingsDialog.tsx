@@ -26,6 +26,8 @@ export interface ViewSettingsDialogProps {
   level: EntityLevel
   settings: ViewSettings
   onLayoutChange: (layout: LayoutMode) => void
+  onGroupByChange?: (groupBy: string) => void
+  activeGroupBy?: string
   onToggleField: (fieldId: string) => void
   onReset: () => void
 }
@@ -37,6 +39,8 @@ export function ViewSettingsDialog({
   level,
   settings,
   onLayoutChange,
+  onGroupByChange,
+  activeGroupBy,
   onToggleField,
   onReset,
 }: ViewSettingsDialogProps) {
@@ -134,6 +138,40 @@ export function ViewSettingsDialog({
                 <Table className="size-3.5" />
                 <span>Property Table</span>
               </button>
+            </div>
+          </div>
+
+          {/* Section 2: Grouping Selection */}
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+              Group By
+            </label>
+            <div className="flex flex-wrap gap-1.5 p-1 bg-muted/40 rounded-lg border border-border/60">
+              {[
+                { id: 'date', label: 'Date' },
+                { id: 'week', label: 'Week' },
+                { id: 'month', label: 'Month' },
+                { id: 'year', label: 'Year' },
+                { id: 'discipline', label: 'Discipline' },
+              ].map(opt => {
+                const currentGroup = (activeGroupBy || settings.groupBy || (level === 'effort' ? 'discipline' : 'date')).toLowerCase()
+                const isSelected = currentGroup === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => onGroupByChange?.(opt.id)}
+                    data-testid={`view-settings-group-${opt.id}`}
+                    className={`py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-card text-foreground shadow-sm border border-border/80 font-bold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 

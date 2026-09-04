@@ -169,7 +169,11 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
   }, [currentNavLinks, navDispatch])
 
   // Sync currentNavLinks → NavContext L3 items (feeds sidebar accordion + right panel).
+  // Skip empty indexes: pages that derive their own anchors from rendered content
+  // (e.g. QueriableStreamView's WQL-driven grouping) own l3Items on routes whose
+  // static index is empty — publishing [] here would clobber their links.
   useEffect(() => {
+    if (currentNavLinks.length === 0) return
     setL3Items(mapIndexToL3(currentNavLinks))
   }, [currentNavLinks, setL3Items])
 
