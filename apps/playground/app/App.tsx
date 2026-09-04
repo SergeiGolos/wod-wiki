@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react'
 import type { MutableRefObject, ReactNode } from 'react'
 import { SidebarLayout } from '@/templates/SidebarLayout'
-import { Navbar, NavbarSection, NavbarSpacer } from '@/components/organisms/layout/Navbar'
+import { Navbar, NavbarSection } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
@@ -102,7 +102,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const { workout: currentWorkout, nav: currentNavLinks } = view
   // General layout breadcrumb: active L1 section › page identity
   const { tree: l1Items, navState } = useNav()
-  const activeL1 = l1Items.find(item => item.id === navState.activeL1Id) ?? null
+  // The reducer stores `activeL1Id` at runtime; the exported NavState
+  // interface still carries the pre-rename `activeL1` field (nav drift).
+  const activeL1Id = (navState as { activeL1Id?: string | null }).activeL1Id ?? null
+  const activeL1 = l1Items.find(item => item.id === activeL1Id) ?? null
   const crumbTitle = view.shell.title
   // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {

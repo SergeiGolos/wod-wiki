@@ -162,8 +162,11 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       isActive: (loc: Location) =>
         loc.pathname === ROUTE_PATTERNS.library ||
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
-        // Journal entries are a library stream profile (see streamProfile).
-        loc.pathname.startsWith('/journal'),
+        // Journal entries, collections, and feeds are library stream profiles
+        // (see streamProfile) — they live under the Library L1.
+        loc.pathname.startsWith('/journal') ||
+        loc.pathname.startsWith('/collections') ||
+        loc.pathname.startsWith('/feeds'),
     },
 
     {
