@@ -32,6 +32,7 @@ import {
   workoutPath,
   runPath,
   trackerPath,
+  settingsPath,
   loadPath,
   buildPlaygroundLoadUrl,
   buildJournalLoadUrl,
@@ -219,6 +220,12 @@ describe('path builders', () => {
 
   it('trackerPath encodes runtimeId (legacy alias)', () => {
     expect(trackerPath('abc-123')).toBe('/tracker/abc-123')
+  })
+
+  it('settingsPath returns default or section path', () => {
+    expect(settingsPath()).toBe('/settings/appearance')
+    expect(settingsPath('appearance')).toBe('/settings/appearance')
+    expect(settingsPath('system')).toBe('/settings/system')
   })
 
   it('loadPath returns static path', () => {

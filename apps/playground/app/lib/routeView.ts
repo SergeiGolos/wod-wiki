@@ -79,7 +79,7 @@ export type PageKind =
   | 'workout'
   | 'journalEntry'
   | 'library'
-
+  | 'settings'
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
 export interface ShellConfig {
   wrap: 'canvas' | 'bare'
@@ -214,6 +214,9 @@ function deriveWorkout(
   if (cleanPath.startsWith('/results/')) {
     return { name: 'Result', content: PLAYGROUND_CONTENT, category: 'Results' }
   }
+  if (cleanPath === '/settings' || cleanPath.startsWith('/settings/')) {
+    return { name: 'Settings', content: PLAYGROUND_CONTENT, category: 'Settings' }
+  }
 
   const effectiveName = urlWorkout || urlName
   if (!effectiveName) {
@@ -346,6 +349,7 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
   if (pathname === '/dashboard') return 'dashboardExplorer'
   if (pathname.startsWith('/dashboard/')) return 'dashboardView'
+  if (clean === '/settings' || clean.startsWith('/settings/')) return 'settings'
 
   if (canvasPage) return 'canvas'
   if (flags.isPlaygroundRoute && flags.effectivePlaygroundId) return 'playground'

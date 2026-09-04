@@ -62,6 +62,7 @@ import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
 import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 import { DashboardViewPage } from './views/dashboards/DashboardViewPage'
 import { Toaster } from '@/components/atoms/primitives/toaster'
@@ -263,6 +264,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         />
       )
     },
+    settings: () => <SettingsPage />,
   }
 
   const canvasTitleAccessory =
@@ -413,6 +415,9 @@ export function App() {
                 <Routes>
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
 
+                  <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />
+                  <Route path="/settings/appearance" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/settings/system" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/settings/library/calcs" element={<div className="p-6"><CalcAuthoringPanel /></div>} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
                   <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />

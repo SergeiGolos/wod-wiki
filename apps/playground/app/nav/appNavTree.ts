@@ -16,7 +16,7 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Compass, Rss, Folder, Calendar } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell, Compass, Rss, Folder, Calendar, Settings, Paintbrush, Sliders } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -239,6 +239,34 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
       panel: EffortsNavPanel,
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      level: 1,
+      icon: Settings,
+      action: { type: 'route', to: ROUTE_PATTERNS.settingsAppearance },
+      isActive: (loc: Location) => loc.pathname.startsWith('/settings'),
+      children: [
+        {
+          id: 'settings-appearance',
+          label: 'Appearance',
+          level: 2,
+          icon: Paintbrush,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsAppearance },
+          isActive: (loc: Location) =>
+            loc.pathname === ROUTE_PATTERNS.settings ||
+            loc.pathname === ROUTE_PATTERNS.settingsAppearance,
+        },
+        {
+          id: 'settings-system',
+          label: 'System',
+          level: 2,
+          icon: Sliders,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsSystem },
+          isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsSystem,
+        },
+      ],
     },
   ]
 }

@@ -20,26 +20,12 @@ import { Button } from '@/components/atoms/primitives/button'
 import {
   EllipsisVerticalIcon,
   ArrowDownTrayIcon,
-  BugAntIcon,
-  ArrowPathIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
-import { useTheme } from '@/contexts/ThemeProvider'
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../../components/atoms/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
-import { resetUserData } from '../../services/resetUserData'
 import type { NavItemL3 } from '../../nav/navTypes'
-import { useAudio } from '@/contexts/AudioContext'
-import { useDebugMode } from '@/contexts/DebugModeContext'
-import { DATE_LOCALE_OPTIONS, useDateLocale } from '../../lib/dateLocale'
-import { LanguageIcon } from '@heroicons/react/20/solid'
-
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 
 export function NewEntryButton() {
@@ -85,21 +71,7 @@ export function ActionsMenu({
   items?: NavItemL3[]
 }) {
   const { l3Items: contextL3, scrollToSection } = useNav()
-  const { theme, setTheme } = useTheme()
-  const { isEnabled: isAudioEnabled, toggleAudio } = useAudio()
-  
   const l3Items = items || contextL3
-  const { isDebugMode, toggleDebugMode } = useDebugMode()
-  const [dateLocale, setDateLocale] = useDateLocale()
-
-  const handleResetData = async () => {
-    try {
-      await resetUserData()
-    } finally {
-      window.location.reload()
-    }
-  }
-
   const handleDownload = () => {
     if (onDownload) {
       onDownload()
@@ -168,42 +140,9 @@ export function ActionsMenu({
                 )
               })}
             </div>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="xl:hidden" />
           </>
         )}
-        <DropdownMenuItem onClick={toggleAudio} className="gap-2">
-          <span className="flex size-4 items-center justify-center">
-            {isAudioEnabled ? <SpeakerWaveIcon className="size-4" /> : <SpeakerXMarkIcon className="size-4" />}
-          </span>
-          <span className="flex-1">Sound: {isAudioEnabled ? 'On' : 'Off'}</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
-          className="gap-2"
-        >
-          <span className="flex size-4 items-center justify-center">
-            {theme === 'light' && <SunIcon className="size-4" />}
-            {theme === 'dark' && <MoonIcon className="size-4" />}
-            {theme === 'system' && <ComputerDesktopIcon className="size-4" />}
-          </span>
-          <span className="flex-1">Theme: {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}</span>
-        </DropdownMenuItem>
-        <DropdownMenuHeading className="flex items-center gap-2">
-          <LanguageIcon className="size-4" /> Date language
-        </DropdownMenuHeading>
-        {DATE_LOCALE_OPTIONS.map(option => (
-          <DropdownMenuItem
-            key={option.tag ?? 'auto'}
-            onClick={() => setDateLocale(option.tag)}
-            className="gap-2"
-            data-testid={`date-locale-${option.tag ?? 'auto'}`}
-          >
-            <span className="flex size-4 items-center justify-center text-blue-500 text-xs">
-              {dateLocale === option.tag ? '✓' : ''}
-            </span>
-            <span className="flex-1">{option.label}</span>
-          </DropdownMenuItem>
-        ))}
         <DropdownMenuItem onClick={handleDownload} className="gap-2">
           <ArrowDownTrayIcon className="size-4" />
           <span className="flex-1">Download Markdown</span>
@@ -211,18 +150,6 @@ export function ActionsMenu({
         <DropdownMenuItem onClick={handleBuyMeACoffee} className="gap-2">
           <BuyMeACoffeeIcon className="size-5" />
           <span className="flex-1">Buy Me a Coffee</span>
-        </DropdownMenuItem>
-        {import.meta.env.DEV && (
-          <DropdownMenuItem onClick={toggleDebugMode} className="gap-2">
-            <BugAntIcon className="size-4" />
-            <span className="flex-1">Debug Mode</span>
-            {isDebugMode && <span className="text-blue-500 text-xs">✓</span>}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleResetData} className="gap-2">
-          <ArrowPathIcon className="size-4 text-red-500" />
-          <span className="flex-1 text-red-500">Reset & Clear Cache</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

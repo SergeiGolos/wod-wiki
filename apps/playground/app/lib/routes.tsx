@@ -53,6 +53,9 @@ export const ROUTE_PATTERNS = {
   dashboard: '/dashboard',
   dashboardView: '/dashboard/:slug',
   library: '/library',
+  settings: '/settings',
+  settingsAppearance: '/settings/appearance',
+  settingsSystem: '/settings/system',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -230,6 +233,11 @@ export function parseEffortRouteOptions(searchParams: URLSearchParams): {
     q: searchParams.get('q') ?? undefined,
     origin: searchParams.get('origin') ?? undefined,
   };
+}
+
+/** /settings or /settings/:section */
+export function settingsPath(section?: 'appearance' | 'system'): string {
+  return section ? `/settings/${section}` : '/settings/appearance';
 }
 // ---------------------------------------------------------------------------
 // Legacy-alias redirect components

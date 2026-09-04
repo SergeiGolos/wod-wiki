@@ -115,3 +115,68 @@ describe('appNavTree - Library navigation', () => {
     expect(screen.getByText('Journal')).toBeDefined()
   })
 })
+
+describe('appNavTree - Settings navigation', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('defines L1 settings item with L2 children for Appearance and System', () => {
+    const tree = buildAppNavTree(() => {})
+    const settings = tree.find(item => item.id === 'settings')
+
+    expect(settings).toBeDefined()
+    expect(settings?.label).toBe('Settings')
+    expect(settings?.level).toBe(1)
+    expect(settings?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
+    expect(settings?.children).toBeDefined()
+    expect(settings?.children?.length).toBe(2)
+
+    const [appearance, system] = settings!.children!
+
+    expect(appearance.id).toBe('settings-appearance')
+    expect(appearance.label).toBe('Appearance')
+    expect(appearance.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
+
+    expect(system.id).toBe('settings-system')
+    expect(system.label).toBe('System')
+    expect(system.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsSystem })
+  })
+
+  it('activates settings L1 for /settings, /settings/appearance, and /settings/system', () => {
+    const tree = buildAppNavTree(() => {})
+    const settings = tree.find(item => item.id === 'settings')!
+
+    expect(settings.isActive!(mockLocation('/settings'))).toBe(true)
+    expect(settings.isActive!(mockLocation('/settings/appearance'))).toBe(true)
+    expect(settings.isActive!(mockLocation('/settings/system'))).toBe(true)
+    expect(settings.isActive!(mockLocation('/library'))).toBe(false)
+  })
+
+  it('activates appropriate L2 child based on route', () => {
+    const tree = buildAppNavTree(() => {})
+    const settings = tree.find(item => item.id === 'settings')!
+    const [appearance, system] = settings.children!
+
+    expect(appearance.isActive!(mockLocation('/settings'))).toBe(true)
+    expect(appearance.isActive!(mockLocation('/settings/appearance'))).toBe(true)
+    expect(appearance.isActive!(mockLocation('/settings/system'))).toBe(false)
+
+    expect(system.isActive!(mockLocation('/settings/system'))).toBe(true)
+    expect(system.isActive!(mockLocation('/settings/appearance'))).toBe(false)
+  })
+
+  it('renders L2 menu items in NavSidebar when on /settings/appearance', () => {
+    render(
+      <MemoryRouter initialEntries={['/settings/appearance']}>
+        <NavProvider tree={appNavTree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getAllByText('Settings').length).toBeGreaterThan(0)
+    expect(screen.getByText('Appearance')).toBeDefined()
+    expect(screen.getByText('System')).toBeDefined()
+  })
+})

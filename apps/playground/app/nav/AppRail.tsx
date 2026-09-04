@@ -7,7 +7,7 @@
  * only constant chrome across sections.
  */
 
-import { Dumbbell } from 'lucide-react'
+import { Dumbbell, Settings } from 'lucide-react'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
@@ -30,7 +30,8 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
     scrollToSection: () => {},
   }
 
-  const items = tree.filter((item): item is NavItem => item.icon != null)
+  const items = tree.filter((item): item is NavItem => item.icon != null && item.id !== 'settings')
+  const isSettingsActive = location.pathname.startsWith('/settings')
 
   return (
     <>
@@ -82,6 +83,26 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
         className="grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
       >
         <MagnifyingGlassIcon className="size-5" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate('/settings/appearance')}
+        title="Settings"
+        aria-label="Settings"
+        aria-current={isSettingsActive ? 'page' : undefined}
+        data-testid="nav-settings"
+        className={cn(
+          'relative grid size-9 place-items-center rounded-lg transition-colors mt-1.5',
+          isSettingsActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+        )}
+      >
+        {isSettingsActive && (
+          <span className="absolute -left-[14px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+        )}
+        <Settings className="size-5" />
       </button>
     </>
   )

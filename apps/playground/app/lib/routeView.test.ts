@@ -70,6 +70,15 @@ describe('resolveRouteView — journal nav', () => {
     expect(view.workout.name).toBe('Journal')
     expect(view.shell).toEqual({ wrap: 'bare' })
   })
+
+  it('classifies /settings, /settings/appearance, and /settings/system as settings page', () => {
+    for (const path of ['/settings', '/settings/appearance', '/settings/system']) {
+      const view = resolveRouteView(path, NO_PARAMS, makeDeps())
+      expect(view.page).toBe('settings')
+      expect(view.workout.name).toBe('Settings')
+      expect(view.shell).toEqual({ wrap: 'bare' })
+    }
+  })
 })
 
 describe('resolveRouteView — journal entry route', () => {

@@ -5,18 +5,6 @@ import { ActionsMenu } from './PageToolbar';
 import { NavContext, initialNavState } from '../../nav/NavContext';
 import type { NavItemL3 } from '../../nav/navTypes';
 
-mock.module('@/contexts/ThemeProvider', () => ({
-  useTheme: () => ({ theme: 'system', setTheme: () => {} }),
-}));
-
-mock.module('@/contexts/AudioContext', () => ({
-  useAudio: () => ({ isEnabled: false, toggleAudio: () => {} }),
-}));
-
-mock.module('@/contexts/DebugModeContext', () => ({
-  useDebugMode: () => ({ isDebugMode: false, toggleDebugMode: () => {} }),
-}));
-
 function renderWithNav(l3Items: NavItemL3[], scrollToSection = mock(() => {})) {
   return render(
     <MemoryRouter>
@@ -81,34 +69,36 @@ describe('ActionsMenu', () => {
     expect(scrollToSection).not.toHaveBeenCalled();
   });
 
-  it('offers Date language options with the current one marked, and persists a pick (#858)', () => {
-    renderWithNav([]);
+  it('renders leftover actions: Download Markdown and Buy Me a Coffee', () => {
+    const onDownload = mock(() => {});
+    render(
+      <MemoryRouter>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: [],
+            setL3Items: () => {},
+            scrollToSection: () => {},
+            registerScrollFn: () => {},
+          }}
+        >
+          <ActionsMenu currentWorkout={{ name: 'Test', content: '# Test' }} onDownload={onDownload} />
+        </NavContext.Provider>
+      </MemoryRouter>,
+    );
+
     act(() => {
       screen.getByRole('button').click();
     });
 
-    // Auto (UI language) is the default and carries the ✓.
-    expect(screen.getByTestId('date-locale-auto').textContent).toContain('Auto (UI language)')
-    expect(screen.getByTestId('date-locale-auto').textContent).toContain('✓')
-    expect(screen.getByTestId('date-locale-en').textContent).not.toContain('✓')
+    expect(screen.getByText('Download Markdown')).toBeDefined();
+    expect(screen.getByText('Buy Me a Coffee')).toBeDefined();
 
     act(() => {
-      screen.getByTestId('date-locale-en').click();
+      screen.getByText('Download Markdown').click();
     });
-    expect(localStorage.getItem('wodwiki:dateLocale')).toBe('en')
-
-    // Item clicks close the menu — re-open to assert the ✓ moved.
-    act(() => {
-      screen.getByRole('button').click();
-    });
-    expect(screen.getByTestId('date-locale-en').textContent).toContain('✓')
-    expect(screen.getByTestId('date-locale-auto').textContent).not.toContain('✓')
-
-    // Back to Auto clears the stored override.
-    act(() => {
-      screen.getByTestId('date-locale-auto').click();
-    });
-    expect(localStorage.getItem('wodwiki:dateLocale')).toBeNull()
-    localStorage.clear()
+    expect(onDownload).toHaveBeenCalled();
   });
 });
