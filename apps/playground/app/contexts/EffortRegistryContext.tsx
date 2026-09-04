@@ -6,8 +6,8 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { IEffortRegistry, IEffort, EffortRegistrySource } from '@/effort-registry';
-import { CompositeEffortRegistry } from '@/effort-registry';
+import type { IEffortRegistry, IEffort, EffortRegistrySource } from '@bitcobblers/wod-wiki-lang';
+import { getAppEffortRegistry } from '@/services/effortRegistry';
 
 interface EffortRegistryContextValue {
   registry: IEffortRegistry;
@@ -18,19 +18,11 @@ interface EffortRegistryContextValue {
 
 const EffortRegistryContext = createContext<EffortRegistryContextValue | null>(null);
 
-let globalRegistry: CompositeEffortRegistry | null = null;
-
-function getOrCreateRegistry(): CompositeEffortRegistry {
-  if (!globalRegistry) {
-    globalRegistry = new CompositeEffortRegistry();
-  }
-  return globalRegistry;
-}
 
 export function EffortRegistryProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const registry = getOrCreateRegistry();
+  const registry = getAppEffortRegistry();
 
   const init = useCallback(async () => {
     try {

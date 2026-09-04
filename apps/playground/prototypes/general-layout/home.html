@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home — General Layout | WOD Wiki</title>
+  <!--
+    PROTOTYPE — throwaway. Not production code.
+
+    Applies the Stitch "general layout" (icon rail · context sidebar · content ·
+    on-this-page rail) to the app home page (/ — HomeView).
+
+    Question: does the layout from the approved Stitch frame carry the home
+    landing (today's session, recent journal, guide entry points) while keeping
+    the REFERENCE sidebar exactly as prototyped?
+
+    Open: file://.../playground/prototypes/general-layout/home.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="base.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Icon rail ─────────────────────────────────────────────────────── -->
+  <aside class="rail">
+    <div class="rail-avatar">W</div>
+    <nav class="rail-nav">
+      <a class="rail-item active" href="home.html" title="Home">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+      </a>
+      <a class="rail-item" href="library.html" title="Library">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5 8.5 4.5 6 4.5c-1 0-2 .1-3 .4V19c1-.3 2-.4 3-.4 2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2 1 0 2 .1 3 .4V4.9c-1-.3-2-.4-3-.4-2.5 0-4.5.5-6 2Z"/><path d="M12 6.5v14.1"/></svg>
+      </a>
+      <a class="rail-item" href="dashboard.html" title="Dashboards">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      </a>
+      <a class="rail-item" href="library.html#efforts" title="Efforts">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6v12M17.5 6v12M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
+      </a>
+    </nav>
+    <div class="rail-spacer"></div>
+    <button class="rail-item" title="Search (⌘K)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <button class="rail-item" title="Settings" style="margin-top:6px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+    </button>
+  </aside>
+
+  <!-- ── Context sidebar — Home section (REFERENCE groups as prototyped) ── -->
+  <aside class="side">
+    <div class="side-head">HOME</div>
+
+    <div class="nav-group">
+      <a class="nav-item active" href="#today">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        Today's session
+      </a>
+      <a class="nav-item" href="#recent">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5h16v14H4z"/><path d="M4 9.5h16M9 9.5V19"/></svg>
+        Recent sessions
+      </a>
+      <a class="nav-item" href="#learn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="M6.5 10.5V15c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-4.5"/></svg>
+        Getting started
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>
+        SYNTAX
+      </div>
+      <a class="nav-item" href="#learn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        Timers &amp; Rounds
+      </a>
+      <a class="nav-item" href="#learn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M3.5 10h17M8 15h4"/></svg>
+        Custom Metrics
+      </a>
+      <a class="nav-item" href="#learn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6v12M17.5 6v12M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
+        Efforts
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 8h14M5 12h9M5 16h14"/><circle cx="17.5" cy="12" r="1.6"/></svg>
+        BEHAVIORS
+      </div>
+      <a class="nav-item" href="#learn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 8h14M5 12h9M5 16h14"/><circle cx="17.5" cy="12" r="1.6"/></svg>
+        Behaviors
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/></svg>
+        ANALYTICS
+      </div>
+      <a class="nav-item" href="dashboard.html">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/></svg>
+        Analytics
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="topbar">
+      <nav class="crumbs">
+        <span class="here">Home</span>
+      </nav>
+      <div class="topbar-spacer"></div>
+      <button class="searchpill">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        Search workouts, docs, results…
+        <span class="kbd">⌘K</span>
+      </button>
+    </div>
+
+    <div class="content">
+      <h1>Good morning, Serge</h1>
+      <p class="lead">
+        One session planned today — <strong style="color:var(--fg)">Kettlebell Engine</strong>, about 12&nbsp;minutes.
+        You trained yesterday; this one opens the new cycle.
+      </p>
+
+      <h2 id="today">Today</h2>
+      <div class="codeblock">
+        <div class="codeblock-head">TODAY'S WOD
+          <span style="flex:1"></span>
+          <span class="chip c-yellow">AMRAP 12:00</span>
+        </div>
+        <pre><span class="tok-round">AMRAP 12:00</span>
+  <span class="tok-dist">400m</span> <span class="tok-move">run</span>
+  <span class="tok-reps">21</span> <span class="tok-move">kettlebell swings</span> <span class="tok-load">@ 24kg</span></pre>
+      </div>
+
+      <!-- Embedded output — the engine's interactive card, as in the Stitch frame -->
+      <div class="card" style="margin-top:14px">
+        <div style="display:flex; align-items:center; gap:9px; padding:12px 16px; border-bottom:1px solid var(--line-soft)">
+          <span class="chip">AMRAP</span>
+          <span class="mono" style="font-family:var(--font-mono); font-size:12.5px; color:var(--fg)">12:00</span>
+          <span style="flex:1"></span>
+          <button class="btn primary" style="padding:5px 12px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg>
+            Start
+          </button>
+        </div>
+        <div style="padding:6px 16px 12px">
+          <div style="font-weight:600; font-size:14.5px; padding:6px 0 2px">Kettlebell Engine</div>
+          <div class="rowlist">
+            <div class="rowitem" style="padding:9px 0"><span class="dot blue"></span><span class="mono" style="font-family:var(--font-mono); font-size:12.5px"><span class="tok-dist">400m</span> run</span></div>
+            <div class="rowitem" style="padding:9px 0"><span class="dot orange"></span><span class="mono" style="font-family:var(--font-mono); font-size:12.5px"><span class="tok-reps">21</span> kettlebell swings <span class="tok-load">@ 24kg</span></span></div>
+          </div>
+          <div style="display:flex; gap:8px; padding-top:10px">
+            <span class="chip c-blue">Time Domain</span>
+            <span class="chip c-orange">High Volume</span>
+            <span class="chip c-green">Moderate Effort</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="recent">Recent sessions</h2>
+      <div class="card" style="padding:2px 14px">
+        <div class="rowlist">
+          <a class="rowitem" href="editor.html">
+            <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--fg-3); width:52px">Aug 30</span>
+            <span style="font-weight:600; color:var(--fg)">Kettlebell Engine</span>
+            <span class="chip c-yellow">AMRAP</span>
+            <span class="mono" style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2)">6 rounds + 200m</span>
+            <span style="flex:1"></span>
+            <span class="chip c-teal">TIS 38</span>
+          </a>
+          <a class="rowitem" href="editor.html">
+            <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--fg-3); width:52px">Aug 28</span>
+            <span style="font-weight:600; color:var(--fg)">South African Run</span>
+            <span class="chip c-blue">5k tempo</span>
+            <span class="mono" style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2)">26:12</span>
+            <span style="flex:1"></span>
+            <span class="chip c-teal">TIS 52</span>
+          </a>
+          <a class="rowitem" href="editor.html">
+            <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--fg-3); width:52px">Aug 26</span>
+            <span style="font-weight:600; color:var(--fg)">Heavy Fran</span>
+            <span class="chip c-red">21-15-9 @ 42.5kg</span>
+            <span class="mono" style="font-family:var(--font-mono); font-size:12px; color:var(--fg-2)">6:48 · PR</span>
+            <span style="flex:1"></span>
+            <span class="chip c-teal">TIS 44</span>
+          </a>
+        </div>
+      </div>
+
+      <h2 id="learn">Learn the language</h2>
+      <p>Workouts are Markdown. The engine reads rounds, timers, loads, and efforts straight from the text.</p>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px">
+        <a class="card" href="#" style="padding:16px">
+          <div style="font-weight:600; margin-bottom:4px">Timers &amp; Rounds</div>
+          <div style="font-size:12.5px; color:var(--fg-3)">AMRAP, EMOM, rounds, rest.</div>
+        </a>
+        <a class="card" href="#" style="padding:16px">
+          <div style="font-weight:600; margin-bottom:4px">Custom Metrics</div>
+          <div style="font-size:12.5px; color:var(--fg-3)">Teach the engine your own measures.</div>
+        </a>
+        <a class="card" href="#" style="padding:16px">
+          <div style="font-weight:600; margin-bottom:4px">Efforts</div>
+          <div style="font-size:12.5px; color:var(--fg-3)">Registered movements and standards.</div>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── On this page ──────────────────────────────────────────────────── -->
+  <aside class="toc">
+    <div class="toc-head">ON THIS PAGE</div>
+    <ul class="toc-list">
+      <li><a href="#today" class="active">Today</a></li>
+      <li><a href="#recent">Recent sessions</a></li>
+      <li><a href="#learn">Learn the language</a></li>
+    </ul>
+    <div class="toc-sub">REFERENCE</div>
+    <ul class="toc-list">
+      <li><a href="#learn">Timers &amp; Rounds</a></li>
+      <li><a href="#learn">Custom Metrics</a></li>
+      <li><a href="#learn">Efforts</a></li>
+    </ul>
+  </aside>
+
+</div>
+<script>
+  // Scroll-spy for the on-this-page rail
+  const links = [...document.querySelectorAll('.toc-list a')];
+  const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) { links.forEach(a => a.classList.remove('active')); map.get(e.target.id)?.classList.add('active'); } });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('.content h2[id]').forEach(h => io.observe(h));
+</script>
+</body>
+</html>

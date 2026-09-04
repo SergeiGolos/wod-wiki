@@ -16,6 +16,7 @@ import { sessionQueryInsert, sessionQueryWql } from '@bitcobblers/wod-wiki-ui/ex
 import { resolveCompletionTargets } from '../lib/workoutCompletion';
 import { useEditorSave } from '../hooks/useEditorSave';
 
+import { StickyPageHeader } from '@/panels/page-shells';
 const journalContentProvider = new IndexedDBContentProvider();
 
 interface JournalDatePageProps {
@@ -205,25 +206,26 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
 
   return (
     <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">{journalDate}</h1>
-            <p className="text-sm text-muted-foreground">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</p>
-          </div>
-          {notes.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
-              className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-            >
-              {viewMode === 'read' ? 'Edit' : 'Read mode'}
-            </button>
-          )}
-        </header>
-        {notes.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
-        ) : (
+      <div className="flex flex-col flex-1 w-full min-h-screen">
+        <StickyPageHeader
+          title={journalDate}
+          subtitle={`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
+          actions={
+            notes.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
+                className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                {viewMode === 'read' ? 'Edit' : 'Read mode'}
+              </button>
+            ) : undefined
+          }
+        />
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-6 flex-1">
+          {notes.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
+          ) : (
           /* Read mode keeps the editor mounted — same markdown surface, just
              non-editable (#1008). Remount on toggle re-creates the view. */
           <NoteEditor
@@ -255,6 +257,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           autoStart
         />
       )}
+      </div>
     </WorkbenchSessionProvider>
   );
 }

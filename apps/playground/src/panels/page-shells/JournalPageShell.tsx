@@ -17,6 +17,7 @@ import { PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
+import { StickyPageHeader } from './StickyPageHeader';
 
 export interface JournalPageShellProps {
   /** Editor panel content — typically a PlanPanel with stored note */
@@ -128,21 +129,12 @@ export function JournalPageShell({
             toggle, badges) must stay reachable on mobile, and rendering the
             node twice breaks strict-mode locators. Sticky styling is lg-only;
             below lg the SidebarLayout navbar sits above it. */}
-        <div className="pt-3 lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8">
-          <div className="flex items-center justify-between gap-3 px-4 lg:px-10">
-            <div className="flex min-w-0 items-center gap-4 truncate">
-              <div className="hidden h-10 w-2 shrink-0 rounded-full bg-primary lg:block" />
-              <h1
-                data-testid={titleTestId}
-                className="truncate text-lg font-black tracking-tight text-foreground leading-none lg:text-2xl md:text-4xl"
-              >
-                {title}
-              </h1>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 md:gap-4">{actions}</div>
-          </div>
-          <hr role="presentation" className="mt-3 w-full border-t border-border opacity-50 lg:mt-6 md:mt-8" />
-        </div>
+        {/* Page header */}
+        <StickyPageHeader
+          title={title}
+          titleTestId={titleTestId}
+          actions={actions}
+        />
         {/* Main Editor Content */}
         <main className="flex-1">
           {editor}

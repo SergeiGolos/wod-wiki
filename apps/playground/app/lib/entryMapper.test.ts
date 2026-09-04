@@ -4,8 +4,19 @@
  * `sourceId` discrimination; the rest of the Library never inspects it.
  */
 import { describe, it, expect } from 'bun:test'
-import { toEntry, type EntryKind } from './entryMapper'
-import type { Note } from '@/types/storage'
+import type { BlockIndexRow, Note } from '@/types/storage'
+import type { IEffort, RowsRun, RowsQueryResult, ParsedRowsQuery } from '@bitcobblers/wod-wiki-wql'
+import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core'
+import {
+  toEntry,
+  blockToEntry,
+  blockPreview,
+  effortToEntry,
+  rowsRunToEntry,
+  unifiedEventToEntry,
+  rowsQueryResultToEntries,
+  type EntryKind,
+} from './entryMapper'
 
 function makeNote(overrides: Partial<Note> = {}): Note {
   return {
@@ -88,8 +99,6 @@ describe('toEntry — passthrough fields', () => {
 
 // ── blockToEntry (#855) ──────────────────────────────────────────────────────
 
-import { blockToEntry, blockPreview } from './entryMapper'
-import type { BlockIndexRow } from '@/types/storage'
 
 function makeBlock(overrides: Partial<BlockIndexRow> = {}): BlockIndexRow {
   return {
@@ -153,5 +162,182 @@ describe('blockPreview', () => {
 
   it('returns [] for blank content', () => {
     expect(blockPreview('\n  \n')).toEqual([])
+  })
+})
+
+
+describe('effortToEntry', () => {
+  const effort: IEffort = {
+    id: 'eff-1',
+    slug: 'back-squat',
+    label: 'Back Squat',
+    aliases: ['BS', 'Back Squats'],
+    baseAttributes: {
+      discipline: 'strength',
+      met: 6.0,
+      intensityTier: 'high',
+    },
+    registrySource: 'bundled',
+  }
+
+  it('maps an IEffort into an Entry with kind "effort" and effort metadata', () => {
+    const entry = effortToEntry(effort)
+    expect(entry.kind).toBe('effort')
+    expect(entry.id).toBe('back-squat')
+    expect(entry.title).toBe('Back Squat')
+    expect(entry.sourceCatalog).toBe('bundled')
+    expect(entry.sourceItem).toBe('back-squat')
+    expect(entry.date).toBeNull()
+    expect(entry.subtitle).toBe('strength • MET 6.0 • high')
+    expect(entry.detail).toBe('Aliases: BS, Back Squats')
+    expect(entry.effort).toEqual({
+      slug: 'back-squat',
+      label: 'Back Squat',
+      discipline: 'strength',
+      met: 6.0,
+      intensityTier: 'high',
+      aliases: ['BS', 'Back Squats'],
+      registrySource: 'bundled',
+    })
+  })
+})
+
+describe('rowsRunToEntry — session level (Mode A)', () => {
+  const timestamp = new Date('2026-08-15T10:00:00Z').getTime()
+  const run: RowsRun = {
+    resultId: 'res-123',
+    noteId: 'crossfit-girls/fran',
+    timestamp,
+    events: [
+      {
+        id: 'res-123:0',
+        resultId: 'res-123',
+        noteId: 'crossfit-girls/fran',
+        blockContentId: 'bc-fran',
+        timestamp,
+        outputType: 'segment',
+        effortSlug: 'thruster',
+        timeSpan: { started: timestamp, ended: timestamp + 120_000 },
+        metrics: [
+          { type: 'rep', value: 21 },
+          { type: 'weight', value: 95, unit: 'lbs' },
+        ],
+      } as UnifiedEventRecord,
+      {
+        id: 'res-123:1',
+        resultId: 'res-123',
+        noteId: 'crossfit-girls/fran',
+        timestamp: timestamp + 120_000,
+        grain: 'event',
+        outputType: 'segment',
+        effortSlug: 'pull-up',
+        timeSpan: { started: timestamp + 120_000, ended: timestamp + 200_000 },
+        metrics: [
+          { type: 'rep', value: 21 },
+          { type: 'tis', value: 12.5 },
+        ],
+      } as UnifiedEventRecord,
+    ],
+  }
+
+  it('maps a RowsRun to an Entry with kind "result" and execution metrics', () => {
+    const entry = rowsRunToEntry(run)
+    expect(entry.kind).toBe('result')
+    expect(entry.id).toBe('res-123')
+    expect(entry.sourceCatalog).toBe('results')
+    expect(entry.sourceItem).toBe('res-123')
+    expect(entry.date).toBe('2026-08-15')
+    expect(entry.title).toBe('Fran')
+    expect(entry.subtitle).toContain('03:20')
+    expect(entry.subtitle).toContain('2 splits')
+    expect(entry.detail).toContain('Thruster, Pull Up')
+    expect(entry.blockContentId).toBe('bc-fran')
+    expect(entry.execution).toMatchObject({
+      resultId: 'res-123',
+      noteId: 'crossfit-girls/fran',
+      outputType: 'all',
+      segmentCount: 2,
+      reps: 42,
+    })
+  })
+})
+
+describe('unifiedEventToEntry — segment level (Mode B)', () => {
+  const timestamp = new Date('2026-08-15T10:00:00Z').getTime()
+  const event: UnifiedEventRecord = {
+    id: 'res-123:0',
+    resultId: 'res-123',
+    noteId: 'crossfit-girls/fran',
+    timestamp,
+    blockContentId: 'bc-thruster',
+    outputType: 'segment',
+    effortSlug: 'thruster',
+    timeSpan: { started: timestamp, ended: timestamp + 105_000 },
+    metrics: [
+      { type: 'rep', value: 21 },
+      { type: 'weight', value: 95, unit: 'lbs' },
+    ],
+  }
+
+  it('maps a segment UnifiedEventRecord to kind "segment"', () => {
+    const entry = unifiedEventToEntry(event, { index: 0 })
+    expect(entry.kind).toBe('segment')
+    expect(entry.id).toBe('res-123:0')
+    expect(entry.title).toBe('Thruster')
+    expect(entry.date).toBe('2026-08-15')
+    expect(entry.subtitle).toContain('01:45')
+    expect(entry.subtitle).toContain('21 reps')
+    expect(entry.subtitle).toContain('95 lbs')
+    expect(entry.blockContentId).toBe('bc-thruster')
+    expect(entry.execution).toMatchObject({
+      resultId: 'res-123',
+      noteId: 'crossfit-girls/fran',
+      outputType: 'segment',
+      effortSlug: 'thruster',
+      reps: 21,
+      loadLbs: 95,
+    })
+  })
+})
+
+describe('rowsQueryResultToEntries', () => {
+  const timestamp = new Date('2026-08-15T10:00:00Z').getTime()
+  const run: RowsRun = {
+    resultId: 'res-1',
+    noteId: 'crossfit-girls/fran',
+    timestamp,
+    events: [
+      {
+        id: 'res-1:0',
+        resultId: 'res-1',
+        noteId: 'crossfit-girls/fran',
+        timestamp,
+        grain: 'event',
+        outputType: 'segment',
+        effortSlug: 'thruster',
+        metrics: [{ type: 'rep', value: 21 }],
+      } as UnifiedEventRecord,
+    ],
+  }
+
+  it('dispatches rows:all to session-level entries', () => {
+    const qr: RowsQueryResult = {
+      parsed: { family: 'rows', raw: 'rows:all{result:res-1}', filters: [] } as ParsedRowsQuery,
+      runs: [run],
+    }
+    const entries = rowsQueryResultToEntries(qr)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.kind).toBe('result')
+  })
+
+  it('dispatches rows:segment to segment-level entries', () => {
+    const qr: RowsQueryResult = {
+      parsed: { family: 'rows', raw: 'rows:segment{result:res-1}', outputType: 'segment', filters: [] } as ParsedRowsQuery,
+      runs: [run],
+    }
+    const entries = rowsQueryResultToEntries(qr)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.kind).toBe('segment')
+    expect(entries[0]!.id).toBe('res-1:0')
   })
 })

@@ -26,7 +26,8 @@ export type GallerySection =
   | 'zone-distribution'
   | 'table'
   | 'rows'
-  | 'find';
+  | 'find'
+  | 'edge';
 
 export type PreferredUnit = 'kg' | 'lb';
 
@@ -43,6 +44,10 @@ export interface GalleryCardDef {
   params?: string[];
   /** Executor-level display unit; conversion is family-scoped (kg↔lb, m↔km). */
   preferredUnit?: PreferredUnit;
+  /** True for queries that are expected to produce a parse error. */
+  expectError?: boolean;
+  /** True for cards simulating an in-flight / loading query. */
+  simulateLoading?: boolean;
 }
 
 export const SECTION_ORDER: GallerySection[] = [
@@ -57,6 +62,7 @@ export const SECTION_ORDER: GallerySection[] = [
   'table',
   'rows',
   'find',
+  'edge',
 ];
 
 export const SECTION_META: Record<GallerySection, { title: string; blurb: string }> = {
@@ -106,6 +112,11 @@ export const SECTION_META: Record<GallerySection, { title: string; blurb: string
     title: 'Find',
     blurb:
       'Content discovery: find:note over journal notes, find:block over the derived block index (rawContent = note title), find:effort over the bundled effort registry.',
+  },
+  edge: {
+    title: 'Edge States',
+    blurb:
+      'Empty results, malformed WQL parse errors, and in-flight query states produced live through the round trip — never from static fixtures.',
   },
 };
 
@@ -163,6 +174,13 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   { section: 'find', widgetType: 'find', title: 'Notes by tag', question: 'Which notes are benchmarks?', journal: 'crossfit', query: 'find:note{tags:benchmark}' },
   { section: 'find', widgetType: 'find', title: 'Blocks by text', question: 'Where does Fran live?', journal: 'crossfit', query: 'find:block{text:fran}' },
   { section: 'find', widgetType: 'find', title: 'Efforts by intensity', question: 'Which efforts are high tier?', journal: 'crossfit', query: 'find:effort{intensity:high}' },
+
+  // ── Edge States — empty, error, and loading states live ───────────────
+  { section: 'edge', widgetType: 'value', title: 'Empty aggregate', question: 'No data for filter — WqlEmptyState renders live with stages telemetry', journal: 'crossfit', query: 'sum:totalVolume{effort:nonexistent}' },
+  { section: 'edge', widgetType: 'auto', title: 'Malformed query (auto)', question: 'Syntax error (all engine validation is parse-time) — useChartShape error branch renders live', journal: 'crossfit', query: 'sum:totalVolume by', expectError: true },
+  { section: 'edge', widgetType: 'value', title: 'In-flight query (loading)', question: 'Async query in flight — natural suspense via WqlEmptyState', journal: 'crossfit', query: 'sum:totalVolume{}', simulateLoading: true },
+  { section: 'edge', widgetType: 'rows', title: 'Empty rows plane', question: 'No workout runs match the filter — RowsTable empty state', journal: 'crossfit', query: 'rows:all{result:nonexistent}' },
+  { section: 'edge', widgetType: 'find', title: 'Empty find plane', question: 'No content matches the filter — FindResultList empty state', journal: 'crossfit', query: 'find:note{tags:nonexistent}' },
 ];
 
 

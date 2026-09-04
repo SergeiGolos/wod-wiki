@@ -17,7 +17,7 @@ async function renderedContent(page: Page) {
 
 const STORIES = [
   'gallery-wql-composer--default',
-  'gallery-analytics-widgets--query-value-widget',
+  'gallery-wql-example-gallery--bar-section',
   'gallery-wql-example-gallery--table-section',
   'gallery-wql-example-gallery--value-section',
   // Workbench stories — covered since #997: the Session Outputs Table renders

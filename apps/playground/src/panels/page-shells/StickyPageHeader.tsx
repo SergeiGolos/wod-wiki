@@ -23,7 +23,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface StickyPageHeaderProps {
-  /** Page title shown in the sticky bar (desktop only). */
+  /** Page title shown in the sticky bar. */
   title: string;
   /** Secondary line under the title (e.g. a dynamic page description). */
   subtitle?: ReactNode;
@@ -32,10 +32,13 @@ export interface StickyPageHeaderProps {
   /** Right-side actions (e.g. search, cast, actions menu). */
   actions?: ReactNode;
   /**
-   * Content rendered below the title row inside the sticky zone. Rendered
-   * once for both viewports — on mobile it IS the visible sticky bar.
+   * Content rendered below the title row inside the sticky zone.
    */
   subheader?: ReactNode;
+  /** Optional data-testid on title heading */
+  titleTestId?: string;
+  /** Optional class names on the sticky header container */
+  className?: string;
 }
 
 export function StickyPageHeader({
@@ -44,45 +47,48 @@ export function StickyPageHeader({
   titleAccessory,
   actions,
   subheader,
+  titleTestId,
+  className,
 }: StickyPageHeaderProps) {
   return (
     <div
       data-page-sticky-boundary="true"
       className={cn(
-        subheader
-          // Zone doubles as the mobile sticky bar below the SidebarLayout navbar.
-          ? 'sticky top-[60px] sm:top-14 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 py-2 lg:top-0 lg:z-30 lg:bg-background/80 lg:border-b-0 lg:py-0 lg:pt-8'
-          // Title-only: no mobile presence at all (navbar covers identity).
-          : 'hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8',
+        'sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 transition-colors',
+        className,
       )}
     >
-      {/* Title row — desktop only */}
-      <div className="hidden lg:flex items-center justify-between px-6 lg:px-10">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
-          <div className="flex items-center gap-3 min-w-0">
+      {/* Title row */}
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="h-5 w-1.5 shrink-0 rounded-full bg-primary" />
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="min-w-0">
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate">
+              <h1
+                data-testid={titleTestId}
+                className="text-base sm:text-lg font-black tracking-tight text-foreground leading-none truncate"
+              >
                 {title}
               </h1>
               {subtitle && (
-                <p className="mt-1 text-sm text-muted-foreground truncate">{subtitle}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>
               )}
             </div>
             {titleAccessory}
           </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-4 shrink-0">
-          {actions}
-        </div>
+        {actions && (
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {actions}
+          </div>
+        )}
       </div>
 
-      {subheader && <div className="lg:mt-4">{subheader}</div>}
-
-      <hr
-        role="presentation"
-        className="hidden lg:block mt-4 md:mt-6 w-full border-t border-border opacity-50"
-      />
+      {subheader && (
+        <div className="border-t border-border/30 bg-background/40">
+          {subheader}
+        </div>
+      )}
     </div>
   );
 }

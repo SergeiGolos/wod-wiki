@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboards — General Layout | WOD Wiki</title>
+  <!--
+    PROTOTYPE — throwaway. Not production code.
+
+    Applies the Stitch "general layout" to /dashboard (AnalyticsExplorerPage /
+    DashboardViewPage). A Dashboard Note renders as widget cards: each ```query
+    block's heading + coaching question sit above its widget; dashboard.*
+    frontmatter becomes the segmented token controls under the title.
+
+    Question: does the layout carry a widget-composed dashboard — sidebar as
+    dashboard list, right rail as widget outline?
+
+    Open: file://.../playground/prototypes/general-layout/dashboard.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="base.css" />
+  <style>
+    .widget { padding: 0; overflow: hidden; }
+    .widget-head { display: flex; align-items: baseline; gap: 10px; padding: 14px 16px 0; }
+    .widget-title { font-weight: 600; font-size: 13px; color: var(--fg); }
+    .widget-sub { font-size: 11px; color: var(--fg-3); margin-left: auto; font-family: var(--font-mono); }
+    .widget-q { padding: 2px 16px 12px; font-size: 12.5px; color: var(--fg-3); }
+    .wql-foot {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-top: 1px solid var(--line-soft);
+      font-family: var(--font-mono); font-size: 11px; color: var(--fg-4);
+    }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+    .seg button { font-size: 12px; font-weight: 500; color: var(--fg-3); padding: 5px 12px; }
+    .seg button + button { border-left: 1px solid var(--line); }
+    .seg button.on { background: var(--bg-raise2); color: var(--fg); }
+    .valuecard { padding: 14px 16px; }
+    .valuecard .v { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+    .valuecard .l { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--fg-3); margin-top: 2px; }
+    .controls { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Icon rail ─────────────────────────────────────────────────────── -->
+  <aside class="rail">
+    <div class="rail-avatar">W</div>
+    <nav class="rail-nav">
+      <a class="rail-item" href="home.html" title="Home">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+      </a>
+      <a class="rail-item" href="library.html" title="Library">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5 8.5 4.5 6 4.5c-1 0-2 .1-3 .4V19c1-.3 2-.4 3-.4 2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2 1 0 2 .1 3 .4V4.9c-1-.3-2-.4-3-.4-2.5 0-4.5.5-6 2Z"/><path d="M12 6.5v14.1"/></svg>
+      </a>
+      <a class="rail-item active" href="dashboard.html" title="Dashboards">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      </a>
+      <a class="rail-item" href="library.html#efforts" title="Efforts">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6v12M17.5 6v12M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
+      </a>
+    </nav>
+    <div class="rail-spacer"></div>
+    <button class="rail-item" title="Search (⌘K)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <button class="rail-item" title="Settings" style="margin-top:6px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+    </button>
+  </aside>
+
+  <!-- ── Context sidebar — dashboards are runtime data, list lives here ── -->
+  <aside class="side">
+    <div class="side-head">DASHBOARDS</div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m12 17.5-3.2 1.7.6-3.6-2.6-2.5 3.6-.5L12 9.3l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7Z"/></svg>
+        PINNED
+      </div>
+      <a class="nav-item active" href="#trend">Training Load</a>
+      <a class="nav-item" href="#">Morning Readiness <span class="count">4w</span></a>
+      <a class="nav-item" href="#">Weekly Review</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M9.5 9.5V20"/></svg>
+        PREBUILT
+      </div>
+      <a class="nav-item" href="#">Explorer</a>
+      <a class="nav-item" href="#">Intensity Distribution</a>
+      <a class="nav-item" href="#">PR Tracker</a>
+    </div>
+
+    <div class="nav-group">
+      <button class="nav-item new-action" style="width:100%; text-align:left">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New dashboard
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="topbar">
+      <nav class="crumbs">
+        <a href="#">Dashboards</a><span class="sep">›</span><span class="here">Training Load</span>
+      </nav>
+      <div class="topbar-spacer"></div>
+      <button class="btn ghost" style="border-color:var(--line)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg>
+        Edit note
+      </button>
+      <button class="searchpill">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        WQL search…
+        <span class="kbd">⌘K</span>
+      </button>
+    </div>
+
+    <div class="content" style="max-width:960px">
+      <h1>Training Load</h1>
+      <p class="lead">Am I building fitness or digging a hole? Weekly trigger impulse against rolling strain and acuity.</p>
+
+      <!-- dashboard.* frontmatter → top-level token controls -->
+      <div class="controls">
+        <div class="seg">
+          <button class="on">6 wk</button><button>12 wk</button><button>Season</button>
+        </div>
+        <div class="seg">
+          <button class="on">All disciplines</button><button>Running</button><button>Lifting</button>
+        </div>
+        <span class="chip c-violet" style="align-self:center">token: $range · $discipline</span>
+      </div>
+
+      <h2 id="headline">Headline numbers</h2>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px">
+        <div class="card valuecard">
+          <div class="v">412</div><div class="l">WEEKLY TIS</div>
+          <div style="margin-top:8px"><span class="chip c-green">+6% vs last wk</span></div>
+        </div>
+        <div class="card valuecard">
+          <div class="v">0.94</div><div class="l">ACWR (28:7)</div>
+          <div style="margin-top:8px"><span class="chip c-green">sweet spot</span></div>
+        </div>
+        <div class="card valuecard">
+          <div class="v">1.81</div><div class="l">MONOTONY</div>
+          <div style="margin-top:8px"><span class="chip c-orange">variability low</span></div>
+        </div>
+        <div class="card valuecard">
+          <div class="v">746</div><div class="l">STRAIN</div>
+          <div style="margin-top:8px"><span class="chip c-blue">normal range</span></div>
+        </div>
+      </div>
+
+      <h2 id="trend">Is the load trending sensibly?</h2>
+      <p>Weekly TIS this cycle vs the previous one. Flat is fine; two consecutive &gt;15% jumps is not.</p>
+      <div class="card widget" style="margin-top:12px">
+        <div class="widget-head">
+          <span class="widget-title">Weekly TIS</span>
+          <span class="widget-sub">grain: summary</span>
+        </div>
+        <div class="widget-q">This cycle climbed gently and sits under last cycle's peak — that's the plan working.</div>
+        <svg viewBox="0 0 560 150" width="100%" style="display:block">
+          <g stroke="#171c28" stroke-width="1">
+            <line x1="40" y1="20" x2="548" y2="20"/><line x1="40" y1="60" x2="548" y2="60"/><line x1="40" y1="100" x2="548" y2="100"/><line x1="40" y1="140" x2="548" y2="140"/>
+          </g>
+          <path d="M40 118 105 108 170 116 235 96 300 102 365 82 430 60 495 44" fill="none" stroke="#3a4356" stroke-width="2" stroke-dasharray="4 4"/>
+          <path d="M40 126 105 112 170 104 235 92 300 88 365 70 430 66 495 52" fill="none" stroke="#e3c56f" stroke-width="2.5"/>
+          <circle cx="495" cy="52" r="3.5" fill="#e3c56f"/>
+          <g fill="#49505f" font-size="10" font-family="JetBrains Mono">
+            <text x="40" y="148">W28</text><text x="165" y="148">W30</text><text x="290" y="148">W32</text><text x="415" y="148">W34</text><text x="525" y="148">W35</text>
+          </g>
+        </svg>
+        <div class="wql-foot">tis:summary{athlete:serge} by {week} .rollup(wk) <span style="flex:1"></span>
+          <span class="chip c-yellow" style="font-size:9.5px">this cycle</span>
+          <span class="chip" style="font-size:9.5px">previous</span>
+        </div>
+      </div>
+
+      <h2 id="mix">Where does the work come from?</h2>
+      <p>Discipline mix over the selected range — the running block is doing what it should.</p>
+      <div class="card widget" style="margin-top:12px">
+        <div class="widget-head"><span class="widget-title">TIS by discipline</span><span class="widget-sub">grain: summary</span></div>
+        <div class="widget-q">Two thirds monostructural — expect the engine work to feel fresh.</div>
+        <div style="padding:6px 16px 16px">
+          <div style="display:flex; height:14px; border-radius:7px; overflow:hidden">
+            <div style="width:38%; background:#6ea8fe"></div>
+            <div style="width:27%; background:#f0788c"></div>
+            <div style="width:18%; background:#e3c56f"></div>
+            <div style="width:11%; background:#b58cf2"></div>
+            <div style="width:6%; background:#6ec89a"></div>
+          </div>
+          <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:11.5px; color:var(--fg-2)">
+            <span><span class="dot blue" style="display:inline-block; margin-right:5px"></span>Running 38%</span>
+            <span><span class="dot orange" style="display:inline-block; margin-right:5px; background:var(--m-resistance)"></span>Lifting 27%</span>
+            <span><span class="dot orange" style="display:inline-block; margin-right:5px; background:var(--m-action)"></span>Kettlebell 18%</span>
+            <span><span class="dot orange" style="display:inline-block; margin-right:5px; background:var(--m-rounds)"></span>Gymnastics 11%</span>
+            <span><span class="dot orange" style="display:inline-block; margin-right:5px; background:var(--m-effort)"></span>Recovery 6%</span>
+          </div>
+        </div>
+        <div class="wql-foot">tis:summary{$range} by {discipline}</div>
+      </div>
+
+      <h2 id="sessions">Which sessions moved the needle?</h2>
+      <p>Top sessions by session load in the range — click through to the journal entry.</p>
+      <div class="card" style="margin-top:12px; padding:2px 6px">
+        <table class="table">
+          <thead><tr><th>DATE</th><th>SESSION</th><th>TIS</th><th>LOAD</th><th>TAGS</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">Aug 30</td><td><a href="editor.html" style="color:var(--fg)">Kettlebell Engine</a></td><td class="mono">38</td><td class="mono">214</td><td><span class="chip c-yellow">AMRAP</span> <span class="chip c-orange">High Volume</span></td></tr>
+            <tr><td class="mono">Aug 28</td><td><a href="editor.html" style="color:var(--fg)">South African Run</a></td><td class="mono">52</td><td class="mono">289</td><td><span class="chip c-blue">Endurance</span></td></tr>
+            <tr><td class="mono">Aug 26</td><td><a href="editor.html" style="color:var(--fg)">Heavy Fran</a></td><td class="mono">44</td><td class="mono">262</td><td><span class="chip c-red">Strength</span> <span class="chip c-violet">PR</span></td></tr>
+            <tr><td class="mono">Aug 24</td><td><a href="editor.html" style="color:var(--fg)">Zone 2 Bike</a></td><td class="mono">61</td><td class="mono">298</td><td><span class="chip c-green">Recovery</span></td></tr>
+            <tr><td class="mono">Aug 21</td><td><a href="editor.html" style="color:var(--fg)">Squat 5×5</a></td><td class="mono">35</td><td class="mono">201</td><td><span class="chip c-red">Strength</span></td></tr>
+          </tbody>
+        </table>
+        <div class="wql-foot" style="border-top:1px solid var(--line-soft)">rows:summary{tis&gt;30} by {note} .top(5)</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── On this page ──────────────────────────────────────────────────── -->
+  <aside class="toc">
+    <div class="toc-head">ON THIS PAGE</div>
+    <ul class="toc-list">
+      <li><a href="#headline">Headline numbers</a></li>
+      <li><a href="#trend">Load trend</a></li>
+      <li><a href="#mix">Discipline mix</a></li>
+      <li><a href="#sessions">Session table</a></li>
+    </ul>
+    <div class="toc-sub">TOKENS</div>
+    <ul class="toc-list">
+      <li><a href="#">$range</a></li>
+      <li><a href="#">$discipline</a></li>
+    </ul>
+  </aside>
+
+</div>
+<script>
+  const links = [...document.querySelectorAll('.toc-list a')];
+  const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) { links.forEach(a => a.classList.remove('active')); map.get(e.target.id)?.classList.add('active'); } });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('.content h2[id]').forEach(h => io.observe(h));
+  // Segmented token controls — exclusive within a group
+  document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    seg.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+  }));
+</script>
+</body>
+</html>

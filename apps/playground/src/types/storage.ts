@@ -224,7 +224,7 @@ export type { AnalyticsDataPoint, UnifiedEventRecord, EventGrain, } from '@bitco
 export { KNOWN_OUTPUT_TYPES } from '@bitcobblers/wod-wiki-core';
 
 // ---------------------------------------------------------------------------
-// Effort — the canonical effort entity is IEffort in effort-registry/types;
+// Effort — the canonical effort entity is IEffort in @bitcobblers/wod-wiki-lang;
 // the efforts store is typed with it directly (no storage-local duplicate).
 // ---------------------------------------------------------------------------
 

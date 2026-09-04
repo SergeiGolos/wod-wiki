@@ -69,10 +69,10 @@ export type { ISummaryProcessor } from '@bitcobblers/wod-wiki-engine';
 export type { IAnalyticsProcessorDescriptor } from '@bitcobblers/wod-wiki-engine';
 
 // Effort registry (Tier 3 §3.4)
-export { CompositeEffortRegistry, InMemoryEffortRegistry, IndexedDBEffortRegistry } from './effort-registry';
-export { EffortResolver } from './effort-registry';
-export { bundledEfforts, BUNDLED_EFFORT_COUNT } from './effort-registry/data/bundled-efforts';
-export type { IEffort, IEffortRegistry, IEffortResolver, ResolvedEffort } from './effort-registry';
+export { CompositeEffortRegistry, InMemoryEffortRegistry } from '@bitcobblers/wod-wiki-lang';
+export { EffortResolver } from '@bitcobblers/wod-wiki-lang';
+export { getBundledEfforts as bundledEfforts, getBundledEffortCount as BUNDLED_EFFORT_COUNT } from './repositories/effort-markdown';
+export type { IEffort, IEffortRegistry, IEffortResolver, ResolvedEffort } from '@bitcobblers/wod-wiki-lang';
 
 // Registries
 export { Registry } from '@bitcobblers/wod-wiki-engine';

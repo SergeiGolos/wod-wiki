@@ -25,14 +25,14 @@
 
 import { v7 as uuidv7 } from 'uuid';
 import { parseFrontmatter, getScalar, getList } from '@/lib/frontmatter';
-import { isEffortDiscipline } from '@/effort-registry/disciplines';
-import type {
-  IEffort,
-  EffortBaseAttributes,
-  EffortDerivation,
-  EffortRegistrySource,
-  IntensityTier,
-} from '@/effort-registry/types';
+import {
+  isEffortDiscipline,
+  type IEffort,
+  type EffortBaseAttributes,
+  type EffortDerivation,
+  type EffortRegistrySource,
+  type IntensityTier,
+} from '@bitcobblers/wod-wiki-lang';
 
 /* ── YAML helpers ─────────────────────────────────────────────────── */
 

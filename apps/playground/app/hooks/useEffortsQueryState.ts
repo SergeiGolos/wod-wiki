@@ -8,7 +8,7 @@
 
 import { useMemo, useCallback } from 'react';
 import { parseQuery, serialize } from '@bitcobblers/wod-wiki-engine';
-import type { EffortRegistrySource } from '@/effort-registry';
+import type { EffortRegistrySource } from '@bitcobblers/wod-wiki-lang';
 import { useEffortsComposerState } from './useEffortsComposerState';
 
 export interface EffortsQueryState {

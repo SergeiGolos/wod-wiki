@@ -1,5 +1,6 @@
 ---
-state: open
+state: closed 2026-09-03
+assignee: serge
 labels: [wayfinder:task]
 title: "Cutover — absorb AnalyticsWidgets, verify in Storybook"
 blocked-by: ["004-aggregate-widget-sections", "005-rows-and-find-sections", "006-live-edge-states"]
@@ -27,3 +28,12 @@ Complete the merge and prove the destination:
 
 Resolution records: the deletion, the RangeSelector call, verification
 evidence. Closing this ticket completes the map.
+
+## Resolution
+
+- `apps/storybook/src/AnalyticsWidgets.stories.tsx` deleted; all 6 widget stories have live successors in `WqlGallery.stories.tsx`.
+- `RangeSelectorWidget` story dropped: dashboard chrome is out of scope for the analytics query widget gallery; component remains in `packages/ui` for `DashboardViewPage.tsx`.
+- Storybook index `apps/storybook/.storybook/preview.tsx` pruned of `'Analytics Widgets'`.
+- E2E smoke tests updated to exercise live `WQL Example Gallery` sections.
+- Verified in Storybook via headless browser across all 12 sections with 0 console errors; auditable screenshots and results table in [asset 007](../assets/007-cutover-verification.md).
+- Storybook vitest suite (70 tests across 12 files) and workspace test suite pass cleanly.

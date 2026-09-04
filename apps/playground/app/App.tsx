@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react'
 import type { MutableRefObject, ReactNode } from 'react'
 import { SidebarLayout } from '@/templates/SidebarLayout'
-import { Navbar, NavbarSection, NavbarSpacer } from '@/components/organisms/layout/Navbar'
+import { Navbar, NavbarSection } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
@@ -25,7 +25,6 @@ import { useNav } from './nav/NavContext'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import { resolveLibraryRedirect } from './lib/routes'
 import {
   ROUTE_PATTERNS,
   PlanRedirect,
@@ -44,7 +43,8 @@ import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { HomeView } from './views/HomeView'
-import { LibraryPage } from './views/library/LibraryPage'
+import { QueriableStreamView } from './views/stream/QueriableStreamView'
+import { resolveStreamProfile } from './views/stream/streamProfile'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -60,7 +60,6 @@ import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
 import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAuthoringPanel'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
 import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
 
@@ -69,8 +68,22 @@ import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
-import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
+import type { MenuSpec } from './nav/menuModel'
+import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
+
+/** Library routes get a WQL-driven secondary section — recent entries, newest first. */
+const LIBRARY_SECONDARY: MenuSpec = [
+  {
+    kind: 'wql',
+    id: 'recent-entries',
+    label: 'Recent entries',
+    query: 'find:note{}',
+    limit: 6,
+    filterEntry: e => !!e.date,
+    toEntry: e => `/journal/${e.date}?note=${e.id}`,
+  },
+]
 
 
 // `workoutFiles` (raw glob) and `WorkoutItem` (typed item) live in `lib/workoutIndex`.
@@ -79,14 +92,6 @@ import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 // props to leaf components — see `MarkdownCanvasPage.test.tsx` for the contract.
 import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
 export type { WorkoutItem }
-
-/** Redirect /journal|/collections|/feeds → /library?… (with tri-state + query
- *  preservation). Uses `useLocation` to capture the search the user typed. */
-function LibraryRedirect(): ReactNode {
-  const { pathname, search } = useLocation()
-  const dest = resolveLibraryRedirect(pathname, search)
-  return <Navigate to={dest ?? '/library'} replace />
-}
 
 /** Redirect /analytics/explorer → /dashboard, preserving the shareable ?q=
  *  (and ?weeks=) query string. The WQL explorer moved to /dashboard. */
@@ -109,7 +114,18 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const view = useRouteView()
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
-
+  // General layout shell state: breadcrumb (active L1 › page identity) and
+  // the L3 index channel (canvas pages publish here; note pages publish via
+  // useNotePageNav — bare shells, so the writers never overlap).
+  const { tree: l1Items, navState, setL3Items } = useNav()
+  const activeL1Id = (navState as { activeL1Id?: string | null }).activeL1Id ?? null
+  const activeL1 = l1Items.find(item => item.id === activeL1Id) ?? null
+  const crumbTitle = view.shell.title
+  useEffect(() => {
+    if (!view.shell.withIndex) return
+    setL3Items(mapIndexToL3(currentNavLinks))
+    return () => setL3Items([])
+  }, [view.shell.withIndex, currentNavLinks, setL3Items])
   // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
@@ -181,11 +197,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    effortsCatalog: () => (
-      <EffortsCatalogPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
-      />
-    ),
     effortDetail: () => <EffortDetailPage />,
     analyticsExplorer: () => (
       <AnalyticsExplorerPage
@@ -242,11 +253,16 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    library: () => (
-      <LibraryPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
-      />
-    ),
+    library: () => {
+      const profile = resolveStreamProfile(location.pathname)
+      return (
+        <QueriableStreamView
+          key={profile.route}
+          profile={profile}
+          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+        />
+      )
+    },
   }
 
   const canvasTitleAccessory =
@@ -283,7 +299,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         titleAccessory={canvasTitleAccessory}
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
-        onScrollToSection={view.shell.withIndex ? scrollToSection : undefined}
         actions={view.shell.actionsMode
           ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
           : undefined}
@@ -297,23 +312,40 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     <SidebarLayout
       navbar={
         <Navbar>
-          <div className="flex items-center gap-2 min-w-0 truncate">
-            <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
-              {currentWorkout.name}
-            </span>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 min-w-0 truncate text-sm">
+            {activeL1 && (
+              <button
+                type="button"
+                onClick={() => activeL1.action.type === 'route' && navigate(activeL1.action.to)}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {activeL1.label}
+              </button>
+            )}
+            {activeL1 && !!crumbTitle && crumbTitle.toLowerCase() !== activeL1.label.toLowerCase() && (
+              <span aria-hidden="true" className="text-muted-foreground/50 shrink-0">›</span>
+            )}
+            {crumbTitle && crumbTitle.toLowerCase() !== activeL1?.label.toLowerCase() && (
+              <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
+                {crumbTitle}
+              </span>
+            )}
             {canvasTitleAccessory}
-          </div>
-          <NavbarSpacer />
-          <NavbarSection>
+          </nav>
+          {/* Search / cast / actions — mobile navbar only; on desktop the icon
+              rail owns search and each page header keeps its own actions. */}
+          <NavbarSection className="lg:hidden">
             <NavSearchInput onOpen={openSearchPalette} />
             <div className="flex items-center">
               <CastButtonRpc />
             </div>
-            <ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} />
+            <ActionsMenu currentWorkout={currentWorkout} />
           </NavbarSection>
         </Navbar>
       }
-      sidebar={<NavSidebar />}
+      sidebar={<NavSidebar navSpec={view.shell.nav} />}
+      secondary={view.page === 'library' ? LIBRARY_SECONDARY : view.shell.secondary}
+      onSearch={openSearchPalette}
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
@@ -390,10 +422,11 @@ export function App() {
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
                   <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
-                  <Route path={ROUTE_PATTERNS.feeds} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feed} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collections} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
@@ -405,11 +438,15 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  {/* Retired review screens (#946) — bookmarks land on the explorer with the matching rows query. */}
+                  {/* Dedicated execution telemetry streams and result detail (#946, Ticket 005). */}
+                  <Route path={ROUTE_PATTERNS.results} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.resultsSegments} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.resultDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* Retired review screens (#946, Ticket 005) — bookmarks land on dedicated results routes. */}
                   <Route path="/review/:runtimeId" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review/:sectionId" element={<ReviewRedirect />} />

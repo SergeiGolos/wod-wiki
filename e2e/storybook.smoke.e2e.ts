@@ -33,10 +33,10 @@ test('Language Workbench story renders live parse and wall clock panel', async (
   await expect(page.getByTestId('panel-wallclock')).toBeVisible({ timeout: 15_000 });
 });
 
-test('Analytics Widgets story renders a widget', async ({ page }) => {
-  await page.goto(storyUrl('gallery-analytics-widgets--query-value-widget'), { waitUntil: 'networkidle' });
-  // WidgetFrame renders a titled card over sample QueryResult data
-  await expect(page.locator('text=Avg TIS').first()).toBeVisible({ timeout: 15_000 });
+test('WQL Example Gallery story renders widgets', async ({ page }) => {
+  await page.goto(storyUrl('gallery-wql-example-gallery--value-section'), { waitUntil: 'networkidle' });
+  // Live gallery renders titled card over corpus QueryResult data
+  await expect(page.locator('text=Average sleep').first()).toBeVisible({ timeout: 15_000 });
 });
 
 test('WQL Composer story renders clauses', async ({ page }) => {

@@ -66,4 +66,25 @@ describe('historyEntryToListItem', () => {
 
     expect(iconType(item)).toBe(DocumentDuplicateIcon);
   });
+
+  it('preserves short and long custom titles regardless of type', () => {
+    const shortTitle = 'Fran';
+    const longTitle = 'Very Long Workout Title That Requires Text Truncation When Displayed in Lists';
+
+    const itemShort = historyEntryToListItem({
+      ...baseEntry,
+      type: 'playground',
+      title: shortTitle,
+    });
+    expect(itemShort.label).toBe(shortTitle);
+    expect(iconType(itemShort)).toBe(BeakerIcon);
+
+    const itemLong = historyEntryToListItem({
+      ...baseEntry,
+      type: 'template',
+      title: longTitle,
+    });
+    expect(itemLong.label).toBe(longTitle);
+    expect(iconType(itemLong)).toBe(DocumentDuplicateIcon);
+  });
 });

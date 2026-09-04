@@ -143,6 +143,11 @@ describe('resolveRedirect', () => {
     )
   })
 
+  it('redirects /feed to /feeds', () => {
+    expect(resolveRedirect('/feed')).toBe('/feeds')
+    expect(resolveRedirect('/feed/')).toBe('/feeds')
+  })
+
   it('does not partially match substrings', () => {
     expect(resolveRedirect('/prefix/getting-started')).toBeNull()
     expect(resolveRedirect('/tracker')).toBeNull()
@@ -152,7 +157,7 @@ describe('resolveRedirect', () => {
 
 describe('ROUTE_REDIRECTS structure', () => {
   it('contains exactly the declared legacy aliases', () => {
-    expect(ROUTE_REDIRECTS).toHaveLength(10)
+    expect(ROUTE_REDIRECTS).toHaveLength(11)
   })
 
   it('every rule has a match function and a to function', () => {
@@ -418,6 +423,7 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.guideGettingStarted).toBe('/guide/getting-started')
     expect(ROUTE_PATTERNS.guideSyntax).toBe('/guide/syntax')
     expect(ROUTE_PATTERNS.feeds).toBe('/feeds')
+    expect(ROUTE_PATTERNS.feed).toBe('/feed')
     expect(ROUTE_PATTERNS.feedDetail).toBe('/feeds/:feedSlug')
     expect(ROUTE_PATTERNS.feedItem).toBe('/feeds/:feedSlug/:feedDate/:feedItem')
     expect(ROUTE_PATTERNS.collections).toBe('/collections')

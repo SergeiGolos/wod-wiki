@@ -30,16 +30,14 @@
  * ```
  */
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
-import { PlayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown';
 import type { DocsSection } from './types';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { StickyNavPanel } from './StickyNavPanel';
 import { StickyPageHeader } from './StickyPageHeader';
-import { measureStickyBoundary } from './stickyBoundary';
 import { ScopedRuntimeProvider } from './ScopedRuntimeProvider';
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 import type { NavActionDeps } from '@/nav/navTypes';
@@ -63,8 +61,6 @@ export interface CanvasPageProps {
   index?: PageNavLink[];
   /** Controlled active section (synced to `?s=` query param). */
   activeSectionId?: string;
-  /** Callback when a TOC link is clicked. */
-  onScrollToSection?: (id: string) => void;
 
   // ── Sections mode ───────────────────────────────────────────────────────
   /** Hero banner rendered above the sticky nav (scrolls away). */
@@ -85,7 +81,6 @@ export function CanvasPage({
   children,
   index = [],
   activeSectionId,
-  onScrollToSection,
   hero,
   sections,
   className,
@@ -97,27 +92,11 @@ export function CanvasPage({
   // shallow:true avoids full router re-renders on scroll-driven updates.
   // Observer-driven writes use 'replace' (no history entry per scroll step);
   // explicit TOC clicks use 'push' (preserves browser Back navigation).
-  const [activeId, setActiveId] = useQueryState('s', {
+  const [, setActiveId] = useQueryState('s', {
     defaultValue: activeSectionId ?? index[0]?.id ?? '',
     shallow: true,
     history: 'replace',
   });
-
-  // Ref set during programmatic smooth-scroll; suppresses observer-driven
-  // active-section updates until the target section actually becomes visible.
-  // Cleared by a timeout (smooth scroll typically finishes within 800 ms).
-  const programmaticScrollTargetRef = useRef<string | null>(null);
-  const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const getStickyOffset = () => measureStickyBoundary(100);
-
-  // Clear any pending programmatic-scroll timeout on unmount to avoid stray timers.
-  useEffect(() => {
-    return () => {
-      if (programmaticScrollTimeoutRef.current !== null)
-        clearTimeout(programmaticScrollTimeoutRef.current);
-    };
-  }, []);
 
   // ── Sections mode: local active section tracking ───────────────────────
   const [activeSection, setActiveSection] = useState(sections?.[0]?.id ?? '');
@@ -133,10 +112,7 @@ export function CanvasPage({
     onChange: (id) => {
       setActiveId(id);
     },
-    shouldAcceptChange: (id) => {
-      const target = programmaticScrollTargetRef.current;
-      return !target || id === target;
-    },
+    shouldAcceptChange: () => true,
   });
 
   // Shared IntersectionObserver — sections mode.
@@ -148,24 +124,6 @@ export function CanvasPage({
     onChange: setActiveSection,
   });
 
-  const scrollToSection = (id: string) => {
-    onScrollToSection?.(id);
-    // Push history for explicit user clicks (preserves browser Back navigation).
-    setActiveId(id, { history: 'push' });
-    // Suppress observer-driven updates until smooth scroll completes so the nav
-    // highlight doesn't flicker through intermediate sections during animation.
-    if (programmaticScrollTimeoutRef.current !== null)
-      clearTimeout(programmaticScrollTimeoutRef.current);
-    programmaticScrollTargetRef.current = id;
-    programmaticScrollTimeoutRef.current = setTimeout(() => {
-      programmaticScrollTargetRef.current = null;
-    }, 900);
-    const el = document.getElementById(id);
-    if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - getStickyOffset();
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  };
 
   // ── Sections mode render ───────────────────────────────────────────────
   if (useStickyNavMode) {
@@ -241,56 +199,6 @@ export function CanvasPage({
         </div>
       </div>
 
-      {/* TOC Sidebar — outside the content card, visible at Desktop XL+ */}
-      {index.length > 0 && (
-        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto p-10">
-          <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
-            On this page
-          </div>
-          <nav className="flex flex-col gap-1 border-l border-border/40 ml-1">
-            {index.map((link) => (
-              <div key={link.id} className="flex items-center group -ml-px">
-                <button
-                  onClick={() => {
-                    if (link.onRun && link.runIcon === 'link') {
-                      link.onRun()
-                    } else {
-                      scrollToSection(link.id)
-                    }
-                  }}
-                  className={cn(
-                    'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
-                    (link.type === 'time' || link.type === 'log')
-                      ? 'text-muted-foreground/70 border-transparent pl-6 text-xs'
-                      : activeId === link.id
-                        ? 'font-bold text-foreground border-primary'
-                        : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
-                  )}
-                >
-                  {link.timestamp && <span className="font-bold text-[10px] tabular-nums mr-2 opacity-60">{link.timestamp}</span>}
-                  {link.label}
-                </button>
-                {link.onRun && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); link.onRun?.(); }}
-                    title={link.runIcon === 'link' ? "View workout" : "Start workout"}
-                    className={cn(
-                      "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
-                      (link.type === 'time' || link.type === 'log') ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    )}
-                  >
-                    {link.runIcon === 'link' ? (
-                      <ArrowTopRightOnSquareIcon className="size-3.5" />
-                    ) : (
-                      <PlayIcon className="size-3.5" />
-                    )}
-                  </button>
-                )}
-              </div>
-            ))}
-          </nav>
-        </aside>
-      )}
     </div>
   );
 }

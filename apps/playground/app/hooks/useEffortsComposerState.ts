@@ -56,10 +56,15 @@ function legacyParamsToQuery(search: URLSearchParams): string | null {
     ...(discipline ? [`discipline:${discipline}`] : []),
   ])
 }
+export const EFFORTS_LEGACY_CONFIG = {
+  keys: LEGACY_KEYS,
+  toQuery: legacyParamsToQuery,
+  salvageQ: salvageLegacyQ,
+}
 
 export function useEffortsComposerState(): EffortsComposerState {
   return useComposerQueryState({
     defaultQuery: () => DEFAULT_EFFORTS_QUERY,
-    legacy: { keys: LEGACY_KEYS, toQuery: legacyParamsToQuery, salvageQ: salvageLegacyQ },
+    legacy: EFFORTS_LEGACY_CONFIG,
   })
 }

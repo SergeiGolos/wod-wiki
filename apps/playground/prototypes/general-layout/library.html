@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library — General Layout | WOD Wiki</title>
+  <!--
+    PROTOTYPE — throwaway. Not production code.
+
+    Applies the Stitch "general layout" to the library family (QueriableStreamView
+    profiles: Journal / Collections / Feeds / Efforts, plus Results / Segments
+    views). The right rail becomes contextual FACETS + saved views instead of a
+    page outline — same chrome, different rail payload.
+
+    Question: does the layout carry a query-driven list surface, with the WQL
+    filter strip living under the topbar and facets in the right rail?
+
+    Open: file://.../playground/prototypes/general-layout/library.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="base.css" />
+  <style>
+    .filterbar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 10px 12px;
+    }
+    .filterbar input {
+      flex: 1; min-width: 200px;
+      background: transparent; border: none; outline: none;
+      color: var(--fg); font-size: 13px; font-family: var(--font-mono);
+    }
+    .filterbar input::placeholder { color: var(--fg-4); }
+    .qtoken {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 11.5px;
+      padding: 3px 9px; border-radius: var(--r-pill);
+      border: 1px solid var(--line); background: var(--bg-raise2); color: var(--fg-2);
+    }
+    .qtoken .k { color: var(--m-time); }
+    .qtoken .x { color: var(--fg-4); cursor: pointer; }
+    .qtoken .x:hover { color: var(--fg-2); }
+    .facet { display: flex; align-items: center; gap: 9px; padding: 5px 12px; font-size: 12.5px; color: var(--fg-2); cursor: pointer; }
+    .facet:hover { color: var(--fg); }
+    .facet .box { width: 13px; height: 13px; border-radius: 3.5px; border: 1.5px solid var(--fg-4); flex: none; display: grid; place-items: center; }
+    .facet.on .box { background: var(--accent); border-color: var(--accent); }
+    .facet.on .box::after { content: ""; width: 7px; height: 4px; border-left: 1.8px solid #16130a; border-bottom: 1.8px solid #16130a; transform: rotate(-45deg) translateY(-1px); }
+    .facet .n { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-4); }
+    .collcard { padding: 16px; transition: border-color .12s; }
+    .collcard:hover { border-color: #2a3142; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Icon rail ─────────────────────────────────────────────────────── -->
+  <aside class="rail">
+    <div class="rail-avatar">W</div>
+    <nav class="rail-nav">
+      <a class="rail-item" href="home.html" title="Home">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+      </a>
+      <a class="rail-item active" href="library.html" title="Library">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5 8.5 4.5 6 4.5c-1 0-2 .1-3 .4V19c1-.3 2-.4 3-.4 2.5 0 4.5.5 6 2 1.5-1.5 3.5-2 6-2 1 0 2 .1 3 .4V4.9c-1-.3-2-.4-3-.4-2.5 0-4.5.5-6 2Z"/><path d="M12 6.5v14.1"/></svg>
+      </a>
+      <a class="rail-item" href="dashboard.html" title="Dashboards">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      </a>
+      <a class="rail-item" href="#efforts" title="Efforts">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6v12M17.5 6v12M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
+      </a>
+    </nav>
+    <div class="rail-spacer"></div>
+    <button class="rail-item" title="Search (⌘K)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <button class="rail-item" title="Settings" style="margin-top:6px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>
+    </button>
+  </aside>
+
+  <!-- ── Context sidebar — the library's query surfaces ────────────────── -->
+  <aside class="side">
+    <div class="side-head">LIBRARY</div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        BROWSE
+      </div>
+      <a class="nav-item active" href="#journal">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5h16v14H4z"/><path d="M4 9.5h16M8 5v14"/></svg>
+        Journal
+      </a>
+      <a class="nav-item" href="#collections">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 7.5h17v12h-17z"/><path d="M7 7.5V5h13v12h-2.5"/></svg>
+        Collections <span class="count">12</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Feeds <span class="count">3</span>
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        VIEWS
+      </div>
+      <a class="nav-item" href="#">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8"/></svg>
+        Results
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 18c4 0 4-12 8-12s4 12 8 12"/></svg>
+        Segments
+      </a>
+    </div>
+
+    <div class="nav-group" id="efforts">
+      <div class="nav-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6v12M17.5 6v12M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
+        EFFORTS
+      </div>
+      <a class="nav-item" href="#">Catalog</a>
+      <a class="nav-item" href="#">Benchmarks</a>
+    </div>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="topbar">
+      <nav class="crumbs">
+        <a href="library.html">Library</a><span class="sep">›</span><span class="here">Journal</span>
+      </nav>
+      <div class="topbar-spacer"></div>
+      <button class="btn primary">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New entry
+      </button>
+      <button class="searchpill" style="min-width:150px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        WQL search…
+        <span class="kbd">⌘K</span>
+      </button>
+    </div>
+
+    <div class="content" style="max-width:960px">
+      <h1>Journal</h1>
+      <p class="lead">Your training log — notes and results from every session. One query over everything.</p>
+
+      <!-- Filter strip — WQL tokens in bidirectional sync with the raw query -->
+      <div class="card filterbar" style="margin-top:20px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-4)" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        <span class="qtoken"><span class="k">type:</span>note <span class="x">×</span></span>
+        <span class="qtoken"><span class="k">after:</span>2026-08-01 <span class="x">×</span></span>
+        <span class="qtoken"><span class="k">tag:</span>kettlebell <span class="x">×</span></span>
+        <input placeholder="Filter… press / to start" />
+        <span class="kbd">/</span>
+        <span style="font-size:12px; color:var(--fg-3); white-space:nowrap">3 notes</span>
+      </div>
+
+      <div class="card" style="margin-top:14px; padding:2px 6px">
+        <table class="table">
+          <thead><tr><th>DATE</th><th>SESSION</th><th>TAGS</th><th>RESULT</th><th>TIS</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">Aug 30</td>
+              <td><a href="editor.html" style="color:var(--fg); font-weight:600">Kettlebell Engine day</a></td>
+              <td><span class="chip c-yellow">AMRAP</span> <span class="chip">kettlebell</span></td>
+              <td class="mono">6 rds + 200m</td>
+              <td class="mono">38</td>
+            </tr>
+            <tr>
+              <td class="mono">Aug 26</td>
+              <td><a href="editor.html" style="color:var(--fg); font-weight:600">Swing density test</a></td>
+              <td><span class="chip">kettlebell</span> <span class="chip c-orange">EMOM</span></td>
+              <td class="mono">10:00 · 180 reps</td>
+              <td class="mono">31</td>
+            </tr>
+            <tr>
+              <td class="mono">Aug 12</td>
+              <td><a href="editor.html" style="color:var(--fg); font-weight:600">Kettlebell cycle · wk 1</a></td>
+              <td><span class="chip">kettlebell</span> <span class="chip c-blue">Strength</span></td>
+              <td class="mono">5×5 @ 24kg</td>
+              <td class="mono">27</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="wql-foot" style="padding:8px 12px">rows:note{tag:kettlebell, after:2026-08-01} <span style="flex:1"></span> editing this query</div>
+      </div>
+
+      <h2 id="collections">Collections</h2>
+      <p>Curated sets, ready to run or drop into today.</p>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px">
+        <a class="card collcard" href="#">
+          <div style="font-weight:600">Kettlebell cycle</div>
+          <div style="font-size:12.5px; color:var(--fg-3); margin-top:3px">6 weeks · engine + grip</div>
+          <div style="margin-top:10px"><span class="chip c-yellow">8 workouts</span></div>
+        </a>
+        <a class="card collcard" href="#">
+          <div style="font-weight:600">Benchmarks</div>
+          <div style="font-size:12.5px; color:var(--fg-3); margin-top:3px">The classics, re-testable</div>
+          <div style="margin-top:10px"><span class="chip c-violet">14 workouts</span></div>
+        </a>
+        <a class="card collcard" href="#">
+          <div style="font-weight:600">Open 26 prep</div>
+          <div style="font-size:12.5px; color:var(--fg-3); margin-top:3px">Coming season, forecasted</div>
+          <div style="margin-top:10px"><span class="chip c-blue">5 workouts</span></div>
+        </a>
+      </div>
+
+      <h2 id="efforts">Efforts</h2>
+      <p>Registered movements and standards the engine resolves against — the kettlebell swing's page carries every session that used it.</p>
+      <div class="card" style="margin-top:14px; padding:2px 6px">
+        <table class="table">
+          <thead><tr><th>EFFORT</th><th>DISCIPLINE</th><th>SESSIONS</th><th>BEST</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#" style="color:var(--fg)">Kettlebell swing</a></td><td><span class="chip c-yellow">Kettlebell</span></td><td class="mono">34</td><td class="mono">21 @ 32kg</td></tr>
+            <tr><td><a href="#" style="color:var(--fg)">Run 400m</a></td><td><span class="chip c-blue">Running</span></td><td class="mono">61</td><td class="mono">1:31</td></tr>
+            <tr><td><a href="#" style="color:var(--fg)">Clean &amp; jerk</a></td><td><span class="chip c-red">Strength</span></td><td class="mono">18</td><td class="mono">92.5kg</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Right rail — contextual facets + saved views (not a page outline) ── -->
+  <aside class="toc">
+    <div class="toc-head">FILTERS</div>
+    <div style="display:flex; flex-direction:column; border-left:1px solid var(--line)">
+      <div class="facet on"><span class="box"></span>Running<span class="n">12</span></div>
+      <div class="facet on"><span class="box"></span>Lifting<span class="n">9</span></div>
+      <div class="facet on"><span class="box"></span>Kettlebell<span class="n">6</span></div>
+      <div class="facet"><span class="box"></span>Gymnastics<span class="n">4</span></div>
+      <div class="facet"><span class="box"></span>Recovery<span class="n">3</span></div>
+    </div>
+
+    <div class="toc-sub" style="margin-top:22px">SAVED VIEWS</div>
+    <ul class="toc-list">
+      <li><a href="#">This week</a></li>
+      <li><a href="#" class="active">Kettlebell cycle</a></li>
+      <li><a href="#">PRs</a></li>
+    </ul>
+  </aside>
+
+</div>
+<script>
+  // Facet checkboxes are decorative in the prototype
+  document.querySelectorAll('.facet').forEach(f => f.addEventListener('click', () => f.classList.toggle('on')));
+</script>
+</body>
+</html>

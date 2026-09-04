@@ -60,6 +60,24 @@ describe('entryRunHref', () => {
       kind: 'post', sourceCatalog: 'crossfit-programming', date: '2026-01-12', blockContentId: 'bc-monday',
     }))).toBe('/run/bc-monday')
   })
+  it('returns /run/<blockContentId> for a Result with a content id', () => {
+    expect(entryRunHref(makeEntry({
+      kind: 'result',
+      id: 'res-101',
+      blockContentId: 'bc-fran',
+      execution: { resultId: 'res-101', noteId: 'crossfit-girls/fran', timestamp: 1700000000000, outputType: 'all' },
+    }))).toBe('/run/bc-fran')
+  })
+
+  it('returns /run/<blockContentId> for a Segment with a content id', () => {
+    expect(entryRunHref(makeEntry({
+      kind: 'segment',
+      id: 'res-101:1',
+      blockContentId: 'bc-round-1',
+      execution: { resultId: 'res-101', noteId: 'crossfit-girls/fran', timestamp: 1700000000000, outputType: 'segment' },
+    }))).toBe('/run/bc-round-1')
+  })
+
 
   it('returns null for a row without a content id', () => {
     expect(entryRunHref(makeEntry())).toBeNull()
@@ -93,5 +111,25 @@ describe('entryCanAddToToday', () => {
 
   it('returns false for a Session (undated, cannot be added to a journal date)', () => {
     expect(entryCanAddToToday(makeEntry({ kind: 'session' }))).toBe(false)
+  })
+  it('returns true for a Result with an associated noteId', () => {
+    expect(entryCanAddToToday(makeEntry({
+      kind: 'result',
+      id: 'res-101',
+      execution: { resultId: 'res-101', noteId: 'crossfit-girls/fran', timestamp: 1700000000000, outputType: 'all' },
+    }))).toBe(true)
+  })
+
+  it('returns true for a Segment with an associated noteId', () => {
+    expect(entryCanAddToToday(makeEntry({
+      kind: 'segment',
+      id: 'res-101:1',
+      execution: { resultId: 'res-101', noteId: 'crossfit-girls/fran', timestamp: 1700000000000, outputType: 'segment' },
+    }))).toBe(true)
+  })
+
+  it('returns false for a Result or Segment without an associated noteId', () => {
+    expect(entryCanAddToToday(makeEntry({ kind: 'result', id: 'res-101' }))).toBe(false)
+    expect(entryCanAddToToday(makeEntry({ kind: 'segment', id: 'res-101:1' }))).toBe(false)
   })
 })

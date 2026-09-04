@@ -92,6 +92,17 @@ export interface IEffortRegistry {
 
   // Bundled seed (read-only)
   loadBundled(): Promise<void>;
+  isInitialized(): boolean;
+}
+
+/**
+ * Pluggable asynchronous persistence adapter for user-defined efforts.
+ * Implemented by host environments (e.g. IndexedDB in browser, filesystem in CLI).
+ */
+export interface EffortStorageAdapter {
+  load(): Promise<IEffort[]>;
+  save(effort: IEffort): Promise<void>;
+  delete(slug: string): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------

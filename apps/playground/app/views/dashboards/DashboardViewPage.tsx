@@ -27,6 +27,7 @@ import { parseDashboardNote } from '@/lib/dashboard/parser';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { buildDashboardDocument, setDashboardTokenValue, type DashboardWidget } from '@/lib/dashboard/model';
 import { useDashboardSource } from '../../hooks/useDashboards';
+import { StickyPageHeader } from '@/panels/page-shells';
 
 export function DashboardViewPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -113,20 +114,18 @@ export function DashboardViewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
-      <div className="max-w-[1500px] mx-auto">
-        <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-3 mb-4">
-          <div>
-            <h1 className="text-lg font-bold text-foreground">{document?.title || source.title}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {source.editable ? 'Editable dashboard note.' : 'Prebuilt — read-only until cloned to your vault.'}
-            </p>
-          </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <StickyPageHeader
+        title={document?.title || source.title}
+        subtitle={source.editable ? 'Editable dashboard note.' : 'Prebuilt — read-only until cloned to your vault.'}
+        actions={
           <div className="flex items-center gap-2">
             <RangeSelector />
             <AnalyticsUnitPreference />
           </div>
-        </div>
+        }
+      />
+      <div className="max-w-[1500px] w-full mx-auto p-4 md:p-6 lg:p-8 flex-1">
 
         {!source.editable && (
           <div className="mb-4 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-xs">

@@ -26,7 +26,7 @@ import { createAnalyticsEngineForBlock } from '@bitcobblers/wod-wiki-engine';
 import type { CalculationDefinition } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { OutputStatement, type IOutputStatement } from '@bitcobblers/wod-wiki-engine';
-import type { IEffortResolver } from '@/effort-registry/types';
+import type { IEffortResolver } from '@bitcobblers/wod-wiki-lang';
 import {
   toStoredOutputStatement,
   type ScriptBlock,

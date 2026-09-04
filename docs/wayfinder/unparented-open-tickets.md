@@ -1,7 +1,8 @@
 ---
 labels: [wayfinder]
 title: "Unparented open tickets — impact outline"
-tickets: ["#485", "#613", "#582", "#583"]
+tickets: ["#582", "#583"]
+resolved: ["#613 (2026-09-03)", "#485 (2026-09-03)"]
 status: "No owning map — candidates to charter or close"
 audited: 2026-09-01
 ---
@@ -11,26 +12,22 @@ audited: 2026-09-01
 Four open tickets have no wayfinder map. Each is small enough to charter
 individually; none belongs to the five open maps.
 
-## #485 — Consistent icon branding across record types (partial)
+## #485 — Consistent icon branding across record types (resolved 2026-09-03)
 
-- Done: app-side icons already match the issue's proposal — `historyAdapter.ts`
-  returns Beaker (playground) / DocumentDuplicate (template) / BookOpen (note),
-  rendered via `historyEntryToListItem` in `HistoryPostList.tsx`, unit-tested.
-- Remaining change if done: Storybook alignment — no HistoryEntry/icon stories
-  exist (`apps/storybook` covers only WQL/timer/analytics/workbench). The work
-  is authoring stories that pin the per-record-type icon contract.
+- **Done**:
+  - `historyAdapter.ts` maps record types to designated Heroicons: `BeakerIcon` (playground), `DocumentDuplicateIcon` (template), and `BookOpenIcon` (workout note). Unit tests in `historyAdapter.test.ts` verify the icon assignment and title preservation.
+  - Storybook alignment complete: `RecordTypeIcons.stories.tsx` provides stories for each record type (`AllRecordTypes`, `PlaygroundEntries`, `NoteEntries`, `TemplateEntries`) demonstrating all three required states: no title (timestamp fallback for playground, 'Untitled workout' for notes/templates), short title, and long title with truncation.
+  - Added to Storybook `storySort` under `Gallery/Record Type Icons` (`preview.tsx`).
 
-## #613 — Effort-registry duplication (relocated, not fixed)
+## #613 — Effort-registry duplication (resolved 2026-09-03)
 
-- The original `src/services` vs `src` duplication is gone, but the debt was
-  reborn by the monorepo split: `apps/playground/src/effort-registry/`
-  (Composite/InMemory/IndexedDB registries, resolver, fuzzy match, bundled
-  data, 6 test files) coexists with `packages/lang/src/effort-registry/`, and
-  the app imports its local copy (`@/effort-registry` in
-  `services/queryService.ts`) instead of the package.
-- Change if done: delete the app-local copy, point imports at
-  `@bitcobblers/wod-wiki-lang`. One source of truth for effort resolution;
-  removes a whole parallel test surface.
+- **Done**: `apps/playground/src/effort-registry/` completely deleted.
+  `CompositeEffortRegistry` moved to `@bitcobblers/wod-wiki-lang` with a pure
+  `EffortStorageAdapter` interface. In `apps/playground`, `IndexedDBEffortStorage`
+  and `createAppEffortRegistry` factory provide browser IndexedDB persistence
+  and markdown-backed bundled seeding. All call-sites across `apps/playground`
+  migrated to `@bitcobblers/wod-wiki-lang`, and all 5 unit test suites live in
+  `packages/lang/tests/effort-registry/`. Single source of truth achieved.
 
 ## #582 — Runtime Session implementation (design proposal, never built)
 
@@ -51,5 +48,4 @@ individually; none belongs to the five open maps.
 
 ## Recommendation
 
-Charter #613 first (mechanical, high-value). Decide #582/#583 as charters or
-close as speculative. #485 is a half-day of story authoring once touched.
+Both #613 and #485 are resolved. Decide #582/#583 as charters or close as speculative.

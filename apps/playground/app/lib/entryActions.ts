@@ -31,6 +31,15 @@ export function entryOpenHref(entry: Entry): string {
         const date = entry.date ?? ''
         return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`
       }
+      case 'effort':
+        return `/effort/${encodeURIComponent(entry.id)}`
+      case 'result':
+        return `/results/${encodeURIComponent(entry.id)}`
+      case 'segment':
+      case 'event':
+        return `/results/${encodeURIComponent(entry.execution?.resultId ?? entry.id)}`
+      default:
+        return '/'
     }
   })()
   return entry.block ? `${href}#${encodeURIComponent(entry.block.segmentId)}` : href
@@ -49,7 +58,11 @@ export function entryCompareHref(entry: Entry): string | null {
   return `/analytics/explorer?q=${encodeURIComponent(entry.blockContentId)}`
 }
 
-/** Add to today: Note + Post (per spec); Session is undated and cannot be added. */
+/** Add to today: Note + Post (per spec), and Result + Segment when associated with a noteId. */
 export function entryCanAddToToday(entry: Entry): boolean {
-  return entry.kind === 'note' || entry.kind === 'post'
+  if (entry.kind === 'note' || entry.kind === 'post') return true
+  if ((entry.kind === 'result' || entry.kind === 'segment') && !!entry.execution?.noteId) {
+    return true
+  }
+  return false
 }

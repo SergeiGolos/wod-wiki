@@ -13,7 +13,7 @@ import { bundledEfforts } from './data/bundled-efforts';
 export class InMemoryEffortRegistry implements IEffortRegistry {
   private efforts = new Map<string, IEffort>();
   private sourceFilter: EffortRegistrySource | null = null;
-
+  private initialized = false;
   constructor(sourceFilter?: EffortRegistrySource) {
     this.sourceFilter = sourceFilter ?? null;
   }
@@ -25,6 +25,11 @@ export class InMemoryEffortRegistry implements IEffortRegistry {
         this.efforts.set(effort.slug, effort);
       }
     }
+    this.initialized = true;
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
   }
 
   /** Seed with arbitrary efforts (useful for tests) */
@@ -37,8 +42,8 @@ export class InMemoryEffortRegistry implements IEffortRegistry {
   /** Clear all efforts */
   clear(): void {
     this.efforts.clear();
+    this.initialized = false;
   }
-
   resolve(slug: string): IEffort | null {
     return this.efforts.get(slug) ?? null;
   }

@@ -112,7 +112,7 @@ interface StagesReadoutProps {
 
 /** The round trip, visible: what the filters selected, buckets, groups. */
 function StagesReadout({ result }: StagesReadoutProps) {
-  if (!result) return null;
+  if (!result || result.parsed.error) return null;
   const { selected, buckets, aggregated, groups } = result.stages;
   return (
     <p
@@ -163,11 +163,32 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
     let cancelled = false;
     async function run() {
       try {
+        if (def.simulateLoading) {
+          // In-flight query: keep result undefined to showcase the loading state
+          return;
+        }
         // Dashboard Note body contract: one line, `query / param1 param2`.
         const { query } = splitWidgetBody(wql);
         const parsed = parseQuery(query);
         if (parsed.error) {
-          if (!cancelled) setError(parsed.error);
+          if (!cancelled) {
+            setError(parsed.error);
+            if (isRowsQuery(parsed) || def.widgetType === 'rows' || isFindQuery(parsed) || def.widgetType === 'find') {
+              setRowsResult(undefined);
+              setFindResult(undefined);
+              setResult(undefined);
+            } else {
+              // Aggregate query error: pass parsed with error through QueryResult so useChartShape error branch renders
+              setResult({
+                parsed,
+                series: [],
+                stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
+                matched: [],
+              });
+              setRowsResult(undefined);
+              setFindResult(undefined);
+            }
+          }
           return;
         }
         if (isRowsQuery(parsed)) {
@@ -215,8 +236,8 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
   }, [wql, service, journal, def]);
 
   const isAuto = def.widgetType === 'auto';
-  const isRows = rowsResult !== undefined;
-  const isFind = findResult !== undefined;
+  const isRows = def.widgetType === 'rows' || rowsResult !== undefined;
+  const isFind = def.widgetType === 'find' || findResult !== undefined;
   const suffix = isAuto || isRows || isFind ? undefined : parseQueryWidgetSuffix(def.widgetType);
   const body = wql;
   const rowsStatementCount = rowsResult?.runs.reduce(
@@ -266,31 +287,45 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
       </div>
 
       <StagesReadout result={result} />
-      {rowsResult && (
+      {rowsResult && !error && (
         <p className="font-mono text-[10px] text-muted-foreground" data-testid="gallery-stages">
           {rowsResult.runs.length} run(s) · {rowsStatementCount} statement(s)
         </p>
       )}
-      {findResult && (
+      {findResult && !error && (
         <p className="font-mono text-[10px] text-muted-foreground" data-testid="gallery-stages">
           selected {findResult.stages.selected} → matched {findResult.stages.matched}
         </p>
       )}
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && !result?.parsed.error && <p className="text-xs text-destructive">{error}</p>}
       {!error && !isAuto && !isRows && !isFind && suffix?.error && (
         <p className="text-xs text-destructive">{suffix.error}</p>
       )}
 
-      {isRows && rowsResult && (
-        <div
-          className="max-h-64 overflow-y-auto rounded border border-border/50 bg-background/50 pt-1"
-          data-testid="gallery-rows-table"
-        >
-          <RowsTable result={rowsResult} />
-        </div>
+      {isRows && (
+        rowsResult ? (
+          <div
+            className="max-h-64 overflow-y-auto rounded border border-border/50 bg-background/50 pt-1"
+            data-testid="gallery-rows-table"
+          >
+            <RowsTable result={rowsResult} />
+          </div>
+        ) : error ? null : (
+          <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
+            Loading rows…
+          </div>
+        )
       )}
-      {isFind && findResult && <FindResultList result={findResult} />}
+      {isFind && (
+        findResult ? (
+          <FindResultList result={findResult} />
+        ) : error ? null : (
+          <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
+            Loading…
+          </div>
+        )
+      )}
       {!isRows && !isFind && (
         <div className={isAuto ? 'pt-1' : 'h-48 pt-1'}>
           {isAuto ? (

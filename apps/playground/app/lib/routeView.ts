@@ -14,12 +14,14 @@ import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { WorkoutResult } from '@/types/storage'
 import type { WorkoutItem } from './workoutIndex'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
+import type { MenuSpec } from '../nav/menuModel'
 import { getSectionProse } from '../canvas/parseCanvasMarkdown'
 import {
   isPlaygroundNotePath,
   matchFeedItem,
   matchFeedDetail,
 } from './routes'
+import { cleanRoutePath } from '../views/stream/streamProfile'
 import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { formatDateMedium } from '@/lib/dateFormat'
@@ -68,7 +70,6 @@ export interface CurrentWorkout {
 export type PageKind =
   | 'feedDetail'
   | 'feedItem'
-  | 'effortsCatalog'
   | 'effortDetail'
   | 'analyticsExplorer'
   | 'dashboardExplorer'
@@ -90,6 +91,11 @@ export interface ShellConfig {
   actionsMode?: 'journal-active' | 'collection-readonly'
   /** Whether the canvas shell receives the nav index + scroll handler. */
   withIndex?: boolean
+  /** Route-declared nav panel content (zone 2) — rendered in the context
+   *  sidebar below the active L1's own panel/children. */
+  nav?: MenuSpec
+  /** Route-declared secondary nav (zone 4) — right rail on xl+, ⋯ menu below. */
+  secondary?: MenuSpec
 }
 
 /** Injected data + callbacks the pure derivation needs (no React, no fetching). */
@@ -189,16 +195,24 @@ function deriveWorkout(
     '/library': 'Library',
     '/journal': 'Journal',
     '/feeds': 'Feeds',
+    '/feed': 'Feeds',
+    '/collections': 'Collections',
+    '/efforts': 'Efforts',
+    '/results': 'Results',
+    '/results/segments': 'Segments',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
     '/guide/analytics': 'Analytics Guide',
-    '/collections': 'Collections',
     '/analytics/dashboard': 'Analytics Dashboard',
     '/analytics/explorer': 'Metric Explorer',
   }
-  const namedMatch = named[pathname]
+  const cleanPath = cleanRoutePath(pathname)
+  const namedMatch = named[pathname] ?? named[cleanPath]
   if (namedMatch) {
     return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
+  }
+  if (cleanPath.startsWith('/results/')) {
+    return { name: 'Result', content: PLAYGROUND_CONTENT, category: 'Results' }
   }
 
   const effectiveName = urlWorkout || urlName
@@ -313,12 +327,21 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  // /journal, /feeds, /collections are LibraryRedirect-owned — the router
-  // normalizes them to /library before AppContent ever resolves a view.
-  if (pathname === '/library' || pathname === '/library/') return 'library'
+  const clean = cleanRoutePath(pathname)
+  if (
+    clean === '/library' ||
+    clean === '/journal' ||
+    clean === '/collections' ||
+    clean === '/feeds' ||
+    clean === '/feed' ||
+    clean === '/efforts' ||
+    clean === '/results' ||
+    clean.startsWith('/results/')
+  ) {
+    return 'library'
+  }
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
-  if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
   if (pathname === '/dashboard') return 'dashboardExplorer'
