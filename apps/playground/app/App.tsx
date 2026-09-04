@@ -68,8 +68,22 @@ import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
-import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
+import type { MenuSpec } from './nav/menuModel'
+import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
+
+/** Library routes get a WQL-driven secondary section — recent entries, newest first. */
+const LIBRARY_SECONDARY: MenuSpec = [
+  {
+    kind: 'wql',
+    id: 'recent-entries',
+    label: 'Recent entries',
+    query: 'find:note{}',
+    limit: 6,
+    filterEntry: e => !!e.date,
+    toEntry: e => `/journal/${e.date}?note=${e.id}`,
+  },
+]
 
 
 // `workoutFiles` (raw glob) and `WorkoutItem` (typed item) live in `lib/workoutIndex`.
@@ -100,13 +114,18 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const view = useRouteView()
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
-  // General layout breadcrumb: active L1 section › page identity
-  const { tree: l1Items, navState } = useNav()
-  // The reducer stores `activeL1Id` at runtime; the exported NavState
-  // interface still carries the pre-rename `activeL1` field (nav drift).
+  // General layout shell state: breadcrumb (active L1 › page identity) and
+  // the L3 index channel (canvas pages publish here; note pages publish via
+  // useNotePageNav — bare shells, so the writers never overlap).
+  const { tree: l1Items, navState, setL3Items } = useNav()
   const activeL1Id = (navState as { activeL1Id?: string | null }).activeL1Id ?? null
   const activeL1 = l1Items.find(item => item.id === activeL1Id) ?? null
   const crumbTitle = view.shell.title
+  useEffect(() => {
+    if (!view.shell.withIndex) return
+    setL3Items(mapIndexToL3(currentNavLinks))
+    return () => setL3Items([])
+  }, [view.shell.withIndex, currentNavLinks, setL3Items])
   // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
@@ -280,7 +299,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         titleAccessory={canvasTitleAccessory}
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
-        onScrollToSection={view.shell.withIndex ? scrollToSection : undefined}
         actions={view.shell.actionsMode
           ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
           : undefined}
@@ -321,11 +339,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <div className="flex items-center">
               <CastButtonRpc />
             </div>
-            <ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} />
+            <ActionsMenu currentWorkout={currentWorkout} />
           </NavbarSection>
         </Navbar>
       }
-      sidebar={<NavSidebar />}
+      sidebar={<NavSidebar navSpec={view.shell.nav} />}
+      secondary={view.page === 'library' ? LIBRARY_SECONDARY : view.shell.secondary}
       onSearch={openSearchPalette}
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
@@ -404,6 +423,7 @@ export function App() {
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
                   <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
                   <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feed} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />

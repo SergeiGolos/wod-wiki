@@ -101,6 +101,14 @@ mock.module('@/repositories/page-examples', () => ({
   getTabExamples: (_page: string, _section: string) => [],
   getHomeExample: (_name: string) => '',
 }));
+mock.module('../app/lib/dashboardCorpus', () => ({
+  DASHBOARD_SEEDS: [],
+}));
+mock.module('../app/canvas/canvasRoutes', () => ({
+  canvasRoutes: [],
+  normalizePathname: (p: string) => p,
+}));
+
 
 // The real module is import-safe (glob calls are deferred), so spread it to
 // keep the pure document-format functions (effortToDocument, documentToEffort,

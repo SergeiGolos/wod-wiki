@@ -14,6 +14,7 @@ import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { WorkoutResult } from '@/types/storage'
 import type { WorkoutItem } from './workoutIndex'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
+import type { MenuSpec } from '../nav/menuModel'
 import { getSectionProse } from '../canvas/parseCanvasMarkdown'
 import {
   isPlaygroundNotePath,
@@ -90,6 +91,11 @@ export interface ShellConfig {
   actionsMode?: 'journal-active' | 'collection-readonly'
   /** Whether the canvas shell receives the nav index + scroll handler. */
   withIndex?: boolean
+  /** Route-declared nav panel content (zone 2) — rendered in the context
+   *  sidebar below the active L1's own panel/children. */
+  nav?: MenuSpec
+  /** Route-declared secondary nav (zone 4) — right rail on xl+, ⋯ menu below. */
+  secondary?: MenuSpec
 }
 
 /** Injected data + callbacks the pure derivation needs (no React, no fetching). */
@@ -189,6 +195,7 @@ function deriveWorkout(
     '/library': 'Library',
     '/journal': 'Journal',
     '/feeds': 'Feeds',
+    '/feed': 'Feeds',
     '/collections': 'Collections',
     '/efforts': 'Efforts',
     '/results': 'Results',
@@ -326,6 +333,7 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
     clean === '/journal' ||
     clean === '/collections' ||
     clean === '/feeds' ||
+    clean === '/feed' ||
     clean === '/efforts' ||
     clean === '/results' ||
     clean.startsWith('/results/')

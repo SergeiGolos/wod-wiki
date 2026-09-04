@@ -7,6 +7,7 @@
  * Structure:
  *   L1: Home, Library, Dashboards, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
+ *   L2 of Library:     Explore (/library), Feeds (/feeds), Collections (/collections), Journal (/journal)
  *   L2 of Dashboards:  Explorer (/dashboard) + the prebuilt dashboard seeds
  *                      (/dashboard/:slug); vault-created dashboards need a
  *                      dynamic panel to join this list (follow-up).
@@ -15,7 +16,7 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell, Compass, Rss, Folder, Calendar } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -124,6 +125,53 @@ const homeChildren: NavItem[] = [
     children: analyticsGuideChildren,
   },
 ]
+
+// ─── L2 children for Library ──────────────────────────────────────────────────
+
+const libraryChildren: NavItem[] = [
+  {
+    id: 'library-explore',
+    label: 'Explore',
+    level: 2,
+    icon: Compass,
+    action: { type: 'route', to: ROUTE_PATTERNS.library },
+    isActive: (loc: Location) =>
+      loc.pathname === ROUTE_PATTERNS.library ||
+      loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`),
+  },
+  {
+    id: 'library-feeds',
+    label: 'Feeds',
+    level: 2,
+    icon: Rss,
+    action: { type: 'route', to: ROUTE_PATTERNS.feeds },
+    isActive: (loc: Location) =>
+      loc.pathname === '/feeds' ||
+      loc.pathname.startsWith('/feeds/') ||
+      loc.pathname === '/feed' ||
+      loc.pathname.startsWith('/feed/'),
+  },
+  {
+    id: 'library-collections',
+    label: 'Collections',
+    level: 2,
+    icon: Folder,
+    action: { type: 'route', to: ROUTE_PATTERNS.collections },
+    isActive: (loc: Location) =>
+      loc.pathname === '/collections' ||
+      loc.pathname.startsWith('/collections/'),
+  },
+  {
+    id: 'library-journal',
+    label: 'Journal',
+    level: 2,
+    icon: Calendar,
+    action: { type: 'route', to: ROUTE_PATTERNS.journal },
+    isActive: (loc: Location) =>
+      loc.pathname === '/journal' ||
+      loc.pathname.startsWith('/journal/'),
+  },
+]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
 
 /**
@@ -166,7 +214,9 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
         // (see streamProfile) — they live under the Library L1.
         loc.pathname.startsWith('/journal') ||
         loc.pathname.startsWith('/collections') ||
-        loc.pathname.startsWith('/feeds'),
+        loc.pathname.startsWith('/feeds') ||
+        loc.pathname.startsWith('/feed'),
+      children: libraryChildren,
     },
 
     {

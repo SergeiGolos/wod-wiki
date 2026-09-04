@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
+import { SecondaryNav } from '../../app/nav/SecondaryNav'
+import type { MenuSpec } from '../../app/nav/menuModel'
 
 function OpenMenuIcon() {
   return (
@@ -50,12 +52,15 @@ export function SidebarLayout({
   navbar,
   sidebar,
   onSearch,
+  secondary,
   children,
 }: React.PropsWithChildren<{
   navbar: React.ReactNode
   sidebar: React.ReactNode
   /** Opens the global search palette — wired to the icon rail's search button. */
   onSearch?: () => void
+  /** Route-declared secondary nav (zone 4); the page index merges in. */
+  secondary?: MenuSpec
 }>) {
   let [showSidebar, setShowSidebar] = useState(false)
   const location = useLocation()
@@ -81,11 +86,11 @@ export function SidebarLayout({
           {sidebar}
         </MobileSidebar>
 
-        {/* Content column — topbar (static on desktop: page headers own lg:top-0)
-            + page. On mobile the header is the sticky navbar with hamburger. */}
+        {/* Content column — on desktop, page headers (StickyPageHeader) own lg:top-0.
+            On mobile, this sticky navbar carries the hamburger drawer trigger. */}
         <div className="flex flex-1 flex-col min-w-0">
-          <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card lg:static lg:bg-background lg:border-b lg:border-zinc-950/5 dark:lg:border-white/5">
-            <div className="py-2.5 shrink-0 lg:hidden">
+          <header className="lg:hidden sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card border-b border-border/50">
+            <div className="py-2.5 shrink-0">
               <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
                 <OpenMenuIcon />
               </NavbarItem>
@@ -93,12 +98,18 @@ export function SidebarLayout({
             <div className="min-w-0 flex-1">{navbar}</div>
           </header>
 
-          <main className="flex flex-1 flex-col lg:min-w-0 lg:pt-2 lg:pr-2 lg:pb-2">
+          <main className="flex flex-1 flex-col lg:min-w-0">
             <div className="grow w-full lg:overflow-visible">
               {children}
             </div>
           </main>
         </div>
+
+        {/* Secondary nav — zone 4; desktop (xl+) only. Below xl the same
+            entries collapse into the header ⋯ menu (see ActionsMenu). */}
+        <aside className="hidden xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
+          <SecondaryNav spec={secondary} />
+        </aside>
       </div>
     </div>
   )

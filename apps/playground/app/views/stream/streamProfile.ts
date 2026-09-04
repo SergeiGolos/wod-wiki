@@ -118,7 +118,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   defaultWql: 'find:note last 2w',
   level: 'note',
   scopeLock: 'all',
-  hideScopeRadio: false,
+  hideScopeRadio: true,
   shelfVisible: true,
   legacy: createContentLegacyConfig(),
 }
@@ -174,6 +174,7 @@ const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
   '/journal': JOURNAL_STREAM_PROFILE,
   '/collections': COLLECTIONS_STREAM_PROFILE,
   '/feeds': FEEDS_STREAM_PROFILE,
+  '/feed': FEEDS_STREAM_PROFILE,
   '/library': LIBRARY_STREAM_PROFILE,
   '/efforts': EFFORTS_STREAM_PROFILE,
   '/results': RESULTS_STREAM_PROFILE,

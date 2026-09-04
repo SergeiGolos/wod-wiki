@@ -22,6 +22,8 @@ import { ButtonLink } from '@/components/molecules/ButtonLink'
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
 import type { NavItem, NavActionDeps, NavState } from './navTypes'
+import { MenuList, useResolvedMenu } from './MenuList'
+import type { MenuSpec } from './menuModel'
 
 // App version injected by Vite define
 declare const __APP_VERSION__: string | undefined
@@ -121,10 +123,11 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function NavSidebar() {
+export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
   const { tree, navState, dispatch } = useNav()
   const location = useLocation()
   const handleAction = useNavAction()
+  const resolvedNav = useResolvedMenu(navSpec)
 
   // Find which L1 is currently active
   const activeL1 = tree.find(item => item.id === navState.activeL1Id) ?? null
@@ -194,8 +197,10 @@ export function NavSidebar() {
           </SidebarSection>
         </div>
 
-        {/* Context heading — desktop only; names the active section above its L2 */}
-        <div className="hidden lg:block px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        {/* Context heading — names the active section above its L2 panel.
+            Mobile drawer: sits under the L1 selector section (Home | Library
+            | Dashboards | Efforts); desktop: tops the context sidebar. */}
+        <div className="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
           {activeL1?.label ?? 'Wod Wiki'}
         </div>
       </SidebarHeader>
@@ -204,6 +209,13 @@ export function NavSidebar() {
       <SidebarBody>
         {/* L2 — context-specific panel or doc children */}
         {renderL2()}
+        {/* Route-declared nav panel (zone 2 contract) — same standardized
+            rendering as the secondary rail. */}
+        {resolvedNav.length > 0 && (
+          <div className="pt-1">
+            <MenuList entries={resolvedNav} />
+          </div>
+        )}
       </SidebarBody>
     </Sidebar>
   )

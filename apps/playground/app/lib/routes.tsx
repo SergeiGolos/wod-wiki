@@ -30,6 +30,7 @@ export const ROUTE_PATTERNS = {
   guideAnalytics: '/guide/analytics',
   aiFirst: '/ai-first',
   feeds: '/feeds',
+  feed: '/feed',
   feedDetail: '/feeds/:feedSlug',
   feedItem: '/feeds/:feedSlug/:feedDate/:feedItem',
   collections: '/collections',
@@ -329,6 +330,14 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
       return { collection: decodeURIComponent(m[1]!), workout: decodeURIComponent(m[2]!) };
     },
     to: ({ collection, workout }) => workoutPath(collection, workout),
+  },
+  // /feed  →  /feeds
+  {
+    match: (p) => {
+      if (p !== '/feed' && p !== '/feed/') return false;
+      return {};
+    },
+    to: () => '/feeds',
   },
   // /getting-started  →  / (retired: content folded into home)
   {

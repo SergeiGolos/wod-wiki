@@ -164,6 +164,19 @@ describe('QueriableStreamView component', () => {
     expect(screen.queryByTestId('source-scope-radio')).toBeNull()
   })
 
+  it('hides scope radio on library stream profile since selection moved to nav menu', async () => {
+    const engine = createMockEngine()
+    render(
+      <MemoryRouter initialEntries={['/library']}>
+        <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('library-source-scope')).toBeNull()
+    })
+  })
+
   it('migrates legacy query parameters on mount to canonical WQL query', async () => {
     const engine = createMockEngine([])
 

@@ -129,7 +129,7 @@ export function ActionsMenu({
       <DropdownMenuContent align="end" className="min-w-56">
         {l3Items.length > 0 && (
           <>
-            <div>
+            <div className="xl:hidden">
               <DropdownMenuHeading>On this page</DropdownMenuHeading>
               {l3Items.map(item => {
                 const handleL3Click = () => {

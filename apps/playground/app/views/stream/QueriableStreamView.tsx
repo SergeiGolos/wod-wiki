@@ -273,12 +273,14 @@ export function QueriableStreamView({
           </div>
         }
         subheader={
-          <div className="px-6 py-2.5 flex flex-col gap-2">
+          <div className="px-6 py-2.5">
             {shouldShowScopeRadio && (
-              <SourceScopeRadio
-                scope={SCOPE_BY_SOURCE[sourceValue] ?? 'all'}
-                onChange={handleScopeChange}
-              />
+              <div className="mb-2">
+                <SourceScopeRadio
+                  scope={SCOPE_BY_SOURCE[sourceValue] ?? 'all'}
+                  onChange={handleScopeChange}
+                />
+              </div>
             )}
             <WqlComposer
               query={query}
