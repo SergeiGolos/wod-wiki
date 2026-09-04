@@ -6,6 +6,12 @@ import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
 import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 
+/** Mobile palette floats just below the viewport top edge (the overlay covers
+ *  the page nav, so docking under it would read as glued to a dimmed bar). */
+const MOBILE_TOP_PX = 2;
+/** Gap kept between the palette's bottom edge and the soft keyboard. */
+const MOBILE_BOTTOM_GAP_PX = 8;
+
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {
   return {
@@ -54,6 +60,26 @@ export const PaletteShell: React.FC = () => {
   }
 
   const wqlConfig = request?.wql;
+
+  // Mobile (<lg): the palette floats near the viewport top and its height is
+  // capped to the visual viewport so the soft keyboard never covers results.
+  // Tracked live (on open + viewport resize/scroll — both fire when the
+  // keyboard opens). Desktop keeps the 20% drop and no cap.
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const vv = window.visualViewport;
+    const update = () => setViewportHeight(vv?.height ?? window.innerHeight);
+    update();
+    window.addEventListener('resize', update);
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+    };
+  }, [isOpen]);
 
   // Reset query + results whenever the request changes (new step) or the palette opens.
   useEffect(() => {
@@ -158,13 +184,25 @@ export const PaletteShell: React.FC = () => {
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) _dismiss(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className={`fixed left-1/2 top-[20%] z-50 w-full ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} -translate-x-1/2 outline-none shadow-2xl`}>
+        <Dialog.Content
+          className={`fixed left-1/2 z-50 flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} -translate-x-1/2 outline-none shadow-2xl top-[2px] lg:top-[20%] max-lg:max-h-[var(--palette-max-h)]`}
+          style={{
+            // 160px floor so the input row never collapses on short landscape
+            // viewports.
+            '--palette-max-h': viewportHeight
+              ? `${Math.max(viewportHeight - MOBILE_TOP_PX - MOBILE_BOTTOM_GAP_PX, 160)}px`
+              : undefined,
+          } as React.CSSProperties}
+        >
           <Dialog.Title className="sr-only">Command Palette</Dialog.Title>
           <Dialog.Description className="sr-only">
             Search and navigate. Press Escape to close.
           </Dialog.Description>
 
+          {/* flex-1/min-h-0: lets the results list shrink + scroll inside the
+              mobile max-height cap instead of overflowing under the keyboard. */}
           <CommandListView
+            className="min-h-0 flex-1"
             items={results}
             query={query}
             onQueryChange={setQuery}
