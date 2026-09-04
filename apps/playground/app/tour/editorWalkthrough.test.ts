@@ -4,10 +4,12 @@
  *
  *  1. Card ring targets — card 1 boxes the whole editor window, card 2 the
  *     fenced block only, card 3 the Run button.
- *  2. Line alignment — every adventure preset and the default welcome-1.md
- *     share identical header/footer scaffolding, so the fence occupies the
- *     same document lines (ADVENTURE_FENCE_LINES) and the card-2 highlight
- *     is fixed no matter which workout is loaded.
+ *  2. Line alignment — every adventure preset shares identical
+ *     header/footer scaffolding, so the fence occupies the same document
+ *     lines (ADVENTURE_FENCE_LINES) and the card-2 highlight is fixed no
+ *     matter which workout is loaded. welcome-1.md is the self-contained
+ *     home intro (heading, pitch, fence, CTA): the card-2 ring measures the
+ *     fence position at runtime, so it needs no line alignment.
  */
 
 import { describe, expect, it } from 'bun:test'
@@ -65,16 +67,18 @@ describe('line-aligned adventure scaffolding (#884)', () => {
     }
   })
 
-  it('welcome-1.md is the bare fence-only demo; load route adds the scaffold', () => {
+  it('welcome-1.md is the self-contained intro demo (heading, pitch, fence, scroll CTA)', () => {
     const raw = readFileSync(
       new URL('../../../../markdown/canvas/home/welcome-1.md', import.meta.url),
       'utf8',
     )
     const lines = stripFrontmatter(raw).trimEnd().split('\n')
-    // Default route loads the bare markdown: fence first, no wrapper copy.
-    expect(lines[0]).toBe('```time')
-    expect(lines[lines.length - 1]).toBe('```')
-    // Wrapping on decode adds the shared scaffold around the bare demo (#884).
+    // Default route loads the full intro: WOD Wiki heading first, the demo
+    // fence in the middle, scroll call-to-action last.
+    expect(lines[0].trim()).toBe('# WOD Wiki')
+    expect(lines.some((line) => line.startsWith('```time'))).toBe(true)
+    expect(lines[lines.length - 1]).toBe('### Keep scrolling to learn more!!!')
+    // Wrapping on decode still adds the shared scaffold around the intro (#884).
     const wrapped = buildAdventureScript(stripFrontmatter(raw)).split('\n')
     expect(wrapped[0]).toBe('# 👋 Edit Me')
     expect(wrapped).toContain('> Press **Run** ↑ to start the Clock.')

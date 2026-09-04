@@ -21,7 +21,7 @@ describe('streamProfile presets', () => {
 
   it('defines the Collections stream profile', () => {
     expect(COLLECTIONS_STREAM_PROFILE.route).toBe('/collections')
-    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} last 2w')
+    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections}')
     expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
     expect(COLLECTIONS_STREAM_PROFILE.typeOptions).toEqual(['collections'])
   })

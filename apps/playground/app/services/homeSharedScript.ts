@@ -17,8 +17,8 @@
  */
 /**
  * The hero-editor scaffold wrapped around a decoded share payload at
- * load time. Default `/` loads the bare markdown (welcome-1.md is just a
- * ```time fence); only the /load?z= route re-creates the editable-playground
+ * load time. Default `/` loads the welcome-1.md intro (heading, pitch, demo
+ * fence, scroll CTA); only the /load?z= route re-creates the editable-playground
  * wrapper, greeting the receiver in the sender's name when `by` was encoded.
  * A payload that already carries the 👋 heading (a re-shared link) passes
  * through untouched so the greeting never doubles.

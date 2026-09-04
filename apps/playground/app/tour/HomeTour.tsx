@@ -285,7 +285,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 
   // ── Editor documents ──
   // Arrival contract (#882): the initial load content is the shared script
-  // stored by /load?z= when present, else welcome-1.md (bare markdown).
+  // stored by /load?z= when present, else welcome-1.md (home intro page).
   //
   // Two independent editor contexts:
   //  - HERO: self-contained — its own doc, blocks, and runtime session. It is
