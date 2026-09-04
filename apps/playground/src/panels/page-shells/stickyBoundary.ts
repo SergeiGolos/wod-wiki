@@ -8,7 +8,7 @@
  * targets) position themselves from the real layout instead of magic numbers
  * like `top-[104px]`.
  *
- * Two adapters exist today — CanvasPage's scroll-to-section and LibraryPage's
+ * Two adapters exist today — CanvasPage's scroll-to-section and QueriableStreamView's
  * date-group headers — so the seam is real, not hypothetical.
  */
 

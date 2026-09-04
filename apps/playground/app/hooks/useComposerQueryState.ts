@@ -10,9 +10,9 @@
  * pill-expressibility (unexpressible-but-valid queries ride its free-text
  * escape hatch).
  *
- * Two adapters today — the Library (`useLibraryQueryState`, legacy tri-state
- * migration #813) and the Efforts catalog (legacy q/origin/discipline
- * migration) — so the seam is real.
+ * Consumed by QueriableStreamView stream profiles (Library/Collections/Feeds/Journal
+ * legacy tri-state migration #813) and the Efforts catalog (`useEffortsComposerState`)
+ * — so the seam is real.
  *
  * Implementation note: this hook deliberately uses react-router's
  * `useSearchParams` rather than nuqs (the app-wide pattern elsewhere). The
