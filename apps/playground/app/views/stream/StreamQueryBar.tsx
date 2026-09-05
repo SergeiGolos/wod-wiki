@@ -32,7 +32,7 @@ import {
 } from '@/components/atoms/primitives/dropdown-menu'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
-import { pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow } from '../../lib/wqlEdits'
+import { pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow, setTextFilter } from '../../lib/wqlEdits'
 
 /** Semantic dot hue per source plane (Mineral Arctic metric hues). */
 const SOURCE_DOT: Record<string, string> = {
@@ -183,6 +183,14 @@ function DesktopBar({
 }) {
   const chipsRef = useRef<HTMLDivElement>(null)
   const [hiddenCount, setHiddenCount] = useState(0)
+  const currentText = useMemo(() => {
+    if (parsed.error) return ''
+    return parsed.filters.find((f) => f.key === 'text')?.values[0]?.value ?? ''
+  }, [parsed])
+  const [draftText, setDraftText] = useState(currentText)
+  useEffect(() => {
+    setDraftText(currentText)
+  }, [currentText])
 
   const chips = useMemo<Chip[]>(() => {
     if (parsed.error) return []
@@ -297,6 +305,21 @@ function DesktopBar({
           </button>
         )}
       </div>
+      <input
+        type="text"
+        data-testid="wql-composer-input"
+        placeholder="Filter or search…"
+        value={draftText}
+        onChange={(e) => setDraftText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            onQueryChange(setTextFilter(query, draftText))
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="min-w-[80px] flex-1 bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+      />
 
       <button
         type="button"

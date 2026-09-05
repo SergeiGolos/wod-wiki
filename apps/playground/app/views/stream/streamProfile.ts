@@ -111,7 +111,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   defaultWql: 'find:effort',
   level: 'effort',
   typeOptions: ['efforts'],
-  emptyMessage: 'No matching movements or efforts found.',
+  emptyMessage: 'No efforts match your search.',
   legacy: EFFORTS_LEGACY_CONFIG,
 }
 

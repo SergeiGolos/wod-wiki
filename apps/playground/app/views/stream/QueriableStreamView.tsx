@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   FolderIcon,
+  Plus,
   SlidersHorizontal,
   TriangleAlertIcon,
 } from 'lucide-react'
@@ -334,7 +335,7 @@ export function QueriableStreamView({
   const streamEmptyState = (
     <div
       className="px-6 py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-3"
-      data-testid="stream-empty-state"
+      data-testid={profile.route === '/efforts' ? 'efforts-catalog-empty-state' : 'stream-empty-state'}
     >
       <p className="text-sm font-medium">
         {profile.emptyMessage ?? 'No entries match your search.'}
@@ -358,7 +359,7 @@ export function QueriableStreamView({
   )
 
   return (
-    <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
+    <div className="bg-card flex flex-col flex-1" data-testid={profile.route === '/efforts' ? 'efforts-catalog-root' : 'queriable-stream-view'}>
       {/* Desktop: single-line header — the query bar fills the row left
           empty by the removed title.
           Mobile: no page-level header at all (it would stack over the app
@@ -366,20 +367,35 @@ export function QueriableStreamView({
           that navbar instead. */}
       <div className="max-lg:hidden">
         <StickyPageHeader
+          title={profile.route === '/efforts' ? 'Efforts' : undefined}
+          subtitle={profile.route === '/efforts' ? 'Catalog of registered efforts' : undefined}
           actions={
             <ResponsiveActions
               primary={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                  title="View Settings"
-                  data-testid="stream-view-settings-trigger"
-                >
-                  <SlidersHorizontal className="size-3.5" />
-                  <span className="hidden sm:inline">View</span>
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                    title="View Settings"
+                    data-testid="stream-view-settings-trigger"
+                  >
+                    <SlidersHorizontal className="size-3.5" />
+                    <span className="hidden sm:inline">View</span>
+                  </Button>
+                  {profile.route === '/efforts' && (
+                    <Button
+                      size="sm"
+                      onClick={() => navigate('/effort/new?mode=create')}
+                      className="h-8 px-2.5 text-xs gap-1.5"
+                      data-testid="efforts-catalog-create-btn"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>New</span>
+                    </Button>
+                  )}
+                </div>
               }
               label="Stream actions"
             >

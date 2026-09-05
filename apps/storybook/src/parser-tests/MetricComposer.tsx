@@ -12,8 +12,8 @@ import { X } from 'lucide-react';
 import { MetricType, renderMetric } from '@bitcobblers/wod-wiki-engine';
 import {
   ORIGIN_SUGGESTIONS,
-  collectOriginSuggestions,
-  collectTypeSuggestions,
+  collectMetricOrigins,
+  collectMetricTypes,
   composeDsl,
   metricToComposer,
   type ComposerMetric,
@@ -60,7 +60,6 @@ export function MetricComposer({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const datalistId = useId();
 
-
   const set = (patch: Partial<ComposerMetric>) => setDraft((prev) => ({ ...prev, ...patch }));
 
   let preview: string | null = null;
@@ -93,7 +92,7 @@ export function MetricComposer({
           data-testid="composer-type"
         />
         <datalist id={datalistId}>
-          {collectTypeSuggestions(actualMetrics).map((t) => (
+          {collectMetricTypes(actualMetrics).map((t) => (
             <option key={`s-${t}`} value={t} />
           ))}
           {Object.values(MetricType).map((t) => (
@@ -108,7 +107,7 @@ export function MetricComposer({
           data-testid="composer-origin"
         >
           <option value="">any origin</option>
-          {[...ORIGIN_SUGGESTIONS, ...collectOriginSuggestions(actualMetrics)]
+          {[...ORIGIN_SUGGESTIONS, ...collectMetricOrigins(actualMetrics)]
             .filter((o, i, all) => all.indexOf(o) === i)
             .map((o) => (
               <option key={o} value={o}>
@@ -117,7 +116,13 @@ export function MetricComposer({
             ))}
         </select>
         <div className="ml-auto flex gap-1">
-          <button type="button" onClick={submit} disabled={previewError !== null} className={`${BUTTON_CLASS} disabled:opacity-40`} data-testid="composer-submit">
+          <button
+            type="button"
+            onClick={submit}
+            disabled={previewError !== null}
+            className={`${BUTTON_CLASS} disabled:opacity-40`}
+            data-testid="composer-submit"
+          >
             {submitLabel}
           </button>
           <button type="button" onClick={onCancel} className={BUTTON_CLASS} aria-label="Cancel metric edit">
@@ -158,7 +163,7 @@ export function MetricComposer({
           <input
             value={draft.text ?? ''}
             onChange={(e) => set({ text: e.target.value })}
-            placeholder='value — quoted automatically if it has spaces'
+            placeholder="value — quoted automatically if it has spaces"
             aria-label="Text value"
             className={`${INPUT_CLASS} w-56`}
           />

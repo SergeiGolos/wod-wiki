@@ -77,14 +77,15 @@ export function SidebarLayout({
     <ResponsiveActionsProvider onSearch={onSearch}>
     <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row">
       <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row">
-        {/* Icon rail — L1 destinations; desktop only (general layout) */}
-        <div className="hidden lg:flex w-14 shrink-0 sticky top-0 h-svh flex-col items-center border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm z-40 py-3">
-          <AppRail onSearch={onSearch ?? (() => {})} />
-        </div>
+        {/* Main desktop nav — L1 Icon rail + L2 Context sidebar */}
+        <nav aria-label="Main" className="hidden lg:flex">
+          <div className="w-14 shrink-0 sticky top-0 h-svh flex flex-col items-center border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm z-40 py-3">
+            <AppRail onSearch={onSearch ?? (() => {})} />
+          </div>
 
-        {/* Context sidebar — active L1's children/panel; overlay on mobile */}
-        <nav className="hidden lg:flex lg:w-60 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:h-svh lg:overflow-y-auto lg:border-r lg:border-zinc-950/5 dark:lg:border-white/5 lg:bg-background/72 lg:backdrop-blur-sm">
-          {sidebar}
+          <div className="w-60 shrink-0 sticky top-0 self-start h-svh overflow-y-auto border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col">
+            {sidebar}
+          </div>
         </nav>
         <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
           {sidebar}

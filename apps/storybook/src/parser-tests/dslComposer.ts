@@ -188,34 +188,40 @@ export function metricToComposer(metric: IMetric): ComposerMetric {
   return base;
 }
 
-/** Metric vocabulary observed in the current parse — the composer's type datalist. */
-export function collectTypeSuggestions(statements: readonly ICodeStatement[]): string[] {
+/** Metric vocabulary observed on one statement — the composer's type datalist. */
+export function collectMetricTypes(metrics: readonly IMetric[]): string[] {
   const seen: Record<string, true> = {};
   const types: string[] = [];
-  for (const statement of statements) {
-    for (const metric of statement.metrics.getAll()) {
-      const type = String(metric.type);
-      if (!seen[type]) {
-        seen[type] = true;
-        types.push(type);
-      }
+  for (const metric of metrics) {
+    const type = String(metric.type);
+    if (!seen[type]) {
+      seen[type] = true;
+      types.push(type);
     }
   }
   return types;
 }
 
-/** Origins observed in the current parse — merged into the origin picker. */
-export function collectOriginSuggestions(statements: readonly ICodeStatement[]): string[] {
+/** Origins observed on one statement — merged into the composer's origin picker. */
+export function collectMetricOrigins(metrics: readonly IMetric[]): string[] {
   const seen: Record<string, true> = {};
   const origins: string[] = [];
-  for (const statement of statements) {
-    for (const metric of statement.metrics.getAll()) {
-      const origin = metric.origin ? String(metric.origin) : '';
-      if (origin && !seen[origin]) {
-        seen[origin] = true;
-        origins.push(origin);
-      }
+  for (const metric of metrics) {
+    const origin = metric.origin ? String(metric.origin) : '';
+    if (origin && !seen[origin]) {
+      seen[origin] = true;
+      origins.push(origin);
     }
   }
   return origins;
+}
+
+/** Metric vocabulary observed across a whole parse. */
+export function collectTypeSuggestions(statements: readonly ICodeStatement[]): string[] {
+  return collectMetricTypes(statements.flatMap((statement) => statement.metrics.getAll()));
+}
+
+/** Origins observed across a whole parse. */
+export function collectOriginSuggestions(statements: readonly ICodeStatement[]): string[] {
+  return collectMetricOrigins(statements.flatMap((statement) => statement.metrics.getAll()));
 }

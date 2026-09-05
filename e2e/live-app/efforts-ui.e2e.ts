@@ -54,9 +54,9 @@ test.describe('Efforts Catalog Page', () => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await expect(page.getByText('Efforts').first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('Efforts').first()).toBeVisible();
     await expect(page.getByText(/Catalog of.*registered efforts/)).toBeVisible();
-    await expect(page.getByText('Rowing').first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
     expect(errors).toHaveLength(0);
   });
 
@@ -127,7 +127,7 @@ test.describe('Effort Detail Page', () => {
     await page.goto('/effort/rowing', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await expect(page.getByText('Rowing').first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
     await expect(page.getByText('Bundled', { exact: true })).toBeVisible();
     // Frontmatter renders as YAML text (met: 7.0 normalizes to `met: 7`).
     await expect(page.getByRole('main').getByText('met: 7')).toBeVisible();
@@ -150,8 +150,8 @@ test.describe('Effort Detail Page', () => {
     await page.goto('/effort/rowing', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await expect(page.getByText('row').first()).toBeVisible();
-    await expect(page.getByText('rower').first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('row').first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('rower').first()).toBeVisible();
   });
 });
 

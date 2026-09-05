@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Mobile folding zones and 2-stage transition', () => {
   test('content width never decreases and zone-4 aside appears only at 1520px+', async ({ page }) => {
-    await page.goto('/guide/getting-started', { waitUntil: 'domcontentloaded' });
+    await page.goto('/guide/syntax', { waitUntil: 'domcontentloaded' });
 
     // Selector for content column in SidebarLayout
     const contentColumn = page.locator('main').locator('..');
