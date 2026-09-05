@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import '../../../tests/helpers/repair-react-router-dom';
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 
@@ -93,7 +93,12 @@ mock.module('../../hooks/useAnalyticsRange', () => ({
 
 // Pass-through: the real dock registers with a provider the test doesn't mount.
 mock.module('../../nav/ResponsiveActions', () => ({
-  ResponsiveActions: ({ children }: { children?: unknown }) => <>{children}</>,
+  ResponsiveActions: ({ primary, children }: { primary?: unknown; children?: unknown }) => (
+    <>
+      {primary}
+      {children}
+    </>
+  ),
 }));
 
 // Mirrors useDashboardSource's real transition semantics: a refreshKey bump
@@ -131,7 +136,9 @@ beforeEach(() => {
 function renderPage(slug = 'stale-board') {
   return render(
     <MemoryRouter initialEntries={[`/dashboard/${slug}`]} initialIndex={0}>
-      <DashboardViewPage />
+      <Routes>
+        <Route path="/dashboard/:slug" element={<DashboardViewPage />} />
+      </Routes>
     </MemoryRouter>,
   );
 }

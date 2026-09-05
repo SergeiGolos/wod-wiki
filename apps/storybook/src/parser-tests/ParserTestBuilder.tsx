@@ -22,16 +22,18 @@ import {
 } from 'lucide-react';
 import { parseScript } from '@bitcobblers/wod-wiki-engine';
 import { useCodeMirror } from '../workbench/LanguageWorkbench';
+import { MetricComposer } from './MetricComposer';
+import { decomposeDsl, type ComposerMetric } from './dslComposer';
 import {
   expectedFromStatements,
   pairExpectedToStatements,
   runCase,
   validateMetricDsl,
   type CaseResult,
+  type StatementDiff,
 } from './runnerCore';
 import { DiffView } from './DiffView';
 import type { ExpectedError, ExpectedLine, ParserTestCase, ParserTestFile } from './types';
-
 const SAMPLE_SCRIPT = '10 Burpees\n*:30 Rest\n10 Burpees';
 const KNOWN_SPORTS = ['crossfit', 'climb', 'yoga', 'cardio', 'habits'];
 
@@ -44,49 +46,13 @@ export interface ParserTestBuilderProps {
   'data-testid'?: string;
 }
 
-/** Inline add-metric input: validates DSL on submit, surfaces the syntax error. */
-function AddMetricRow({ onAdd }: { onAdd: (dsl: string) => string | null }) {
-  const [value, setValue] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const submit = () => {
-    const dsl = value.trim();
-    if (!dsl) return;
-    const err = onAdd(dsl);
-    if (err) {
-      setError(err);
-    } else {
-      setValue('');
-      setError(null);
-    }
-  };
-  return (
-    <div className="mt-1">
-      <div className="flex items-center gap-1">
-        <input
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setError(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submit();
-          }}
-          placeholder="Add metric — e.g. Rep 15 @parser"
-          className="w-full rounded border border-slate-300 dark:border-slate-600 bg-transparent px-1.5 py-0.5 font-mono text-[11px] placeholder:text-slate-400 dark:placeholder:text-slate-500"
-          data-testid="add-metric-input"
-        />
-        <button
-          type="button"
-          onClick={submit}
-          className="rounded border border-slate-300 dark:border-slate-600 p-0.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-          aria-label="Add metric"
-        >
-          <Plus size={12} />
-        </button>
-      </div>
-      {error && <div className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{error}</div>}
-    </div>
-  );
+/** Stored DSL should always parse; a hand-edited file may not — fall back to a fresh draft. */
+function decomposeOrNull(dsl: string): ComposerMetric | null {
+  try {
+    return decomposeDsl(dsl);
+  } catch {
+    return null;
+  }
 }
 
 export function ParserTestBuilder({
@@ -106,6 +72,8 @@ export function ParserTestBuilder({
   const [cases, setCases] = useState<ParserTestCase[]>([]);
   const [title, setTitle] = useState(fileTitle);
   const [copied, setCopied] = useState(false);
+  /** Open metric composer: which expected entry, and which chip (null = adding new). */
+  const [composer, setComposer] = useState<{ entryIndex: number; metricIndex: number | null } | null>(null);
 
   const editorHost = useRef<HTMLDivElement>(null);
   const { setDoc } = useCodeMirror(editorHost, initialScript, 'wql', setScript);
@@ -159,6 +127,18 @@ export function ParserTestBuilder({
     }
   }, [currentCase]);
 
+  // runCase pushes paired statements in pairs order — index the diffs
+  // positionally (one source line can yield several statements; matching
+  // diffs by line number would highlight the wrong row).
+  const diffByStatementIndex = useMemo(() => {
+    const map: Record<number, StatementDiff> = {};
+    let next = 0;
+    pairing.pairs.forEach(({ entryIndex }, i) => {
+      if (entryIndex !== null) map[i] = liveResult.statements[next++];
+    });
+    return map;
+  }, [pairing, liveResult]);
+
   /** Freeze the effective expectations, then apply the mutation to them. */
   const mutateExpected = (fn: (entries: ExpectedLine[]) => ExpectedLine[]) => {
     setStoredExpected(fn(effectiveExpected));
@@ -180,6 +160,18 @@ export function ParserTestBuilder({
           i === entryIndex ? { ...entry, metrics: entry.metrics.filter((_, j) => j !== metricIndex) } : entry,
         ),
     );
+  };
+
+  const replaceMetric = (entryIndex: number, metricIndex: number, dsl: string): string | null => {
+    const err = validateMetricDsl(dsl);
+    if (err) return err;
+    mutateExpected(
+      (entries) =>
+        entries.map((entry, i) =>
+          i === entryIndex ? { ...entry, metrics: entry.metrics.map((m, j) => (j === metricIndex ? dsl : m)) } : entry,
+        ),
+    );
+    return null;
   };
 
   const acceptActualForStatement = (statementIndex: number) => {
@@ -353,8 +345,10 @@ export function ParserTestBuilder({
           <div className="rounded border border-slate-200 dark:border-slate-700" data-testid="builder-table">
             {pairing.pairs.map(({ statement, entryIndex }, statementIndex) => {
               const entry = entryIndex !== null ? effectiveExpected[entryIndex] : null;
-              const diff = liveResult.statements.find((s) => s.line === statement.line);
+              const diff = diffByStatementIndex[statementIndex];
               const status = diff?.status ?? 'fail';
+              const composerOpen = composer?.entryIndex === entryIndex && entryIndex !== null;
+              const editingMetricIndex = composerOpen ? composer!.metricIndex : null;
               return (
                 <div
                   key={statementIndex}
@@ -384,21 +378,65 @@ export function ParserTestBuilder({
                   {entry ? (
                     <div className="mt-1">
                       <div className="flex flex-wrap gap-1">
-                        {entry.metrics.map((dsl, metricIndex) => (
-                          <span key={metricIndex} className={CHIP_CLASS}>
-                            {dsl}
-                            <button
-                              type="button"
-                              onClick={() => removeMetric(entryIndex!, metricIndex)}
-                              className="text-slate-400 hover:text-red-500 dark:hover:text-red-400"
-                              aria-label={`Remove ${dsl}`}
+                        {entry.metrics.map((dsl, metricIndex) => {
+                          const editingThis =
+                            composerOpen && composer!.metricIndex === metricIndex;
+                          return (
+                            <span
+                              key={metricIndex}
+                              className={`${CHIP_CLASS}${editingThis ? ' ring-1 ring-slate-500 dark:ring-slate-300' : ''}`}
                             >
-                              <X size={10} />
-                            </button>
-                          </span>
-                        ))}
+                              <button
+                                type="button"
+                                onClick={() => setComposer({ entryIndex: entryIndex!, metricIndex })}
+                                className="hover:underline"
+                                title="Edit this metric in the composer"
+                                data-testid={`metric-chip-${metricIndex}`}
+                              >
+                                {dsl}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeMetric(entryIndex!, metricIndex)}
+                                className="text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                                aria-label={`Remove ${dsl}`}
+                              >
+                                <X size={10} />
+                              </button>
+                            </span>
+                          );
+                        })}
                       </div>
-                      <AddMetricRow onAdd={(dsl) => addMetric(entryIndex!, dsl)} />
+                      <button
+                        type="button"
+                        onClick={() => setComposer({ entryIndex: entryIndex!, metricIndex: null })}
+                        className="mt-1 flex items-center gap-1 rounded border border-dashed border-slate-300 dark:border-slate-600 px-1.5 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        data-testid="add-metric-button"
+                      >
+                        <Plus size={10} />
+                        add metric
+                      </button>
+                      {composerOpen && (
+                        <MetricComposer
+                          key={`${entryIndex}-${editingMetricIndex}`}
+                          initial={
+                            editingMetricIndex !== null
+                              ? decomposeOrNull(effectiveExpected[entryIndex]!.metrics[editingMetricIndex]!)
+                              : null
+                          }
+                          actualMetrics={statement.metrics.getAll()}
+                          submitLabel={editingMetricIndex !== null ? 'Save metric' : 'Add metric'}
+                          onSubmit={(dsl) => {
+                            const err =
+                              editingMetricIndex !== null
+                                ? replaceMetric(entryIndex!, editingMetricIndex, dsl)
+                                : addMetric(entryIndex!, dsl);
+                            if (!err) setComposer(null);
+                            return err;
+                          }}
+                          onCancel={() => setComposer(null)}
+                        />
+                      )}
                     </div>
                   ) : (
                     <div className="mt-1 text-[11px] text-red-600 dark:text-red-400">
@@ -426,20 +464,54 @@ export function ParserTestBuilder({
                   </button>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {effectiveExpected[entryIndex]!.metrics.map((dsl, metricIndex) => (
-                    <span key={metricIndex} className={CHIP_CLASS}>
-                      {dsl}
-                      <button
-                        type="button"
-                        onClick={() => removeMetric(entryIndex, metricIndex)}
-                        className="text-slate-400 hover:text-red-500 dark:hover:text-red-400"
-                        aria-label={`Remove ${dsl}`}
+                  {effectiveExpected[entryIndex]!.metrics.map((dsl, metricIndex) => {
+                    const editingThis = composer?.entryIndex === entryIndex && composer.metricIndex === metricIndex;
+                    return (
+                      <span
+                        key={metricIndex}
+                        className={`${CHIP_CLASS}${editingThis ? ' ring-1 ring-slate-500 dark:ring-slate-300' : ''}`}
                       >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
+                        <button
+                          type="button"
+                          onClick={() => setComposer({ entryIndex, metricIndex })}
+                          className="hover:underline"
+                          title="Edit this metric in the composer"
+                        >
+                          {dsl}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeMetric(entryIndex, metricIndex)}
+                          className="text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                          aria-label={`Remove ${dsl}`}
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
+                {composer?.entryIndex === entryIndex && (
+                  <MetricComposer
+                    key={`orphan-${entryIndex}-${composer.metricIndex}`}
+                    initial={
+                      composer.metricIndex !== null
+                        ? decomposeOrNull(effectiveExpected[entryIndex]!.metrics[composer.metricIndex]!)
+                        : null
+                    }
+                    actualMetrics={[]}
+                    submitLabel={composer.metricIndex !== null ? 'Save metric' : 'Add metric'}
+                    onSubmit={(dsl) => {
+                      const err =
+                        composer.metricIndex !== null
+                          ? replaceMetric(entryIndex, composer.metricIndex, dsl)
+                          : addMetric(entryIndex, dsl);
+                      if (!err) setComposer(null);
+                      return err;
+                    }}
+                    onCancel={() => setComposer(null)}
+                  />
+                )}
               </div>
             ))}
             {pairing.pairs.length === 0 && pairing.orphanEntryIndexes.length === 0 && (

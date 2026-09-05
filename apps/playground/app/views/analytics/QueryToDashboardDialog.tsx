@@ -96,7 +96,9 @@ function SaveFlow({
     } catch (err) {
       // Storage failure stays on screen — the dialog stays open with the
       // draft intact; nothing is silently dropped or rerouted.
-      setError(err instanceof Error ? err.message : String(err))
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      throw err
     }
   }
 

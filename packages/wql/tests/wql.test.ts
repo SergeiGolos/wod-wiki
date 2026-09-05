@@ -551,7 +551,7 @@ describe('de-overload in with compat normalizer (C2)', () => {
   it('rejects unknown source: filter values with clear error', () => {
     const parsed = _parseQuery('find:note{source:invalid_scope}');
     expect(parsed.error).toContain('Unknown source "invalid_scope"');
-    expect(parsed.error).toContain('Try: journal, collections, feeds, all');
+    expect(parsed.error).toContain('Try: journal, collections, feeds, playground, all');
   });
 
   it('rejects unknown legacy in <scope> values with clear error', () => {
@@ -560,7 +560,7 @@ describe('de-overload in with compat normalizer (C2)', () => {
   });
 
   it('accepts all canonical source values and catalog prefixes', () => {
-    for (const src of ['journal', 'collections', 'collection', 'feeds', 'feed', 'all']) {
+    for (const src of ['journal', 'collections', 'collection', 'feeds', 'feed', 'playground', 'all']) {
       const p = _parseQuery(`find:note{source:${src}}`);
       expect(p.error).toBeUndefined();
     }

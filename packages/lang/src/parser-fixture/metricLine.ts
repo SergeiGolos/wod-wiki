@@ -95,9 +95,9 @@ export function parseMetricLine(
   lineNo: number,
 ): MetricLine {
   const src = line.trim();
-  const at = (detail: string): never => {
+  function at(detail: string): never {
     throw new FixtureSyntaxError(`${file} [line ${lineNo}]: ${detail}`);
-  };
+  }
 
   if (!line.startsWith('- ')) {
     at(`metric line must start with "- " (got: ${JSON.stringify(line)})`);

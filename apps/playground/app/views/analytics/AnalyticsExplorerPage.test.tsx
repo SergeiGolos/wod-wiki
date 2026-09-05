@@ -228,7 +228,9 @@ describe('AnalyticsExplorerPage', () => {
     // The seeded head still lacks a metric — Apply stays gated until it parses.
     expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).not.toBeNull();
     // Destination defaults to creating a new dashboard.
-    expect(screen.getByTestId('dashboard-dest-new').getAttribute('aria-pressed')).toBe('true');
+    await waitFor(() =>
+      expect(screen.getByTestId('dashboard-dest-new').getAttribute('aria-pressed')).toBe('true'),
+    );
   });
 
   it('Save persists the exact composed WQL as a widget on a new dashboard', async () => {
@@ -236,7 +238,8 @@ describe('AnalyticsExplorerPage', () => {
     fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
 
     // Commit a full valid calculation through the composer.
-    const input = screen.getByTestId('wql-composer-input') as HTMLInputElement;
+    const dialog = await waitFor(() => screen.getByRole('dialog'));
+    const input = within(dialog).getByTestId('wql-composer-input') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() =>
@@ -244,7 +247,8 @@ describe('AnalyticsExplorerPage', () => {
     );
 
     fireEvent.change(screen.getByTestId('widget-composer-title'), { target: { value: 'PR Volume' } });
-    fireEvent.change(screen.getByTestId('dashboard-new-title'), { target: { value: 'My Board' } });
+    const newTitleInput = await waitFor(() => screen.getByTestId('dashboard-new-title'));
+    fireEvent.change(newTitleInput, { target: { value: 'My Board' } });
     fireEvent.click(screen.getByTestId('widget-composer-apply'));
 
     await waitFor(() => expect(noteUpdates.length).toBe(1));
@@ -261,7 +265,8 @@ describe('AnalyticsExplorerPage', () => {
     renderPage('find:note{tags:pr,source:journal}');
     fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
 
-    const input = screen.getByTestId('wql-composer-input') as HTMLInputElement;
+    const dialog = await waitFor(() => screen.getByRole('dialog'));
+    const input = within(dialog).getByTestId('wql-composer-input') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).toBeNull());

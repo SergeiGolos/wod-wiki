@@ -86,10 +86,21 @@ function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; 
  *  `playground` matches the playground intake's sourceId convention and, on the
  *  note plane, legacy rows typed 'playground' (playground pages saved before the
  *  sourceId convention existed — their sourceId is absent). */
-function sourceMatches(item: { sourceId?: string; type?: string }, kind: string): boolean {
+function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; type?: string }, kind: string): boolean {
   const sourceId = item.sourceId;
   if (kind === 'all') return true;
-  if (kind === 'journal') return !sourceId || sourceId === 'journal';
+  if (kind === 'journal') {
+    if (
+      item.type === 'playground' ||
+      item.noteId === 'pg-legacy' ||
+      item.id === 'pg-legacy' ||
+      item.noteId?.startsWith('pg-') ||
+      item.id?.startsWith('pg-')
+    ) {
+      return false;
+    }
+    return !sourceId || sourceId === 'journal';
+  }
   if (kind === 'collection' || kind === 'collections') {
     return !!sourceId && sourceId.startsWith('collection:');
   }
