@@ -103,7 +103,7 @@ export function ActionsMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
         {(resolvedSecondary.length > 0 || l3Items.length > 0) && (
-          <div className="xl:hidden">
+          <div className="2xl:hidden">
             {resolvedSecondary.map(section => {
               if (section.kind === 'section') {
                 if (section.entries.length === 0) return null

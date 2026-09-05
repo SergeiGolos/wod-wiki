@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown';
 import type { DocsSection } from './types';
-import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
+import { PAGE_SHELL_CONTENT_SURFACE_CLASS, PAGE_SHELL_CONTAINER_CLASS } from './contentSurface';
 import { StickyNavPanel } from './StickyNavPanel';
 import { StickyPageHeader } from './StickyPageHeader';
 import { ScopedRuntimeProvider } from './ScopedRuntimeProvider';
@@ -184,7 +184,7 @@ export function CanvasPage({
   return (
     <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
       <div className={cn(
-        'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
+        PAGE_SHELL_CONTAINER_CLASS,
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
       )}>
         <StickyPageHeader

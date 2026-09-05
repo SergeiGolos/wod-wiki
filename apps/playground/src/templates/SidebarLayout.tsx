@@ -90,8 +90,10 @@ export function SidebarLayout({
         </MobileSidebar>
 
         {/* Content column — on desktop, page headers (StickyPageHeader) own lg:top-0.
-            On mobile, this sticky navbar carries the hamburger drawer trigger. */}
-        <div className="flex flex-1 flex-col min-w-0">
+            On mobile, this sticky navbar carries the hamburger drawer trigger.
+            At xl (1280px), content halts growth at 984px (1280px viewport - 56px rail - 240px sidebar),
+            allowing right-side space to grow until the 240px secondary rail mounts at 2xl (1520px). */}
+        <div className="flex flex-1 flex-col min-w-0 xl:max-w-[984px] 2xl:max-w-none">
           <header data-page-sticky-boundary="true" className="lg:hidden sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card border-b border-border/50">
             <div className="py-2.5 shrink-0">
               <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
@@ -108,9 +110,11 @@ export function SidebarLayout({
           </main>
         </div>
 
-        {/* Secondary nav — zone 4; desktop (xl+) only. Below xl the same
-            entries collapse into the header ⋯ menu (see ActionsMenu). */}
-        <aside className="hidden xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
+        {/* Secondary nav — zone 4; desktop (2xl+) only. Below 2xl the same
+            entries collapse into the header ⋯ menu (see ActionsMenu).
+            Between xl (1280px) and 2xl (1520px), content remains capped at 984px
+            and right padding grows until the 240px rail fits without shrinking content. */}
+        <aside className="hidden 2xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
           <SecondaryNav spec={secondary} />
         </aside>
 

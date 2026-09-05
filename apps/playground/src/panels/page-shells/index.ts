@@ -27,3 +27,4 @@ export {
 } from './MobileQuerySlot';
 export { JournalPageShell, type JournalPageShellProps } from './JournalPageShell';
 export { CalendarPageShell, type CalendarPageShellProps } from './CalendarPageShell';
+export { PAGE_SHELL_CONTENT_SURFACE_CLASS, PAGE_SHELL_CONTAINER_CLASS } from './contentSurface';

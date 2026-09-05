@@ -94,7 +94,7 @@ export interface ShellConfig {
   /** Route-declared nav panel content (zone 2) — rendered in the context
    *  sidebar below the active L1's own panel/children. */
   nav?: MenuSpec
-  /** Route-declared secondary nav (zone 4) — right rail on xl+, ⋯ menu below. */
+  /** Route-declared secondary nav (zone 4) — right rail on 2xl+, ⋯ menu below. */
   secondary?: MenuSpec
 }
 
