@@ -107,7 +107,7 @@ export function LibraryRow({
       className={`flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group w-full cursor-pointer ${
         isPrimary ? 'bg-primary/[0.025]' : ''
       }`}
-      data-testid={entry.kind === 'effort' ? `effort-row-${entry.id}` : `library-row-${entry.kind}`}
+      data-testid={`library-row-${entry.kind}`}
     >
       {leading}
       <div className={`flex-shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors ${KIND_TONE[entry.kind]}`}>
