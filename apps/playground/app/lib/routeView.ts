@@ -94,7 +94,7 @@ export interface ShellConfig {
   /** Route-declared nav panel content (zone 2) — rendered in the context
    *  sidebar below the active L1's own panel/children. */
   nav?: MenuSpec
-  /** Route-declared secondary nav (zone 4) — right rail on xl+, ⋯ menu below. */
+  /** Route-declared secondary nav (zone 4) — right rail on 2xl+, ⋯ menu below. */
   secondary?: MenuSpec
 }
 
@@ -255,6 +255,22 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   if (canvasPage) {
     const isCollection = pathname.startsWith('/collections/')
     const collectionSlug = isCollection ? pathname.split('/').pop() ?? null : null
+
+    if (pathname === '/') {
+      const homeQuests = canvasPage.quests.filter(q => q.id.startsWith('qs-'))
+      const sectionMap: Record<string, string> = {
+        'qs-arrive': 'tour-hero',
+        'qs-edit': 'tour-hero',
+        'qs-tour-timer': 'run',
+        'qs-run': 'run',
+        'qs-tour-analytics': 'explore',
+      }
+      return homeQuests.map(q => ({
+        id: sectionMap[q.id] ?? q.id,
+        label: q.label,
+        type: 'heading' as const,
+      }))
+    }
 
     const links: PageNavLink[] = []
     const isGuidePage = pathname.startsWith('/guide/')

@@ -224,13 +224,13 @@ function monitorCriticalConsole(page: Page): string[] {
 
 async function expectResultWidgetAfterReload(page: Page, route: SeedRoute) {
   await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
+  await expect(page.locator('.cm-content').first()).toBeAttached({ timeout: 15_000 });
   const widget = page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first();
   await expect(widget, `${route.noteId} should show the query table results block before reload`).toBeVisible({ timeout: 10_000 });
   await expect(widget).toContainText(/1:14|Result|rows|runs/i);
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
+  await expect(page.locator('.cm-content').first()).toBeAttached({ timeout: 15_000 });
   await expect(widget, `${route.noteId} should show the query table results block after reload`).toBeVisible({ timeout: 10_000 });
   await expect(widget).toContainText(/1:14|Result|rows|runs/i);
   await page.screenshot({ path: route.screenshot, fullPage: true });

@@ -137,4 +137,17 @@ describe('ActionsMenu', () => {
     });
     expect(scrollToSection).toHaveBeenCalledWith('section-1');
   });
+
+  it('renders secondary items inside a 2xl:hidden container', () => {
+    const items: NavItemL3[] = [
+      { id: 'sec-1', label: 'Section 1', level: 3, action: { type: 'scroll', sectionId: 'sec-1' } },
+    ];
+    renderWithNav(items);
+    act(() => {
+      screen.getByRole('button').click();
+    });
+    const itemEl = screen.getByText('Section 1');
+    const container = itemEl.closest('[class*="2xl:hidden"]');
+    expect(container).not.toBeNull();
+  });
 });

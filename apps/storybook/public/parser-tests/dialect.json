@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "title": "Dialect spot checks",
+  "cases": [
+    {
+      "name": "AMRAP structure with fused units",
+      "script": "AMRAP 20\n5 Pull-ups\n225 lb Back Squat\n5 km Row",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Effort \"AMRAP\" @parser",
+            "Rep 20 @parser",
+            "Hint behavior.time_bound @dialect",
+            "Hint workout.amrap @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Rep 5 @parser",
+            "Effort \"Pull-ups\" @parser"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Resistance 225 lb @parser",
+            "Effort \"Back Squat\" @parser"
+          ]
+        },
+        {
+          "line": 4,
+          "metrics": [
+            "Distance 5 km @parser",
+            "Effort \"Row\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.row @dialect",
+            "Hint behavior.aerobic @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Climb dialect grades and send types",
+      "script": "v5 flash\n5.12a redpoint",
+      "sport": "climb",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Effort \"v5 flash\" @parser",
+            "ClimbGrade raw:V5 system:v-scale @dialect",
+            "ClimbSendType \"flash\" @dialect",
+            "ClimbDiscipline \"bouldering\" @dialect",
+            "Hint domain.climb @dialect",
+            "Hint behavior.route_based @dialect",
+            "Hint behavior.grade_based @dialect",
+            "Hint climb.bouldering @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Rep 5.12 @parser",
+            "Effort \"a redpoint\" @parser",
+            "ClimbGrade raw:5.12a system:yds @dialect",
+            "ClimbSendType \"redpoint\" @dialect",
+            "ClimbDiscipline \"sport\" @dialect",
+            "Hint domain.climb @dialect",
+            "Hint behavior.route_based @dialect",
+            "Hint behavior.grade_based @dialect",
+            "Hint climb.sport @dialect"
+          ]
+        }
+      ]
+    }
+  ]
+}

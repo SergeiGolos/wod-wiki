@@ -97,21 +97,35 @@ describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', 
       expect(screen.getByText('sum:totalVolume{}')).toBeDefined();
     });
 
-    it('renders the hover edit button only when onEdit is provided and fires it', () => {
-      const onEdit = vi.fn();
+    it('renders the inspect button when onInspect is provided and fires it', () => {
+      const onInspect = vi.fn();
       const { rerender } = render(
-        <WidgetFrame title="T" question="Q" onEdit={onEdit}>
+        <WidgetFrame title="T" question="Q" onInspect={onInspect}>
           <div>Content</div>
         </WidgetFrame>,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Edit query for T' }));
-      expect(onEdit).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByRole('button', { name: 'Inspect query for T' }));
+      expect(onInspect).toHaveBeenCalledTimes(1);
       rerender(
         <WidgetFrame title="T" question="Q">
           <div>Content</div>
         </WidgetFrame>,
       );
       expect(screen.queryByRole('button')).toBeNull();
+    });
+
+    it('renders the edit toolbar when provided', () => {
+      render(
+        <WidgetFrame
+          title="T"
+          question="Q"
+          toolbar={<button type="button">Arrange</button>}
+        >
+          <div>Content</div>
+        </WidgetFrame>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Arrange' }));
+      expect(screen.getByText('Content')).toBeDefined();
     });
   });
 

@@ -14,9 +14,11 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   FolderIcon,
+  Plus,
   SlidersHorizontal,
   TriangleAlertIcon,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
@@ -37,17 +39,22 @@ import {
 import { defaultStreamQueryEngine, StreamQueryEngine } from '../../lib/entrySearch'
 import { useNav } from '../../nav/NavContext'
 import type { NavItemL3 } from '../../nav/navTypes'
+import { ResponsiveActions } from '../../nav/ResponsiveActions'
 import { useComposerQueryState } from '../../hooks/useComposerQueryState'
 import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useDateLocale } from '../../lib/dateLocale'
 import { useBatchedItems, type BatchedItems } from '../../hooks/useBatchedItems'
-import { todayKey, formatDateHeader } from '../../lib/dateFormat'
+import { todayKey } from '../../lib/dateFormat'
 import { withoutFilters, withoutWindow } from '../../lib/wqlEdits'
 import { LibraryRow } from '../library/LibraryRow'
 import { PropertyTable } from './PropertyTable'
+import { StreamFeed } from './StreamFeed'
 import { ViewSettingsDialog } from './ViewSettingsDialog'
 import { journalNotes } from '../../services/journalNotes'
+import { ensurePlaygroundEntry } from '../../services/createPlaygroundPage'
 import { addEntryToTodayInput } from '../../lib/addToToday'
+import { startEntryRun } from '../../lib/entryRun'
+import { playgroundPath } from '../../lib/routes'
 import type { StreamProfile } from './streamProfile'
 
 function BatchingSentinel({
@@ -86,6 +93,7 @@ export function QueriableStreamView({
   queryEngine,
   onAddToToday,
 }: QueriableStreamViewProps) {
+  const navigate = useNavigate()
   // Synchronize composer state with URL
   const { query, setQuery, urlQueryError } = useComposerQueryState({
     defaultQuery: () => profile.defaultWql,
@@ -104,11 +112,29 @@ export function QueriableStreamView({
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   // Mobile: the query bar portals into the app navbar (no page header).
   const isMobile = useIsMobile()
   const mobileSlot = useMobileQuerySlot()
 
   const parsed = useMemo(() => parseQuery(query), [query])
+
+  // Playground scope: the canonical filter find:note{source:playground}. In
+  // this scope the "Catalog Sessions" shelf would mislabel undated playground
+  // entries — they render in the explicit 'Undated' group instead.
+  const isPlaygroundScope = useMemo(() => {
+    if (parsed.error) return false
+    return parsed.filters.some(
+      f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'playground'),
+    )
+  }, [parsed])
+
+  // Feed mode attaches note block info (excerpt + wod content id) via the same
+  // engine's block-plane companion query — never a second query-state seam.
+  const activeEngine = useMemo<StreamQueryEngine>(() => {
+    const base = queryEngine ?? defaultStreamQueryEngine
+    return settings.layout === 'feed' ? base.withNoteBlockInfo() : base
+  }, [queryEngine, settings.layout])
 
   const defaultAddToToday = useCallback(async (entry: Entry) => {
     const today = todayKey()
@@ -165,6 +191,40 @@ export function QueriableStreamView({
 
   const handleAddToToday = onAddToToday ?? defaultAddToToday
 
+  // Feed's Run action: stage a pending runtime (real UUID identity) before
+  // navigating — never a bare /run/:contentId link. Failure stays visible.
+  const handleRunEntry = useCallback(
+    async (entry: Entry) => {
+      setActionError(null)
+      try {
+        await startEntryRun(entry, navigate)
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Could not start the workout.')
+      }
+    },
+    [navigate],
+  )
+
+  // Feed's Playground action: persist the entry's content as a playground
+  // entry (the intake helper persists BEFORE any navigation/runtime), then
+  // open it. Failure stays visible — no silent fallback.
+  const handleSendToPlayground = useCallback(
+    async (entry: Entry) => {
+      setActionError(null)
+      try {
+        const resolved = await journalNotes.resolve(entry.id)
+        const content = resolved && typeof resolved === 'object' && 'rawContent' in resolved
+          ? String(resolved.rawContent ?? '')
+          : ''
+        const { routeId } = await ensurePlaygroundEntry(content, { title: entry.title })
+        navigate(playgroundPath(routeId.replace(/^playground\//, '')))
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Could not create the playground entry.')
+      }
+    },
+    [navigate],
+  )
+
   const execute = useCallback<WqlExecutor>(
     ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
     [],
@@ -173,7 +233,7 @@ export function QueriableStreamView({
   // Query execution pipeline
   useEffect(() => {
     let cancelled = false
-    const engine = queryEngine ?? defaultStreamQueryEngine
+    const engine = activeEngine
 
     setLoading(true)
     engine
@@ -191,7 +251,7 @@ export function QueriableStreamView({
     return () => {
       cancelled = true
     }
-  }, [query, queryEngine])
+  }, [query, activeEngine])
 
   // Grouping dimension: query `by {dim}` or view setting or default
   const groupDim = useMemo(() => {
@@ -203,16 +263,17 @@ export function QueriableStreamView({
   }, [query, parsed, settings.groupBy, profile.level])
 
   // Full dataset grouped by dimension
+  const shelfVisible = profile.shelfVisible && !isPlaygroundScope
   const allGroups = useMemo(
-    () => groupEntriesByDimension(entries, groupDim, { shelfVisible: profile.shelfVisible }),
-    [entries, groupDim, profile.shelfVisible],
+    () => groupEntriesByDimension(entries, groupDim, { shelfVisible }),
+    [entries, groupDim, shelfVisible],
   )
 
   // Progressive DOM batching
   const entriesBatch = useBatchedItems(entries)
   const visibleGroups = useMemo(
-    () => groupEntriesByDimension(entriesBatch.visible, groupDim, { shelfVisible: profile.shelfVisible }),
-    [entriesBatch.visible, groupDim, profile.shelfVisible],
+    () => groupEntriesByDimension(entriesBatch.visible, groupDim, { shelfVisible }),
+    [entriesBatch.visible, groupDim, shelfVisible],
   )
   const groupCountMap = useMemo(() => new Map(allGroups.map(g => [g.id, g.entries.length])), [allGroups])
 
@@ -269,6 +330,34 @@ export function QueriableStreamView({
     return remedies
   }, [parsed, query, setQuery])
 
+  // Shared empty state for the grouped layouts (Cards / Feed) — same query,
+  // same remedies, whichever mode is active.
+  const streamEmptyState = (
+    <div
+      className="px-6 py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-3"
+      data-testid="stream-empty-state"
+    >
+      <p className="text-sm font-medium">
+        {profile.emptyMessage ?? 'No entries match your search.'}
+      </p>
+      {emptyStateRemedies.length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+          {emptyStateRemedies.map(r => (
+            <Button
+              key={r.id}
+              variant="outline"
+              size="sm"
+              onClick={r.apply}
+              className="text-xs"
+            >
+              {r.label}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
       {/* Desktop: single-line header — the query bar fills the row left
@@ -279,20 +368,37 @@ export function QueriableStreamView({
       <div className="max-lg:hidden">
         <StickyPageHeader
           actions={
-            <div className="flex items-center gap-2">
+            <ResponsiveActions
+              primary={
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                    title="View Settings"
+                    data-testid="stream-view-settings-trigger"
+                  >
+                    <SlidersHorizontal className="size-3.5" />
+                    <span className="hidden sm:inline">View</span>
+                  </Button>
+                  {profile.route === '/efforts' && (
+                    <Button
+                      size="sm"
+                      onClick={() => navigate('/effort/new?mode=create')}
+                      className="h-8 px-2.5 text-xs gap-1.5"
+                      data-testid="efforts-catalog-create-btn"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>New</span>
+                    </Button>
+                  )}
+                </div>
+              }
+              label="Stream actions"
+            >
               {actions}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSettingsOpen(true)}
-                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                title="View Settings"
-                data-testid="stream-view-settings-trigger"
-              >
-                <SlidersHorizontal className="size-3.5" />
-                <span className="hidden sm:inline">View</span>
-              </Button>
-            </div>
+            </ResponsiveActions>
           }
           queryBar={
             <StreamQueryBar
@@ -311,7 +417,6 @@ export function QueriableStreamView({
             onQueryChange={setQuery}
             options={profile.typeOptions}
             execute={execute}
-            onViewSettings={() => setIsSettingsOpen(true)}
             compact
           />,
           mobileSlot,
@@ -333,8 +438,32 @@ export function QueriableStreamView({
         </div>
       )}
 
-      {/* Main Content: Property Table vs Card Stream Layout */}
-      {settings.layout === 'table' ? (
+      {/* Action error banner (e.g. playground intake persistence failure —
+          no silent fallback) */}
+      {actionError && (
+        <div
+          role="alert"
+          className="mx-6 mt-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          data-testid="stream-action-error"
+        >
+          <TriangleAlertIcon className="size-5 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 text-xs">
+            <p className="font-bold">Action failed</p>
+            <p className="mt-1 text-[11px] opacity-90">{actionError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-[11px] font-bold uppercase tracking-wider hover:opacity-80"
+            data-testid="stream-action-error-dismiss"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Main Content: Rows (table) / Feed (rich cards) / Cards (grouped stream) */}
+      {settings.layout === 'rows' ? (
         <div className="flex-1">
           <PropertyTable
             entries={entries}
@@ -343,6 +472,21 @@ export function QueriableStreamView({
             emptyMessage={profile.emptyMessage ?? 'No matching records found.'}
           />
         </div>
+      ) : settings.layout === 'feed' ? (
+        visibleGroups.length > 0 ? (
+          <StreamFeed
+            groups={visibleGroups}
+            batch={entriesBatch}
+            onRunEntry={handleRunEntry}
+            onSendToPlayground={handleSendToPlayground}
+          />
+        ) : loading && entries.length === 0 ? (
+          <div className="py-16 text-center text-xs text-muted-foreground/60" data-testid="stream-loading">
+            Loading…
+          </div>
+        ) : entries.length === 0 && !loading ? (
+          streamEmptyState
+        ) : null
       ) : (
         <div className="flex-1 divide-y divide-border/60">
           {/* Undated Shelf (Sessions or Curated Workouts) */}
@@ -382,6 +526,7 @@ export function QueriableStreamView({
                               entry={entry}
                               visibleFieldIds={settings.visibleFields}
                               onAddToToday={handleAddToToday}
+                              onRunStart={handleRunEntry}
                             />
                           ))}
                         </div>
@@ -419,6 +564,7 @@ export function QueriableStreamView({
                           visibleFieldIds={settings.visibleFields}
                           tone={group.isToday ? 'primary' : 'secondary'}
                           onAddToToday={handleAddToToday}
+                          onRunStart={handleRunEntry}
                         />
                       ))}
                     </div>
@@ -433,30 +579,7 @@ export function QueriableStreamView({
               Loading…
             </div>
           ) : entries.length === 0 && !loading ? (
-            /* Empty State */
-            <div
-              className="px-6 py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-3"
-              data-testid="stream-empty-state"
-            >
-              <p className="text-sm font-medium">
-                {profile.emptyMessage ?? 'No entries match your search.'}
-              </p>
-              {emptyStateRemedies.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
-                  {emptyStateRemedies.map(r => (
-                    <Button
-                      key={r.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={r.apply}
-                      className="text-xs"
-                    >
-                      {r.label}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+            streamEmptyState
           ) : null}
         </div>
       )}

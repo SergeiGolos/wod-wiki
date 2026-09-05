@@ -59,7 +59,7 @@ import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { createJournalNoteFromWorkout } from '../services/journalWorkout'
+import { ensurePlaygroundEntry, type PlaygroundEntry } from '../services/createPlaygroundPage'
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -413,13 +413,14 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // Which editor context started the current playground run, and the block
   // it runs — captured at Run click so the fullscreen overlay is bound to the
   // editor the visitor pressed Run in.
-  const playgroundSourceRef = useRef<'hero' | 'runway' | 'chapter'>('hero')
   const playgroundBlockRef = useRef<ScriptBlock | null>(null)
+  // The persisted playground entry the current run is bound to — created (or
+  // updated in place) BEFORE the runtime starts; completion records results
+  // against this Note UUID. No journal note is created on completion.
+  const playgroundEntryRef = useRef<PlaygroundEntry | null>(null)
   // Scroll-stage ids arrive as plain strings from the markdown spec; the
   // quest hook keys on the constants union.
-  /** Doc for the most recently run chapter example (journal logging). */
   const markStageViewedRef = useRef<(id: TourStageId) => void>(() => {})
-  const chapterRunDocRef = useRef('')
   const pane: 'editor' | 'timer' | 'analytics' =
     interactive === 'analytics' ? 'analytics' : interactive === 'timer' ? 'timer' : 'editor'
 
@@ -519,10 +520,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const analyticsSegments = session?.segments ?? []
   const analyticsTitle =
     logState === 'logging'
-      ? 'Journal / today · logging…'
+      ? 'Playground · logging…'
       : logState === 'failed'
-        ? 'Session Review · not saved to journal'
-        : 'Journal / today · logged from timer'
+        ? 'Session Review · not saved to playground'
+        : 'Playground · logged from timer'
 
   // Session start marker for ambient resets (the TV card reads the live
   // runtime, so no separate elapsed ticker is needed).
@@ -588,13 +589,29 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   )
 
   // Run opens the fullscreen playground bound to the editor context the Run
-  // button lives in. It never scrolls the page — the overlay is fixed.
+  // button lives in. The playground entry is persisted (or updated in place)
+  // BEFORE the runtime starts — no execution until the save succeeds — and
+  // completion records results against its Note UUID. It never scrolls the
+  // page — the overlay is fixed.
   const startRun = useCallback(
-    (source: 'hero' | 'runway') => {
+    async (source: 'hero' | 'runway') => {
       const block =
         source === 'hero' ? heroBlocksRef.current[0] : runwayBlocksRef.current[0]
       if (!block) return
-      playgroundSourceRef.current = source
+      try {
+        playgroundEntryRef.current = await ensurePlaygroundEntry(
+          source === 'hero' ? heroDocRef.current : runwayDocRef.current,
+          { reuseKey: 'home', title: 'Home playground' },
+        )
+      } catch (err) {
+        console.error('[HomeTour] failed to persist playground entry:', err)
+        toast({
+          title: 'Could not start workout',
+          description: 'The playground entry could not be saved.',
+          variant: 'destructive',
+        })
+        return
+      }
       startNewSession()
       playgroundBlockRef.current = block
       setLogState(null)
@@ -609,11 +626,25 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // Chapter example run — scoped per chapter (#919): opens the playground
   // bound to the chapter's own block WITHOUT firing the global run-started
   // hook (setDemoRunning), so it completes only this chapter's lead quest.
+  // Each chapter gets its own persisted entry (stable per chapter id), so a
+  // chapter's runs update one Note instead of filling the library.
   const startChapterRun = useCallback(
-    (block: ScriptBlock | null, doc: string) => {
+    async (chapterId: string, block: ScriptBlock | null, doc: string) => {
       if (!block) return
-      playgroundSourceRef.current = 'chapter'
-      chapterRunDocRef.current = doc
+      try {
+        playgroundEntryRef.current = await ensurePlaygroundEntry(doc, {
+          reuseKey: `chapter-${chapterId}`,
+          title: `Chapter ${chapterId}`,
+        })
+      } catch (err) {
+        console.error('[HomeTour] failed to persist chapter playground entry:', err)
+        toast({
+          title: 'Could not start workout',
+          description: 'The playground entry could not be saved.',
+          variant: 'destructive',
+        })
+        return
+      }
       startNewSession()
       playgroundBlockRef.current = block
       setLogState(null)
@@ -626,12 +657,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 
   const handleHeroRun = useCallback(() => {
     track?.(HOME_EVENTS.demoRun)
-    startRun('hero')
+    void startRun('hero')
   }, [startRun, track])
 
   const handleRunwayRun = useCallback(() => {
     track?.(HOME_EVENTS.demoRun)
-    startRun('runway')
+    void startRun('runway')
   }, [startRun, track])
 
   const shareDoc = useCallback(
@@ -675,9 +706,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 
   // Chapter picker run/share (#926): use the chapter's own example doc.
   const handleChapterRun = useCallback(
-    (_chapterId: string, block: ScriptBlock | null, doc: string) => {
-      track?.(HOME_EVENTS.chapterExampleRun, { chapter: _chapterId })
-      startChapterRun(block, doc)
+    (chapterId: string, block: ScriptBlock | null, doc: string) => {
+      track?.(HOME_EVENTS.chapterExampleRun, { chapter: chapterId })
+      void startChapterRun(chapterId, block, doc)
     },
     [startChapterRun, track],
   )
@@ -721,33 +752,25 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         return
       }
       const runBlock = playgroundBlockRef.current
-      if (!runBlock) return
-      const wodContent =
-        playgroundSourceRef.current === 'hero'
-          ? heroDocRef.current
-          : playgroundSourceRef.current === 'chapter'
-            ? chapterRunDocRef.current
-            : runwayDocRef.current
+      const entry = playgroundEntryRef.current
+      if (!runBlock || !entry) return
       setLogState('logging')
       void (async () => {
-        const note = await createJournalNoteFromWorkout({
-          workoutName: 'Welcome workout',
-          category: 'home',
-          sourceNoteLabel: 'welcome-1.md',
-          sourceNotePath: '/',
-          wodContent,
-        })
+        // Results join the persisted playground entry — no journal note is
+        // created on completion; promotion to the journal is the visitor's
+        // choice (library / playground page Move to journal).
         await playgroundRecorder.record({
           runBlock,
           blockId: runBlock.id,
-          noteId: note.id,
+          noteId: entry.noteId,
           resultId: crypto.randomUUID(),
           data: results,
           createdAt: results.endTime ?? Date.now(),
+          origin: 'playground',
         })
         setLogState('logged')
       })().catch((err) => {
-        console.error('[HomeTour] failed to log session to journal:', err)
+        console.error('[HomeTour] failed to log session to playground:', err)
         setLogState('failed')
       })
     },
@@ -1049,7 +1072,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         onActiveStageChange={stageHandlers.explore}
         toastLabel={
           session
-            ? `Stopped at ${fmtClock(session.results.duration)} — writing results to Journal…`
+            ? `Stopped at ${fmtClock(session.results.duration)} — saving results to playground…`
             : null
         }
       />

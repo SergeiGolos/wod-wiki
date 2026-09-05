@@ -584,7 +584,14 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
         </section>
       </div>
 
-      <QueryToDashboardDialog open={dashOpen} onOpenChange={setDashOpen} subsetQuery={subsetQuery} />
+      <QueryToDashboardDialog
+        open={dashOpen}
+        onOpenChange={setDashOpen}
+        subsetQuery={subsetQuery}
+        rangeStart={Date.now() - activeWeeks * 7 * DAY}
+        rangeEnd={Date.now()}
+        preferredUnit={preferredUnit}
+      />
     </div>
   );
 }

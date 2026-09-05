@@ -287,16 +287,16 @@ function AppearanceSection() {
         </div>
       </section>
 
-      {/* 3. Search Button Position */}
+      {/* 3. Actions Button Position */}
       <section className="space-y-4 pt-4 border-t border-border/50">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
             <Search className="size-4 text-primary" />
-            Search Button Position
+            Actions Button Position
           </h2>
           <p className="text-sm text-muted-foreground">
-            On phones, search is a floating button at the bottom of the screen. Place it near
-            your dominant thumb.
+            On phones, search and page actions float as a button cluster at the bottom of the
+            screen. Place the cluster near your dominant thumb.
           </p>
         </div>
 

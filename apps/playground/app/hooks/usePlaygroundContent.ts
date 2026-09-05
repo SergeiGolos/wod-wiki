@@ -36,6 +36,13 @@ interface UsePlaygroundContentResult {
   content: string;
   /** Whether the initial load from IndexedDB is still pending */
   loading: boolean;
+  /**
+   * Canonical id of the loaded page's Note — a UUID for V8 notes (and the
+   * legacy composite id for unmigrated rows). Results/join keys should use
+   * this, not the `category/name` route composite. Undefined until the load
+   * settles without a page (fallback content).
+   */
+  entryId?: string;
   /** Call when the editor content changes */
   onChange: (value: string) => void;
   /**
@@ -63,6 +70,7 @@ export function usePlaygroundContent({
   const [content, setContent] = useState(mdContent);
   const [loading, setLoading] = useState(true);
   const [isModified, setIsModified] = useState(false);
+  const [entryId, setEntryId] = useState<string | undefined>(undefined);
 
   // Stable refs so the save callback never goes stale
   const pageIdRef = useRef(pageId);
@@ -125,9 +133,11 @@ export function usePlaygroundContent({
         if (page) {
           setContent(page.content);
           setIsModified(page.content !== mdContent);
+          setEntryId(page.id);
         } else {
           setContent(mdContent);
           setIsModified(false);
+          setEntryId(undefined);
           if (seedOnMount) {
             // Seed IDB so block IDs get locked in
             await playgroundContent.savePage({
@@ -185,5 +195,5 @@ export function usePlaygroundContent({
     };
   }, [flush]);
 
-  return { content, loading, onChange, onLineChange, onBlur, resetToOriginal, isModified, flush };
+  return { content, loading, entryId, onChange, onLineChange, onBlur, resetToOriginal, isModified, flush };
 }

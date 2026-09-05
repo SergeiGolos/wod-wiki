@@ -2,9 +2,12 @@
  * useZipProcessor.test.ts — ticket #882: `/load` route branches on param.
  *
  *  - `?z=` (+ optional `by`) is the home-hero share contract: decode, persist
- *    to the home-shared localStorage store, redirect to `/`.
- *  - `?zip=` stays the playground-page flow: save to IndexedDB, redirect to
- *    the new playground page.
+ *    to the home-shared localStorage store AND to the persisted home
+ *    playground entry (intake `ensurePlaygroundEntry`), redirect to `/`.
+ *  - `?zip=` stays the playground-page flow: import via the intake module's
+ *    `createPlaygroundPage`, redirect to the new playground page.
+ *  - Neither flow auto-runs the workout; decode/storage failures surface a
+ *    toast instead of failing silently.
  *  - Off `/load` the hook does nothing (journal routes etc. have their own
  *    processors).
  */
@@ -15,17 +18,13 @@ import { renderHook, waitFor } from '@testing-library/react'
 let mockNavigate = mock(() => {})
 let mockPathname = '/load'
 let params: Record<string, string | null> = {}
-const savePageMock = mock(() => Promise.resolve())
+const ensureEntryMock = mock(() => Promise.resolve({ noteId: 'uuid-home', routeId: 'playground/home' }))
+const createPageMock = mock(() => Promise.resolve('2026-09-05-10-00-00-000'))
+const toastMock = mock(() => {})
 
 mock.module('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
-  useLocation: () => ({
-    pathname: mockPathname,
-    search: '',
-    hash: '',
-    state: null,
-    key: 'test',
-  }),
+  useLocation: () => ({ pathname: mockPathname, search: '', hash: '', state: null, key: 'test' }),
 }))
 
 mock.module('nuqs', () => ({
@@ -33,17 +32,21 @@ mock.module('nuqs', () => ({
 }))
 
 mock.module('../services/decodeZip', () => ({
-  decodeZip: mock((z: string) => Promise.resolve(`decoded:${z}`)),
+  decodeZip: mock((z: string) => Promise.resolve(z === 'bad' ? null : `decoded:${z}`)),
 }))
 
-mock.module('../services/playgroundContent', () => ({
-  playgroundContent: { savePage: savePageMock },
-  pageId: (category: string, id: string) => `${category}:${id}`,
+mock.module('../services/createPlaygroundPage', () => ({
+  createPlaygroundPage: createPageMock,
+  ensurePlaygroundEntry: ensureEntryMock,
+}))
+
+mock.module('@/hooks/use-toast', () => ({
+  toast: toastMock,
 }))
 
 mock.module('../lib/routes', () => ({
   playgroundPath: (id: string) => `/playground/${id}`,
-  ROUTE_PATTERNS: { playgroundRoot: '/playground' },
+  ROUTE_PATTERNS: { home: '/' },
 }))
 
 import { useZipProcessor } from './useZipProcessor'
@@ -55,7 +58,11 @@ describe('useZipProcessor', () => {
     mockNavigate = mock(() => {})
     mockPathname = '/load'
     params = {}
-    savePageMock.mockClear()
+    ensureEntryMock.mockClear()
+    createPageMock.mockClear()
+    toastMock.mockClear()
+    ensureEntryMock.mockImplementation(() => Promise.resolve({ noteId: 'uuid-home', routeId: 'playground/home' }))
+    createPageMock.mockImplementation(() => Promise.resolve('2026-09-05-10-00-00-000'))
     window.localStorage.clear()
   })
 
@@ -63,40 +70,48 @@ describe('useZipProcessor', () => {
     window.localStorage.clear()
   })
 
-  it('persists ?z= content with attribution to the home-shared store and redirects home', async () => {
-    params = { z: 'abc', by: 'serge' }
-    renderHook(() => useZipProcessor())
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
-    expect(JSON.parse(window.localStorage.getItem(SHARED_KEY)!)).toEqual({
-      content:
-        '# 👋 serge sent you this workout\n\nChange the reps, distance, or load below — this is live.\n\ndecoded:abc\n\n> Press **Run** ↑ to start the Clock.\n',
-      by: 'serge',
-    })
-    expect(savePageMock).not.toHaveBeenCalled()
-  })
-
-  it('persists ?z= content without attribution when no by param is present', async () => {
-    params = { z: 'abc' }
-    renderHook(() => useZipProcessor())
-
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
-    const stored = JSON.parse(window.localStorage.getItem(SHARED_KEY)!)
-    expect(stored.content).toBe(
-      '# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\ndecoded:abc\n\n> Press **Run** ↑ to start the Clock.\n',
-    )
-    expect(stored.by).toBeUndefined()
-    expect(savePageMock).not.toHaveBeenCalled()
-  })
-
-  it('keeps the playground-page flow for ?zip=', async () => {
+  it('keeps the playground-page flow for ?zip= — intake creates the entry; arrival never auto-runs', async () => {
     params = { zip: 'abc' }
     renderHook(() => useZipProcessor())
 
-    await waitFor(() => expect(savePageMock).toHaveBeenCalled())
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/playground/2026-09-05-10-00-00-000', { replace: true }))
+    expect(createPageMock).toHaveBeenCalledWith('decoded:abc')
+    expect(ensureEntryMock).not.toHaveBeenCalled()
     expect(window.localStorage.getItem(SHARED_KEY)).toBeNull()
-    const navigatedTo = (mockNavigate.mock.calls[0] as unknown as [string])[0]
-    expect(navigatedTo).toStartWith('/playground/')
+    expect(toastMock).not.toHaveBeenCalled()
+  })
+
+  it.each(['z', 'zip'])('rejects an undecodable %s share without persisting an entry', async (parameter) => {
+    params = { [parameter]: 'bad' }
+    renderHook(() => useZipProcessor())
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+    expect(ensureEntryMock).not.toHaveBeenCalled()
+    expect(createPageMock).not.toHaveBeenCalled()
+    expect(window.localStorage.getItem(SHARED_KEY)).toBeNull()
+  })
+
+  it('preserves the existing home preview when saving an incoming share fails', async () => {
+    const previous = JSON.stringify({ content: 'Keep this preview', by: 'Original sender' })
+    window.localStorage.setItem(SHARED_KEY, previous)
+    params = { z: 'abc', by: 'New sender' }
+    ensureEntryMock.mockImplementation(() => Promise.reject(new Error('Storage blocked')))
+    renderHook(() => useZipProcessor())
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(window.localStorage.getItem(SHARED_KEY)).toBe(previous)
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+  })
+
+  it('returns home rather than creating a blank entry when importing a workout fails', async () => {
+    params = { zip: 'abc' }
+    createPageMock.mockImplementation(() => Promise.reject(new DOMException('Blocked', 'SecurityError')))
+    renderHook(() => useZipProcessor())
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
   })
 
   it('does nothing off the /load route', async () => {
@@ -108,7 +123,8 @@ describe('useZipProcessor', () => {
     await Promise.resolve()
     await Promise.resolve()
     expect(mockNavigate).not.toHaveBeenCalled()
-    expect(savePageMock).not.toHaveBeenCalled()
+    expect(ensureEntryMock).not.toHaveBeenCalled()
+    expect(createPageMock).not.toHaveBeenCalled()
     expect(window.localStorage.getItem(SHARED_KEY)).toBeNull()
   })
 })

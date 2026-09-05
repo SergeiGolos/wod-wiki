@@ -106,6 +106,7 @@ export function TourHero({
 }: TourHeroProps) {
   return (
     <section
+      id="tour-hero"
       data-testid="tour-hero"
       className="relative flex min-h-0 flex-col items-center justify-center px-6 pt-10 pb-8 text-center"
     >

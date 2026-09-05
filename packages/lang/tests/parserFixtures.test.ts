@@ -12,7 +12,7 @@ import { join } from 'node:path';
 
 import { parseScript } from '../src/index';
 import { parseFixtureFile } from './harness/parserFixture/fixtureFile';
-import { compareStatement } from './harness/parserFixture/compare';
+import { compareStatement } from '../src/parser-fixture/compare';
 
 const FIXTURE_DIR = join(__dirname, 'fixtures/parser');
 const FILES = readdirSync(FIXTURE_DIR).filter((f) => f.endsWith('.md'));

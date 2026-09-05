@@ -1,14 +1,16 @@
 /**
  * LibraryRow — one Entry in the Library. Clicking the row body navigates to
  * the Entry's deep-link (Open). The right-hand action stack exposes
- * Run (Session/Post with a content id) and Compare (any row with a content id).
+ * Run (stages a pending runtime via startEntryRun — never a bare /run link)
+ * and Compare (any row with a content id).
  * The Add-to-today action is a creation flow (not navigation); it is wired
  * in the Library page, not the row.
  */
 import { useNavigate, Link } from 'react-router-dom'
 import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
-import { entryOpenHref, entryRunHref, entryCompareHref, entryCanAddToToday } from '../../lib/entryActions'
+import { entryOpenHref, entryCompareHref, entryCanAddToToday } from '../../lib/entryActions'
+import { entryCanRun } from '../../lib/entryRun'
 
 export interface LibraryRowProps {
   entry: Entry
@@ -28,6 +30,12 @@ export interface LibraryRowProps {
    * creation callback.
    */
   onAddToToday?: (entry: Entry) => void
+  /**
+   * Optional Run handler — stages a pending runtime and navigates (see
+   * startEntryRun; Run is not a URL). The row renders the button only when
+   * `entryCanRun(entry)` is true.
+   */
+  onRunStart?: (entry: Entry) => void
 }
 
 const KIND_ICON: Record<Entry['kind'], React.FC<{ className?: string }>> = {
@@ -68,6 +76,7 @@ export function LibraryRow({
   visibleFieldIds,
   tone = 'secondary',
   onAddToToday,
+  onRunStart,
 }: LibraryRowProps) {
   const navigate = useNavigate()
   const Icon = KIND_ICON[entry.kind]
@@ -105,8 +114,10 @@ export function LibraryRow({
         <Icon className="size-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-foreground truncate">{entry.title}</h3>
+        {/* Title first: on narrow screens the secondary badges wrap under the
+            title instead of squeezing the truncated title out. */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="text-sm font-bold text-foreground truncate min-w-0 basis-full sm:basis-auto">{entry.title}</h3>
           {entry.block && (
             <span
               className="text-[9px] font-black uppercase tracking-widest text-sky-600 border border-sky-500/40 bg-sky-500/10 rounded-full px-1.5 py-0.5"
@@ -151,7 +162,7 @@ export function LibraryRow({
           {dateLabel}
         </span>
       )}
-      {actions ?? <RowActions entry={entry} onAddToToday={onAddToToday} />}
+      {actions ?? <RowActions entry={entry} onAddToToday={onAddToToday} onRunStart={onRunStart} />}
     </div>
   )
 }
@@ -159,13 +170,14 @@ export function LibraryRow({
 interface RowActionsProps {
   entry: Entry
   onAddToToday?: (entry: Entry) => void
+  onRunStart?: (entry: Entry) => void
 }
 
-function RowActions({ entry, onAddToToday }: RowActionsProps) {
+function RowActions({ entry, onAddToToday, onRunStart }: RowActionsProps) {
   const navigate = useNavigate()
-  const runHref = entryRunHref(entry)
   const compareHref = entryCompareHref(entry)
   const canAdd = entryCanAddToToday(entry) && !!onAddToToday
+  const canRun = entryCanRun(entry) && !!onRunStart
 
   return (
     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
@@ -177,8 +189,8 @@ function RowActions({ entry, onAddToToday }: RowActionsProps) {
           <PlusIcon className="size-3.5" />
         </ActionButton>
       )}
-      {runHref && (
-        <ActionButton title="Run" testId="action-run" onClick={() => navigate(runHref)}>
+      {canRun && (
+        <ActionButton title="Run" testId="action-run" onClick={() => onRunStart?.(entry)}>
           <PlayIcon className="size-3.5" />
         </ActionButton>
       )}

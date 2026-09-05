@@ -3,10 +3,16 @@
  *
  * Branches on the param name (#882):
  *  - `?z=` (+ optional `by`) is the home-hero share contract: decode, persist
- *    to the home-shared localStorage store, redirect home — the hero editor
- *    renders it instead of welcome-1.md until the visitor resets it.
- *  - `?zip=` stays the playground flow: save as a new playground page in
- *    IndexedDB, redirect to /playground/:id.
+ *    to the home-shared localStorage store AND to a persisted playground
+ *    entry (the runtime binds to it on Run), redirect home — the hero editor
+ *    renders the shared script instead of welcome-1.md until the visitor
+ *    resets it. Arrival never auto-runs the workout.
+ *  - `?zip=` stays the playground flow: import as a new playground entry via
+ *    the intake module, redirect to /playground/:id. Importing never
+ *    auto-runs the workout.
+ *
+ * Both paths surface decode/storage failures with a toast — a bad share link
+ * or a blocked store must not fail silently.
  *
  * Only runs on the plain /load route — /load/journal* is handled by
  * useJournalZipProcessor.
@@ -17,8 +23,8 @@ import { useQueryState } from 'nuqs';
 import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
 import { buildSharedScript, saveHomeShared } from '../services/homeSharedScript';
-import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
-import { playgroundContent, pageId } from '../services/playgroundContent';
+import { createPlaygroundPage, ensurePlaygroundEntry } from '../services/createPlaygroundPage';
+import { toast } from '@/hooks/use-toast';
 
 export function useZipProcessor() {
   const navigate = useNavigate();
@@ -38,10 +44,24 @@ export function useZipProcessor() {
       (async () => {
         try {
           const content = await decodeZip(zParam);
+          if (content === null) throw new Error('Invalid workout link');
           if (cancelled) return;
-          saveHomeShared({ content: buildSharedScript(content, byParam ?? undefined), by: byParam ?? undefined });
+          const script = buildSharedScript(content, byParam ?? undefined);
+          // Persist the shared script as the home playground entry — the
+          // hero's Run updates this entry and records results against its
+          // UUID. Arrival itself never starts a run.
+          await ensurePlaygroundEntry(script, { reuseKey: 'home', title: 'Home playground' });
+          if (cancelled) return;
+          saveHomeShared({ content: script, by: byParam ?? undefined });
         } catch (err) {
           console.error('Failed to decode zip:', err);
+          if (!cancelled) {
+            toast({
+              title: 'Could not import workout',
+              description: 'The link was invalid or the workout could not be saved.',
+              variant: 'destructive',
+            });
+          }
         }
         if (!cancelled) {
           navigate('/', { replace: true });
@@ -56,24 +76,21 @@ export function useZipProcessor() {
     (async () => {
       try {
         const content = await decodeZip(zipParam);
+        if (content === null) throw new Error('Invalid workout link');
         if (cancelled) return;
-        const now = Date.now();
-        const id = formatPlaygroundTimestampId(now);
-        const pageIdValue = pageId('playground', id);
-        await playgroundContent.savePage({
-          id: pageIdValue,
-          category: 'playground',
-          name: id,
-          content,
-          updatedAt: now,
-        });
+        const name = await createPlaygroundPage(content);
         if (!cancelled) {
-          navigate(playgroundPath(id), { replace: true });
+          navigate(playgroundPath(name), { replace: true });
         }
       } catch (err) {
         console.error('Failed to decode zip:', err);
         if (!cancelled) {
-          navigate(ROUTE_PATTERNS.playgroundRoot, { replace: true });
+          toast({
+            title: 'Could not import workout',
+            description: 'The link was invalid or the workout could not be saved.',
+            variant: 'destructive',
+          });
+          navigate(ROUTE_PATTERNS.home, { replace: true });
         }
       }
     })();

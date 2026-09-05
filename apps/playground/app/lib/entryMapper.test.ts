@@ -28,6 +28,44 @@ function makeNote(overrides: Partial<Note> = {}): Note {
   } as Note
 }
 
+describe('toEntry — playground entries', () => {
+  it('classifies an intake entry (sourceId playground, UUID id, slug route id) as a playground Note', () => {
+    const entry = toEntry(makeNote({
+      id: 'uuid-1',
+      sourceId: 'playground',
+      type: 'playground',
+      slug: 'playground/fran-experiment',
+      createdAt: 123,
+    }))
+    expect(entry.kind).toBe<EntryKind>('note')
+    expect(entry.sourceCatalog).toBe('playground')
+    // The /playground/:id route segment — the slug's name half.
+    expect(entry.sourceItem).toBe('fran-experiment')
+    expect(entry.date).toBeNull()
+    expect(entry.createdAt).toBe(123)
+  })
+
+  it('classifies a legacy composite-id playground page (type playground, no sourceId) as playground', () => {
+    const entry = toEntry(makeNote({
+      id: 'playground/2026-09-04-abc',
+      type: 'playground',
+      sourceId: undefined,
+    }))
+    expect(entry.sourceCatalog).toBe('playground')
+    expect(entry.sourceItem).toBe('2026-09-04-abc')
+  })
+
+  it('classifies a legacy playground page by id prefix alone', () => {
+    const entry = toEntry(makeNote({
+      id: 'playground/legacy-page',
+      type: 'note',
+      sourceId: undefined,
+    }))
+    expect(entry.sourceCatalog).toBe('playground')
+    expect(entry.sourceItem).toBe('legacy-page')
+  })
+})
+
 describe('toEntry — kind discrimination', () => {
   it('classifies a journal note (no sourceId) as Note', () => {
     const entry = toEntry(makeNote())

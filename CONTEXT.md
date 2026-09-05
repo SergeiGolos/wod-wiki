@@ -349,6 +349,17 @@ _Avoid_: content library, library page.
 One row in the Library — the unified concept that abstracts a journal **Note**, a Catalog **Session**, and a Catalog **Post**. Identity = `{ source.catalog, source.item }`; kind = `Note | Session | Post`; carries title, optional **Date**, **Block Content Id**, and row actions (Open / Add to today / Run / Compare). A workout that exists in multiple sources lists as one Entry per source (a Session and a Post on the same date are two distinct Entries).
 _Avoid_: content item, library row, search result.
 
+**Playground Entry**:
+A user-owned **Note** for trying or running a workout outside the Journal, discoverable in the **Library** through `source:playground`.
+Running a home or syntax example first creates a Playground Entry; opening an encoded shared workout imports one without automatically running it.
+Moving it to a Journal date preserves its **UUID**, **Block Content Id** references, attachments, and recorded results rather than cloning and deleting it.
+_Avoid_: temporary workout, demo result, scratch copy (implies disposable data).
+
+**Entry Feed**:
+The rich-preview presentation of a **Library** query, alongside Cards and Rows, with actions to open or run an **Entry** without embedding a live editor in every preview.
+Presentation changes preserve WQL, ordering, and grouping; scrolling never silently widens an explicit query time range.
+_Avoid_: feed source (a Catalog **Post** source, not a presentation).
+
 **Session**:
 One named workout inside a Catalog — a hard-set workout you can clone into your own journal (e.g. "Fran" in "CrossFit Girls"). Source: `{ catalog: <catalog id>, item: <session id> }`. Carries a **derived date** (first published — when its source markdown entered the catalog), not a user-chosen one; time windows treat Sessions as ordinary dated content. An Add-to-today row action clones it into today's journal Note.
 _Avoid_: collection item (legacy), feed item (legacy), drill, standard, prescription.

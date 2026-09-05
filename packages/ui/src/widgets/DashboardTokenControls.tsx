@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { DashboardToken } from '@bitcobblers/wod-wiki-wql';
 import { cn } from '../utils/cn';
 
@@ -5,8 +6,55 @@ export interface DashboardTokenControlsProps {
   tokens: DashboardToken[];
   /** Current value per token name (defaults applied by the caller). */
   values: Record<string, string>;
-  /** Present when the note is editable — changes write back to frontmatter. */
+  /**
+   * Present when the note is editable — a change commits exactly once, on an
+   * explicit action: a list-token segment click, or a scalar-token blur /
+   * Enter. Keystrokes only edit the local draft — they never rewrite the
+   * note or re-run widgets mid-edit.
+   */
   onChange?: (name: string, value: string) => void;
+}
+
+/**
+ * Scalar token input — owns a local draft so typing stays in-process; the
+ * committed value (blur or Enter) is the only write. External value changes
+ * (e.g. a written note re-resolved) re-sync the draft.
+ */
+function ScalarTokenInput({
+  name,
+  value,
+  disabled,
+  onCommit,
+}: {
+  name: string;
+  value: string;
+  disabled?: boolean;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      disabled={disabled}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          commit();
+          e.currentTarget.blur();
+        }
+      }}
+      aria-label={`Token ${name}`}
+      className="w-20 rounded-lg border border-border bg-card px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-primary disabled:opacity-60"
+    />
+  );
 }
 
 /**
@@ -36,7 +84,10 @@ export function DashboardTokenControls({ tokens, values, onChange }: DashboardTo
                     key={option}
                     type="button"
                     disabled={readOnly}
-                    onClick={() => onChange?.(token.name, option)}
+                    onClick={() => {
+                      // A segment click IS the explicit commit — no draft.
+                      if (option !== current) onChange?.(token.name, option);
+                    }}
                     className={cn(
                       'text-xs px-2.5 py-1 rounded-md transition-colors',
                       option === current
@@ -52,11 +103,10 @@ export function DashboardTokenControls({ tokens, values, onChange }: DashboardTo
             ) : readOnly ? (
               <span className="text-xs text-foreground font-mono">{current}</span>
             ) : (
-              <input
-                type="text"
+              <ScalarTokenInput
+                name={token.name}
                 value={current}
-                onChange={(e) => onChange(token.name, e.target.value)}
-                className="w-20 rounded-lg border border-border bg-card px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
+                onCommit={(next) => onChange?.(token.name, next)}
               />
             )}
           </div>

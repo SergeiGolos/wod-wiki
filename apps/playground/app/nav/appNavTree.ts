@@ -16,10 +16,11 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Compass, Rss, Folder, Calendar, Settings, Paintbrush, Sliders } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell, Compass, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
+import { sourceOfQuery } from '../lib/wqlEdits'
 
 import { EffortsNavPanel } from './panels/EffortsNavPanel'
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
@@ -128,6 +129,19 @@ const homeChildren: NavItem[] = [
 
 // ─── L2 children for Library ──────────────────────────────────────────────────
 
+/** Canonical playground library view — the WQL-encoded library stream query
+ *  (no dedicated route; the stream profile resolves /library + ?q=). */
+export const PLAYGROUND_LIBRARY_WQL = 'find:note{source:playground}'
+export const PLAYGROUND_LIBRARY_HREF = `/library?q=${encodeURIComponent(PLAYGROUND_LIBRARY_WQL)}`
+
+function isLibraryPlaygroundActive(loc: Location): boolean {
+  if (loc.pathname === '/playground' || loc.pathname.startsWith('/playground/')) return true
+  if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) {
+    return false
+  }
+  return sourceOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
+}
+
 const libraryChildren: NavItem[] = [
   {
     id: 'library-explore',
@@ -136,8 +150,17 @@ const libraryChildren: NavItem[] = [
     icon: Compass,
     action: { type: 'route', to: ROUTE_PATTERNS.library },
     isActive: (loc: Location) =>
-      loc.pathname === ROUTE_PATTERNS.library ||
-      loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`),
+      (loc.pathname === ROUTE_PATTERNS.library ||
+        loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) &&
+      !isLibraryPlaygroundActive(loc),
+  },
+  {
+    id: 'library-playground',
+    label: 'Playground',
+    level: 2,
+    icon: FlaskConical,
+    action: { type: 'route', to: PLAYGROUND_LIBRARY_HREF },
+    isActive: isLibraryPlaygroundActive,
   },
   {
     id: 'library-feeds',
@@ -195,7 +218,6 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
         loc.pathname.startsWith('/guide/analytics') ||
         loc.pathname.startsWith('/canvas') ||
         loc.pathname === ROUTE_PATTERNS.home ||
-        loc.pathname.startsWith('/playground/') ||
         loc.pathname === ROUTE_PATTERNS.aiFirst ||
         loc.pathname.startsWith('/ai-first/'),
       children: homeChildren,
@@ -210,6 +232,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       isActive: (loc: Location) =>
         loc.pathname === ROUTE_PATTERNS.library ||
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
+        loc.pathname === '/playground' ||
+        loc.pathname.startsWith('/playground/') ||
         // Journal entries, collections, and feeds are library stream profiles
         // (see streamProfile) — they live under the Library L1.
         loc.pathname.startsWith('/journal') ||

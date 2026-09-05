@@ -4,7 +4,7 @@
  * The LibraryRow consumes this; the test seam is the URL.
  */
 import { describe, it, expect } from 'bun:test'
-import { entryOpenHref, entryRunHref, entryCompareHref, entryCanAddToToday } from './entryActions'
+import { entryOpenHref, entryCompareHref, entryCanAddToToday, entryIsPlayground } from './entryActions'
 import type { Entry } from './entryMapper'
 
 function makeEntry(overrides: Partial<Entry> = {}): Entry {
@@ -20,6 +20,17 @@ function makeEntry(overrides: Partial<Entry> = {}): Entry {
 }
 
 describe('entryOpenHref', () => {
+  it('routes a playground Note to the playground editor deep-link', () => {
+    expect(entryOpenHref(makeEntry({
+      id: 'uuid-1',
+      kind: 'note',
+      sourceCatalog: 'playground',
+      sourceItem: 'fran-experiment',
+      sourceId: 'playground',
+      date: null,
+    }))).toBe('/playground/fran-experiment')
+  })
+
   it('routes a Note to the journal deep-link', () => {
     expect(entryOpenHref(makeEntry({
       id: 'journal-2026-07-15',
@@ -47,44 +58,6 @@ describe('entryOpenHref', () => {
       sourceItem: 'monday',
       date: '2026-01-12',
     }))).toBe('/feeds/crossfit-programming/2026-01-12/monday')
-  })
-})
-
-describe('entryRunHref', () => {
-  it('returns /run/<blockContentId> for a Session with a content id', () => {
-    expect(entryRunHref(makeEntry({ blockContentId: 'bc-fran' }))).toBe('/run/bc-fran')
-  })
-
-  it('returns /run/<blockContentId> for a Post with a content id', () => {
-    expect(entryRunHref(makeEntry({
-      kind: 'post', sourceCatalog: 'crossfit-programming', date: '2026-01-12', blockContentId: 'bc-monday',
-    }))).toBe('/run/bc-monday')
-  })
-  it('returns /run/<blockContentId> for a Result with a content id', () => {
-    expect(entryRunHref(makeEntry({
-      kind: 'result',
-      id: 'res-101',
-      blockContentId: 'bc-fran',
-      execution: { resultId: 'res-101', noteId: 'crossfit-girls/fran', timestamp: 1700000000000, outputType: 'all' },
-    }))).toBe('/run/bc-fran')
-  })
-
-  it('returns /run/<blockContentId> for a Segment with a content id', () => {
-    expect(entryRunHref(makeEntry({
-      kind: 'segment',
-      id: 'res-101:1',
-      blockContentId: 'bc-round-1',
-      execution: { resultId: 'res-101', noteId: 'crossfit-girls/fran', timestamp: 1700000000000, outputType: 'segment' },
-    }))).toBe('/run/bc-round-1')
-  })
-
-
-  it('returns null for a row without a content id', () => {
-    expect(entryRunHref(makeEntry())).toBeNull()
-  })
-
-  it('returns null for a Note (no Run action for journal notes per spec)', () => {
-    expect(entryRunHref(makeEntry({ kind: 'note' }))).toBeNull()
   })
 })
 
@@ -131,5 +104,26 @@ describe('entryCanAddToToday', () => {
   it('returns false for a Result or Segment without an associated noteId', () => {
     expect(entryCanAddToToday(makeEntry({ kind: 'result', id: 'res-101' }))).toBe(false)
     expect(entryCanAddToToday(makeEntry({ kind: 'segment', id: 'res-101:1' }))).toBe(false)
+  })
+})
+
+describe('entryIsPlayground', () => {
+  it('returns true for a playground-sourced Note (sourceCatalog playground)', () => {
+    expect(entryIsPlayground(makeEntry({
+      id: 'uuid-1',
+      kind: 'note',
+      sourceCatalog: 'playground',
+      sourceItem: 'fran-experiment',
+      sourceId: 'playground',
+    }))).toBe(true)
+  })
+
+  it('returns true when only sourceId carries the playground marker', () => {
+    expect(entryIsPlayground(makeEntry({ sourceId: 'playground' }))).toBe(true)
+  })
+
+  it('returns false for journal and catalog entries', () => {
+    expect(entryIsPlayground(makeEntry({ kind: 'note', sourceCatalog: 'journal' }))).toBe(false)
+    expect(entryIsPlayground(makeEntry({ sourceId: 'collection:crossfit-girls' }))).toBe(false)
   })
 })

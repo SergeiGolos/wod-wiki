@@ -1,14 +1,17 @@
 /**
  * Entry action helpers — the pure seam between an Entry and the URL the
- * Open / Run / Compare row action should navigate to. The LibraryRow
- * consumes these; the test seam is the URL the row would visit on click.
+ * Open / Compare row action should navigate to. The LibraryRow consumes
+ * these; the test seam is the URL the row would visit on click.
  *
  * URL shapes (per the spec's row-action section):
  *   Open  Note    → /journal/:date/
  *   Open  Session → /collections/:cat/:workout
  *   Open  Post    → /feeds/:feedSlug/:date/:item
- *   Run   (any)   → /run/:blockContentId
  *   Compare (any) → /analytics/explorer?q=:blockContentId
+ *
+ * Run is NOT a URL: WallClockPage only consumes pendingRuntimes, so the Run
+ * action stages a runtime through startEntryRun (./entryRun) and navigates
+ * to /run/:runtimeId itself.
  *
  * Add-to-today is not a URL (it's a creation flow); the Library page wires it
  * via `addEntryToTodayInput`. The shape is exposed as a boolean
@@ -23,7 +26,11 @@ export function entryOpenHref(entry: Entry): string {
   const href = (() => {
     switch (entry.kind) {
       case 'note':
-        // Entry.date is the journal-date (YYYY-MM-DD); fall back to sourceItem.
+        // Playground entries open in the playground editor; journal notes use
+        // the journal-date (YYYY-MM-DD), falling back to sourceItem.
+        if (entry.sourceCatalog === 'playground') {
+          return `/playground/${encodeURIComponent(entry.sourceItem)}`
+        }
         return `/journal/${encodeURIComponent(entry.date ?? entry.sourceItem)}/`
       case 'session':
         return `/collections/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
@@ -45,11 +52,10 @@ export function entryOpenHref(entry: Entry): string {
   return entry.block ? `${href}#${encodeURIComponent(entry.block.segmentId)}` : href
 }
 
-/** Run: only meaningful for rows with a blockContentId; Session/Post per spec. */
-export function entryRunHref(entry: Entry): string | null {
-  if (!entry.blockContentId) return null
-  if (entry.kind === 'note') return null
-  return `/run/${encodeURIComponent(entry.blockContentId)}`
+/** True when the entry already lives in the playground (Open is the playground
+ *  action — the feed's "Playground" action targets non-playground content). */
+export function entryIsPlayground(entry: Entry): boolean {
+  return entry.sourceCatalog === 'playground' || entry.sourceId === 'playground'
 }
 
 /** Compare: any row with a blockContentId; routes to the analytics explorer. */

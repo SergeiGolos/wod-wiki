@@ -29,5 +29,6 @@ export * from './analytics';
 // 8. Output statement conversion
 export * from './conversion';
 
-// 9. Version info
-export * from './version';
+
+// 10. Parser fixture DSL & comparator (golden-test harness)
+export * from './parser-fixture';

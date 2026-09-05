@@ -28,12 +28,16 @@ const NOTES: Note[] = [
   makeNote('jrnl-1', undefined),
   makeNote('coll-1', 'collection:crossfit-girls'),
   makeNote('feed-1', 'feed:crossfit-programming/2026-01-12'),
+  { ...makeNote('pg-1', 'playground'), type: 'playground' },
+  { ...makeNote('pg-legacy', undefined), id: 'pg-legacy', type: 'playground' },
 ];
 
 const BLOCKS: BlockIndexRow[] = [
   makeBlock('jrnl-1', undefined),
   makeBlock('coll-1', 'collection:crossfit-girls'),
   makeBlock('feed-1', 'feed:crossfit-programming/2026-01-12'),
+  makeBlock('pg-1', 'playground'),
+  makeBlock('pg-legacy', undefined),
 ];
 
 function makeService() {
@@ -66,19 +70,30 @@ describe('source: filter — runFind (Note[])', () => {
   it('drops feed notes when !source:feed is set', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:note{!source:feed} in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'jrnl-1']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('default (no source filter) returns all notes across journal and static stores', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:note') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('source:all returns all notes across journal and static stores', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:note{source:all}') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+  });
+
+  it('keeps only playground entries when source:playground is set (sourceId convention and legacy type)', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:note{source:playground} in all') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['pg-1', 'pg-legacy']);
+  });
+
+  it('parse-validates source:playground as a known source value', () => {
+    const parsed = parseQuery('find:note{source:playground}');
+    expect(parsed.error).toBeUndefined();
   });
 });
 
@@ -104,7 +119,7 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
   it('drops feed blocks when !source:feed is set', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:block{!source:feed} in all') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'jrnl-1']);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('supports exact catalog-prefixed sourceId matching', async () => {
@@ -116,7 +131,13 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
   it('default (no source filter) returns all blocks across journal and static stores', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:block') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1']);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+  });
+
+  it('keeps only playground blocks (denormalized sourceId) when source:playground is set', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:block{source:playground} in all') as ParsedFindQuery);
+    expect(result.blocks.map(b => b.noteId)).toEqual(['pg-1']);
   });
 
   it('legacy in journal maps to source:journal correctly at runtime', async () => {

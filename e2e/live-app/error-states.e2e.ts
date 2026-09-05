@@ -63,7 +63,7 @@ test.describe('Error-Path Resilience', () => {
     await openNote(page, 'error-bad-syntax', '# Bad\n\n```time\n(2\n  5 Burpees\n```\n');
 
     const lintMarker = page.locator('.cm-lint-marker-error, .cm-lint-marker.cm-lint-marker-error');
-    const play = page.getByRole('button', { name: 'Play' });
+    const play = page.getByRole('button', { name: 'Play', exact: true });
 
     // Either the linter surfaces the error, or the broken block yields no Play.
     await expect(lintMarker.or(play)).toBeVisible({ timeout: 10_000 });
@@ -77,7 +77,7 @@ test.describe('Error-Path Resilience', () => {
     // degradation (tolerate-and-drop) for the ticket's inventory.
     await openNote(page, 'error-bad-timer', '# Bad timer\n\n```time\nTimer: banana\n5 Burpees\n```\n');
 
-    await expect(page.getByRole('button', { name: 'Play' }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: 'Play', exact: true }).first()).toBeVisible({ timeout: 10_000 });
     expect(errors).toEqual([]);
   });
 
