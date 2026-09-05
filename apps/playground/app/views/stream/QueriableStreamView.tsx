@@ -335,7 +335,7 @@ export function QueriableStreamView({
   const streamEmptyState = (
     <div
       className="px-6 py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-3"
-      data-testid={profile.route === '/efforts' ? 'efforts-catalog-empty-state' : 'stream-empty-state'}
+      data-testid="stream-empty-state"
     >
       <p className="text-sm font-medium">
         {profile.emptyMessage ?? 'No entries match your search.'}
@@ -359,7 +359,7 @@ export function QueriableStreamView({
   )
 
   return (
-    <div className="bg-card flex flex-col flex-1" data-testid={profile.route === '/efforts' ? 'efforts-catalog-root' : 'queriable-stream-view'}>
+    <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
       {/* Desktop: single-line header — the query bar fills the row left
           empty by the removed title.
           Mobile: no page-level header at all (it would stack over the app
@@ -367,8 +367,6 @@ export function QueriableStreamView({
           that navbar instead. */}
       <div className="max-lg:hidden">
         <StickyPageHeader
-          title={profile.route === '/efforts' ? 'Efforts' : undefined}
-          subtitle={profile.route === '/efforts' ? 'Catalog of registered efforts' : undefined}
           actions={
             <ResponsiveActions
               primary={

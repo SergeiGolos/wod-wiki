@@ -13,6 +13,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import { EffortsPage } from '../pages/EffortsPage';
 
 const TEST_EFFORT_PREFIX = 'e2e-test';
 
@@ -54,8 +55,7 @@ test.describe('Efforts Catalog Page', () => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await expect(page.getByRole('main').getByText('Efforts').first()).toBeVisible();
-    await expect(page.getByText(/Catalog of.*registered efforts/)).toBeVisible();
+    await expect(page.getByTestId('stream-query-bar')).toBeVisible();
     await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
     expect(errors).toHaveLength(0);
   });
@@ -68,23 +68,19 @@ test.describe('Efforts Catalog Page', () => {
   });
 
   test('filtering by custom shows empty state initially', async ({ page }) => {
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
-
-    const customBtn = page.getByRole('button', { name: 'Custom', exact: true }).first();
-    await customBtn.click();
+    const efforts = new EffortsPage(page);
+    await efforts.gotoCatalog();
+    await efforts.selectOrigin('Custom');
     await page.waitForTimeout(400);
     await expect(page.getByText(/No efforts match/i)).toBeVisible();
   });
 
   test('filtering by bundled shows efforts', async ({ page }) => {
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
-
-    const bundledBtn = page.getByRole('button', { name: 'Bundled', exact: true }).first();
-    await bundledBtn.click();
+    const efforts = new EffortsPage(page);
+    await efforts.gotoCatalog();
+    await efforts.selectOrigin('Bundled');
     await page.waitForTimeout(400);
-    await expect(page.getByText('Rowing').first()).toBeVisible();
+    await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
   });
 
   test('search filtering narrows results', async ({ page }) => {
