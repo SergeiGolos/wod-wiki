@@ -107,6 +107,7 @@ mock.module('../app/lib/dashboardCorpus', () => ({
 mock.module('../app/canvas/canvasRoutes', () => ({
   canvasRoutes: [],
   normalizePathname: (p: string) => p,
+  findCanvasPage: (p: string) => null,
 }));
 
 

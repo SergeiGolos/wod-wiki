@@ -23,6 +23,9 @@ export * from './blocks';
 // ── 4. WQL Composer & Diagnostics ─────────────────────────────────────────────
 export * from './composer';
 
+// ── 4b. Editor Dialog (keyboard-aware, accessible) ────────────────────────────
+export * from './dialog';
+
 // ── 5. Editor Extensions & Presets ────────────────────────────────────────────
 export * from './extensions';
 

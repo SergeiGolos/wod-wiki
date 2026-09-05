@@ -11,6 +11,9 @@
  * `subset` = every expectation matches, extras pass. When an expectation
  * fails to match, its diff already names what the statement carries, so
  * leftover actuals are only reported when every expectation matched.
+ *
+ * Consumed by the vitest fixture catalog and the Storybook parser-test
+ * builder/runner (`apps/storybook/src/parser-tests`).
  */
 
 import type { IMetric } from '@bitcobblers/wod-wiki-core';
@@ -73,6 +76,33 @@ function lineMatches(line: MetricLine, metric: IMetric): boolean {
 }
 
 /**
+ * Structured one-statement diff: which expectations matched which actual
+ * metrics, which expectations found no match, and which actual metrics
+ * remain unmatched (extras — failures only in `closed` mode).
+ */
+export interface StatementMetricDiff {
+  matched: Array<{ expected: MetricLine; actual: IMetric }>;
+  missingExpected: MetricLine[];
+  extraActual: IMetric[];
+}
+
+/** Pair expectations against actual metrics (greedy first-match consumption). */
+export function diffStatement(expected: MetricLine[], actual: readonly IMetric[]): StatementMetricDiff {
+  const remaining = [...actual];
+  const matched: StatementMetricDiff['matched'] = [];
+  const missingExpected: MetricLine[] = [];
+  for (const line of expected) {
+    const hit = remaining.findIndex((m) => lineMatches(line, m));
+    if (hit === -1) {
+      missingExpected.push(line);
+    } else {
+      matched.push({ expected: line, actual: remaining.splice(hit, 1)[0]! });
+    }
+  }
+  return { matched, missingExpected, extraActual: remaining };
+}
+
+/**
  * Compare one statement's expectations against its actual metrics.
  * Returns human-readable diffs (empty = pass).
  */
@@ -81,23 +111,16 @@ export function compareStatement(
   actual: readonly IMetric[],
   mode: MatchMode,
 ): string[] {
+  const { missingExpected, extraActual } = diffStatement(expectations, actual);
   const diffs: string[] = [];
-  const remaining = [...actual];
-  let unmatched = 0;
+  const present = actual.map(renderMetric).join('; ') || 'nothing';
 
-  for (const line of expectations) {
-    const hit = remaining.findIndex((m) => lineMatches(line, m));
-    if (hit === -1) {
-      unmatched += 1;
-      const present = remaining.map(renderMetric).join('; ') || 'nothing';
-      diffs.push(`unmatched expectation ${line.source} — statement carries: ${present}`);
-    } else {
-      remaining.splice(hit, 1);
-    }
+  for (const line of missingExpected) {
+    diffs.push(`unmatched expectation ${line.source} — statement carries: ${present}`);
   }
 
-  if (mode === 'closed' && unmatched === 0) {
-    for (const m of remaining) {
+  if (mode === 'closed' && missingExpected.length === 0) {
+    for (const m of extraActual) {
       diffs.push(`unexpected metric ${renderMetric(m)} — not in the Expected block`);
     }
   }

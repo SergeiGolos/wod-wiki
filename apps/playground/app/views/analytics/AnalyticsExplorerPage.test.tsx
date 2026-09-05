@@ -75,6 +75,39 @@ mock.module('@/services/analytics/sample', () => ({
   hasSampleData: mock(async () => sampleDataPresent),
 }));
 
+// The save flow persists through these two services; tests observe the
+// writes (exact WQL, failure surface) instead of touching real storage.
+let createdDashboards: Array<{ title: string; rawContent: string }> = [];
+let createDashboardImpl = async (title: string) => {
+  const note = { id: `dash-${createdDashboards.length + 1}`, title, rawContent: `---\ndashboard: true\ntitle: ${title}\nslug: ${title.toLowerCase()}\n---\n` };
+  createdDashboards.push(note);
+  return note;
+};
+let noteUpdates: Array<{ id: string; rawContent: string }> = [];
+let updateImpl = async (id: string, rawContent: string) => {
+  noteUpdates.push({ id, rawContent });
+  return { id, rawContent };
+};
+
+mock.module('../../services/dashboardNotes', () => ({
+  dashboardNotes: {
+    createDashboard: mock(async (title?: string) => createDashboardImpl(title ?? 'New Dashboard')),
+    cloneDashboard: mock(async () => ({ id: 'clone' })),
+  },
+}));
+
+mock.module('../../services/journalNotes', () => ({
+  journalNotes: {
+    update: mock(async (id: string, rawContent: string) => updateImpl(id, rawContent)),
+    resolve: mock(async () => { throw new Error('not used in these tests'); }),
+    getById: mock(async () => { throw new Error('not used in these tests'); }),
+    create: mock(async () => { throw new Error('not used in these tests'); }),
+    listByDate: mock(async () => []),
+    moveToDate: mock(async () => { throw new Error('not used in these tests'); }),
+    delete: mock(async () => undefined),
+  },
+}));
+
 import { AnalyticsExplorerPage } from './AnalyticsExplorerPage';
 
 afterEach(cleanup);
@@ -110,6 +143,17 @@ describe('AnalyticsExplorerPage', () => {
     runFindCalls = [];
     runQueryImpl = async (raw: string) => resultOf(raw);
     runFindImpl = async (raw: string) => findResultOf(raw);
+    createdDashboards = [];
+    noteUpdates = [];
+    createDashboardImpl = async (title: string) => {
+      const note = { id: `dash-${createdDashboards.length + 1}`, title, rawContent: `---\ndashboard: true\ntitle: ${title}\nslug: ${title.toLowerCase()}\n---\n` };
+      createdDashboards.push(note);
+      return note;
+    };
+    updateImpl = async (id: string, rawContent: string) => {
+      noteUpdates.push({ id, rawContent });
+      return { id, rawContent };
+    };
   });
 
   it('lands on a valid default draft — no parse error, grammar as placeholder', () => {
@@ -169,20 +213,67 @@ describe('AnalyticsExplorerPage', () => {
     expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5');
   });
 
-  it('Save opens the two-stage dialog seeded with the subset', async () => {
+  it('Save opens the composer flow seeded with the subset and a live combined WQL', async () => {
     renderPage('find:note{tags:pr,source:journal}');
     await waitFor(() => expect(screen.getByTestId('save-query')).toBeDefined());
 
     fireEvent.click(screen.getByTestId('save-query'));
 
-    // Stage 1: the find query is the subset (data source).
-    expect(screen.getByTestId('dashboard-subset-query').textContent).toContain('find:note{tags:pr,source:journal}');
-    // Stage 2: the calculation composer seeds the subset as its where join…
+    // Dataset: the find query is the subset (data source).
+    expect(screen.getByTestId('widget-composer-subset').textContent).toContain('find:note{tags:pr,source:journal}');
+    // Calculation: the composer seeds the subset as its where join…
     await waitFor(() => expect(screen.getByTestId('token-slot-where').textContent).toContain('find:note{tags:pr,source:journal}'));
-    // …and the combined WQL previews live.
-    await waitFor(() => expect(screen.getByTestId('dashboard-combined-query').textContent).toContain('where find:note{tags:pr,source:journal}'));
-    // Apply is deferred — dashboard wiring is a follow-up.
-    expect(screen.getByTestId('dashboard-apply').getAttribute('disabled')).not.toBeNull();
+    // …and the exact composed WQL previews live (this is what gets persisted).
+    await waitFor(() => expect(screen.getByTestId('widget-composer-wql').textContent).toContain('where find:note{tags:pr,source:journal}'));
+    // The seeded head still lacks a metric — Apply stays gated until it parses.
+    expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).not.toBeNull();
+    // Destination defaults to creating a new dashboard.
+    expect(screen.getByTestId('dashboard-dest-new').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('Save persists the exact composed WQL as a widget on a new dashboard', async () => {
+    renderPage('find:note{tags:pr,source:journal}');
+    fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
+
+    // Commit a full valid calculation through the composer.
+    const input = screen.getByTestId('wql-composer-input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() =>
+      expect(screen.getByTestId('widget-composer-wql').textContent).toContain('sum:totalVolume{} where find:note{tags:pr,source:journal}'),
+    );
+
+    fireEvent.change(screen.getByTestId('widget-composer-title'), { target: { value: 'PR Volume' } });
+    fireEvent.change(screen.getByTestId('dashboard-new-title'), { target: { value: 'My Board' } });
+    fireEvent.click(screen.getByTestId('widget-composer-apply'));
+
+    await waitFor(() => expect(noteUpdates.length).toBe(1));
+    expect(createdDashboards[0].title).toBe('My Board');
+    const raw = noteUpdates[0].rawContent;
+    // The locked widget section: heading + question-less fence, exact WQL.
+    expect(raw).toContain('## PR Volume');
+    expect(raw).toContain('```query');
+    expect(raw).toContain('sum:totalVolume{} where find:note{tags:pr,source:journal}');
+  });
+
+  it('Save keeps the draft open with a visible error when persistence fails', async () => {
+    updateImpl = async () => { throw new Error('quota exceeded'); };
+    renderPage('find:note{tags:pr,source:journal}');
+    fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
+
+    const input = screen.getByTestId('wql-composer-input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).toBeNull());
+
+    fireEvent.click(screen.getByTestId('widget-composer-apply'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('dashboard-save-error').textContent).toContain('quota exceeded'),
+    );
+    // Nothing silently dropped: the dialog (and draft) is still open.
+    expect(screen.getByTestId('widget-composer-apply')).toBeDefined();
+    expect(noteUpdates.length).toBe(0);
   });
 
   it('shows the records behind a calculation as a Library-style list', async () => {

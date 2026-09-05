@@ -1,24 +1,214 @@
-import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
-
-import { pageId, playgroundContent } from './playgroundContent'
-
 /**
- * Create a new playground page.
+ * createPlaygroundPage — the deep intake module for playground entries.
  *
- * Writes the composite page (`playground/<timestamp-name>`) — the identity
- * PlaygroundNotePage actually loads — and returns the route name. Millisecond
- * timestamp precision plus the in-flight guard in PlaygroundRedirect make
- * collisions a non-issue; an upsert on collision is acceptable for a scratch
- * surface.
+ * One seam owns every path that turns content into a persisted playground
+ * Note: the New/Reset page buttons, ZIP imports (/load?zip=), home shares
+ * (/load?z=), and runnable home / syntax examples (which persist before the
+ * runtime starts). All entries share one shape:
+ *
+ *  - Note id: a UUID (the V8 note shape) — results, attachments, and events
+ *    join on it, and it survives a later promotion to the journal.
+ *  - `slug`: `playground/<name>` — the route id `/playground/:id` resolves
+ *    (getEntry falls back to by-slug lookup), so old composite-id links keep
+ *    working and new entries are UUID-keyed.
+ *  - `sourceId: 'playground'` — the `find:note{source:playground}` library
+ *    scope (sourceMatches: exact `playground` id).
+ *  - `type: 'playground'`, no journalDate until the user promotes the entry
+ *    to a journal date (`movePlaygroundToJournal`).
+ *
+ * Surfaces that run the same active playground repeatedly (home hero/runway,
+ * syntax canvas routes) pass a `reuseKey`: the entry is created once and
+ * updated in place on later runs — never a fresh Note per Run — so the
+ * library doesn't fill with duplicate experiment entries.
  */
-export async function createPlaygroundPage(content: string): Promise<string> {
-  const baseName = formatPlaygroundTimestampId(Date.now())
-  await playgroundContent.savePage({
-    id: pageId('playground', baseName),
-    category: 'playground',
-    name: baseName,
-    content,
-    updatedAt: Date.now(),
-  })
-  return baseName
+import { v7 as uuidv7 } from 'uuid';
+
+import type { INotePersistence } from '@/services/persistence';
+import { notePersistence } from '@/services/persistence';
+import type { HistoryEntry } from '@/types/history';
+import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
+
+import { playgroundContent, pageId, type PlaygroundPage } from './playgroundContent';
+
+/** A persisted playground entry: the canonical Note UUID + its route id. */
+export interface PlaygroundEntry {
+  /** Canonical Note UUID — the WorkoutResult.noteId join key. */
+  noteId: string;
+  /** `playground/<name>` route id — open at /playground/<name>. */
+  routeId: string;
+}
+
+export interface EnsurePlaygroundEntryOptions {
+  /**
+   * Stable per-surface key ('home', 'guide-syntax-basics', 'chapter-basics').
+   * The entry slug becomes `playground/<reuseKey>`: first call creates it,
+   * later calls update the same Note (UUID preserved). Omit for a fresh
+   * entry every call (ZIP import semantics).
+   */
+  reuseKey?: string;
+  /** Display title for a newly created reused entry (kept stable on update). */
+  title?: string;
+}
+
+/** Route-id pages view the intake needs (playgroundContent satisfies this). */
+export interface PlaygroundPageStore {
+  getPage(id: string): Promise<PlaygroundPage | undefined>;
+  savePage(page: PlaygroundPage): Promise<string>;
+}
+
+export interface PlaygroundIntakeDependencies {
+  persistence: INotePersistence;
+  pages: PlaygroundPageStore;
+  now?: () => number;
+}
+
+const PLAYGROUND_SOURCE_ID = 'playground';
+
+/** Slug-safe reuse key: 'guide/syntax/basics' → 'guide-syntax-basics'. */
+function slugifyReuseKey(reuseKey: string): string {
+  return (
+    reuseKey
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'entry'
+  );
+}
+
+export interface PlaygroundIntake {
+  /**
+   * Create a fresh playground page and return its route name (the `<name>`
+   * segment of `/playground/<name>`). Signature unchanged since the original
+   * page-store version — callers navigate with the returned name.
+   */
+  createPage(content: string): Promise<string>;
+  /** Create or update a playground entry; see EnsurePlaygroundEntryOptions. */
+  ensureEntry(content: string, opts?: EnsurePlaygroundEntryOptions): Promise<PlaygroundEntry>;
+  /**
+   * Promote a playground entry onto a journal date — the SAME Note (UUID,
+   * segments, results, attachments all preserved; nothing is copied, so no
+   * duplicate playground entry remains). The source bucket is cleared so the
+   * note leaves the `source:playground` scope and joins the journal page.
+   */
+  moveToJournal(noteId: string, journalDate: string): Promise<HistoryEntry>;
+}
+
+export function createPlaygroundIntake({
+  persistence,
+  pages,
+  now = Date.now,
+}: PlaygroundIntakeDependencies): PlaygroundIntake {
+  async function writeEntry(routeId: string, title: string, content: string): Promise<string> {
+    const entry = await persistence.createNote({
+      id: uuidv7(),
+      title,
+      rawContent: content,
+      targetDate: now(),
+      type: 'playground',
+      slug: routeId,
+      sourceId: PLAYGROUND_SOURCE_ID,
+    });
+    return entry.id;
+  }
+
+  async function updateEntry(entryId: string, routeId: string, title: string, content: string): Promise<void> {
+    await pages.savePage({
+      id: entryId,
+      slug: routeId,
+      category: 'playground',
+      name: title,
+      content,
+      updatedAt: now(),
+    });
+  }
+
+  return {
+    async createPage(content) {
+      const name = formatPlaygroundTimestampId(now());
+      const routeId = pageId('playground', name);
+      // Same-millisecond recreations upsert the just-created page instead of
+      // piling up two Notes behind one slug (the old composite-id behavior).
+      const existing = await pages.getPage(routeId);
+      if (existing) {
+        await updateEntry(existing.id, existing.slug ?? routeId, existing.name || name, content);
+        return name;
+      }
+      await writeEntry(routeId, name, content);
+      return name;
+    },
+
+    async ensureEntry(content, opts = {}) {
+      if (!opts.reuseKey) {
+        const name = formatPlaygroundTimestampId(now());
+        const routeId = pageId('playground', name);
+        const noteId = await writeEntry(routeId, name, content);
+        return { noteId, routeId };
+      }
+      const name = slugifyReuseKey(opts.reuseKey);
+      const routeId = pageId('playground', name);
+      const existing = await pages.getPage(routeId);
+      // Only a genuine playground Note may be updated in place. A moved
+      // (promoted) entry no longer answers this slug — the slug is cleared on
+      // move — but a legacy composite-id row's id IS the route id, so a moved
+      // legacy note would still resolve here. Its type says 'journal' now:
+      // never touch it, mint a fresh entry under a suffixed slug instead.
+      if (existing && existing.type === 'playground') {
+        await updateEntry(existing.id, existing.slug ?? routeId, existing.name || name, content);
+        return { noteId: existing.id, routeId };
+      }
+      if (existing) {
+        console.warn(
+          `[playground-intake] reuse key '${name}' resolves to a non-playground note (${existing.id}); ` +
+          'minting a fresh entry instead of overwriting it.',
+        );
+        const freshName = `${name}-${formatPlaygroundTimestampId(now())}`;
+        const freshRouteId = pageId('playground', freshName);
+        const noteId = await writeEntry(freshRouteId, opts.title ?? freshName, content);
+        return { noteId, routeId: freshRouteId };
+      }
+      const noteId = await writeEntry(routeId, opts.title ?? name, content);
+      return { noteId, routeId };
+    },
+
+    moveToJournal(noteId, journalDate) {
+      return persistence.mutateNote({ id: noteId }, {
+        metadata: {
+          journalDate,
+          type: 'journal',
+          // null clears the source bucket AND the route slug: the promoted
+          // note leaves the playground scope (`find:note{source:playground}`)
+          // and stops answering /playground/<name>, so a later same-key
+          // ensure can never update the journal note in the playground's
+          // place. UUID, segments, results, and attachments are untouched —
+          // nothing is copied, so no duplicate playground entry remains.
+          sourceId: null,
+          slug: null,
+        },
+      });
+    },
+  };
+}
+
+/** Production intake over the notePersistence + playgroundContent singletons. */
+export const playgroundIntake = createPlaygroundIntake({
+  persistence: notePersistence,
+  pages: playgroundContent,
+});
+
+/** Create a fresh playground page; returns the route name (see intake.createPage). */
+export function createPlaygroundPage(content: string): Promise<string> {
+  return playgroundIntake.createPage(content);
+}
+
+/** Create or update a playground entry (see intake.ensureEntry). */
+export function ensurePlaygroundEntry(
+  content: string,
+  opts?: EnsurePlaygroundEntryOptions,
+): Promise<PlaygroundEntry> {
+  return playgroundIntake.ensureEntry(content, opts);
+}
+
+/** Promote a playground entry to a journal date, preserving its UUID. */
+export function movePlaygroundToJournal(noteId: string, journalDate: string): Promise<HistoryEntry> {
+  return playgroundIntake.moveToJournal(noteId, journalDate);
 }

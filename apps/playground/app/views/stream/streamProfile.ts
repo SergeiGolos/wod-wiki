@@ -101,7 +101,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   route: '/library',
   defaultWql: 'find:note last 2w',
   level: 'note',
-  typeOptions: ['notes', 'journal', 'collections', 'feeds', 'blocks'],
+  typeOptions: ['notes', 'journal', 'collections', 'feeds', 'playground', 'blocks'],
   shelfVisible: true,
   legacy: createContentLegacyConfig(),
 }

@@ -10,7 +10,7 @@ afterEach(() => {
 describe('ViewSettingsDialog component', () => {
   const defaultSettings: ViewSettings = {
     level: 'effort',
-    layout: 'stream',
+    layout: 'cards',
     visibleFields: ['label', 'canonicalSlug', 'discipline', 'met', 'intensityTier', 'aliases'],
   }
 
@@ -47,11 +47,12 @@ describe('ViewSettingsDialog component', () => {
 
     expect(screen.getByTestId('view-settings-dialog')).toBeDefined()
     expect(screen.getByText('View Settings')).toBeDefined()
-    expect(screen.getByTestId('view-settings-layout-stream')).toBeDefined()
-    expect(screen.getByTestId('view-settings-layout-table')).toBeDefined()
+    expect(screen.getByTestId('view-settings-layout-cards')).toBeDefined()
+    expect(screen.getByTestId('view-settings-layout-rows')).toBeDefined()
+    expect(screen.getByTestId('view-settings-layout-feed')).toBeDefined()
   })
 
-  it('allows switching layout between stream and table', () => {
+  it('allows switching layout between cards, rows, and feed', () => {
     const handleLayoutChange = mock()
     render(
       <ViewSettingsDialog
@@ -66,10 +67,11 @@ describe('ViewSettingsDialog component', () => {
       />,
     )
 
-    const tableButton = screen.getByTestId('view-settings-layout-table')
-    fireEvent.click(tableButton)
+    fireEvent.click(screen.getByTestId('view-settings-layout-rows'))
+    expect(handleLayoutChange).toHaveBeenCalledWith('rows')
 
-    expect(handleLayoutChange).toHaveBeenCalledWith('table')
+    fireEvent.click(screen.getByTestId('view-settings-layout-feed'))
+    expect(handleLayoutChange).toHaveBeenCalledWith('feed')
   })
 
   it('renders checkboxes for all available fields of the entity level', () => {
@@ -123,7 +125,7 @@ describe('ViewSettingsDialog component', () => {
         onOpenChange={mock()}
         route="/efforts"
         level="effort"
-        settings={{ ...defaultSettings, layout: 'table', visibleFields: ['label'] }}
+        settings={{ ...defaultSettings, layout: 'rows', visibleFields: ['label'] }}
         onLayoutChange={mock()}
         onToggleField={mock()}
         onReset={handleReset}
@@ -151,7 +153,7 @@ describe('ViewSettingsDialog component', () => {
       />,
     )
 
-    const closeBtn = screen.getByTestId('view-settings-close-x')
+    const closeBtn = screen.getByRole('button', { name: 'Close', exact: true })
     fireEvent.click(closeBtn)
 
     expect(handleOpenChange).toHaveBeenCalledWith(false)

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { IMetric } from '@bitcobblers/wod-wiki-core';
-import { parseMetricLine } from './metricLine';
-import { compareStatement, renderMetric } from './compare';
+import { parseMetricLine } from '../../../src/parser-fixture/metricLine';
+import { compareStatement, renderMetric } from '../../../src/parser-fixture/compare';
 
 const metric = (partial: Partial<IMetric> & { type: string }): IMetric =>
   ({ origin: 'parser', ...partial }) as IMetric;

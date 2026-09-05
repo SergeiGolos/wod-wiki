@@ -15,12 +15,12 @@
  *   the composed WQL back through `onQueryChange` (URL `?q=` follows).
  *
  * `compact` (mobile) renders the bar that portals into the app navbar:
- * type pill + truncated WQL + optional view-settings; tapping opens the
- * same palette dialog.
+ * type pill + truncated WQL; tapping opens the same palette dialog
+ * (view settings lives in the mobile dock, owned by ResponsiveActions).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, Clock3, Command, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Clock3, Command } from 'lucide-react'
 import { parseQuery, type QueryWindow } from '@bitcobblers/wod-wiki-engine'
 import { SOURCE_OPTIONS, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
@@ -40,15 +40,20 @@ const SOURCE_DOT: Record<string, string> = {
   journal: '#508860',
   collections: '#7C62A0',
   feeds: '#5980A8',
+  playground: '#B0653A',
   blocks: '#A87040',
   efforts: '#948030',
   metrics: '#5980A8',
   rows: '#A05858',
 }
 
-const SOURCE_LABEL: Record<string, string> = Object.fromEntries(
-  SOURCE_OPTIONS.map((o) => [o.value, o.label]),
-)
+// SOURCE_OPTIONS (ui package) covers the classic planes; the playground
+// plane entered the WQL vocabulary after that table was frozen — label it
+// here rather than forking the shared option list.
+const SOURCE_LABEL: Record<string, string> = {
+  ...Object.fromEntries(SOURCE_OPTIONS.map((o) => [o.value, o.label])),
+  playground: 'Playground',
+}
 
 function windowLabel(w: QueryWindow): string {
   if (w.kind === 'relative') return `last ${w.size}${w.unit}`
@@ -63,8 +68,6 @@ export interface StreamQueryBarProps {
   options: readonly string[]
   /** Stage-count executor handed to the palette composer. */
   execute: WqlExecutor
-  /** Mobile-only view-settings affordance rendered after the summary. */
-  onViewSettings?: () => void
   /** Compact (mobile) variant — summary line instead of chips. */
   compact?: boolean
   className?: string
@@ -75,7 +78,6 @@ export function StreamQueryBar({
   onQueryChange,
   options,
   execute,
-  onViewSettings,
   compact = false,
   className,
 }: StreamQueryBarProps) {
@@ -142,20 +144,6 @@ export function StreamQueryBar({
         >
           {query}
         </span>
-        {onViewSettings && (
-          <button
-            type="button"
-            data-testid="stream-query-view-settings"
-            title="View Settings"
-            onClick={(e) => {
-              e.stopPropagation()
-              onViewSettings()
-            }}
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <SlidersHorizontal className="size-4" />
-          </button>
-        )}
       </div>
     )
   }

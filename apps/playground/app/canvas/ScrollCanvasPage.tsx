@@ -69,7 +69,8 @@ export function ScrollCanvasPage({
 
   const canvasNoteId = `canvas:scroll:${page.route}`
   const getBlock = useCallback(() => blocksRef.current[0] ?? null, [])
-  const runtime = useCanvasRuntime({ canvasNoteId, getBlock })
+  const getContent = useCallback(() => doc, [doc])
+  const runtime = useCanvasRuntime({ canvasNoteId, getBlock, getContent, title: page.frontmatter.title })
 
   const challenge = useSyntaxChallenge({
     pageRoute: page.route,
@@ -96,11 +97,11 @@ export function ScrollCanvasPage({
       setPanelState: (state: 'note' | 'track' | 'review') => {
         if (state === 'track') {
           const block = getBlock()
-          if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+          if (block) runtime.startRun(block)
         }
       },
     }),
-    [navigate, setHeadingParam, wodFiles, getBlock, runtime.setFullscreen],
+    [navigate, setHeadingParam, wodFiles, getBlock, runtime.startRun],
   )
 
   const handleExampleSelect = useCallback(
@@ -122,10 +123,10 @@ export function ScrollCanvasPage({
   // Run from the runway's Run button — the adapter hands back the current
   // doc + compiled block; launch the fullscreen timer with it.
   const handleRun = useCallback(
-    (_doc: string, block: ScriptBlock | null) => {
-      if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+    (content: string, block: ScriptBlock | null) => {
+      if (block) void runtime.startRun(block, content)
     },
-    [runtime.setFullscreen],
+    [runtime.startRun],
   )
 
   const noteTitle = `${page.route.split('/').pop() ?? 'note'}.md`
@@ -154,17 +155,9 @@ export function ScrollCanvasPage({
       {runtime.fullscreen?.kind === 'timer' && (
         <FullscreenTimer
           block={runtime.fullscreen.block}
-          onClose={() => runtime.setFullscreen(null)}
+          onClose={runtime.closeRun}
           autoStart
-          onCompleteWorkout={(_blockId, results) => {
-            const block = getBlock()
-            if (block) {
-              runtime.handleWorkoutComplete(block, results)
-              // #945: no review overlay on completion — canvas pages record
-              // the result and return to the note.
-              runtime.setFullscreen(null)
-            }
-          }}
+          onCompleteWorkout={(_blockId, results) => { void runtime.handleWorkoutComplete(results) }}
         />
       )}
 

@@ -97,8 +97,9 @@ export function ActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
+        <Button variant="ghost" size="icon" aria-label="Page options" className="text-muted-foreground max-lg:w-full max-lg:justify-start max-lg:gap-2">
           <EllipsisVerticalIcon className="size-5" />
+          <span className="lg:sr-only">Page options</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">

@@ -68,9 +68,18 @@ export interface Entry {
   title: string
   /** YYYY-MM-DD for date-grouped stream; null for undated shelf sessions & efforts. */
   date: string | null
+  /** Creation instant — the chronological tiebreaker for undated entries (feed). */
+  createdAt?: number
   subtitle?: string
   detail?: string
   tags?: string[]
+  /** Rich-preview lines for whole-note entries (feed mode's engine companion
+   *  query) — up to 3 non-empty lines from the note's blocks. */
+  excerpt?: string[]
+  /** The note's first wod block (feed companion query): full script content
+   *  powers the rich reading preview and the feed's Run action — the runtime
+   *  parses this content, so it is carried verbatim. */
+  wodBlock?: { blockContentId: string; content: string }
   blockContentId?: string
   /** Set when the Entry represents one block (find:block), not a whole note. */
   block?: EntryBlock
@@ -84,6 +93,20 @@ function isCollection(sourceId: string | undefined): boolean {
 
 function isFeed(sourceId: string | undefined): boolean {
   return !!sourceId?.startsWith('feed:')
+}
+
+/** Playground entries: the intake convention is sourceId 'playground'; legacy
+ *  playground pages carry type 'playground' (or a `playground/` composite id)
+ *  with no sourceId. */
+function isPlaygroundNote(note: Note): boolean {
+  return note.sourceId === 'playground' || note.type === 'playground' || note.id.startsWith('playground/')
+}
+
+/** Route-visible name of a playground note — the `/playground/:id` segment
+ *  (slug's name half for UUID-keyed notes, the id itself for legacy pages). */
+export function playgroundRouteName(note: Pick<Note, 'id' | 'slug'>): string {
+  const routeId = note.slug ?? note.id
+  return routeId.startsWith('playground/') ? routeId.slice('playground/'.length) : routeId
 }
 
 /** For feeds, drop the `feeds/` wrapper and return the second segment as the catalog. */
@@ -103,6 +126,19 @@ export function toEntry(note: Note): Entry {
   const id = note.id
   const title = note.title
 
+  if (isPlaygroundNote(note)) {
+    return {
+      id,
+      kind: 'note',
+      sourceCatalog: 'playground',
+      sourceItem: playgroundRouteName(note),
+      sourceId: note.sourceId,
+      title,
+      date: null,
+      createdAt: note.createdAt,
+    }
+  }
+
   if (isCollection(note.sourceId)) {
     const [catalog, ...rest] = id.split('/')
     return {
@@ -113,6 +149,7 @@ export function toEntry(note: Note): Entry {
       sourceId: note.sourceId,
       title,
       date: null,
+      createdAt: note.createdAt,
       subtitle: (note as Note & { catalog?: string }).catalog ?? catalog,
     }
   }
@@ -126,6 +163,7 @@ export function toEntry(note: Note): Entry {
       sourceId: note.sourceId,
       title,
       date: feedDate(id),
+      createdAt: note.createdAt,
       subtitle: (note as Note & { catalog?: string }).catalog ?? id.split('/')[1]!,
     }
   }
@@ -139,6 +177,7 @@ export function toEntry(note: Note): Entry {
     sourceId: note.sourceId,
     title,
     date: null,
+    createdAt: note.createdAt,
   }
 }
 

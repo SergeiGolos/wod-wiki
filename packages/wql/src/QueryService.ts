@@ -80,10 +80,14 @@ function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; 
   return clean.split('/')[0];
 }
 
-/** Match a single sourceId against one filter value. The `journal` kind matches
+/** Match a single row against one source filter value. The `journal` kind matches
  *  rows with no sourceId prefix; the `collection` / `feed` kinds match rows whose
- *  sourceId starts with the kind. A `kind:id` literal matches the exact id. */
-function sourceMatches(sourceId: string | undefined, kind: string): boolean {
+ *  sourceId starts with the kind. A `kind:id` literal matches the exact id.
+ *  `playground` matches the playground intake's sourceId convention and, on the
+ *  note plane, legacy rows typed 'playground' (playground pages saved before the
+ *  sourceId convention existed — their sourceId is absent). */
+function sourceMatches(item: { sourceId?: string; type?: string }, kind: string): boolean {
+  const sourceId = item.sourceId;
   if (kind === 'all') return true;
   if (kind === 'journal') return !sourceId || sourceId === 'journal';
   if (kind === 'collection' || kind === 'collections') {
@@ -92,16 +96,19 @@ function sourceMatches(sourceId: string | undefined, kind: string): boolean {
   if (kind === 'feed' || kind === 'feeds') {
     return !!sourceId && sourceId.startsWith('feed:');
   }
+  if (kind === 'playground') {
+    return sourceId === 'playground' || item.type === 'playground';
+  }
   return sourceId === kind;
 }
 
 /** Apply the `source:` filter key to a list of objects that carry `sourceId`. */
-function applySourceFilter<T extends { sourceId?: string }>(items: T[], filters: TagFilter[]): T[] {
+function applySourceFilter<T extends { sourceId?: string; type?: string }>(items: T[], filters: TagFilter[]): T[] {
   for (const filter of filters) {
     if (filter.key !== 'source') continue;
     const wants = filter.values.map(v => v.value);
     items = items.filter(item => {
-      const match = wants.some(w => sourceMatches(item.sourceId, w));
+      const match = wants.some(w => sourceMatches(item, w));
       return filter.negate ? !match : match;
     });
   }

@@ -23,6 +23,17 @@ export {
   whiteboardParser,
   whiteboardScriptLanguage,
   whiteboardScript,
+  // Parser fixture DSL & comparator (golden-test harness)
+  canonicalizeType,
+  parseMetricLine,
+  diffStatement,
+  compareStatement,
+  renderMetric,
+  FixtureSyntaxError,
+  type LiteralKind,
+  type MetricLine,
+  type MatchMode,
+  type StatementMetricDiff,
   // Compiler
   JitCompiler,
   RuntimeFactory,

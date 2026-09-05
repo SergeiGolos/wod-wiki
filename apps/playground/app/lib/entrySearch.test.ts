@@ -142,6 +142,88 @@ describe('StreamQueryEngine — secondary text search for find:note', () => {
   })
 })
 
+describe('StreamQueryEngine — note block info (feed previews)', () => {
+  it('attaches excerpt lines and the first wod blockContentId per note, same scope', async () => {
+    const calls: ParsedFindQuery[] = []
+    runFindImpl = async parsed => {
+      calls.push(parsed)
+      if (parsed.target === 'block') {
+        return {
+          parsed,
+          notes: [],
+          blocks: [
+            { ...makeBlock(1, 200), noteId: 'note-0', rawContent: '21-15-9\nThrusters', position: 0, blockContentId: 'wod-1' },
+            { ...makeBlock(2, 200), noteId: 'note-0', rawContent: 'Pull-ups', position: 1, blockContentId: undefined },
+          ],
+          stages: { selected: 2, matched: 2 },
+        }
+      }
+      return {
+        parsed,
+        notes: [{ id: 'note-0', title: 'Note 0', createdAt: 100, type: 'playground', sourceId: 'playground' } as never],
+        blocks: [],
+        stages: { selected: 1, matched: 1 },
+      }
+    }
+
+    const engine = new StreamQueryEngine({ noteBlockInfo: true })
+    const entries = await engine.query('find:note{source:playground}')
+
+    // One companion query, identical scope (only the target pivots).
+    expect(calls).toHaveLength(2)
+    expect(calls[0]!.target).toBe('note')
+    expect(calls[1]!.target).toBe('block')
+    expect(calls[1]!.filters).toEqual(calls[0]!.filters)
+
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.excerpt).toEqual(['21-15-9', 'Thrusters', 'Pull-ups'])
+    expect(entries[0]!.blockContentId).toBe('wod-1')
+    expect(entries[0]!.wodBlock).toEqual({ blockContentId: 'wod-1', content: '21-15-9\nThrusters' })
+  })
+
+  it('does not run the companion query by default', async () => {
+    const calls: ParsedFindQuery[] = []
+    runFindImpl = async parsed => {
+      calls.push(parsed)
+      return {
+        parsed,
+        notes: [{ id: 'note-0', title: 'Note 0', createdAt: 100, type: 'note' } as never],
+        blocks: [],
+        stages: { selected: 1, matched: 1 },
+      }
+    }
+
+    const engine = new StreamQueryEngine()
+    const entries = await engine.query('find:note in all')
+    expect(calls).toHaveLength(1)
+    expect(entries[0]!.excerpt).toBeUndefined()
+  })
+
+  it('withNoteBlockInfo forks the same engine with the flag on', async () => {
+    runFindImpl = async parsed => {
+      if (parsed.target === 'block') {
+        return {
+          parsed,
+          notes: [],
+          blocks: [{ ...makeBlock(1, 200), noteId: 'note-0', rawContent: 'Grace' }],
+          stages: { selected: 1, matched: 1 },
+        }
+      }
+      return {
+        parsed,
+        notes: [{ id: 'note-0', title: 'Note 0', createdAt: 100, type: 'note' } as never],
+        blocks: [],
+        stages: { selected: 1, matched: 1 },
+      }
+    }
+
+    const base = new StreamQueryEngine()
+    const forked = base.withNoteBlockInfo()
+    const entries = await forked.query('find:note in all')
+    expect(entries[0]!.excerpt).toEqual(['Grace'])
+  })
+})
+
 describe('StreamQueryEngine — effort plane (find:effort)', () => {
   const effortSample: IEffort = {
     id: 'eff-1',

@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react'
 import type { MutableRefObject, ReactNode } from 'react'
 import { SidebarLayout } from '@/templates/SidebarLayout'
-import { Navbar, NavbarSection } from '@/components/organisms/layout/Navbar'
+import { Navbar } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
+import { ResponsiveActions } from './nav/ResponsiveActions'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
 import type { PageKind } from './lib/routeView'
@@ -311,7 +312,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
         actions={view.shell.actionsMode
-          ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
+          ? <ResponsiveActions label="Page actions"><PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} /></ResponsiveActions>
           : undefined}
       >
         {inner}
@@ -343,24 +344,18 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             )}
             {canvasTitleAccessory}
           </nav>
-          {/* Mobile page slot: pages portal their mobile-critical header
-              content here (stream query bar, note Edit toggle, …) — below lg
-              there is no page-level header, so this slot is where it lands. */}
+          {/* The query stays in the header; page actions relocate to the thumb dock. */}
           <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />
-          {/* Cast / actions — mobile navbar only; search moved to the floating
-              SearchFab (SidebarLayout), desktop keeps rail + page headers. */}
-          <NavbarSection className="lg:hidden">
-            <div className="flex items-center">
-              <CastButtonRpc />
-            </div>
-            <ActionsMenu currentWorkout={currentWorkout} />
-          </NavbarSection>
         </Navbar>
       }
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
       secondary={secondarySpec}
       onSearch={openSearchPalette}
     >
+      <ResponsiveActions fallback label="Page actions">
+        <CastButtonRpc />
+        <ActionsMenu currentWorkout={currentWorkout} />
+      </ResponsiveActions>
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {renderShell(renderInner[view.page]())}

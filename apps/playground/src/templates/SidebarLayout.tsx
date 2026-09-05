@@ -8,7 +8,7 @@ import { AppRail } from '../../app/nav/AppRail'
 import { MobileQuerySlotProvider } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
 import type { MenuSpec } from '../../app/nav/menuModel'
-import { SearchFab } from '../../app/nav/SearchFab'
+import { ResponsiveActionsProvider } from '../../app/nav/ResponsiveActions'
 
 function OpenMenuIcon() {
   return (
@@ -74,6 +74,7 @@ export function SidebarLayout({
 
   return (
     <MobileQuerySlotProvider>
+    <ResponsiveActionsProvider onSearch={onSearch}>
     <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row">
       <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row">
         {/* Icon rail — L1 destinations; desktop only (general layout) */}
@@ -104,7 +105,9 @@ export function SidebarLayout({
           </header>
 
           <main className="flex flex-1 flex-col lg:min-w-0">
-            <div className="grow w-full lg:overflow-visible">
+            {/* max-lg bottom padding keeps page content clear of the floating
+                thumb dock (search + primary + overflow cluster). */}
+            <div className="grow w-full max-lg:pb-36 lg:overflow-visible">
               {children}
             </div>
           </main>
@@ -118,11 +121,12 @@ export function SidebarLayout({
           <SecondaryNav spec={secondary} />
         </aside>
 
-      {/* Mobile floating search button — bottom thumb zone (right or left per
-          the appearance preference); desktop search stays in the icon rail. */}
-      {onSearch && <SearchFab onOpen={onSearch} />}
+      {/* Mobile thumb dock — single-mounted via ResponsiveActionsProvider
+          (search FAB + page primary + overflow, aligned per the appearance
+          preference); desktop search stays in the icon rail. */}
       </div>
     </div>
+    </ResponsiveActionsProvider>
     </MobileQuerySlotProvider>
   )
 }

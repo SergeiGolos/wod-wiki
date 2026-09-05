@@ -1,27 +1,31 @@
 /**
- * QueryToDashboardDialog — the Explorer's two-stage dashboard flow.
+ * QueryToDashboardDialog — the Explorer's Save → "Add to dashboard" flow.
  *
- * Stage 1 (data source): the subset query selected on the page — the find
- * query that picks WHICH workouts the statistics run over. Shown read-only.
- * Stage 2 (calculation): a metrics-plane composer seeded with the subset as
- * its `where` join, so the statistics are decoupled from the data source —
- * the calculation focuses on the subset, nothing else. The combined WQL
- * previews live.
+ * Wraps the shared WidgetComposerDialog (dataset → calculation →
+ * visualization → preview) and adds the destination step: pick an editable
+ * vault dashboard, or create a new one. Apply persists the EXACT composed
+ * WQL as a widget section (heading / question / ```query fence) appended to
+ * the destination note — the locked #899 format, written through
+ * journalNotes only.
  *
- * The Apply action is deliberately disabled: dashboard wiring (where the
- * combined query lands and how it's formatted) is a follow-up. The dialog
- * already does real work — the combined query it composes is the exact
- * payload that will be sent.
- *
- * Modal idiom matches the dashboard page's inspector modal (fixed overlay,
- * Escape/backdrop close) — the shared atoms Dialog is Radix-based and
- * misfires in the jsdom test env.
+ * Persistence failures stay visible in the dialog (no silent fallback); a
+ * successful save lands on the dashboard. The outer component gates on
+ * `open` so every opening remounts a fresh flow — no stale drafts.
  */
-import { useEffect, useMemo, useState } from 'react'
-import { X } from 'lucide-react'
-import { Button } from '@/components/atoms/primitives/button'
-import { WqlComposer } from '@bitcobblers/wod-wiki-ui'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import { parseQuery, serialize, isFindQuery } from '@bitcobblers/wod-wiki-engine'
+import { appendWidget, type WidgetSpec } from '@/lib/dashboard/noteOps'
+import { dashboardSlug, DEFAULT_DASHBOARD_TITLE } from '@/lib/dashboard/scaffold'
+import { journalNotes } from '../../services/journalNotes'
+import { dashboardNotes } from '../../services/dashboardNotes'
+import { useDashboardCatalog } from '../../hooks/useDashboards'
+import { dashboardViewPath } from '../../lib/routes'
+import {
+  WidgetComposerDialog,
+  type WidgetComposerApply,
+} from '../dashboards/WidgetComposerDialog'
 
 export interface QueryToDashboardDialogProps {
   open: boolean
@@ -32,129 +36,167 @@ export interface QueryToDashboardDialogProps {
    * calculation); the calculation composer then seeds without a join.
    */
   subsetQuery: string | null
+  /** Board-matching preview context (same range/units the explorer ran). */
+  rangeStart?: number
+  rangeEnd?: number
+  preferredUnit?: string
 }
 
-export function QueryToDashboardDialog({ open, onOpenChange, subsetQuery }: QueryToDashboardDialogProps) {
-  const [combinedWql, setCombinedWql] = useState('')
+const NEW_DASHBOARD = '__new__'
 
-  // Seed on open: metrics head + the subset as the where join — built
-  // structurally, emitted through the serializer (ticket 013). Keyed remount
-  // per subset so the composer doesn't carry stale state across queries.
-  const seedQuery = useMemo<string>(() => {
-    if (!subsetQuery) return 'sum:{}'
-    const subset = parseQuery(subsetQuery)
-    if (!isFindQuery(subset) || subset.error) return 'sum:{}'
-    return serialize({
-      family: 'aggregate',
-      raw: '',
-      agg: 'sum',
-      metric: '',
-      filters: [],
-      groupBy: [],
-      join: {
-        target: subset.target,
-        filters: subset.filters,
-        last: subset.window?.kind === 'relative'
-          ? { size: subset.window.size, unit: subset.window.unit }
-          : undefined,
-      },
-    })
-  }, [subsetQuery])
+export function QueryToDashboardDialog(props: QueryToDashboardDialogProps) {
+  if (!props.open) return null
+  return <SaveFlow key={props.subsetQuery ?? '(whole-store)'} {...props} />
+}
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onOpenChange(false)
+function SaveFlow({
+  onOpenChange,
+  subsetQuery,
+  rangeStart,
+  rangeEnd,
+  preferredUnit,
+}: QueryToDashboardDialogProps) {
+  const navigate = useNavigate()
+  const { items, loading } = useDashboardCatalog()
+  const editable = items.filter((d) => d.editable)
+  const [destination, setDestination] = useState<string>(
+    editable[0]?.slug ?? NEW_DASHBOARD,
+  )
+  const [newTitle, setNewTitle] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const close = () => onOpenChange(false)
+
+  const persist = async (spec: WidgetComposerApply) => {
+    setError(null)
+    const widget: WidgetSpec = {
+      title: spec.title,
+      question: spec.question,
+      type: spec.type,
+      spanCols: spec.spanCols,
+      spanFull: spec.spanFull,
+      wql: spec.wql,
+      params: spec.params,
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onOpenChange])
-
-  if (!open) return null
+    try {
+      if (destination === NEW_DASHBOARD) {
+        const title = newTitle.trim() || DEFAULT_DASHBOARD_TITLE
+        const note = await dashboardNotes.createDashboard(title)
+        await journalNotes.update(note.id, appendWidget(note.rawContent, widget))
+        close()
+        navigate(dashboardViewPath(dashboardSlug(title)))
+      } else {
+        // Fresh read at write time — the note may have changed since the
+        // catalog listed it; appendWidget never targets stale content.
+        const note = await journalNotes.resolve(destination)
+        await journalNotes.update(note.id, appendWidget(note.rawContent, widget))
+        close()
+        navigate(dashboardViewPath(destination))
+      }
+    } catch (err) {
+      // Storage failure stays on screen — the dialog stays open with the
+      // draft intact; nothing is silently dropped or rerouted.
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
-      data-testid="query-to-dashboard-dialog"
-      onClick={e => {
-        if (e.target === e.currentTarget) onOpenChange(false)
-      }}
-    >
-      <div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-2xl">
-        <div className="flex items-start justify-between px-5 pt-4 pb-2">
-          <div>
-            <h2 className="text-base font-bold text-foreground">Save query</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Shape what gets saved, then choose where it lands. A subset query
-              picks the workouts; the calculation runs over just that subset —
-              ready to pin to a dashboard.
-            </p>
+    <WidgetComposerDialog
+      open
+      onClose={close}
+      mode="add"
+      initialWql={seedQuery(subsetQuery)}
+      subsetQuery={subsetQuery}
+      rangeStart={rangeStart}
+      rangeEnd={rangeEnd}
+      preferredUnit={preferredUnit}
+      onApply={persist}
+      applyLabel="Add to dashboard"
+      destination={
+        <section>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Destination
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted"
-            data-testid="close-dashboard-dialog"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-4 px-5 pb-4">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              1 · Subset — data source
-            </div>
-            {subsetQuery ? (
-              <code
-                className="block rounded-md border border-border bg-muted/40 px-3 py-2 font-mono text-xs text-foreground"
-                data-testid="dashboard-subset-query"
-              >
-                {subsetQuery}
-              </code>
-            ) : (
-              <p className="text-xs text-muted-foreground" data-testid="dashboard-subset-query">
-                No subset on the page query — the calculation runs over the whole store.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              2 · Calculation — over the subset
-            </div>
-            <WqlComposer
-              key={subsetQuery ?? '(whole-store)'}
-              initialQuery={seedQuery}
-              hiddenClauseTypes={['source']}
-              onQueryChange={setCombinedWql}
-            />
-          </div>
-
-          {combinedWql && (
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Combined query
+          {loading ? (
+            <p className="text-xs text-muted-foreground">Loading dashboards…</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-1.5">
+                {editable.map((d) => (
+                  <button
+                    key={d.slug}
+                    type="button"
+                    aria-pressed={destination === d.slug}
+                    onClick={() => setDestination(d.slug)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      destination === d.slug
+                        ? 'border-primary/60 bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {d.title}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  data-testid="dashboard-dest-new"
+                  aria-pressed={destination === NEW_DASHBOARD}
+                  onClick={() => setDestination(NEW_DASHBOARD)}
+                  className={`flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    destination === NEW_DASHBOARD
+                      ? 'border-primary/60 bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <Plus className="size-3" /> New dashboard
+                </button>
               </div>
-              <code
-                className="block rounded-md border border-primary/30 bg-primary/[0.04] px-3 py-2 font-mono text-xs text-foreground break-all"
-                data-testid="dashboard-combined-query"
-              >
-                {combinedWql}
-              </code>
+              {destination === NEW_DASHBOARD && (
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder={DEFAULT_DASHBOARD_TITLE}
+                  data-testid="dashboard-new-title"
+                  className="w-full sm:w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-primary"
+                />
+              )}
             </div>
           )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button disabled title="Dashboard wiring lands in a follow-up" data-testid="dashboard-apply">
-            Add to dashboard
-          </Button>
-        </div>
-      </div>
-    </div>
+          {error && (
+            <p role="alert" data-testid="dashboard-save-error" className="mt-2 text-xs text-destructive font-mono">
+              Could not save: {error}
+            </p>
+          )}
+        </section>
+      }
+    />
   )
+}
+
+/**
+ * Seed the calculation composer: metrics head + the subset as its `where`
+ * join — built structurally, emitted through the serializer, so the saved
+ * widget's WQL is decoupled from the data source (the subset picks WHICH
+ * workouts; the calculation runs over just that subset).
+ */
+function seedQuery(subsetQuery: string | null): string {
+  if (!subsetQuery) return 'sum:{}'
+  const subset = parseQuery(subsetQuery)
+  if (!isFindQuery(subset) || subset.error) return 'sum:{}'
+  return serialize({
+    family: 'aggregate',
+    raw: '',
+    agg: 'sum',
+    metric: '',
+    filters: [],
+    groupBy: [],
+    join: {
+      target: subset.target,
+      filters: subset.filters,
+      last: subset.window?.kind === 'relative'
+        ? { size: subset.window.size, unit: subset.window.unit }
+        : undefined,
+    },
+  })
 }

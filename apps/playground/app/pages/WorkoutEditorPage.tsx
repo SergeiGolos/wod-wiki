@@ -14,20 +14,21 @@ import { ToastAction } from '@/components/atoms/primitives/toast'
 import { EditorView } from '@codemirror/view'
 import { v7 as uuidv7 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import { JournalPageShell, useMobileQuerySlot } from '@/panels/page-shells'
+import { JournalPageShell } from '@/panels/page-shells'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
+import { EditorDialog } from '@bitcobblers/wod-wiki-ui'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { pendingRuntimes } from '../runtimeStore'
-import { journalDatePath, runPath } from '../lib/routes'
+import { journalDatePath, journalNotePath, runPath } from '../lib/routes'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
-import { createPortal } from 'react-dom'
-import { useIsMobile } from '../hooks/useIsMobile'
+import { ResponsiveActions } from '../nav/ResponsiveActions'
+import { Button } from '@/components/atoms/primitives/button'
 import {
   INLINE_RUNTIME_CATEGORIES,
   NON_COLLECTION_CATEGORIES,
@@ -166,28 +167,19 @@ export function WorkoutEditorPage({
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout })
-  const isMobile = useIsMobile()
-  const mobileSlot = useMobileQuerySlot()
-
-  // The page header is hidden below lg — the Edit/Read toggle is the one
-  // mobile-critical action, so it portals into the navbar slot instead of
-  // rendering in the (hidden) header. Single mount point per breakpoint.
   const editToggle = (
-    <button
+    <Button
       type="button"
       onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
-      className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+      variant="outline"
     >
       {viewMode === 'read' ? 'Edit' : 'Read mode'}
-    </button>
+    </Button>
   )
-  const headerActions = isMobile ? (
-    mobileSlot ? createPortal(editToggle, mobileSlot) : undefined
-  ) : (
-    <div className="flex items-center gap-2">
-      {editToggle}
+  const headerActions = (
+    <ResponsiveActions primary={editToggle}>
       <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
-    </div>
+    </ResponsiveActions>
   )
 
   if (loading) {
@@ -204,11 +196,8 @@ export function WorkoutEditorPage({
         title={name}
         actions={headerActions}
         editor={
-          /* Read mode keeps the editor mounted — same markdown surface, just
-             non-editable (#1008): widgets (run controls, result inlays) stay
-             live and the remount on toggle re-creates the view. */
+          /* Reconfigure read-only state without discarding cursor or undo history. */
           <NoteEditor
-            key={viewMode}
             value={content}
             onChange={onChange}
             onCursorPositionChange={onLineChange}
@@ -227,17 +216,11 @@ export function WorkoutEditorPage({
 
       {/* Date picker modal for "Plan" command on collection WOD blocks */}
       {pendingScheduleBlock && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setPendingScheduleBlock(null)}
+        <EditorDialog
+          open
+          onClose={() => setPendingScheduleBlock(null)}
+          title={`Schedule ${name}`}
         >
-          <div
-            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold mb-4 text-foreground">
-              Schedule &ldquo;{name}&rdquo; for&hellip;
-            </p>
             <CalendarCard
               selectedDate={null}
               onDateSelect={(date) => {
@@ -245,8 +228,7 @@ export function WorkoutEditorPage({
                 setPendingScheduleBlock(null)
               }}
             />
-          </div>
-        </div>
+        </EditorDialog>
       )}
     </>
   )
