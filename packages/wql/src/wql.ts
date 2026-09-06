@@ -22,6 +22,7 @@ import {
   WQL_ROWS_TARGETS,
   WQL_SOURCE_VALUES,
   type WqlAggregator,
+  WQL_TAG_KEYS,
   type WqlComparisonOp,
 } from './vocabulary';
 import { parseWqlSuffixes, splitAtWhere, type ParsedWqlWindowSuffix } from './wqlSuffix';
@@ -96,6 +97,81 @@ export interface ParsedAggregateQuery {
   error?: string;
 }
 
+/** Parse `| select col [in unit], … | order by col [asc|desc] | limit n [offset m]`. */
+function parseRowsPipes(text: string): RowsPipes {
+    const pipes: RowsPipes = {};
+    const segments = text.split('|').map((s) => s.trim()).filter(Boolean);
+    for (const segment of segments) {
+        const lower = segment.toLowerCase();
+        if (lower.startsWith('select')) {
+            const body = segment.slice(6).trim();
+            pipes.select = body.split(',').map((col) => {
+                const m = /^([\w-]+)(?:\s+in\s+([\w/%]+))?$/i.exec(col.trim());
+                return m
+                    ? { col: m[1]!, ...(m[2] ? { unit: m[2] } : {}) }
+                    : { col: col.trim() };
+            });
+        } else if (lower.startsWith('order by')) {
+            const body = segment.slice(8).trim();
+            pipes.order = body.split(',').map((col) => {
+                const m = /^(\S+)(?:\s+(asc|desc))?$/i.exec(col.trim());
+                return { col: m?.[1] ?? col.trim(), dir: (m?.[2]?.toLowerCase() as 'asc' | 'desc') ?? 'asc' };
+            });
+        } else if (lower.startsWith('limit')) {
+            const m = /^limit\s+(\d+)(?:\s+offset\s+(\d+))?$/i.exec(segment);
+            if (!m) {
+                pipes.error = `Cannot parse pipe "${segment}". Expected limit <n> [offset <m>]`;
+                return pipes;
+            }
+            pipes.limit = Number(m[1]);
+            if (m[2]) pipes.offset = Number(m[2]);
+        } else if (lower.startsWith('offset')) {
+            const m = /^offset\s+(\d+)$/i.exec(segment);
+            if (!m) {
+                pipes.error = `Cannot parse pipe "${segment}". Expected offset <n>`;
+                return pipes;
+            }
+            pipes.offset = Number(m[1]);
+        } else {
+            pipes.error = `Unknown pipe "${segment}". Try: select, order by, limit`;
+            return pipes;
+        }
+    }
+    return pipes;
+}
+
+/**
+ * Ticket 18 — drill-down: construct a cross-workout `rows:segment` query
+ * inheriting an aggregate point's tag/metadata filters, the clicked bucket's
+ * EXACT half-open civil boundaries (structural, not display timestamps), and
+ * the clicked group tuple as exact filters.
+ */
+export function buildDrillDownQuery(options: {
+    filters?: Array<{ key: string; values: readonly string[] }>;
+    /** Half-open bucket bounds (ms epoch) from the clicked point's bucket. */
+    start?: number;
+    end?: number;
+    /** Civil dates (YYYY-MM-DD) — used when the point is a calendar bucket. */
+    startIso?: string;
+    endIso?: string;
+    timeZone?: string;
+    limit?: number;
+}): string {
+    const parts: string[] = [];
+    const filterText = (options.filters ?? [])
+        .map((f) => `${f.key}:${f.values.join('|')}`)
+        .join(',');
+    parts.push(`rows:segment{${filterText}}`);
+    if (options.startIso && options.endIso) parts.push(`from ${options.startIso} to ${options.endIso}`);
+    else if (options.start !== undefined && options.end !== undefined && options.timeZone) {
+        const fmt = (ts: number, tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ts);
+        parts.push(`from ${fmt(options.start, options.timeZone)} to ${fmt(options.end - 1, options.timeZone)}`);
+    }
+    let query = parts.join(' ');
+    if (options.limit !== undefined) query += ` | limit ${options.limit}`;
+    return query;
+}
+
 /** Result of parsing a content-discovery query (`find:target{filters} in scope`). */
 export interface ParsedFindQuery {
   family: 'find';
@@ -154,12 +230,26 @@ export interface SeriesPoint {
  * output-statement rows re-derived from WorkoutResult logs, scoped by
  * `result:` / `block:` / `note:`. Never aggregates — no by/rollup/where.
  */
+/** Ticket 18 — pipe clauses: presentation only, never alter the match. */
+export interface RowsPipes {
+    error?: string;
+    select?: Array<{ col: string; unit?: string }>;
+    order?: Array<{ col: string; dir: 'asc' | 'desc' }>;
+    limit?: number;
+    offset?: number;
+}
+
 export interface ParsedRowsQuery {
+    /** Ticket 18 — pipe clauses (| select / | order by / | limit). */
+    pipes?: RowsPipes;
   raw: string;
   /** Family discriminator shared by all three query ASTs (C5). */
   family: 'rows';
   /** Output-statement type narrowing from the optional target (`rows:segment{…}`); undefined = all types. */
   outputType?: string;
+  /** The rows target itself — 'all' | 'segment' | content plane (ticket 18:
+   *  segment without scope = cross-workout form). */
+  target?: string;
   filters: TagFilter[];
   /** Time-selection window (C1): `last 4w` or `from … [to …]` over the
    *  workout end time. */
@@ -318,19 +408,24 @@ function cannotParseRows(text: string): string {
   return `Cannot parse "${text}". Expected rows:all{result:…|block:…|note:…}, rows:<plane>{…}, or rows:segment{…} last 8w`;
 }
 
-/** Rows-only filter rules (C4): exact `result:`/`block:`/`note:` keys, no
- *  negation, no wildcards — validated at parse so `runRows` executes only. */
-function validateRowsFilters(filters: TagFilter[]): string | undefined {
+/**
+ * Rows-only filter rules (C4), relaxed for the cross-workout form (ticket
+ * 18): `rows:segment{<tag/metadata filters>}` is valid without any
+ * result:/block:/note: scope — single-session `rows:all` and scoped forms
+ * keep their existing behavior. No negation, no wildcards.
+ */
+function validateRowsFilters(filters: TagFilter[], target: string): string | undefined {
   const scopeKeys = new Set<string>(WQL_ROWS_SCOPE_KEYS);
-  const allowedKeys = new Set<string>([...WQL_ROWS_SCOPE_KEYS, 'source']);
+  const crossWorkout = target === 'segment';
+  const allowedKeys = new Set<string>([...WQL_ROWS_SCOPE_KEYS, 'source', ...(crossWorkout ? WQL_TAG_KEYS : [])]);
   const unsupported = filters.filter(
     (f) => !allowedKeys.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
   );
   if (unsupported.length > 0) {
-    const allowed = [...WQL_ROWS_SCOPE_KEYS, 'source'];
+    const allowed = [...WQL_ROWS_SCOPE_KEYS, 'source', ...(crossWorkout ? WQL_TAG_KEYS : [])];
     return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact ${allowed.map((k) => `${k}:`).join(', ')} values.`;
   }
-  if (!filters.some((f) => scopeKeys.has(f.key))) {
+  if (!crossWorkout && !filters.some((f) => scopeKeys.has(f.key))) {
     return `Rows query needs a scope: ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')}.`;
   }
   return undefined;
@@ -369,6 +464,30 @@ const BARE_ROWS_RETIRED = 'Bare "rows:" is retired — name a target: rows:all{�
  * documents. `all` normalizes to no outputType narrowing.
  */
 function parseRowsQuery(raw: string): ParsedRowsQuery {
+  // Ticket 18 — pipe clauses ride the tail (`| select … | order by … |
+  // limit …`); they govern presentation only and are stripped before the
+  // language parses the query.
+  let pipes: RowsPipes | undefined;
+  // The first '|' OUTSIDE filter braces starts the pipe tail — an '|' inside
+  // `{result:a|b}` is an OR-value, not a pipe.
+  let pipeIndex = -1;
+  {
+    let depth = 0;
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') depth = Math.max(0, depth - 1);
+      else if (ch === '|' && depth === 0) {
+        pipeIndex = i;
+        break;
+      }
+    }
+  }
+  if (pipeIndex !== -1) {
+    const pipeText = raw.slice(pipeIndex + 1);
+    raw = raw.slice(0, pipeIndex).trimEnd();
+    pipes = parseRowsPipes(pipeText);
+  }
   const suffixes = parseWqlSuffixes(raw);
   const { where: whereText, window: windowSuffix, legacyScope, groupBy, rollup, primaryText } = suffixes;
   const win = toQueryWindow(windowSuffix);
@@ -387,6 +506,11 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
     result.error = win.error;
     return result;
   }
+  if (pipes?.error) {
+    result.error = pipes.error;
+    return result;
+  }
+  if (pipes) result.pipes = pipes;
   if (suffixes.conflicts?.length) {
     result.error = suffixes.conflicts.join('; ');
     return result;
@@ -436,6 +560,7 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
     result.error = `Unknown rows target "${target}". Try: ${WQL_ROWS_TARGETS.join(', ')}`;
     return result;
   }
+  result.target = target;
   if (target !== 'all') result.outputType = target;
 
   result.filters = extractFilters(query, text);
@@ -450,7 +575,7 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
   if (sourceError) { result.error = sourceError; return result; }
   const grainError = retiredGrainRollup(result.filters);
   if (grainError) { result.error = grainError; return result; }
-  const filterError = validateRowsFilters(result.filters);
+  const filterError = validateRowsFilters(result.filters, target);
   if (filterError) { result.error = filterError; return result; }
   return result;
 }

@@ -239,6 +239,27 @@ export interface RowsQueryResult {
   parsed: ParsedRowsQuery;
   runs: RowsRun[];
   error?: string;
+  /** Ticket 18 — cross-workout tabular result (cross-workout rows only). */
+  table?: TabularResult;
+}
+
+// ── Ticket 18: cross-workout analytical tables ──────────────────────────
+
+export interface TabularColumn {
+  name: string;
+  type: 'date' | 'string' | 'number';
+  unit?: string;
+}
+
+/** The stable tabular shape consumed by table widgets (ticket 19 wires
+ *  widgets): bounded page + full match count. Missing column values are
+ *  ABSENT (undefined) — strictly distinct from a recorded 0. */
+export interface TabularResult {
+  columns: TabularColumn[];
+  rows: Array<Record<string, unknown>>;
+  totalCount: number;
+  limit?: number;
+  offset?: number;
 }
 
 /**
@@ -461,15 +482,18 @@ export class QueryService {
     const empty: RowsQueryResult = { parsed, runs: [] };
     if (parsed.error) return { ...empty, error: parsed.error };
 
-    // Filter rules and the scope requirement are validated at parse (C4);
-    // runRows executes only. Hand-built ASTs bypass parse — treat them the
-    // same way: no scope filters means no rows.
     const scopeValues = (key: string) =>
       parsed.filters.filter((f) => f.key === key).flatMap((f) => f.values.map((v) => v.value));
     const resultIds = scopeValues('result');
     const blockIds = scopeValues('block');
     const noteIds = scopeValues('note');
+
+    // Ticket 18 — cross-workout form: rows:segment with no result:/block:/
+    // note: scope explores segments across every workout in the window.
     if (resultIds.length + blockIds.length + noteIds.length === 0) {
+      if (parsed.target === 'segment') {
+        return this.runRowsCrossWorkout(parsed, options);
+      }
       return { ...empty, runs: [] };
     }
 
@@ -506,6 +530,130 @@ export class QueryService {
       }))
       .filter((run) => run.events.length > 0);
     return { parsed, runs };
+  }
+
+  /**
+   * Ticket 18 — cross-workout `rows:segment{<tag/metadata filters>}
+   * [window]`: one row per segment observation across all workouts, identity
+   * `resultId:segmentIndex`; the date column is the segment's own metric
+   * date. Pipes (select / order by / limit offset) govern PRESENTATION only
+   * — the underlying match and totalCount are unaffected by paging.
+   */
+  private async runRowsCrossWorkout(
+      parsed: ParsedRowsQuery,
+      options: { anchorNow?: number; context?: ExecutionContext },
+  ): Promise<RowsQueryResult> {
+    const ctx = runContext(options);
+    // Indexed candidate selection: windowed fetch through by-timestamp,
+    // all-time scan otherwise (the same SELECT strategy as aggregates).
+    const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : undefined;
+    const eventRows = range
+      ? await this.store.getEventsByTimeRange(range.start, range.end)
+      : await this.store.scanAll();
+
+    // Eligible segment observations, deduped by stable record identity —
+    // overlapping scope fetches contribute each segment exactly once.
+    const seen = new Set<string>();
+    const segments: UnifiedEventRecord[] = [];
+    for (const row of eventRows) {
+      if (row.grain !== 'event') continue;
+      if (parsed.outputType && row.outputType !== parsed.outputType) continue;
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      segments.push(row);
+    }
+
+    // Tag/metadata filters over the segment's projected tags.
+    const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
+    const eligible = segments.filter((row) => {
+      const fact = projectEventToFacts(row)[0];
+      if (!fact && parsed.filters.length > 0) return false;
+      if (!fact) return true;
+      return matchesFilters(fact, parsed.filters, noteTags);
+    });
+
+    const totalCount = eligible.length;
+
+    // Default columns when no | select: date, effort, discipline, + numeric metrics.
+    const unitByMetric = new Map<string, string>();
+    const numericMetrics = new Set<string>();
+    for (const row of eligible) {
+      for (const m of row.metrics as Array<{ type?: string; value?: unknown; unit?: string; metadata?: Record<string, unknown> }>) {
+        if (m.type && m.type !== 'label' && typeof m.value === 'number') {
+          numericMetrics.add(m.type);
+          const key = typeof m.metadata?.canonicalKey === 'string' ? m.metadata.canonicalKey : undefined;
+          if (key && m.unit) unitByMetric.set(key, m.unit);
+          if (m.unit) unitByMetric.set(m.type, m.unit);
+        }
+      }
+    }
+
+    const pipes = parsed.pipes;
+    const selectCols = pipes?.select?.map((s) => s.col) ?? [
+      'date', 'effort', 'discipline', ...numericMetrics,
+    ];
+    const unitFor = (col: string): string | undefined =>
+      pipes?.select?.find((s) => s.col === col)?.unit ?? unitByMetric.get(col);
+
+    const columns: TabularColumn[] = selectCols.map((col) => {
+      if (col === 'date') return { name: 'date', type: 'date' as const };
+      if (col === 'effort' || col === 'discipline' || col === 'note' || col === 'grade' || col === 'intensity') {
+        return { name: col, type: 'string' as const };
+      }
+      return { name: col, type: 'number' as const, ...(unitFor(col) ? { unit: unitFor(col) } : {}) };
+    });
+
+    const typeOf = new Map(columns.map((c) => [c.name, c.type]));
+
+    let records = eligible.map((row) => {
+      const record: Record<string, unknown> = {};
+      for (const col of selectCols) {
+        const type = typeOf.get(col);
+        if (type === 'date') {
+          record.date = row.metricTemporal?.[0]?.civilDate ?? civilDateOf(row.timestamp, ctx.timeZone);
+        } else if (col === 'effort') {
+          record.effort = row.effortSlug;
+        } else if (col === 'discipline') {
+          const m = (row.metrics as Array<{ metadata?: Record<string, unknown> }>).find((m) => m.metadata?.effortDiscipline);
+          record.discipline = m?.metadata?.effortDiscipline;
+        } else {
+          const m = (row.metrics as Array<{ type?: string; value?: unknown; metadata?: Record<string, unknown> }>).find(
+            (m) => m.type === col || m.metadata?.canonicalKey === col,
+          );
+          record[col] = m ? m.value : undefined; // absent ≠ 0
+        }
+      }
+      record.__id = row.id;
+      record.__resultId = row.resultId;
+      return record;
+    });
+
+    // Order by — deterministic tie-break by resultId, segmentIndex (id).
+    for (const order of [...(pipes?.order ?? [])].reverse()) {
+      const dir = order.dir === 'desc' ? -1 : 1;
+      records = [...records].sort((a, b) => {
+        const av = a[order.col] ?? a.__id;
+        const bv = b[order.col] ?? b.__id;
+        if (av === bv) return 0;
+        return ((av as number | string) > (bv as number | string) ? 1 : -1) * dir;
+      });
+    }
+
+    const offset = pipes?.offset ?? 0;
+    const limit = pipes?.limit;
+    const page = limit !== undefined ? records.slice(offset, offset + limit) : records.slice(offset);
+
+    return {
+      parsed,
+      runs: [],
+      table: {
+        columns,
+        rows: page,
+        totalCount,
+        ...(limit !== undefined ? { limit } : {}),
+        ...(offset > 0 ? { offset } : {}),
+      },
+    };
   }
 
   /**

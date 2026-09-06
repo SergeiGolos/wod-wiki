@@ -80,7 +80,7 @@ describe('serialize (C6 structured interface)', () => {
 
   it('serializes hand-built rows queries with scope filters and windows', () => {
     const a: ParsedRowsQuery = {
-      family: 'rows', raw: '', outputType: 'segment',
+      family: 'rows', raw: '', outputType: 'segment', target: 'segment',
       filters: [
         { key: 'result', negate: false, values: [{ value: 'r13', wildcard: false }] },
         { key: 'source', negate: false, values: [{ value: 'journal', wildcard: false }] },
@@ -93,7 +93,7 @@ describe('serialize (C6 structured interface)', () => {
 
   it('emits rows:all for a rows AST without outputType narrowing', () => {
     const a: ParsedRowsQuery = {
-      family: 'rows', raw: '',
+      family: 'rows', raw: '', target: 'all',
       filters: [{ key: 'result', negate: false, values: [{ value: 'r13', wildcard: false }] }],
     };
     expect(serialize(a)).toBe('rows:all{result:r13}');
@@ -210,9 +210,12 @@ describe('serialize (C6 structured interface)', () => {
 
     function genRows(rng: () => number): ParsedRowsQuery {
       const scopeKey = pick(rng, WQL_ROWS_SCOPE_KEYS);
+      // Ticket 18: parse stamps the rows target — the generator mirrors it.
+      const withTarget = maybe(rng, 0.5);
       const r: ParsedRowsQuery = {
         family: 'rows', raw: '',
-        ...(maybe(rng, 0.5) ? { outputType: pick(rng, WQL_ROWS_TARGETS.filter((t) => t !== 'all')) } : {}),
+        target: withTarget ? 'segment' : 'all',
+        ...(withTarget ? { outputType: 'segment' } : {}),
         filters: [
           { key: scopeKey, negate: false, values: [{ value: pick(rng, ['r1', 'r13', 'blk-9', 'note-3']), wildcard: false }] },
           ...(maybe(rng, 0.4) ? [{ key: 'source', negate: false, values: [{ value: pick(rng, SOURCES), wildcard: false }] }] : []),
