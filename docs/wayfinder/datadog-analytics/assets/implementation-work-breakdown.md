@@ -21,6 +21,20 @@ Source proposal: [Datadog-Style Analytics Engine Review & Roadmap](../../../13-d
 
 Ordering rationale: 11/12 are leaf foundations (identity; temporal semantics). 13 depends on them because variant selection and chronological endpoints are inputs to reducer behavior. 14 freezes the persisted record shapes that 11–13 produce, so it lands after them and before everything that reads provenance. 16 is the semantic core (selection) and needs provenance from 14. 17 composes documents and formulas on top of selection. 18 reuses selection plus documents (typed column selectors). 19 is the surface cutover and needs every execution capability. 20 adds reuse/invalidation over the final runner.
 
+## Graduated decision tickets and deepening gates
+
+The [architecture deepening review](../deepening/index.md) qualified this handoff's completeness claim and surfaced questions whose shape is now clear. Three became decision tickets; the rest are named gates inside the implementation tickets they constrain:
+
+| Deepening question | Disposition |
+|---|---|
+| Shared unit catalog home, dependency direction, conversion-evidence model, dialect extension propagation ([unit policy](../deepening/02-unit-policy.md)) | **Resolved** by [21](../issues/21-unit-catalog-home.md): core-owned catalog, write-time contextual snapshots, validated overlay, core-owned defaults; gates 13 (rewrite) and 14 (persisted evidence) |
+| Legacy widget-body slash/positional semantics, full-body extraction, noteOps home ([dashboard note](../deepening/04-dashboard-note.md)) | **Resolved** by [22](../issues/22-dashboard-body-migration.md): documents everywhere with eager rewrite, fence-tag attribute params, strict full-body guards, noteOps in wql with structured results; gates 17 (grammar) and 19 (cutover) |
+| Scalar endpoint policy and absent scatter positions ([query presentation](../deepening/05-query-presentation.md)) | **Resolved** by [23](../issues/23-widget-presentation-semantics.md): uniform last endpoints, paired-only scatter display (zero-fill scoped to time-axis charts), display-only synthetic provenance; gates 19 (widget migration, scatter renderer) |
+| Run ordering versus generation-only staleness checks; receipt epochs; metric-date scan completeness; retry-loop deletion; rollup-ensure idempotence ([query freshness](../deepening/06-query-freshness.md)) | Named in 19 scopes 3, 5, and 7 and 20 scopes 2–4 |
+| Storage physical-plan gates: boolean keys, per-Metric dates, durable markers, upgrade versus backfill, concurrent saves, mutation inventory, observation-identity versioning, derivation versioning, source-truth preservation ([persistence](../deepening/07-transactional-storage.md), [metric derivation](../deepening/03-metric-derivation.md)) | Named as 14 scope 6, with a characterization-tests-first cutover |
+| Substitution proof without population recompute ([contribution selection](../deepening/01-contribution-selection.md)) | Named as 16 scope 7 |
+| Presentation planner extraction; contract-conformance checks for named function semantics ([presentation](../deepening/05-query-presentation.md), [readiness review](../deepening/index.md)) | Named in 19 scope 4 and 17 scope 6 |
+
 ## Coverage audit — source findings 3.1–3.9
 
 | Finding | Disposition | Where |
@@ -71,4 +85,4 @@ Capability areas: discovery (11, 14, 15), formulas/relationships (17), analytica
 
 ## Completeness statement
 
-Every reported defect (3.1–3.9), every roadmap action and acceptance criterion, and every standing choice from the map has an explicit disposition above or inside the linked tickets, and each ticket cites its owning decision contract. No design decision required for the agreed implementation scope remains open. The map's "Not yet specified" provisions stay in force: genuinely new cross-package interface questions are graduated to decision tickets when their shape becomes clear, and no speculative indexes, workers, or caches are introduced without measured evidence.
+Every reported defect (3.1–3.9), every roadmap action and acceptance criterion, and every standing choice from the map has an explicit disposition above or inside the linked tickets, and each ticket cites its owning decision contract. **Qualified by the [architecture deepening review](../deepening/index.md):** the earlier claim that no design decision remained open was too strong. The review's structural questions are now tracker tickets [21](../issues/21-unit-catalog-home.md), [22](../issues/22-dashboard-body-migration.md), and [23](../issues/23-widget-presentation-semantics.md), gating tickets 13/14, 17/19, and 19 respectively; its implementation-level gates are enumerated inside tickets 14 (scope 6), 16 (scope 7), 17 (scope 6), 19 (scopes 4 and 7), and 20 (scopes 2–4). The map's "Not yet specified" provisions stay in force: genuinely new cross-package interface questions graduate to decision tickets when their shape becomes clear, and no speculative indexes, workers, or caches are introduced without measured evidence.

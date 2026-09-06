@@ -5,8 +5,8 @@ Type: implementation
 Status: open
 Assignee: unassigned
 Parent: [WQL analytics — from collected metrics to trustworthy answers](../map.md)
-Blocked by: 11, 12
-Prerequisites: [Missing values, units, and numerical correctness contract](../assets/arithmetic-contract.md); [Implementation work breakdown and acceptance coverage](../assets/implementation-work-breakdown.md)
+Blocked by: 11, 12, 21
+Prerequisites: [Missing values, units, and numerical correctness contract](../assets/arithmetic-contract.md); [Shared unit catalog home, conversion evidence, and extension propagation](21-unit-catalog-home.md); [Implementation work breakdown and acceptance coverage](../assets/implementation-work-breakdown.md)
 
 ## Outcome
 
@@ -20,6 +20,7 @@ Contract changes per the [arithmetic contract](../assets/arithmetic-contract.md)
    - required families: distance (`m km cm mm ft in yd mi` + aliases), mass (`kg g lb`, `bw` only with genuine measurement-time context), duration (`ms s min h`), count (`rep reps count` — never drop count factors), energy (`cal kcal`), registered speed/pace/count-rate/load-rate compounds with product/quotient dimension algebra, ratios/percent (`100% = 1`) and named scales per their registered definitions.
    - fixed factors `1 lb = 0.45359237 kg`, `1 mi = 1609.344 m`, `1 min = 60 s`; normalize aliases through the registry, not name munging.
    - an explicit unknown unit is an error, never passed through; an omitted unit on a physical measurement uses ticket 11's carried effective unit (collection-time default resolution is defined here as the shared system-default table, consumed at write time by ticket 14).
+   - dependency direction per [decision ticket 21](21-unit-catalog-home.md): recognition and conversion live in the shared home that decision resolves; this rewrite consumes it, creates no `wql → lang` dependency, and never imports calc's authoritative casts.
 2. **Output defaults.** Shared system default output unit table: mass `kg`, distance `m`, duration `s`, count `count`, energy `cal`, speed `m/s`, pace `min/km`, ratio unitless; product/quotient dimensions compose from base defaults with named speed/pace taking precedence. Explicit `in <unit>` wins when dimensionally compatible; incompatible output unit → error for the affected calculation and its dependents. The calc engine's authoritative casts (`pts`/`AU`/`ratio`) must not leak into WQL evaluation — reconcile through the registry, without importing cast behavior from [`calc/units.ts`](../../../../packages/lang/src/analytics/calc/units.ts)/[`calc/dimensions.ts`](../../../../packages/lang/src/analytics/calc/dimensions.ts).
 3. **Reducer matrix** ([`aggregate`](../../../../packages/wql/src/QueryService.ts) + `buildResult`), applied after variant selection (11), domain selection (12), and conversion:
    - `sum` zero-fills missing positions, keeps zero observed count; ordinary `avg` excludes missing and is absent when nothing recorded; `min`/`max` treat missing positions as zero; `count` counts recorded observations (recorded zeros included, buckets/copies excluded); `last` takes the final chronological position with synthetic zero when missing, never carrying forward; `delta` = last recorded − first recorded in metric-date order, absent under two recorded observations, ambiguous-tie error when equal-timestamp endpoints differ without recorded order.
@@ -30,6 +31,7 @@ Contract changes per the [arithmetic contract](../assets/arithmetic-contract.md)
 ## Clean cutover
 
 - Delete `resolveDisplayUnit`'s `convert: false` first-record-unit path and the unknown-unit pass-through; no parallel old/new unit paths remain.
+- Migrate the playground's duplicate unit tables (the `RawPointsTable` and re-export consumers identified in the [unit policy deepening](../deepening/02-unit-policy.md) deletion test) onto this engine, then delete the duplicate on the schedule the 21 Answer sets.
 - The kg/lb-only [`useAnalyticsUnitPreference`](../../../../packages/ui/src/widgets/useAnalyticsUnitPreference.tsx) API stays functional until ticket 19 migrates its callers to the system-default table; no new callers allowed.
 
 ## Acceptance scenarios

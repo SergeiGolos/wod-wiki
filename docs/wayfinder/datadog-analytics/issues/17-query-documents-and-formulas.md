@@ -5,8 +5,8 @@ Type: implementation
 Status: open
 Assignee: unassigned
 Parent: [WQL analytics — from collected metrics to trustworthy answers](../map.md)
-Blocked by: 11, 12, 13, 16
-Prerequisites: [Query documents and formulas contract](../assets/query-documents-contract.md); [Missing values, units, and numerical correctness contract](../assets/arithmetic-contract.md); [Implementation work breakdown and acceptance coverage](../assets/implementation-work-breakdown.md)
+Blocked by: 11, 12, 13, 16, 22
+Prerequisites: [Query documents and formulas contract](../assets/query-documents-contract.md); [Missing values, units, and numerical correctness contract](../assets/arithmetic-contract.md); [Legacy dashboard bodies and authoring operations migration](22-dashboard-body-migration.md); [Implementation work breakdown and acceptance coverage](../assets/implementation-work-breakdown.md)
 
 ## Outcome
 
@@ -24,11 +24,13 @@ A query block is a self-contained document: optional `defaults`, named query/for
    - `corr(a, b)`: Pearson over paired in-range positions; either-side-missing pairs excluded (no zero-fill); pair count reported; source series keep full ranges.
 4. **`DocumentResult` contract:** ordered `show` outputs with names, units, group/bucket identity, presence/validity/partial state, and pair/coverage metadata — widget-independent (consumed by ticket 19).
 5. **Attached calculations (map's required additional consumer).** Author a named calculation on an effort definition or Block Dialect using the same expression capability; the analytics engine executes it for matching data at its declared scope and records the output as a metric observation (existing processor seams — `createCalcEngine`/summary processors). Rules: effort-specific definition overrides the same-named dialect calculation for that effort only; workout-level effort calculations aggregate only that effort's segments (one observation per effort per workout); segment-level attachments emit per matching segment; the winning definition executes once — no duplicate emission; producing-scope observation ownership per the grain contract.
+6. **Contract-conformance checks before coding semantics** ([readiness review](../deepening/index.md)): `corr` with insufficient pairs or zero variance, moving-average authoring syntax, and the attached-calculation lifecycle are implemented only as the resolved [query documents contract](../assets/query-documents-contract.md) specifies them; where the contract is silent, the gap surfaces as a diagnostic and graduates a decision ticket — a function name in this ticket is not an agreed semantic.
 
 ## Clean cutover
 
 - The proposal's inline `show a / b -> km/hr` form is superseded by named assignments + comma `show`; do not implement both.
 - `dashboard/model.ts` `isProposedMetric` gating moves to AST-based checks within the document model; string matching over query text disappears (19 finishes the `.includes('calc.')` removal).
+- Document grammar and widget body framing land only after [decision ticket 22](22-dashboard-body-migration.md) resolves the slash/positional disposition; legacy single-line bodies keep working through the degenerate path that resolution defines, and multi-line bodies are never truncated to their first line.
 
 ## Acceptance scenarios
 

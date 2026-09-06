@@ -65,6 +65,18 @@ and its aliases. Pure, importable data + lookup. **Dialects import unit sets fro
 the parser never touches it.
 _Avoid_: unit table, unit map, lexicon.
 
+**Conversion Evidence**:
+The per-**Unit** statement of whether and how conversion is allowed: a fixed factor,
+contextual (requires measurement-time context, e.g. body mass for `bw`), or
+unavailable. A recognized unit without evidence never converts silently.
+_Avoid_: factor table, conversion factor.
+
+**Composed Catalog Snapshot**:
+The one immutable view of the **Unit Registry** plus a validated **Dialect** overlay,
+shared by every consumer of a single evaluation — recognition, conversion, and
+display defaults read identical additions.
+_Avoid_: runtime registry, live catalog.
+
 **Fusion**:
 The rewrite that turns an adjacent bare Number + Text (`Rep(100)` + `Effort("m Run")`)
 into a dimensioned Metric + residual Effort (`Distance(100, m)` + `Effort("Run")`),
@@ -213,7 +225,10 @@ compose into a dashboard (format locked in #899; unified renderer #900). Widget
 type and grid span ride the fence-tag suffix (` ```query:timeseries-2 `, `-full`
 for a full row; vocabulary: `table` default, `value`, `timeseries`, `bar`,
 `toplist`, `stacked-bar`, with `goal-rings` / `zone-distribution` placeholders
-until #901). A widget's title and coaching question associate from the markdown
+until #901).
+Widget presentation parameters (goal targets, zone thresholds) ride the same suffix
+as attributes; the widget body itself is a **Query Document**.
+A widget's title and coaching question associate from the markdown
 heading/paragraph directly above its block; `dashboard.*` frontmatter dot-keys
 declare top-level controls (scalar → input, block list → segmented, first entry
 default) referenced in queries as `$name` and substituted as raw text at
