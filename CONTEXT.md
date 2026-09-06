@@ -125,7 +125,35 @@ _Avoid_: data layer, store (overloaded).
 ### Analytics
 **Canonical Metric Key**:
 The join dimension for cross-workout analysis — the one key two workouts must share for a metric to be compared across them. A defined family/aggregate vocabulary (`reps`, `distance`, `resistance`, `elapsed`, `power`, `pace`, `totalVolume`, `totalDistance`, `tis`, `<effortSlug>.<family>`, `calc.<target>`), allocated in `docs/analytics-data-shapes-and-composition.md` §5. One resolver maps each metric to its canonical key; display derives a human label from it. **Not** the raw `MetricType` and **not** a display string — `repetitions` is retired as a key.
+Discovered metrics extend this vocabulary: names with spaces or word separators such as underscores normalize to camelCase for matching; identity combines the normalized full property path, value type, and physical dimension for numeric measurements. Convertible units share an identity across built-in and custom sources; different value types or physical dimensions distinguish metrics, but source provenance does not.
 _Avoid_: metric type (the parser/runtime enum), display label, metric name.
+**Field Catalog**:
+The inventory of normalized metric and metadata paths present in saved data, independent of a query's time range. Supplies field discovery and typeahead without requiring users to register fields.
+_Avoid_: metric registry (implies explicit registration), query results (the catalog describes available fields, not their measurements).
+**Metric Observation**:
+One recorded value of a typed metric at its producing scope, whether directly measured or newly calculated. Multiple stored representations do not create extra observations, and a calculated observation does not inherit the sample count of its input metrics.
+_Avoid_: stored row (a representation, not necessarily an observation).
+**Substitute Summary**:
+A representation of existing metric observations through retained aggregate statistics, usable in their place only when it preserves the requested result and weighting. It does not create an additional observation of that metric.
+_Avoid_: summary row (storage grain alone does not establish this meaning).
+**Summary Coverage**:
+The precise population of metric observations represented by a substitute summary, including its applicable scope and partitions. It establishes which contributions overlap and which remain uncovered.
+_Avoid_: matching metric name (identity alone does not prove coverage).
+**Metric Date**:
+The temporal anchor of a metric observation, expressed as an occurrence instant or an explicitly date-only civil date rather than the enclosing workout's start. Date-only observations keep their recorded date; timestamped observations use the system timezone for calendar grouping.
+_Avoid_: workout date (may differ), derivation time (does not date the original observation).
+**WQL Alignment Domain**:
+The shared time-range intersection and union of observed group tuples over which compatible formula inputs are evaluated. It excludes dates outside any input's requested range and does not invent group combinations or broadcast mismatched dimensions.
+_Avoid_: matching chart labels (labels are not structural bucket/group identity).
+**Query Position**:
+A position established by a query's structure, such as a calendar bucket or aligned formula input. It may exist without a Metric Observation; elapsed time between recordings alone does not establish additional positions.
+_Avoid_: sample (implies an observation was collected).
+**Synthetic Zero**:
+A zero supplied for an absent value at a Query Position, rather than a recorded measurement. Its use depends on the operation; it remains distinguishable from a genuine observed or calculated zero.
+_Avoid_: recorded zero (a real observation).
+**Rolling Average**:
+An average of consecutive query-position values within a trailing window. Missing in-range positions contribute zero; startup windows use only available in-range positions. Distinct from an ordinary observation average, which excludes missing observations.
+_Avoid_: pooled observation average (has a different population and denominator).
 **Annotation**:
 A runtime-derived per-segment metric produced by a realtime processor (`origin: 'analyzed'` — power, pace). Distinct from **Prediction** (compile-time, `origin: 'prediction'`/`compiler`) and from summary aggregates. Re-derived on replay; predictions and Tier-0 metrics are preserved.
 _Avoid_: enrichment, derived metric (too vague — say annotation or prediction).
@@ -138,6 +166,15 @@ The Datadog-flavored query language for cross-workout analytics:
 Parsed with a Lezer grammar (house pattern) and executed by the **Query Service**
 over the **Analytics Store**. Metric namespaces build on **Canonical Metric Keys**.
 _Avoid_: query string, analytics SQL.
+**Query Document**:
+The self-contained query and formula definitions inside one query block. Named definitions belong to that block, not the surrounding note or other widgets. Explicit external parameters are inputs, not cross-block definition references.
+_Avoid_: Dashboard Note (the containing composition, not a shared query-definition scope).
+**Attached Calculation**:
+A reusable custom calculation associated with an Effort or Block Dialect. It runs for matching workout data at its declared scope and produces a named, recorded Metric Observation. The attachment selects where it applies; the Dialect analyzer itself does not execute the calculation.
+_Avoid_: query formula (read-time only).
+**Query Formula**:
+A calculation defined within a Query Document that produces query results without saving new metric observations. It shares expression capabilities with attached calculations but not their recording lifecycle.
+_Avoid_: attached calculation (produces recorded metrics).
 **Rows Query**:
 The third **WQL** family — `rows:{<tag filters>}` (optional output-type target:
 `rows:segment{…}`) — returning raw output-statement rows for one scope instead of
