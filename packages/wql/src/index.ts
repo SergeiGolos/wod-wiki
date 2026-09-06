@@ -30,6 +30,10 @@ export * from './calendar';
 // 6c. Field catalog consumer interface (ticket 15)
 export * from './catalog';
 
+// 6d. Query documents + runner (ticket 17)
+export * from './document';
+export * from './documentRunner';
+
 // 7. Derivation & Static projections
 export * from './derivation';
 export * from './static';
