@@ -168,8 +168,10 @@ export interface ParsedRowsQuery {
   advisories?: string[];
   error?: string;
 }
-export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
+/** One aggregated series. `error` carries the diagnostic when this series'
+ *  calculation failed (ticket 13) — an errored series has no valid values. */
+export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string; error?: string }
 /** Aggregate head vocabulary is owned by vocabulary.ts (#871). */
 const AGGS: readonly Aggregator[] = WQL_AGGREGATORS;
 

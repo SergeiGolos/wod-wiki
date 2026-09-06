@@ -12,4 +12,3 @@ sum:sessionLoad{discipline:kettlebell}
 ## Expected
 
 - scalar: 1710
-- unit: au

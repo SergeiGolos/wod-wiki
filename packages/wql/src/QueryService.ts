@@ -37,7 +37,7 @@ import {
   type TagFilter,
 } from './wql';
 import { WQL_FIND_TARGETS } from './vocabulary';
-import { convert, resolveDisplayUnit } from './units';
+import { convertViaCatalog, resolveOutputUnit } from './units';
 import { projectEventToFacts } from './derivation';
 import {
   captureContext,
@@ -218,6 +218,8 @@ export interface QueryResult {
   scalar?: number;
   /** Result display unit, if determined by directive, preference, or fact metadata. */
   unit?: string;
+  /** First diagnostic across series (ticket 13) — per-widget badges in 19. */
+  error?: string;
 }
 
 /** One run in a rows result: the canonical result identity plus the event
@@ -244,7 +246,6 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
   switch (key) {
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
-    case 'grade': return row.grade;
     case 'intensity': return row.intensityTier;
     case 'note': return row.noteId;
     case 'page': return row.pageId;
@@ -312,26 +313,55 @@ function dimValue(
   return raw.length ? raw.join(',') : '(none)';
 }
 
-/** Convert a single fact value to the target display unit, if known. */
-function toDisplayValue(value: number, unit: string | undefined, targetUnit: string | undefined): number {
-  if (!targetUnit || unit === targetUnit) return value;
-  return convert(value, unit, targetUnit);
-}
+/** Result state of a bucket reduction (arithmetic contract §2): observed
+ *  values are genuine reductions of recorded observations; absent results
+ *  have no observation (render zero only at display); errors are
+ *  diagnostics, not numbers. */
+type ReducedValue =
+  | { state: 'observed'; value: number }
+  | { state: 'absent'; value: 0 }
+  | { state: 'error'; message: string };
 
-/** Aggregate values already converted to the target display unit. */
-function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[], targetUnit: string | undefined): number {
-  if (agg === 'count') return points.length;
-  if (values.length === 0) return 0;
+/** Reduce one bucket's already-converted observation values per the
+ *  operation matrix. Missing domain positions are handled by the caller
+ *  (zero-filled synthetic points); this reduces actual observations. */
+function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[]): ReducedValue {
+  if (agg === 'count') return { state: 'observed', value: points.length };
+  if (values.length === 0) return { state: 'absent', value: 0 };
   switch (agg) {
-    case 'sum': return values.reduce((a, b) => a + b, 0);
-    case 'avg': return values.reduce((a, b) => a + b, 0) / values.length;
-    case 'min': return Math.min(...values);
-    case 'max': return Math.max(...values);
+    case 'sum':
+      return { state: 'observed', value: values.reduce((a, b) => a + b, 0) };
+    case 'avg':
+      return { state: 'observed', value: values.reduce((a, b) => a + b, 0) / values.length };
+    case 'min':
+      return { state: 'observed', value: Math.min(...values) };
+    case 'max':
+      return { state: 'observed', value: Math.max(...values) };
     case 'last': {
-      const latest = [...points].sort((a, b) => b.timestamp - a.timestamp)[0];
-      return toDisplayValue(latest.value as number, latest.unit ?? latest.metricUnit, targetUnit);
+      // Metric-date order — fetch order never decides the endpoint. The
+      // value comes from the already-converted array (values[i] ↔ points[i]).
+      let latest = 0;
+      for (let i = 0; i < points.length; i++) {
+        if (points[i]!.timestamp > points[latest]!.timestamp) latest = i;
+      }
+      return { state: 'observed', value: values[latest]! };
     }
-    case 'delta': return values[values.length - 1] - values[0];
+    case 'delta': {
+      if (points.length < 2) return { state: 'absent', value: 0 };
+      const ordered = [...points].sort((a, b) => a.timestamp - b.timestamp);
+      const first = ordered[0]!;
+      const last = ordered[ordered.length - 1]!;
+      // Equal-timestamp endpoints with different values and no recorded
+      // order evidence are an ambiguous-order error.
+      const atFirst = ordered.filter((p) => p.timestamp === first.timestamp);
+      const atLast = ordered.filter((p) => p.timestamp === last.timestamp);
+      const firstVals = new Set(atFirst.map((p) => p.value));
+      const lastVals = new Set(atLast.map((p) => p.value));
+      if (firstVals.size > 1 || lastVals.size > 1) {
+        return { state: 'error', message: 'Ambiguous delta order: tied endpoint observations differ in value without recorded order' };
+      }
+      return { state: 'observed', value: (last.value as number) - (first.value as number) };
+    }
   }
 }
 
@@ -801,11 +831,17 @@ export class QueryService {
       return domain;
     };
 
-    // Unit display preference / directive
-    const { unit: targetUnit, convert: shouldConvert } = resolveDisplayUnit(matched, {
+    // Output unit (ticket 13): explicit `in <unit>` directive wins when
+    // dimensionally compatible; otherwise the system default for the
+    // observations' dimension; unitless observations stay unitless. No
+    // first-record fallback, no widget-preference tier.
+    const unitResolution = resolveOutputUnit(matched, {
       directive: parsed.displayUnit,
       preferred: options.preferredUnit,
     });
+    const targetUnit = unitResolution.unit;
+    const shouldConvert = unitResolution.convert === true;
+    const seriesError = unitResolution.error;
 
     // Stage 3+4: GROUP + AGGREGATE per bucket
     const groups = new Map<string, AnalyticsDataPoint[]>();
@@ -819,6 +855,9 @@ export class QueryService {
     }
 
     const series: Series[] = [...groups.entries()].map(([key, rows]) => {
+      if (seriesError) {
+        return { key, label: key, points: [], unit: undefined, error: seriesError };
+      }
       const byBucket = new Map<string, AnalyticsDataPoint[]>();
       for (const row of rows) {
         const b = bucketKey(row);
@@ -828,27 +867,45 @@ export class QueryService {
       }
       const observedKeys = [...byBucket.keys()].sort();
       const domain = timeDim ? calendarDomain(observedKeys) : observedKeys;
+      let error: string | undefined;
       const points: SeriesPoint[] = domain.map((b) => {
         const members = byBucket.get(b);
         if (!members) {
-          // Empty calendar period: structurally present, no recorded
-          // observation (presence semantics per the arithmetic contract).
+          // Missing query position (ticket 12 domain + ticket 13 matrix):
+          // zero-filled with absence provenance — never an observation.
           return { ts: bucketDisplayTs(b), value: 0, missing: true };
         }
-        const values = members.map((m) =>
-          toDisplayValue(m.value as number, m.unit ?? m.metricUnit, shouldConvert ? targetUnit : undefined),
-        );
+        // Compatible-unit normalization BEFORE arithmetic (finding 3.3).
+        let values: number[];
+        try {
+          values = members.map((m) =>
+            shouldConvert && targetUnit
+              ? convertViaCatalog(m.value as number, (m.unit ?? m.metricUnit) as string, targetUnit)
+              : m.value as number,
+          );
+        } catch (e) {
+          error = e instanceof Error ? e.message : String(e);
+          return { ts: bucketDisplayTs(b), value: 0, missing: true };
+        }
+        const reduced = aggregate(values, parsed.agg, members);
+        if (reduced.state === 'error') {
+          error = reduced.message;
+          return { ts: bucketDisplayTs(b), value: 0, missing: true };
+        }
         return {
           ts: timeDim || rollupMs !== null
             ? bucketDisplayTs(b)
             : Math.min(...members.map((m) => m.timestamp)),
-          value: Math.round(aggregate(values, parsed.agg, members, shouldConvert ? targetUnit : undefined) * 100) / 100,
+          // Unrounded — renderers format (ticket 13 precision policy).
+          value: reduced.value,
+          ...(reduced.state === 'absent' ? { missing: true } : {}),
         };
       });
-      const seriesUnit = shouldConvert
-        ? targetUnit
-        : (rows[0]?.unit ?? rows[0]?.metricUnit);
-      return { key, label: key, points, unit: seriesUnit };
+      // `count` reduces to the count dimension regardless of input.
+      // Output unit is the resolved one — count reduces to count; no
+      // first-record fallback (ticket 13 cutover).
+      const seriesUnit = parsed.agg === 'count' ? 'count' : targetUnit;
+      return { key, label: key, points, unit: seriesUnit, ...(error ? { error } : {}) };
     });
 
     const aggregated = series.reduce((n, s) => n + s.points.length, 0);
@@ -867,6 +924,7 @@ export class QueryService {
       matched,
       scalar,
       unit: resultUnit,
+      ...(series.find((s) => s.error)?.error ? { error: series.find((s) => s.error)!.error } : {}),
     };
   }
 
@@ -962,7 +1020,9 @@ export class QueryService {
     const passing = new Set<string>();
     for (const [cid, rows] of byContent) {
       const values = rows.map(r => r.value as number);
-      if (compareOp(aggregate(values, join.agg, rows, undefined), join.operator, join.threshold)) passing.add(cid);
+      const reduced = aggregate(values, join.agg, rows);
+      if (reduced.state !== 'observed') continue; // absent/insufficient never satisfies
+      if (compareOp(reduced.value, join.operator, join.threshold)) passing.add(cid);
     }
     return passing;
   }

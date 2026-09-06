@@ -12,4 +12,3 @@ sum:sessionLoad{discipline:recovery}
 ## Expected
 
 - scalar: 320
-- unit: au

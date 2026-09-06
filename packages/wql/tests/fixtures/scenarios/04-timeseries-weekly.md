@@ -12,9 +12,10 @@ sum:totalVolume{discipline:gymnastics} by {week}
 ## Expected
 
 ### Series totalVolume
-- point 2026-06-01: 2790
-- point 2026-06-08: 2850
-- point 2026-06-15: 2910
-- point 2026-06-22: 2970
-- point 2026-06-29: 3030
-- point 2026-07-06: 3090
+- unit: kg
+- point 2026-06-01: 1265.5227123
+- point 2026-06-08: 1292.7382545
+- point 2026-06-15: 1319.9537967
+- point 2026-06-22: 1347.1693389
+- point 2026-06-29: 1374.3848811
+- point 2026-07-06: 1401.6004233

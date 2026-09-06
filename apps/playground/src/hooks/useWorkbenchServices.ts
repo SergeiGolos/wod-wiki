@@ -13,7 +13,9 @@ import { useMemo } from 'react';
 
 // ── Analytics ─────────────────────────────────────────────────────────────
 export { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
-export { convert, getUnitFamily } from '@/services/analytics/units';
+// Ticket 13: one unit catalog — the display seam lives in the wql engine
+// (the kg/lb-only duplicate under src/services/analytics/units is deleted).
+export { convertDisplay as convert, getUnitFamily } from '@bitcobblers/wod-wiki-wql';
 
 // ── Export / import ───────────────────────────────────────────────────────
 export { exportAllNotes, exportNote, importFromZip, pickFile } from '@/services/ExportImportService';

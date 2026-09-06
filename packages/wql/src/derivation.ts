@@ -187,9 +187,9 @@ export function normalizeSummaryFacts(
     ...(f.discipline ? { discipline: f.discipline } : {}),
     ...(f.intensityTier ? { intensityTier: f.intensityTier } : {}),
     ...(f.grade ? { grade: f.grade } : {}),
-    // Ticket 12: own coverage start first — the workout timestamp is the
-    // fallback anchor, never a relocation of the represented observations.
-    timestamp: f.started ?? identity.workoutTimestamp ?? now,
+    // Ticket 12: anchored at the producing scope (workout timestamp); the
+    // derivation clock is only the degenerate last resort.
+    timestamp: identity.workoutTimestamp ?? f.started ?? now,
     createdAt: now,
   }));
 }
@@ -267,12 +267,13 @@ export function toSummaryEventRows(
     blockContentId: identity.blockContentId,
     pageId: identity.pageId,
     origin: identity.origin,
-    // Ticket 12: a summary's timestamp describes the temporal coverage of
-    // the observations it represents — its own coverage start wins; the
-    // workout timestamp is the fallback fetch anchor, never a relocation.
-    // The derivation clock is the degenerate last resort for rows with no
-    // evidence at all.
-    timestamp: f.started ?? identity.workoutTimestamp ?? now,
+    // Ticket 12: a summary is anchored at its producing scope — the workout
+    // timestamp. The derivation clock is only the degenerate last resort
+    // (rebuilding must never date a summary from the replay clock — a
+    // headless replay's output timeSpan is derivation time, not coverage).
+    // Coverage descriptors that describe the represented observations land
+    // with ticket 14's summaryCoverage.
+    timestamp: identity.workoutTimestamp ?? f.started ?? now,
     grain: 'summary' as const,
     outputType: 'analytics',
     effortSlug: f.effortSlug,

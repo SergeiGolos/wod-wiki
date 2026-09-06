@@ -139,8 +139,10 @@ describe('wod CLI runner', () => {
       expect(ir.$schema).toBe('https://wod-wiki.dev/ir/v1.json');
       expect(ir.kind).toBe('query-result');
       expect(ir.data.series.length).toBe(1);
-      // crossfit-multi-week spans 6 calendar weeks
-      expect(ir.data.series[0].points.length).toBe(6);
+      // Ticket 13: mixed lb+rep totalVolume facts are an incompatible-units
+      // diagnostic — no silently pooled points.
+      expect(ir.data.series[0].error).toContain('Incompatible units');
+      expect(ir.data.series[0].points.length).toBe(0);
     });
 
     it('evaluates WQL against --stdin-facts (exit code 0)', async () => {

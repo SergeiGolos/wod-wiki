@@ -175,7 +175,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
     };
     const result = await service.run(parsed);
-    expect(result.scalar).toBe(6000);
+    expect(result.scalar).toBeCloseTo(6000 * 0.45359237, 4); // kg system default (ticket 13)
     expect(result.stages.selected).toBe(2);
   });
 
@@ -188,7 +188,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
       join: { target: 'note', filters: [] },
     };
     const result = await service.run(parsed);
-    expect(result.scalar).toBe(8000);
+    expect(result.scalar).toBeCloseTo(8000 * 0.45359237, 4); // kg system default (ticket 13)
   });
 
   it('returns an empty result when no content matches the find half', async () => {
@@ -214,7 +214,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
     };
     const result = await service.run(parsed);
-    expect(result.scalar).toBe(3000);
+    expect(result.scalar).toBeCloseTo(3000 * 0.45359237, 4); // kg system default (ticket 13)
   });
 
   it('respects the time-range option on the joined logs', async () => {
@@ -241,6 +241,6 @@ describe('cross-store joins — end-to-end parse + execute', () => {
   it('direction 2: sum:totalVolume{} where find:note{tags:competition}', async () => {
     const service = makeService();
     const result = await service.runQuery('sum:totalVolume{} where find:note{tags:competition}');
-    expect(result.scalar).toBe(6000);
+    expect(result.scalar).toBeCloseTo(6000 * 0.45359237, 4); // kg system default (ticket 13)
   });
 });

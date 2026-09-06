@@ -26,8 +26,8 @@ import {
   parseDashboardNote,
   buildDashboardScaffold,
   EFFORT_DISCIPLINES,
-  convert,
-  resolveDisplayUnit,
+  convertViaCatalog,
+  resolveOutputUnit,
   staticNotesFromBlocks,
   staticTagIndexFromBlocks,
   normalizeSummaryFacts,
@@ -139,8 +139,8 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
   });
 
   it('exports pure utilities: units, static projections, derivation', () => {
-    expect(convert(100, 'kg', 'lb')).toBeGreaterThan(200);
-    expect(resolveDisplayUnit([{ unit: 'lb' }], { directive: 'kg' }).unit).toBe('kg');
+    expect(convertViaCatalog(100, 'kg', 'lb')).toBeGreaterThan(200);
+    expect(resolveOutputUnit([{ unit: 'lb' }], { directive: 'kg' }).unit).toBe('kg');
     expect(staticNotesFromBlocks([])).toEqual([]);
     expect(staticTagIndexFromBlocks([])).toBeInstanceOf(Map);
     expect(normalizeSummaryFacts([], { noteId: 'n1', resultId: 'r1' })).toEqual([]);

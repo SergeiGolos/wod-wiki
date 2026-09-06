@@ -47,14 +47,16 @@ describe('wellness event pipeline (capture → inMemoryEventStore → WQL)', () 
     const query = makeQueryService(events);
 
     expect(await scalar(query, 'avg:soreness{}')).toBeCloseTo(5);
-    expect(await scalar(query, 'last:sleep{}')).toBeCloseTo(8);
+    // Ticket 13: duration output defaults to s — 8 h = 28800 s.
+    expect(await scalar(query, 'last:sleep{}')).toBeCloseTo(28800);
   });
 
   it('resolves hrv and weight from captured wellness events', async () => {
     const events = seedWellness('note-1', 'hrv: 62\nweight: 80kg', dayOf(ROLLUP_NOW));
     const query = makeQueryService(events);
 
-    expect(await scalar(query, 'last:hrv{}')).toBeCloseTo(62);
+    // Ticket 13: duration output defaults to s — 62 ms = 0.062 s.
+    expect(await scalar(query, 'last:hrv{}')).toBeCloseTo(0.062);
     expect(await scalar(query, 'last:weight{}')).toBeCloseTo(80);
   });
 
@@ -63,7 +65,8 @@ describe('wellness event pipeline (capture → inMemoryEventStore → WQL)', () 
     const query = makeQueryService(events);
 
     expect(await scalar(query, 'last:hang{}')).toBeCloseTo(28);
-    expect(await scalar(query, 'last:hr{}')).toBeCloseTo(150);
+    // Ticket 13: count-rate output defaults to count/s — 150 bpm = 2.5 count/s.
+    expect(await scalar(query, 'last:hr{}')).toBeCloseTo(2.5);
   });
 
   it('resolves planned sessions from captured wellness events', async () => {

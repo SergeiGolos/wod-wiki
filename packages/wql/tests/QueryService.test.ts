@@ -200,7 +200,8 @@ describe('QueryService', () => {
       ['max:totalVolume{}', 3000],
       ['count:totalVolume{}', 4],
       ['last:totalVolume{}', 3000],
-      ['delta:totalVolume{}', 500 - 1000],
+      // Ticket 13: delta is chronological (metric-date order), not fetch order.
+      ['delta:totalVolume{}', 3000 - 1000],
     ];
     for (const [query, expected] of cases) {
       expect((await service.runQuery(query)).scalar).toBe(expected);
@@ -272,23 +273,24 @@ describe('QueryService unit conversion', () => {
 
     expect(result.unit).toBe('kg');
     expect(result.series[0]?.unit).toBe('kg');
-    expect(result.scalar).toBe(2721.55);
+    // Unrounded — renderers format (ticket 13).
+    expect(result.scalar).toBeCloseTo(2721.55422, 4);
   });
 
-  it('converts to a preferred unit when the query has no directive', async () => {
+  it('applies the system kg default when no directive (preference tier retired, ticket 13)', async () => {
     const service = new QueryService(makeStore(lbFacts).store);
     const result = await service.runQuery('sum:totalVolume{}', { preferredUnit: 'kg' });
 
     expect(result.unit).toBe('kg');
-    expect(result.scalar).toBe(2721.55);
+    expect(result.scalar).toBeCloseTo(2721.55422, 4);
   });
 
-  it('leaves mass values in the recorded unit when no directive or preference is given', async () => {
+  it('outputs the system kg default for mass when no directive is given (ticket 13)', async () => {
     const service = new QueryService(makeStore(lbFacts).store);
     const result = await service.runQuery('sum:totalVolume{}');
 
-    expect(result.unit).toBe('lb');
-    expect(result.scalar).toBe(6000);
+    expect(result.unit).toBe('kg');
+    expect(result.scalar).toBeCloseTo(2721.55422, 4);
   });
 
   it('ignores a preferred unit for non-mass metrics', async () => {
@@ -299,7 +301,7 @@ describe('QueryService unit conversion', () => {
     const service = new QueryService(makeStore(repsFacts).store);
     const result = await service.runQuery('sum:totalReps{}', { preferredUnit: 'kg' });
 
-    expect(result.unit).toBe('reps');
+    expect(result.unit).toBe('count');
     expect(result.scalar).toBe(80);
   });
 
@@ -309,9 +311,10 @@ describe('QueryService unit conversion', () => {
 
     expect(result.series).toHaveLength(1);
     expect(result.series[0]?.unit).toBe('kg');
-    expect(result.series[0]?.points[0]?.value).toBe(2721.55);
+    expect(result.series[0]?.points[0]?.value).toBeCloseTo(2721.55422, 4); // unrounded (ticket 13)
     expect(result.matched[0]?.unit).toBe('lb');
     expect(result.matched[0]?.value).toBe(1000);
+    expect(result.series[0]?.points[0]?.value).toBeCloseTo(2721.55422, 4); // unrounded (ticket 13)
   });
 });
 

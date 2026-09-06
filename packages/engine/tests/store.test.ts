@@ -93,6 +93,7 @@ describe('inMemoryEventStore (from legacy fact fixtures)', () => {
 
     const result = await service.runQuery('sum:totalVolume{}');
     expect(result.series).toHaveLength(1);
-    expect(result.series[0].points[0].value).toBe(4000);
+    // Ticket 13: the kg system default applies — 4000 lb converts.
+    expect(result.series[0].points[0].value).toBeCloseTo(4000 * 0.45359237, 6);
   });
 });

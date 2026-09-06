@@ -9,16 +9,12 @@ corpus: crossfit-multi-week
 sum:totalVolume{} by {discipline}
 ```
 
-## Expected
+## Errors
 
-### Series gymnastics
-- value: 17640
-- unit: lb
+- Incompatible units
 
-### Series kettlebell
-- value: 33750
-- unit: lb
-
-### Series bodyweight
-- value: 2385
-- unit: rep
+Ticket 13 arithmetic contract: the corpus's totalVolume observations mix
+mass (lb) and count (rep) dimensions even within one discipline, so every
+grouped calculation is an incompatible-units diagnostic instead of a
+silently pooled sum. Splitting by unit-bearing variant or recording
+consistent units restores the query.
