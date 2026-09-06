@@ -20,9 +20,11 @@ export interface WidgetChartProps {
   unit?: string;
   /** Positional widget parameters from the block body (e.g. goal target or zone targets). */
   params?: string[];
+  /** Fence-tag presentation attributes (decision 22) — preferred over legacy positional params. */
+  attributes?: Record<string, string>;
 }
 
-export function WidgetChart({ type, result, label, unit, params }: WidgetChartProps) {
+export function WidgetChart({ type, result, label, unit, params, attributes }: WidgetChartProps) {
   if (type !== '' && !isDashboardWidgetType(type)) {
     return <WidgetProblemBadge message={unknownWidgetTypeMessage(type)} />;
   }
@@ -35,7 +37,7 @@ export function WidgetChart({ type, result, label, unit, params }: WidgetChartPr
 
   return (
     <div className="w-full h-full min-h-[160px]">
-      {renderChart(resolved, result, label, unit, params)}
+      {renderChart(resolved, result, label, unit, params, attributes)}
     </div>
   );
 }
@@ -46,6 +48,7 @@ function renderChart(
   label?: string,
   unit?: string,
   params?: string[],
+  attributes?: Record<string, string>,
 ): ReactNode {
   switch (type) {
     case 'value':
@@ -62,9 +65,9 @@ function renderChart(
     case 'stacked-bar':
       return <StackedBar result={result} unit={unit} />;
     case 'goal-rings':
-      return <GoalRings result={result} params={params} label={label} unit={unit} />;
+      return <GoalRings result={result} attributes={attributes} params={params} label={label} unit={unit} />;
     case 'zone-distribution':
-      return <ZoneDistribution result={result} params={params} unit={unit} />;
+      return <ZoneDistribution result={result} attributes={attributes} params={params} unit={unit} />;
     case 'table':
       return <WqlTable result={result} unit={unit} />;
     default:

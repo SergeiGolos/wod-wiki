@@ -18,6 +18,7 @@
  *      for legacy route-id-keyed journal notes (note-identity-uuid-canonical ADR).
  */
 import { openDB, DBSchema, IDBPDatabase, IDBPTransaction, IndexNames, StoreNames } from 'idb';
+import { migrateLegacyDashboardBodies } from '@bitcobblers/wod-wiki-wql';
 import {
     BlockIndexRow,
     Note,
@@ -210,7 +211,7 @@ export interface WodWikiDB extends DBSchema {
         };
     };
 }
-const DB_VERSION = 17; // V17 — field catalog stores + events.by-metric-date (wayfinder datadog-analytics ticket 14)
+const DB_VERSION = 18; // V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -953,6 +954,38 @@ export class IndexedDBService {
                 }
                 if (!db.objectStoreNames.contains('field_catalog_meta')) {
                     db.createObjectStore('field_catalog_meta', { keyPath: 'id' });
+                }
+
+                // ---- V18 — dashboard bodies rewritten to Query Documents ----
+                // (wayfinder decision 22: the legacy first-` / ` positional
+                // split is retired; params move to fence-tag attributes).
+                // Runs for every oldVersion < 18 on the existing notes store,
+                // batched inside this single versionchange transaction per
+                // ticket 14's lifecycle patterns.
+                if (oldVersion < 18 && db.objectStoreNames.contains('notes')) {
+                    const notesStore = tx.objectStore('notes');
+                    let cursor = await notesStore.openCursor();
+                    while (cursor) {
+                        const note = cursor.value as {
+                            content?: string;
+                            raw?: string;
+                            frontmatter?: Record<string, unknown>;
+                        } | undefined;
+                        const body = (note?.content ?? note?.raw ?? '') as string;
+                        const isDashboard =
+                            note?.frontmatter?.['dashboard'] === 'true' ||
+                            note?.frontmatter?.['dashboard'] === true;
+                        if (isDashboard && body.includes(' / ')) {
+                            const migrated = migrateLegacyDashboardBodies(body);
+                            if (migrated !== body) {
+                                const updated = { ...(cursor.value as Record<string, unknown>) };
+                                if ('content' in updated) updated['content'] = migrated;
+                                if ('raw' in updated) updated['raw'] = migrated;
+                                cursor.update(updated);
+                            }
+                        }
+                        cursor = await cursor.continue();
+                    }
                 }
 
                 // ---- Efforts ----

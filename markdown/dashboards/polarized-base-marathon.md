@@ -40,8 +40,8 @@ last:calc.tsb{}
 ## Intensity distribution
 Actually 80/20 — or stuck in the grey zone?
 
-```query:zone-distribution
-sum:tis{} by {intensity} / 80 2 18
+```query:zone-distribution targets="80 2 18"
+sum:tis{} by {intensity}
 ```
 
 ## Injury risk (ACWR)

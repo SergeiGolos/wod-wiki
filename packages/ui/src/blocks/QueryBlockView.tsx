@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
-import { parseQuery, isFindQuery, isRowsQuery, splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isFindQuery, isRowsQuery, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { RowsResultsChrome } from './RowsResultsChrome';
@@ -32,6 +32,8 @@ export interface QueryBlockViewProps {
   widgetError?: string;
   /** Token values from the note's frontmatter, for `$token` substitution. */
   tokenValues?: Record<string, string>;
+  /** Fence-tag presentation attributes (decision 22). */
+  attributes?: Record<string, string>;
   /** Optional RPE capture handler. */
   onCaptureRpe?: (resultId: string, rpe: number) => Promise<void>;
 }
@@ -46,18 +48,18 @@ export function QueryBlockView({
   widgetType,
   widgetError,
   tokenValues,
+  attributes,
   onCaptureRpe,
 }: QueryBlockViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const extracted = useMemo(() => extractBlockQueries(query), [query]);
-  const { query: effectiveQuery, params: effectiveParams, missing } = useMemo(() => {
+  // Decision 22: the body IS the Query Document — no positional split.
+  // Presentation config rides fence-tag attributes.
+  const { query: effectiveQuery, missing } = useMemo(() => {
     const raw = extracted.length > 0 ? extracted[0].query : query;
-    const { query: body, params: rawParams } = splitWidgetBody(raw);
-    const subQuery = substituteTokens(body, tokenValues ?? {});
-    const paramSubs = rawParams.map((p) => substituteTokens(p, tokenValues ?? {}));
-    const missing = [...new Set([...subQuery.missing, ...paramSubs.flatMap((s) => s.missing)])];
-    return { query: subQuery.query, params: paramSubs.map((s) => s.query), missing };
+    const subQuery = substituteTokens(raw, tokenValues ?? {});
+    return { query: subQuery.query, missing: subQuery.missing };
   }, [extracted, query, tokenValues]);
 
   const parsed = useMemo(() => parseQuery(effectiveQuery), [effectiveQuery]);
@@ -207,7 +209,7 @@ export function QueryBlockView({
             result={result}
             metric={parsed.metric}
             widgetType={widgetType}
-            params={effectiveParams}
+            attributes={attributes}
           />
         </QueryBlockShell>
       )}
@@ -231,17 +233,17 @@ function AnalyticsChart({
   result,
   metric,
   widgetType,
-  params,
+  attributes,
 }: {
   result: QueryResult | undefined;
   metric: string;
   widgetType?: string;
-  params?: string[];
+  attributes?: Record<string, string>;
 }) {
   const shape = useChartShape(result);
 
   if (widgetType != null && widgetType !== '') {
-    return <WidgetChart type={widgetType} result={result} label={metric} params={params} />;
+    return <WidgetChart type={widgetType} result={result} label={metric} attributes={attributes} />;
   }
 
   if (shape.kind === 'scalar') {

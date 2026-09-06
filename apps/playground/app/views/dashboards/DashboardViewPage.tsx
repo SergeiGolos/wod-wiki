@@ -31,7 +31,10 @@ import { useAnalyticsRange } from '../../hooks/useAnalyticsRange';
 import { journalNotes } from '../../services/journalNotes';
 import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
-import { parseDashboardNote } from '@bitcobblers/wod-wiki-wql';
+import {
+  parseDashboardNote,
+  type WidgetOpResult,
+} from '@bitcobblers/wod-wiki-wql';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import {
   buildDashboardDocument,
@@ -133,9 +136,21 @@ export function DashboardViewPage() {
   // Toolbar actions (duplicate/remove/reorder/size) start from the revision
   // on screen; a refusal lands in the visible action-error banner.
   const runWidgetOp = useCallback(
-    (expectedRaw: string, mutate: (raw: string) => string | null) => {
+    (expectedRaw: string, mutate: (raw: string) => WidgetOpResult) => {
       setActionError(null);
-      void mutateNote(expectedRaw, mutate).catch((err: unknown) => {
+      void mutateNote(expectedRaw, (raw) => {
+        const result = mutate(raw);
+        if (!result.ok) {
+          // Structured refusals (decision 22): not-found vs stale-body are
+          // distinct failures — both refuse the write.
+          throw new Error(
+            result.reason === 'stale-body'
+              ? 'Widget changed since you opened this page — reload and retry.'
+              : 'Widget no longer exists — reload the dashboard.',
+          );
+        }
+        return result.note;
+      }).catch((err: unknown) => {
         setActionError(err instanceof Error ? err.message : String(err));
       });
     },
@@ -311,7 +326,7 @@ export function DashboardViewPage() {
         mode={composer?.mode ?? 'add'}
         initialWql={
           composer && composer.mode !== 'add'
-            ? composer.widget.query
+            ? composer.widget.body
             : 'sum:totalVolume{}'
         }
         initial={
@@ -322,7 +337,7 @@ export function DashboardViewPage() {
                 type: composer.widget.type,
                 spanCols: composer.widget.spanCols,
                 spanFull: composer.widget.spanFull,
-                params: composer.widget.params,
+                attributes: composer.widget.attributes,
               }
             : undefined
         }

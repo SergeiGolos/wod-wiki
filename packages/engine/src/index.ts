@@ -295,7 +295,6 @@ export {
   resolveWidgetType,
   unknownWidgetTypeMessage,
   dashboardSlug,
-  splitWidgetBody,
   parseQueryWidgetSuffix,
   isDashboardMeta,
   type DashboardDocument,

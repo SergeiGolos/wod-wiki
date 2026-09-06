@@ -8,12 +8,12 @@ export interface GoalRingsProps {
   unit?: string;
 }
 
-export function GoalRings({ result, params, label, unit }: GoalRingsProps) {
+export function GoalRings({ result, attributes, params, label, unit }: GoalRingsProps & { attributes?: Record<string, string> }) {
   if (!result || result.series.length === 0) {
     return <WqlEmptyState result={result} />;
   }
 
-  const rawTarget = params && params.length > 0 ? params[0] : undefined;
+  const rawTarget = attributes?.['goal'] ?? (params && params.length > 0 ? params[0] : undefined);
   const targetValue = rawTarget ? parseFloat(rawTarget) : undefined;
   const hasValidTarget = targetValue !== undefined && !isNaN(targetValue) && targetValue > 0;
 

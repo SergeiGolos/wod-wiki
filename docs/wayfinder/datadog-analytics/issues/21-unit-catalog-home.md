@@ -3,7 +3,7 @@
 Labels: wayfinder:grilling
 Type: grilling
 Mode: HITL
-Status: resolved
+Status: resolved; implemented (see Answer notes)
 Assignee: serge
 Parent: [WQL analytics — from collected metrics to trustworthy answers](../map.md)
 Blocked by: none

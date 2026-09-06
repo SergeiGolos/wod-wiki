@@ -12,8 +12,7 @@ import { join } from 'node:path';
 import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import { parseFrontmatter } from '@/lib/frontmatter';
 
-import { parseDashboardNote } from '@bitcobblers/wod-wiki-wql';
-import { buildDashboardDocument, isDashboardWidgetType, resolveWidgetType, splitWidgetBody } from '@bitcobblers/wod-wiki-wql';
+import { parseDashboardNote, buildDashboardDocument, isDashboardWidgetType, resolveWidgetType, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';
 
 const SEEDS_DIR = join(import.meta.dir, '../../../../markdown/dashboards');
 const seedFiles = readdirSync(SEEDS_DIR).filter((f) => f.endsWith('.md'));
@@ -37,19 +36,18 @@ describe('Dashboard Catalog seeds', () => {
         expect(widget.title).toBeDefined();
         expect(isDashboardWidgetType(resolveWidgetType(widget.type))).toBe(true);
 
-        const { query } = splitWidgetBody(widget.body);
-        const parsed = parseQuery(query);
+        const parsed = parseQuery(widget.body);
         expect(parsed.error).toBeUndefined();
         expect(isFindQuery(parsed)).toBe(false);
       }
 
       const declared = new Set(doc.tokens.map((t) => t.name));
       for (const widget of doc.widgets) {
-        for (const ref of widget.query.matchAll(/\$([A-Za-z][\w-]*)/g)) {
+        for (const ref of widget.body.matchAll(/\$([A-Za-z][\w-]*)/g)) {
           expect(declared.has(ref[1])).toBe(true);
         }
-        for (const param of widget.params) {
-          for (const ref of param.matchAll(/\$([A-Za-z][\w-]*)/g)) {
+        for (const value of Object.values(widget.attributes)) {
+          for (const ref of value.matchAll(/\$([A-Za-z][\w-]*)/g)) {
             expect(declared.has(ref[1])).toBe(true);
           }
         }

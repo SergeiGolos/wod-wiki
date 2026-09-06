@@ -37,7 +37,7 @@ describe('buildDashboardScaffold', () => {
     expect(doc.widgets[0].title).toBeDefined();
     // The scaffold widget references a declared token, so token controls and
     // substitution both have something to work with out of the box.
-    expect(doc.widgets[0].query).toContain('$');
-    expect(doc.tokens.some((t) => doc.widgets[0].query.includes(`$${t.name}`))).toBe(true);
+    expect(doc.widgets[0]!.body).toContain('$');
+    expect(doc.tokens.some((t) => doc.widgets[0]!.body.includes(`$${t.name}`))).toBe(true);
   });
 });

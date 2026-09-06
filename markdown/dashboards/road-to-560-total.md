@@ -20,22 +20,22 @@ of each set's projected max.
 ## Squat goal
 How close to the target?
 
-```query:goal-rings
-max:calc.e1rm{effort:back-squat} / $squatGoal
+```query:goal-rings goal=$squatGoal
+max:calc.e1rm{effort:back-squat}
 ```
 
 ## Bench goal
 How close to the target?
 
-```query:goal-rings
-max:calc.e1rm{effort:bench-press} / $benchGoal
+```query:goal-rings goal=$benchGoal
+max:calc.e1rm{effort:bench-press}
 ```
 
 ## Deadlift goal
 How close to the target?
 
-```query:goal-rings
-max:calc.e1rm{effort:deadlift} / $deadliftGoal
+```query:goal-rings goal=$deadliftGoal
+max:calc.e1rm{effort:deadlift}
 ```
 
 ## Estimated 1RM trend
