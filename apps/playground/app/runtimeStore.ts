@@ -6,8 +6,23 @@
  * /run/:runtimeId. WallClockPage reads and deletes the entry.
  */
 import type { ScriptBlock } from '@/components/Editor/types'
+import type { ResultOrigin } from '@/types/storage'
 
-export const pendingRuntimes = new Map<string, { block: ScriptBlock; noteId: string }>()
+export interface PendingRuntime {
+  block: ScriptBlock
+  /**
+   * Canonical Note UUID (or legacy composite id). Pass `origin` explicitly
+   * when the id doesn't self-describe ('playground/<name>' → 'playground',
+   * everything else → 'journal') — e.g. UUID-keyed playground notes.
+   */
+  noteId: string
+  /** Overrides the recorder's origin derivation (see noteId). */
+  origin?: ResultOrigin
+  /** Overrides the post-run back-navigation (parseNoteId can't route UUIDs). */
+  returnTo?: string
+}
+
+export const pendingRuntimes = new Map<string, PendingRuntime>()
 
 /**
  * Tracks currently active (running) runtimes, keyed by blockId.

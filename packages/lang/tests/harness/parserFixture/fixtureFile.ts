@@ -6,8 +6,8 @@
  * Diagnostics always name the file and the offending section or line.
  */
 
-import { FixtureSyntaxError, parseMetricLine, type MetricLine } from './metricLine';
-import type { MatchMode } from './compare';
+import { FixtureSyntaxError, parseMetricLine, type MetricLine } from '../../../src/parser-fixture/metricLine';
+import type { MatchMode } from '../../../src/parser-fixture/compare';
 
 export interface ParseFixtureOptions {
   sport?: string;

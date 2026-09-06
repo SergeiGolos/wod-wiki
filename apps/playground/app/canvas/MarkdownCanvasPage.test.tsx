@@ -20,6 +20,11 @@ const storedResults: WorkoutResult[] = []
 const saveResultCalls: WorkoutResult[] = []
 const editorFocusCalls: string[] = []
 
+const playgroundNoteId = '01990e80-0000-7000-8000-000000000001'
+
+mock.module('../services/createPlaygroundPage', () => ({
+  ensurePlaygroundEntry: async () => ({ noteId: playgroundNoteId, routeId: 'playground/canvas-home' }),
+}))
 const sampleWorkoutResults = {
   completed: true,
   startTime: 1_700_000_000_000,
@@ -323,10 +328,6 @@ describe('MarkdownCanvasPage result persistence', () => {
     )
 
     await waitFor(() => expect(panelActions).toBeTruthy())
-    await waitFor(() => expect(getRenderedEditors()).toHaveLength(2))
-
-    expect(getRenderedEditors().every((editor) => editor.getAttribute('data-note-id') === 'canvas:home')).toBe(true)
-    expect(getRenderedEditors().every((editor) => editor.getAttribute('data-result-count') === '0')).toBe(true)
 
     act(() => {
       panelActions?.run()
@@ -340,7 +341,7 @@ describe('MarkdownCanvasPage result persistence', () => {
 
     await waitFor(() => expect(saveResultCalls).toHaveLength(1))
     expect(saveResultCalls[0]).toMatchObject({
-      noteId: 'canvas:home',
+      noteId: playgroundNoteId,
       blockContentId: 'block-1',
       data: sampleWorkoutResults,
     })

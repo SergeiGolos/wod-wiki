@@ -156,3 +156,20 @@ export function withoutFilterIndex(query: string, index: number): string {
   const filters = parsed.filters.filter((_, i) => i !== index);
   return serialize({ ...parsed, filters } as AnyParsedQuery);
 }
+
+/** Add, update, or remove the text: filter on a query. */
+export function setTextFilter(query: string, text: string): string {
+  const parsed = parseQuery(query);
+  if (parsed.error) return query;
+  const clean = text.trim();
+  const filtersWithoutText = parsed.filters.filter((f) => f.key !== 'text');
+  if (!clean) {
+    return serialize({ ...parsed, filters: filtersWithoutText } as AnyParsedQuery);
+  }
+  const textFilter: TagFilter = {
+    key: 'text',
+    negate: false,
+    values: [{ value: clean, wildcard: false }],
+  };
+  return serialize({ ...parsed, filters: [...filtersWithoutText, textFilter] } as AnyParsedQuery);
+}

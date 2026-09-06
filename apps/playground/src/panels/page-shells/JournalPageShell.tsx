@@ -10,7 +10,7 @@
 
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
+import { PAGE_SHELL_CONTENT_SURFACE_CLASS, PAGE_SHELL_CONTAINER_CLASS } from './contentSurface';
 import { StickyPageHeader } from './StickyPageHeader';
 
 export interface JournalPageShellProps {
@@ -19,6 +19,7 @@ export interface JournalPageShellProps {
 
   /** Title shown in the sticky header */
   title?: string;
+  subtitle?: ReactNode;
 
   /** Optional data-testid for the sticky-header title element (e2e/TestIdContract) */
   titleTestId?: string;
@@ -58,6 +59,7 @@ export interface JournalPageShellProps {
 export function JournalPageShell({
   editor,
   title,
+  subtitle,
   titleTestId,
   actions,
   timerOverlay,
@@ -76,16 +78,13 @@ export function JournalPageShell({
         Everything inside (Header + Editor) has the background and shadow.
       */}
       <div className={cn(
-        'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
+        PAGE_SHELL_CONTAINER_CLASS,
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
       )}>
-        {/* Page header — one instance at every width: the actions (Edit
-            toggle, badges) must stay reachable on mobile, and rendering the
-            node twice breaks strict-mode locators. Sticky styling is lg-only;
-            below lg the SidebarLayout navbar sits above it. */}
-        {/* Page header */}
+        {/* Responsive actions own mobile placement; the header stays desktop-only. */}
         <StickyPageHeader
           title={title}
+          subtitle={subtitle}
           titleTestId={titleTestId}
           actions={actions}
         />

@@ -79,6 +79,12 @@ mock.module('@/services/resultRecorder', () => ({
   playgroundRecorder: { record: async () => {} },
 }))
 
+mock.module('../services/createPlaygroundPage', () => ({
+  ensurePlaygroundEntry: mock(async () => ({ noteId: 'playground-note-test', routeId: 'playground/test' })),
+  createPlaygroundPage: mock(async () => 'test-page'),
+  movePlaygroundToJournal: mock(async (noteId: string) => ({ id: noteId })),
+}))
+
 mock.module('../services/journalWorkout', () => ({
   createJournalNoteFromWorkout: async () => ({ id: 'note-clone' }),
 }))

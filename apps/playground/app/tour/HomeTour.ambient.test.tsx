@@ -138,6 +138,12 @@ mock.module('@/services/resultRecorder', () => ({
   playgroundRecorder: { record: async () => {} },
 }))
 
+mock.module('../services/createPlaygroundPage', () => ({
+  ensurePlaygroundEntry: mock(async () => ({ noteId: 'playground-note-test', routeId: 'playground/test' })),
+  createPlaygroundPage: mock(async () => 'test-page'),
+  movePlaygroundToJournal: mock(async (noteId: string) => ({ id: noteId })),
+}))
+
 mock.module('../services/journalWorkout', () => ({
   createJournalNoteFromWorkout: async () => ({ id: 'note-clone' }),
 }))
@@ -374,6 +380,13 @@ describe('HomeTour ambient runtime', () => {
       await Promise.resolve()
     })
 
+    // The entry is persisted before the overlay mounts, so the playground
+    // runtime is the LAST one mounted — wait for it explicitly before
+    // reading lastMockRuntime (otherwise the ambient auto-started runtime,
+    // which DOES handle 'next', wins the race).
+    await waitFor(() => {
+      expect(screen.queryByTestId('tour-playground-overlay')).not.toBeNull()
+    })
     await waitFor(() => {
       expect(lastMockRuntime).not.toBeNull()
     })

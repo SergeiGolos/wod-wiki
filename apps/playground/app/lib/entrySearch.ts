@@ -33,6 +33,7 @@ import {
   noteFromBlock,
   effortToEntry,
   rowsQueryResultToEntries,
+  blockPreview,
   type Entry,
 } from './entryMapper';
 
@@ -45,6 +46,13 @@ export interface StreamQueryService {
 export interface StreamQueryEngineOptions {
   service?: StreamQueryService;
   noteTitleResolver?: (noteId: string) => Promise<string | undefined> | string | undefined;
+  /**
+   * When true, a find:note run also fetches the same query's block plane
+   * (identical scope — no broadening) and attaches each note's excerpt lines
+   * plus its first wod block's content id. The feed's rich preview cards and
+   * their Run action consume this; one extra query per executed WQL, not per item.
+   */
+  noteBlockInfo?: boolean;
 }
 
 function isStreamQueryService(value: unknown): value is StreamQueryService {
@@ -54,6 +62,7 @@ function isStreamQueryService(value: unknown): value is StreamQueryService {
 export class StreamQueryEngine {
   private customService?: StreamQueryService;
   private noteTitleResolver?: (noteId: string) => Promise<string | undefined> | string | undefined;
+  private noteBlockInfo: boolean;
 
   constructor(serviceOrOptions?: StreamQueryService | StreamQueryEngineOptions) {
     if (isStreamQueryService(serviceOrOptions)) {
@@ -61,11 +70,30 @@ export class StreamQueryEngine {
     } else {
       this.customService = serviceOrOptions?.service;
       this.noteTitleResolver = serviceOrOptions?.noteTitleResolver;
+      this.noteBlockInfo = serviceOrOptions?.noteBlockInfo ?? false;
     }
   }
 
   private get service(): StreamQueryService {
     return this.customService ?? queryService;
+  }
+
+  /** Same engine with note block info attached — the feed mode's rich
+   *  previews and Run targets. Shares the underlying service and title
+   *  resolver; no second query-state seam. */
+  withNoteBlockInfo(): StreamQueryEngine {
+    const next = new StreamQueryEngine({
+      service: this.service,
+      noteTitleResolver: this.noteTitleResolver,
+      noteBlockInfo: true,
+    });
+    // The feed's companion wraps the same engine; an instance-level `query`
+    // override (the tests' seam for stubbing results directly) must survive
+    // the wrap or feed-mode callers would silently re-run the real query.
+    if (Object.prototype.hasOwnProperty.call(this, 'query')) {
+      next.query = this.query;
+    }
+    return next;
   }
   async query(input: string | AnyParsedQuery): Promise<Entry[]> {
     const parsed: AnyParsedQuery = typeof input === 'string' ? parseQuery(input) : input;
@@ -91,8 +119,9 @@ export class StreamQueryEngine {
       const hasText = parsed.filters.some(f => f.key === 'text' && !f.negate);
       const primaryPromise = this.service.runFind(parsed);
 
-      // When free-text is present, also run find:block to search body text.
-      const blockParsed: ParsedFindQuery | null = hasText && parsed.target === 'note'
+      // When free-text is present — or the caller asked for note block info —
+      // also run find:block to search body text / collect per-note previews.
+      const blockParsed: ParsedFindQuery | null = (hasText || this.noteBlockInfo) && parsed.target === 'note'
         ? (typeof input === 'string'
             ? (parseQuery(input.replace(/^find:note/, 'find:block')) as ParsedFindQuery)
             : {
@@ -121,7 +150,36 @@ export class StreamQueryEngine {
         }
       }
 
-      return Array.from(noteMap.values()).map(toEntry);
+      const entries = Array.from(noteMap.values()).map(toEntry);
+      if (this.noteBlockInfo && blockResult?.blocks) {
+        // Per note: prose preview lines (feed reading depth — bounded, the
+        // card collapses/ expands) and the first wod block's content id and
+        // script — the feed's excerpt and Run target.
+        const EXCERPT_LINE_CAP = 6;
+        const previewByNote = new Map<string, string[]>();
+        const wodByNote = new Map<string, { blockContentId: string; content: string }>();
+        for (const block of [...blockResult.blocks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))) {
+          const preview = previewByNote.get(block.noteId);
+          if (preview) {
+            const room = EXCERPT_LINE_CAP - preview.length;
+            if (room > 0) preview.push(...blockPreview(block.rawContent).slice(0, room));
+          } else {
+            previewByNote.set(block.noteId, blockPreview(block.rawContent));
+          }
+          if (!wodByNote.has(block.noteId) && block.dataType === 'wod' && block.blockContentId) {
+            wodByNote.set(block.noteId, { blockContentId: block.blockContentId, content: block.rawContent });
+          }
+        }
+        for (const entry of entries) {
+          const preview = previewByNote.get(entry.id);
+          if (preview && preview.length > 0) entry.excerpt = preview.slice(0, EXCERPT_LINE_CAP);
+          const wod = wodByNote.get(entry.id);
+          if (wod && !entry.wodBlock) entry.wodBlock = wod;
+          if (wod && !entry.blockContentId) entry.blockContentId = wod.blockContentId;
+        }
+      }
+
+      return entries;
     }
 
     // 2. Execution Analytics Telemetry Plane (rows:)

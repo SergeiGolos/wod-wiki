@@ -15,12 +15,12 @@
  *   the composed WQL back through `onQueryChange` (URL `?q=` follows).
  *
  * `compact` (mobile) renders the bar that portals into the app navbar:
- * type pill + truncated WQL + optional view-settings; tapping opens the
- * same palette dialog.
+ * type pill + truncated WQL; tapping opens the same palette dialog
+ * (view settings lives in the mobile dock, owned by ResponsiveActions).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, Clock3, Command, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Clock3, Command } from 'lucide-react'
 import { parseQuery, type QueryWindow } from '@bitcobblers/wod-wiki-engine'
 import { SOURCE_OPTIONS, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
@@ -32,7 +32,7 @@ import {
 } from '@/components/atoms/primitives/dropdown-menu'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
-import { pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow } from '../../lib/wqlEdits'
+import { pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow, setTextFilter } from '../../lib/wqlEdits'
 
 /** Semantic dot hue per source plane (Mineral Arctic metric hues). */
 const SOURCE_DOT: Record<string, string> = {
@@ -40,15 +40,20 @@ const SOURCE_DOT: Record<string, string> = {
   journal: '#508860',
   collections: '#7C62A0',
   feeds: '#5980A8',
+  playground: '#B0653A',
   blocks: '#A87040',
   efforts: '#948030',
   metrics: '#5980A8',
   rows: '#A05858',
 }
 
-const SOURCE_LABEL: Record<string, string> = Object.fromEntries(
-  SOURCE_OPTIONS.map((o) => [o.value, o.label]),
-)
+// SOURCE_OPTIONS (ui package) covers the classic planes; the playground
+// plane entered the WQL vocabulary after that table was frozen — label it
+// here rather than forking the shared option list.
+const SOURCE_LABEL: Record<string, string> = {
+  ...Object.fromEntries(SOURCE_OPTIONS.map((o) => [o.value, o.label])),
+  playground: 'Playground',
+}
 
 function windowLabel(w: QueryWindow): string {
   if (w.kind === 'relative') return `last ${w.size}${w.unit}`
@@ -63,8 +68,6 @@ export interface StreamQueryBarProps {
   options: readonly string[]
   /** Stage-count executor handed to the palette composer. */
   execute: WqlExecutor
-  /** Mobile-only view-settings affordance rendered after the summary. */
-  onViewSettings?: () => void
   /** Compact (mobile) variant — summary line instead of chips. */
   compact?: boolean
   className?: string
@@ -75,7 +78,6 @@ export function StreamQueryBar({
   onQueryChange,
   options,
   execute,
-  onViewSettings,
   compact = false,
   className,
 }: StreamQueryBarProps) {
@@ -142,20 +144,6 @@ export function StreamQueryBar({
         >
           {query}
         </span>
-        {onViewSettings && (
-          <button
-            type="button"
-            data-testid="stream-query-view-settings"
-            title="View Settings"
-            onClick={(e) => {
-              e.stopPropagation()
-              onViewSettings()
-            }}
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <SlidersHorizontal className="size-4" />
-          </button>
-        )}
       </div>
     )
   }
@@ -195,6 +183,14 @@ function DesktopBar({
 }) {
   const chipsRef = useRef<HTMLDivElement>(null)
   const [hiddenCount, setHiddenCount] = useState(0)
+  const currentText = useMemo(() => {
+    if (parsed.error) return ''
+    return parsed.filters.find((f) => f.key === 'text')?.values[0]?.value ?? ''
+  }, [parsed])
+  const [draftText, setDraftText] = useState(currentText)
+  useEffect(() => {
+    setDraftText(currentText)
+  }, [currentText])
 
   const chips = useMemo<Chip[]>(() => {
     if (parsed.error) return []
@@ -309,6 +305,21 @@ function DesktopBar({
           </button>
         )}
       </div>
+      <input
+        type="text"
+        data-testid="wql-composer-input"
+        placeholder="Filter or search…"
+        value={draftText}
+        onChange={(e) => setDraftText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            onQueryChange(setTextFilter(query, draftText))
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="min-w-[80px] flex-1 bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+      />
 
       <button
         type="button"

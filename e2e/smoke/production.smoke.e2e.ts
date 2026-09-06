@@ -126,7 +126,7 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
 
     // Start the workout: DOM click (block overlay decorations intercept
     // pointer events, same as the live-app specs).
-    const play = page.getByRole('button', { name: 'Play' }).first();
+    const play = page.getByRole('button', { name: 'Play', exact: true }).first();
     await expect(play).toBeVisible({ timeout: 15_000 });
     await play.evaluate((el) => (el as HTMLElement).click());
 

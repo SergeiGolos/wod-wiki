@@ -500,6 +500,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Read-only state
       EditorState.readOnly.of(readonly),
+      EditorView.editable.of(!readonly),
     ],
     [
       onChange,

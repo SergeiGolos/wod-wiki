@@ -1,9 +1,10 @@
 /**
  * viewSettingsStorage — client storage persistence for per-route view settings (Ticket 002).
  *
- * Persists the user's field visibility and layout preferences (Card Stream vs
- * Property Table) per view route in localStorage.
- * Drops obsolete or unknown field IDs on read to keep stored state resilient.
+ * Persists the user's field visibility, layout (Cards / Rows / Feed), and
+ * grouping per view route in localStorage. Legacy stream/table layouts
+ * migrate to cards/rows on read. Drops obsolete or unknown field IDs on read
+ * to keep stored state resilient.
  */
 import { useState, useCallback, useEffect } from 'react'
 import {
@@ -12,7 +13,13 @@ import {
   getDefaultVisibleFieldIds,
 } from './fieldProjection'
 
-export type LayoutMode = 'stream' | 'table'
+export type LayoutMode = 'cards' | 'rows' | 'feed'
+
+/** Persisted layouts from before the Cards / Rows / Feed split (Ticket 002). */
+const LEGACY_LAYOUTS: Record<string, LayoutMode> = {
+  stream: 'cards',
+  table: 'rows',
+}
 
 export interface ViewSettings {
   level: EntityLevel
@@ -31,7 +38,7 @@ export function getRouteStorageKey(route: string): string {
 export function getDefaultViewSettings(level: EntityLevel): ViewSettings {
   return {
     level,
-    layout: 'stream',
+    layout: 'cards',
     visibleFields: getDefaultVisibleFieldIds(level),
     groupBy: undefined,
   }
@@ -48,7 +55,11 @@ export function readViewSettings(route: string, level: EntityLevel): ViewSetting
     if (!raw) return defaults
 
     const parsed = JSON.parse(raw) as Partial<ViewSettings>
-    const layout: LayoutMode = parsed.layout === 'table' ? 'table' : 'stream'
+    const rawLayout = typeof parsed.layout === 'string' ? parsed.layout : ''
+    const layout: LayoutMode =
+      rawLayout === 'cards' || rawLayout === 'rows' || rawLayout === 'feed'
+        ? rawLayout
+        : (LEGACY_LAYOUTS[rawLayout] ?? 'cards')
 
     // Sanitize visible fields against valid fields for this level
     const availableFieldIds = new Set(getFieldsForLevel(level).map(f => f.id))
@@ -78,6 +89,7 @@ export function writeViewSettings(route: string, settings: ViewSettings): void {
         level: settings.level,
         layout: settings.layout,
         visibleFields: settings.visibleFields,
+        groupBy: settings.groupBy,
       }),
     )
   } catch {

@@ -92,8 +92,14 @@ export interface NoteMutation {
     journalDate: string;
     notes: string;
     type: NoteKind;
-    sourceId: string;
-    slug: string;
+    /** `null` clears the note's source — promotion out of a source bucket
+     *  (e.g. playground → journal) leaves the source scope without a
+     *  residual `source:` filter match. */
+    sourceId: string | null;
+    /** `null` clears the route slug — promoted notes stop answering their
+     *  old playground route so a later same-key intake can never update a
+     *  journal note in place of the departed playground entry. */
+    slug: string | null;
   }>;
   workoutResult?: {
     id?: string;

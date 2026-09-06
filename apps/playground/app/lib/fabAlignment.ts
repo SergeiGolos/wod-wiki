@@ -1,7 +1,8 @@
 /**
- * fabAlignment — the "Search button position" preference: which thumb zone the
- * mobile floating search button (SearchFab) anchors to. Right (default) suits
- * right-handed use; Left mirrors it for left-handed use.
+ * fabAlignment — the "Actions button position" preference: which thumb zone
+ * the mobile floating actions dock (search FAB + page primary + overflow)
+ * anchors to. Right (default) suits right-handed use; Left mirrors it for
+ * left-handed use.
  *
  * Follows the dateLocale.ts pattern: module-level value + localStorage +
  * storage event, so non-React readers stay cheap and `useFabAlignment` gives
@@ -23,12 +24,12 @@ export const FAB_ALIGNMENT_OPTIONS: FabAlignmentOption[] = [
   {
     id: 'right',
     label: 'Bottom right',
-    description: 'Right-handed — the search button floats near your right thumb',
+    description: 'Right-handed — search and page actions float near your right thumb',
   },
   {
     id: 'left',
     label: 'Bottom left',
-    description: 'Left-handed — the search button floats near your left thumb',
+    description: 'Left-handed — search and page actions float near your left thumb',
   },
 ]
 

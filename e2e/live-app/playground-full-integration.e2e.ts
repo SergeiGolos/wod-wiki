@@ -152,7 +152,7 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     await expect(page.getByText(/workout block below/)).toBeVisible();
 
     // WOD block action buttons rendered by the overlay system
-    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
@@ -238,7 +238,7 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     // Click the visible Play button on the wod block overlay to start the runtime.
     // PlaygroundNotePage uses enableInlineRuntime={false}, so this navigates to
     // the tracker route instead of opening an inline overlay.
-    const playButton = page.getByRole('button', { name: 'Play' }).first();
+    const playButton = page.getByRole('button', { name: 'Play', exact: true }).first();
     await expect(playButton).toBeVisible();
     await playButton.click();
 
@@ -268,32 +268,28 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     const { consoleErrors, pageErrors } = monitorErrors(page);
 
     await seedWidgetRichNote(page);
+    await page.goto('/settings/appearance', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+
+    // Switch to dark
+    const darkOption = page.getByTestId('theme-option-dark');
+    await expect(darkOption).toBeVisible({ timeout: 5_000 });
+    await darkOption.click();
+    await expect(async () => {
+      const cls = (await page.locator('html').getAttribute('class')) ?? '';
+      expect(cls.split(/\s+/)).toContain('dark');
+    }).toPass({ timeout: 5_000 });
+
+    // Switch to light
+    const lightOption = page.getByTestId('theme-option-light');
+    await lightOption.click();
+    await expect(async () => {
+      const cls = (await page.locator('html').getAttribute('class')) ?? '';
+      expect(cls.split(/\s+/)).not.toContain('dark');
+      expect(cls.split(/\s+/)).toContain('light');
+    }).toPass({ timeout: 5_000 });
+    // Return to playground and verify page renders without errors
     await page.goto(`/playground/${TEST_PAGE_NAME}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
-
-    // Open the Actions menu (the trailing ellipsis button in the shell's
-    // actions container — same selector the note-persistence spec uses).
-    const actionsMenuTrigger = page.locator('div.flex.items-center.gap-2.shrink-0 button').last();
-    await actionsMenuTrigger.click();
-    const dropdownMenu = page.locator('[role="menu"]').last();
-    await expect(dropdownMenu).toBeVisible({ timeout: 5_000 });
-
-    // Check current theme label
-    const themeLabel = dropdownMenu.getByText(/Theme:/);
-    await expect(themeLabel).toBeVisible();
-
-    // Click theme toggle to cycle through modes
-    await themeLabel.click();
-
-    // Re-open menu and toggle again
-    await actionsMenuTrigger.click();
-    await expect(page.locator('[role="menu"]').last()).toBeVisible({ timeout: 5_000 });
-    const themeLabel2 = page.locator('[role="menu"]').last().getByText(/Theme:/);
-    await themeLabel2.click();
-
-    // Verify page still renders without errors after theme switches
     await expect(page.getByRole('heading', { name: 'Code example', exact: true })).toBeVisible();
-
     // Filter out known non-critical console errors from Headless UI nested
     // buttons and pre-existing CodeMirror theme-reconfiguration crash.
     const filteredErrors = consoleErrors.filter((e) =>

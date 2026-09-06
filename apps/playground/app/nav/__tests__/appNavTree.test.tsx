@@ -22,7 +22,7 @@ describe('appNavTree - Library navigation', () => {
     cleanup()
   })
 
-  it('defines L1 library item with L2 children for Explore, Feeds, Collections, and Journal', () => {
+  it('defines L1 library item with L2 children for Explore, Playground, Feeds, Collections, and Journal', () => {
     const tree = buildAppNavTree(() => {})
     const library = tree.find(item => item.id === 'library')
 
@@ -31,13 +31,20 @@ describe('appNavTree - Library navigation', () => {
     expect(library?.level).toBe(1)
     expect(library?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.library })
     expect(library?.children).toBeDefined()
-    expect(library?.children?.length).toBe(4)
+    expect(library?.children?.length).toBe(5)
 
-    const [explore, feeds, collections, journal] = library!.children!
+    const [explore, playground, feeds, collections, journal] = library!.children!
 
     expect(explore.id).toBe('library-explore')
     expect(explore.label).toBe('Explore')
     expect(explore.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.library })
+
+    expect(playground.id).toBe('library-playground')
+    expect(playground.label).toBe('Playground')
+    expect(playground.action).toEqual({
+      type: 'route',
+      to: `/library?q=${encodeURIComponent('find:note{source:playground}')}`,
+    })
 
     expect(feeds.id).toBe('library-feeds')
     expect(feeds.label).toBe('Feeds')
@@ -61,16 +68,25 @@ describe('appNavTree - Library navigation', () => {
     expect(library.isActive!(mockLocation('/collections'))).toBe(true)
     expect(library.isActive!(mockLocation('/feeds'))).toBe(true)
     expect(library.isActive!(mockLocation('/feed'))).toBe(true)
+    expect(library.isActive!(mockLocation('/playground/example'))).toBe(true)
+    expect(tree.find(item => item.id === 'home')!.isActive!(mockLocation('/playground/example'))).toBe(false)
     expect(library.isActive!(mockLocation('/dashboard'))).toBe(false)
   })
 
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const library = tree.find(item => item.id === 'library')!
-    const [explore, feeds, collections, journal] = library.children!
+    const [explore, playground, feeds, collections, journal] = library.children!
 
     expect(explore.isActive!(mockLocation('/library'))).toBe(true)
     expect(explore.isActive!(mockLocation('/journal'))).toBe(false)
+
+    const playgroundLoc = { ...mockLocation('/library'), search: `?q=${encodeURIComponent('find:note{source:playground}')}` }
+    expect(playground.isActive!(playgroundLoc)).toBe(true)
+    expect(playground.isActive!(mockLocation('/library'))).toBe(false)
+    expect(explore.isActive!(playgroundLoc)).toBe(false)
+    expect(playground.isActive!(mockLocation('/playground/example'))).toBe(true)
+    expect(playground.isActive!({ ...playgroundLoc, search: `?q=${encodeURIComponent('find:note{!source:playground}')}` })).toBe(false)
 
     expect(feeds.isActive!(mockLocation('/feeds'))).toBe(true)
     expect(feeds.isActive!(mockLocation('/feed'))).toBe(true)

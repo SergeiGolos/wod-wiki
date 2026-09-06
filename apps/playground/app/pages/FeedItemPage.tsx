@@ -19,15 +19,17 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { JournalPageShell } from '@/panels/page-shells';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
+import { EditorDialog } from '@bitcobblers/wod-wiki-ui';
 import { getScriptFeedItem, getScriptFeed } from '@/repositories/script-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
-import { journalDatePath, runPath } from '../lib/routes';
+import { journalDatePath, journalNotePath, runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
 import { PageActions } from './shared/PageActions';
+import { ResponsiveActions } from '../nav/ResponsiveActions';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/atoms/primitives/toast';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
@@ -165,12 +167,14 @@ export function FeedItemPage({
       <JournalPageShell
         title={item?.name ?? feedItem}
         actions={
+          <ResponsiveActions label="Workout actions">
           <PageActions
             mode="collection-readonly"
             currentWorkout={{ name: item?.name ?? feedItem, content }}
             index={index}
             onSearch={onSearch ?? (() => {})}
           />
+          </ResponsiveActions>
         }
         editor={
           <NoteEditor
@@ -189,17 +193,11 @@ export function FeedItemPage({
         }
       />
       {pendingScheduleBlock && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setPendingScheduleBlock(null)}
+        <EditorDialog
+          open
+          onClose={() => setPendingScheduleBlock(null)}
+          title="Schedule workout"
         >
-          <div
-            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold mb-4 text-foreground">
-              Schedule for&hellip;
-            </p>
             <CalendarCard
               selectedDate={null}
               onDateSelect={(date) => {
@@ -207,8 +205,7 @@ export function FeedItemPage({
                 setPendingScheduleBlock(null)
               }}
             />
-          </div>
-        </div>
+        </EditorDialog>
       )}
     </>
   );

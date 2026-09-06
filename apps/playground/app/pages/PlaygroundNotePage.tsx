@@ -11,7 +11,7 @@ import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import { v7 as uuidv7 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import { JournalPageShell, useMobileQuerySlot } from '@/panels/page-shells'
+import { JournalPageShell } from '@/panels/page-shells'
 import type { WidgetRegistry } from '@/components/Editor/widgets/types'
 import { PlaygroundRunTipWidget } from '../components/molecules/PlaygroundRunTipWidget'
 import {
@@ -30,8 +30,10 @@ import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock } from '../services/openInPlayground'
+import { movePlaygroundToJournal } from '../services/createPlaygroundPage'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
+import { EditorDialog } from '@bitcobblers/wod-wiki-ui'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
@@ -42,8 +44,8 @@ import { useCursorInsert } from '../hooks/useCursorInsert'
 import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
 import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
 import { Pin } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { useIsMobile } from '../hooks/useIsMobile'
+import { CalendarPlus } from 'lucide-react'
+import { ResponsiveActions } from '../nav/ResponsiveActions'
 
 export interface PlaygroundNotePageProps {
   theme: string
@@ -60,15 +62,18 @@ export function PlaygroundNotePage({
 }: PlaygroundNotePageProps) {
   const { id } = useParams<{ id: string }>()
   const pageName = id ?? 'playground'
-  // noteId is the full playground page identifier (for example, 'playground/<pageName>') so results can be grouped correctly in the journal
+  // Route composite — the /playground/:id lookup key. Results and runtimes
+  // join on the canonical Note UUID instead: entryId from the loaded page
+  // (V8 notes), with the composite as the legacy fallback.
   const noteId = pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
-  const { content, loading, onChange: persistOnChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
+  const { content, loading, entryId, onChange: persistOnChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
     category: 'playground',
     name: pageName,
     mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
+  const runtimeNoteId = entryId ?? noteId
 
   // Onboarding (ADR-0010, Goal Gradient) — see useOnboardingEvents for the
   // typed event API. The hook owns the step-string mapping; the page
@@ -101,10 +106,10 @@ export function PlaygroundNotePage({
   const [results, setResults] = useState<WorkoutResult[]>([])
 
   const refreshResults = useCallback(() => {
-    indexedDBService.getResultsForNote(noteId)
+    indexedDBService.getResultsForNote(runtimeNoteId)
       .then(results => setResults(results))
       .catch(() => {})
-  }, [noteId])
+  }, [runtimeNoteId])
 
   useEffect(() => {
     refreshResults()
@@ -127,10 +132,15 @@ export function PlaygroundNotePage({
     (block: ScriptBlock) => {
       onRunWorkout()
       const runtimeId = uuidv7()
-      pendingRuntimes.set(runtimeId, { block, noteId })
+      pendingRuntimes.set(runtimeId, {
+        block,
+        noteId: runtimeNoteId,
+        origin: 'playground',
+        returnTo: `/playground/${encodeURIComponent(pageName)}`,
+      })
       navigate(runPath(runtimeId))
     },
-    [noteId, navigate, onRunWorkout],
+    [runtimeNoteId, pageName, navigate, onRunWorkout],
   )
 
   const handleAddToToday = useCallback(
@@ -162,6 +172,36 @@ export function PlaygroundNotePage({
   )
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
+
+  // Move the whole playground entry onto a journal date — the SAME Note
+  // (UUID, blocks, results, attachments) joins the journal page; nothing is
+  // copied, so no duplicate playground entry remains.
+  const [moveToJournalOpen, setMoveToJournalOpen] = useState(false)
+
+  const handleMoveToJournal = useCallback(
+    async (date: Date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const dateKey = `${y}-${m}-${d}`
+      try {
+        await movePlaygroundToJournal(runtimeNoteId, dateKey)
+        toast({
+          title: 'Moved to journal',
+          description: `This playground now lives on ${dateKey}.`,
+          action: (
+            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(dateKey, runtimeNoteId))}>
+              Open
+            </ToastAction>
+          ),
+        })
+        navigate(journalNotePath(dateKey, runtimeNoteId))
+      } catch {
+        toast({ title: 'Error', description: 'Could not move to journal', variant: 'destructive' })
+      }
+    },
+    [runtimeNoteId, navigate],
+  )
 
   const handleScheduleBlock = useCallback(
     async (block: ScriptBlock, date: Date) => {
@@ -197,14 +237,11 @@ export function PlaygroundNotePage({
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout, results })
-  const isMobile = useIsMobile()
-  const mobileSlot = useMobileQuerySlot()
 
-  // The page header is hidden below lg — the pinned-effort insert button is
-  // the one mobile-critical action, so it portals into the navbar slot.
-  // Single mount point per breakpoint. (IKEA strong treatment renders only
-  // on the first note the user inserts the pinned effort on; subsequent
-  // notes step down to the regular quiet treatment.)
+  // Pinned-effort insert (IKEA payoff) — the page's single primary action:
+  // ResponsiveActions renders it inline on desktop and as the dock FAB on
+  // mobile. (Strong treatment renders only on the first note the user
+  // inserts the pinned effort on; subsequent notes step down to quiet.)
   const pinnedEffortButton = pinnedEffort && (
     <button
       type="button"
@@ -223,11 +260,22 @@ export function PlaygroundNotePage({
       {pinnedEffort}
     </button>
   )
-  const headerActions = isMobile ? (
-    mobileSlot && pinnedEffortButton ? createPortal(pinnedEffortButton, mobileSlot) : undefined
-  ) : (
-    <div className="flex items-center gap-2">
-      {pinnedEffortButton}
+
+  // The page header is hidden below lg — ResponsiveActions relocates the
+  // primary action to the shared thumb dock and the rest to its overflow
+  // sheet on mobile; on desktop (and standalone) everything renders inline.
+  // Single declaration per breakpoint, no portal duplication.
+  const headerActions = (
+    <ResponsiveActions label="Playground actions" primary={pinnedEffortButton}>
+      <button
+        type="button"
+        onClick={() => setMoveToJournalOpen(true)}
+        title="Move this playground to a journal date"
+        className="inline-flex items-center gap-1 rounded-pill border border-border bg-card px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+      >
+        <CalendarPlus className="size-3.5" aria-hidden="true" />
+        Move to journal
+      </button>
       <PageActions
         mode="playground"
         currentWorkout={{ name: pageTitle, content }}
@@ -235,7 +283,7 @@ export function PlaygroundNotePage({
         onSearch={onSearch ?? (() => {})}
         onReset={resetToOriginal}
       />
-    </div>
+    </ResponsiveActions>
   )
 
   const commands = useScriptBlockCommands('playground', {
@@ -347,17 +395,11 @@ export function PlaygroundNotePage({
         }
       />
       {pendingScheduleBlock && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setPendingScheduleBlock(null)}
+        <EditorDialog
+          open
+          onClose={() => setPendingScheduleBlock(null)}
+          title="Schedule workout"
         >
-          <div
-            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold mb-4 text-foreground">
-              Schedule for&hellip;
-            </p>
             <CalendarCard
               selectedDate={null}
               onDateSelect={(date) => {
@@ -365,8 +407,23 @@ export function PlaygroundNotePage({
                 setPendingScheduleBlock(null)
               }}
             />
-          </div>
-        </div>
+        </EditorDialog>
+      )}
+      {moveToJournalOpen && (
+        <EditorDialog
+          open
+          onClose={() => setMoveToJournalOpen(false)}
+          title="Move playground to Journal"
+          description="Choose a date. This keeps the workout's existing results and attachments."
+        >
+            <CalendarCard
+              selectedDate={null}
+              onDateSelect={(date) => {
+                setMoveToJournalOpen(false)
+                void handleMoveToJournal(date)
+              }}
+            />
+        </EditorDialog>
       )}
     </>
   )

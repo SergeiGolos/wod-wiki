@@ -6,6 +6,8 @@ import { StreamQueryEngine } from '../../lib/entrySearch'
 import { writeViewSettings } from '../../lib/viewSettingsStorage'
 import type { ParsedFindQuery, ParsedRowsQuery } from '@bitcobblers/wod-wiki-engine'
 import { QueriableStreamView } from './QueriableStreamView'
+import type { Note, BlockIndexRow } from '@/types/storage'
+import { pendingRuntimes } from '../../runtimeStore'
 import {
   EFFORTS_STREAM_PROFILE,
   JOURNAL_STREAM_PROFILE,
@@ -100,10 +102,10 @@ describe('QueriableStreamView component', () => {
     expect(screen.queryByTestId('property-table')).toBeNull()
   })
 
-  it('renders entries in property table layout when settings.layout is table', async () => {
+  it('renders entries in property table layout when settings.layout is rows', async () => {
     writeViewSettings('/efforts', {
       level: 'effort',
-      layout: 'table',
+      layout: 'rows',
       visibleFields: ['label', 'canonicalSlug', 'discipline'],
     })
 
@@ -425,5 +427,178 @@ describe('QueriableStreamView component', () => {
       expect(disciplineLinks.some(l => l.label === 'Gymnastics')).toBe(true)
       expect(disciplineLinks.some(l => l.label === 'Strength')).toBe(true)
     })
+  })
+
+  it('renders the feed layout with rich previews and working actions for playground entries', async () => {
+    writeViewSettings('/library', {
+      level: 'note',
+      layout: 'feed',
+      visibleFields: ['title', 'excerpt', 'date'],
+    })
+
+    const note: Note = {
+      id: 'uuid-1',
+      title: 'Fran Experiment',
+      createdAt: 1_700_000_000_000,
+      type: 'playground',
+      sourceId: 'playground',
+      slug: 'playground/fran-experiment',
+    }
+    const wodBlock: BlockIndexRow = {
+      id: 'b:uuid-1',
+      noteId: 'uuid-1',
+      segmentId: 's1',
+      segmentVersion: 1,
+      position: 0,
+      dataType: 'wod',
+      rawContent: '21-15-9\nThrusters\nPull-ups',
+      noteTitle: 'Fran Experiment',
+      createdAt: 1_700_000_000_000,
+      blockContentId: 'wod-hash-1',
+    }
+    const engine = new StreamQueryEngine({
+      service: {
+        runFind: mock(async () => ({
+          parsed: { raw: '', target: 'note', filters: [] } as unknown as ParsedFindQuery,
+          notes: [note],
+          blocks: [wodBlock],
+          stages: { selected: 1, matched: 1 },
+        })),
+      },
+    })
+
+    render(
+      <MemoryRouter initialEntries={[`/library?q=${encodeURIComponent('find:note{source:playground}')}`]}>
+        <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('stream-feed')).toBeDefined()
+      },
+      { timeout: 5000 },
+    )
+
+    // Rich preview: real block content, readable, no editor mounted.
+    expect(screen.getByTestId('stream-feed-preview')).toBeDefined()
+    expect(screen.getByText(/21-15-9/)).toBeDefined()
+    expect(screen.queryByTestId('stream-feed-playground')).toBeNull()
+
+    // Actions function on the actual entry kind: Open → /playground/:name.
+    const openLink = screen.getByTestId('stream-feed-open') as HTMLAnchorElement
+    expect(openLink.getAttribute('href')).toBe('/playground/fran-experiment')
+
+    // Playground scope: undated entries are labeled Undated, never shelved
+    // as "Catalog Sessions". Asserted BEFORE the Run click — Run navigates
+    // to /run/:id, which drops ?q and resets the composer to the profile
+    // default (in-app the view unmounts on that navigation).
+    expect(screen.getByText('Undated')).toBeDefined()
+    expect(screen.queryByText('Catalog Sessions')).toBeNull()
+
+    // Run stages a pending runtime (what WallClockPage consumes) — retaining
+    // the entry's Note UUID with playground origin/returnTo — then navigates.
+    fireEvent.click(screen.getByTestId('stream-feed-run'))
+
+    await waitFor(() => {
+      expect(pendingRuntimes.size).toBe(1)
+    })
+    const [runtimeId, pending] = [...pendingRuntimes.entries()][0]!
+    expect(runtimeId).not.toBe('wod-hash-1')
+    expect(pending?.noteId).toBe('uuid-1')
+    expect(pending?.origin).toBe('playground')
+    expect(pending?.returnTo).toBe('/playground/fran-experiment')
+    expect(pending?.block.content).toContain('21-15-9')
+    pendingRuntimes.clear()
+  })
+
+  it('keeps grouping when switching layouts — groupBy survives mode changes', async () => {
+    writeViewSettings('/library', {
+      level: 'note',
+      layout: 'feed',
+      visibleFields: ['title', 'date'],
+      groupBy: 'discipline',
+    })
+
+    const datedEntries: Entry[] = [
+      {
+        id: 'note-1',
+        kind: 'note',
+        sourceCatalog: 'canonical',
+        sourceItem: 'item-1',
+        title: 'Workout 1',
+        date: '2026-09-04',
+        tags: ['strength'],
+        createdAt: 1_700_000_000_000,
+      },
+    ]
+    const engine = createMockEngine(datedEntries)
+
+    render(
+      <MemoryRouter initialEntries={['/library']}>
+        <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('stream-feed')).toBeDefined()
+      },
+      { timeout: 5000 },
+    )
+    // Feed renders the shared grouped sections — discipline, not date.
+    expect(screen.getByTestId('stream-feed-group-Strength')).toBeDefined()
+    expect(screen.queryByTestId('stream-feed-group-2026-09-04')).toBeNull()
+  })
+
+  it('feed Playground action persists via the intake helper before navigating', async () => {
+    writeViewSettings('/library', {
+      level: 'note',
+      layout: 'feed',
+      visibleFields: ['title', 'date'],
+    })
+
+    const ensureMock = mock(() => Promise.resolve({ noteId: 'uuid-9', routeId: 'playground/grace-copy' }))
+    mock.module('../../services/createPlaygroundPage', () => ({
+      ensurePlaygroundEntry: ensureMock,
+      createPlaygroundPage: mock(() => Promise.resolve('x')),
+      movePlaygroundToJournal: mock(() => Promise.resolve({})),
+    }))
+
+    const originalResolve = journalNotes.resolve
+    journalNotes.resolve = mock(async () => ({ id: 'n1', rawContent: '30 Clean & Jerks' }) as any)
+    try {
+      const catalogEntry: Entry = {
+        id: 'crossfit-girls/grace',
+        kind: 'session',
+        sourceCatalog: 'crossfit-girls',
+        sourceItem: 'grace',
+        title: 'Grace',
+        date: null,
+        sourceId: 'collection:crossfit-girls',
+      }
+      const engine = createMockEngine([catalogEntry])
+
+      render(
+        <MemoryRouter initialEntries={['/library']}>
+          <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+        </MemoryRouter>,
+      )
+
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('stream-feed-playground')).toBeDefined()
+        },
+        { timeout: 5000 },
+      )
+
+      fireEvent.click(screen.getByTestId('stream-feed-playground'))
+
+      await waitFor(() => {
+        expect(ensureMock).toHaveBeenCalledWith('30 Clean & Jerks', { title: 'Grace' })
+      })
+    } finally {
+      journalNotes.resolve = originalResolve
+    }
   })
 })

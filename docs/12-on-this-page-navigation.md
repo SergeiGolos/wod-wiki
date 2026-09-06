@@ -34,10 +34,9 @@ or `{ type: 'call', handler }`. Scrolls go through
 **Consumers:**
 | Surface | Breakpoint | Shows |
 |---|---|---|
-| `SecondaryNav` right rail | xl+ | route secondary spec + "On this page" |
-| `ActionsMenu` (`⋯` header) | below xl | same sections collapsed into dropdown |
+| `SecondaryNav` right rail | 2xl+ (≥ 1520px) | route secondary spec + "On this page" |
+| `ActionsMenu` (`⋯` header) | below 2xl (< 1520px) | same sections collapsed into dropdown (content capped at 984px with growing right padding from 1280px to 1519px) |
 | `NavSidebar` L2 panel | all | active-state highlighting of scroll items |
-
 **Invariants (as implemented):**
 - Exactly one writer owns `l3Items` per page kind. Writers clear on unmount
   (`setL3Items([])`).

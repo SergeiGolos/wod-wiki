@@ -23,7 +23,7 @@ import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { JournalPageShell, useMobileQuerySlot } from '@/panels/page-shells';
+import { JournalPageShell } from '@/panels/page-shells';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { WorkoutResult } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
@@ -37,10 +37,10 @@ import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 import { shareBlock } from '../services/openInPlayground';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
+import { EditorDialog } from '@bitcobblers/wod-wiki-ui';
 import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { createPortal } from 'react-dom';
-import { useIsMobile } from '../hooks/useIsMobile';
+import { ResponsiveActions } from '../nav/ResponsiveActions';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
 
@@ -172,8 +172,6 @@ export function EffortDetailPage() {
     if (!effort || !isReady) return null;
     return resolver.resolveEffort(effort.slug);
   }, [effort, isReady, resolver]);
-  const isMobile = useIsMobile();
-  const mobileSlot = useMobileQuerySlot();
 
   // ── WOD block handlers ───────────────────────────────────────────────────
   const handleStartWorkout = useCallback((block: ScriptBlock) => {
@@ -299,8 +297,13 @@ export function EffortDetailPage() {
 
   // ── Actions bar (rendered by JournalPageShell actions prop) ──────────────
   const pageActions = (
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())} title="Back to catalog">
+    <ResponsiveActions primary={!isEditable ? (
+      <Button variant="outline" onClick={handleClone} data-testid={TEST_IDS.EFFORT_DETAIL_CLONE_BTN}>
+        <DocumentDuplicateIcon className="size-4 mr-1.5" />
+        Clone
+      </Button>
+    ) : undefined}>
+      <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())} aria-label="Back to catalog">
         <ArrowLeftIcon className="size-4" />
       </Button>
       <Badge
@@ -309,65 +312,27 @@ export function EffortDetailPage() {
       >
         {effort.registrySource === 'bundled' ? 'Bundled' : 'Custom'}
       </Badge>
-      {!isEditable && (
-        <Button variant="outline" size="sm" onClick={handleClone} data-testid={TEST_IDS.EFFORT_DETAIL_CLONE_BTN}>
-          <DocumentDuplicateIcon className="size-4 mr-1.5" />
-          Clone
-        </Button>
-      )}
       {resolved && (
         <Button
           variant={showResolved ? 'default' : 'outline'}
-          size="sm"
           onClick={() => setShowResolved(v => !v)}
         >
           <Eye className="size-4 mr-1.5" />
           {showResolved ? 'Hide Resolved' : 'Show Resolved'}
         </Button>
       )}
-    </div>
+    </ResponsiveActions>
   );
 
   const noteId = `effort/${effort.slug}`;
 
-  // The page header is hidden below lg — portal the mobile-relevant actions
-  // (badge / Clone / Resolved toggle) into the navbar slot; the back button
-  // is covered by the breadcrumb. Single mount point per breakpoint so the
-  // testid-carrying controls never duplicate in the DOM.
-  const mobileActions = (
-    <div className="flex items-center gap-2">
-      <Badge
-        data-testid={TEST_IDS.EFFORT_DETAIL_SOURCE}
-        variant={effort.registrySource === 'bundled' ? 'secondary' : 'default'}
-      >
-        {effort.registrySource === 'bundled' ? 'Bundled' : 'Custom'}
-      </Badge>
-      {!isEditable && (
-        <Button variant="outline" size="sm" onClick={handleClone} data-testid={TEST_IDS.EFFORT_DETAIL_CLONE_BTN}>
-          <DocumentDuplicateIcon className="size-4 mr-1.5" />
-          Clone
-        </Button>
-      )}
-      {resolved && (
-        <Button
-          variant={showResolved ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setShowResolved(v => !v)}
-        >
-          <Eye className="size-4 mr-1.5" />
-          {showResolved ? 'Hide Resolved' : 'Show Resolved'}
-        </Button>
-      )}
-    </div>
-  );
 
   return (
     <div data-testid={TEST_IDS.EFFORT_DETAIL_ROOT} className="contents">
-      {isMobile && mobileSlot && createPortal(mobileActions, mobileSlot)}
       <JournalPageShell
         title={effort.label}
         titleTestId={TEST_IDS.EFFORT_DETAIL_LABEL}
-        actions={isMobile ? undefined : pageActions}
+        actions={pageActions}
         editor={
           <div className="relative" data-testid={TEST_IDS.EFFORT_DETAIL_NOTEBOOK_EDITOR}>
             {/* Resolved view inline widget */}
@@ -395,15 +360,11 @@ export function EffortDetailPage() {
 
       {/* Schedule modal */}
       {pendingScheduleBlock && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setPendingScheduleBlock(null)}
+        <EditorDialog
+          open
+          onClose={() => setPendingScheduleBlock(null)}
+          title="Schedule workout"
         >
-          <div
-            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold mb-4 text-foreground">Schedule for&hellip;</p>
             <CalendarCard
               selectedDate={null}
               onDateSelect={(date) => {
@@ -411,8 +372,7 @@ export function EffortDetailPage() {
                 setPendingScheduleBlock(null);
               }}
             />
-          </div>
-        </div>
+        </EditorDialog>
       )}
     </div>
   );

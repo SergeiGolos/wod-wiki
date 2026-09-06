@@ -1,0 +1,369 @@
+{
+  "version": 1,
+  "title": "Parser fixture catalog",
+  "cases": [
+    {
+      "name": "Fused distances, loads, and @-bound resistance",
+      "script": "400m Run\n1000m Row\n16kg KB Swing\n5 Back Squat @225lb",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Distance 400 m @parser",
+            "Effort \"Run\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.run @dialect",
+            "Hint behavior.aerobic @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Distance 1000 m @parser",
+            "Effort \"Row\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.row @dialect",
+            "Hint behavior.aerobic @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Resistance 16 kg @parser",
+            "Effort \"KB Swing\" @parser"
+          ]
+        },
+        {
+          "line": 4,
+          "metrics": [
+            "Rep 5 @parser",
+            "Effort \"Back Squat\" @parser",
+            "Resistance 225 lb @parser"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Trailing comments and custom metric objects",
+      "script": "10 Back Squat 225lb // last set heavy\n5 Back Squat 225lb {\"intensity\": 80, \"rpe\": 8}",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Rep 10 @parser",
+            "Effort \"Back Squat\" @parser",
+            "Resistance 225 lb @parser",
+            "Text text:\"last set heavy\" @parser"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Rep 5 @parser",
+            "Effort \"Back Squat\" @parser",
+            "Resistance 225 lb @parser",
+            "Intensity 80 @parser",
+            "SessionRpe 8 @parser"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Percent intensity fused from a trailing % token",
+      "script": "Run 400m 80%\nBack Squat 225lb 85%",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Effort \"Run\" @parser",
+            "Distance 400 m @parser",
+            "Intensity 80 % @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.run @dialect",
+            "Hint behavior.aerobic @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Effort \"Back Squat\" @parser",
+            "Resistance 225 lb @parser",
+            "Intensity 85 % @parser"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "EMOM protocol with plus-composed laps",
+      "script": "(10) :60 EMOM\n  + 2 Burpees\n  + 5 Push Ups\n  + 7 Air Squats",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Rounds 10 @parser",
+            "Duration 1:00 @parser",
+            "Effort \"EMOM\" @parser",
+            "Hint behavior.repeating_interval @dialect",
+            "Hint workout.emom @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Group \"compose\" @parser",
+            "Rep 2 @parser",
+            "Effort \"Burpees\" @parser"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Group \"compose\" @parser",
+            "Rep 5 @parser",
+            "Effort \"Push Ups\" @parser"
+          ]
+        },
+        {
+          "line": 4,
+          "metrics": [
+            "Group \"compose\" @parser",
+            "Rep 7 @parser",
+            "Effort \"Air Squats\" @parser"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "AMRAP structure with fused units",
+      "script": "AMRAP 20\n5 Pull-ups\n225 lb Back Squat\n5 km Row",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Effort \"AMRAP\" @parser",
+            "Rep 20 @parser",
+            "Hint behavior.time_bound @dialect",
+            "Hint workout.amrap @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Rep 5 @parser",
+            "Effort \"Pull-ups\" @parser"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Resistance 225 lb @parser",
+            "Effort \"Back Squat\" @parser"
+          ]
+        },
+        {
+          "line": 4,
+          "metrics": [
+            "Distance 5 km @parser",
+            "Effort \"Row\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.row @dialect",
+            "Hint behavior.aerobic @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Climb dialect grades and send types",
+      "script": "v5 flash\n5.12a redpoint",
+      "sport": "climb",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Effort \"v5 flash\" @parser",
+            "ClimbGrade raw:V5 system:v-scale @dialect",
+            "ClimbSendType \"flash\" @dialect",
+            "ClimbDiscipline \"bouldering\" @dialect",
+            "Hint domain.climb @dialect",
+            "Hint behavior.route_based @dialect",
+            "Hint behavior.grade_based @dialect",
+            "Hint climb.bouldering @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Rep 5.12 @parser",
+            "Effort \"a redpoint\" @parser",
+            "ClimbGrade raw:5.12a system:yds @dialect",
+            "ClimbSendType \"redpoint\" @dialect",
+            "ClimbDiscipline \"sport\" @dialect",
+            "Hint domain.climb @dialect",
+            "Hint behavior.route_based @dialect",
+            "Hint behavior.grade_based @dialect",
+            "Hint climb.sport @dialect"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Plain timers with efforts",
+      "script": "5:00 Run\n10:00 Row",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Duration 5:00 @parser",
+            "Effort \"Run\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.run @dialect",
+            "Hint behavior.aerobic @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Duration 10:00 @parser",
+            "Effort \"Row\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.row @dialect",
+            "Hint behavior.aerobic @dialect"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reps with a starred rest timer",
+      "script": "10 Burpees\n*:30 Rest\n10 Burpees",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Rep 10 @parser",
+            "Effort \"Burpees\" @parser"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Duration 0:30 @parser",
+            "Hint behavior.required_timer @parser",
+            "Effort \"Rest\" @parser"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Rep 10 @parser",
+            "Effort \"Burpees\" @parser"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rounds marker with indented children",
+      "script": "(3)\n  10 Push Ups\n  15 Air Squats",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Rounds 3 @parser"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Rep 10 @parser",
+            "Effort \"Push Ups\" @parser"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Rep 15 @parser",
+            "Effort \"Air Squats\" @parser"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Hierarchical block with blank-line separation",
+      "script": "(4) Power Sprints\n  25m Freestyle Sprint\n  1:30 Rest\n\n150m Cooldown",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Rounds 4 @parser",
+            "Effort \"Power Sprints\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.run @dialect",
+            "Hint behavior.aerobic @dialect"
+          ]
+        },
+        {
+          "line": 2,
+          "metrics": [
+            "Distance 25 m @parser",
+            "Effort \"Freestyle Sprint\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint workout.run @dialect",
+            "Hint behavior.aerobic @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        },
+        {
+          "line": 3,
+          "metrics": [
+            "Duration 1:30 @parser",
+            "Effort \"Rest\" @parser"
+          ]
+        },
+        {
+          "line": 5,
+          "metrics": [
+            "Distance 150 m @parser",
+            "Effort \"Cooldown\" @parser",
+            "Hint domain.cardio @dialect",
+            "Hint behavior.distance_based @dialect",
+            "Hint behavior.pace_based @dialect"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Collectible timer with athlete-fillable rep",
+      "script": "10:00 ? KB Snatch 16kg",
+      "matchMode": "closed",
+      "expected": [
+        {
+          "line": 1,
+          "metrics": [
+            "Duration 10:00 @parser",
+            "Rep ? @hinted",
+            "Effort \"KB Snatch\" @parser",
+            "Resistance 16 kg @parser"
+          ]
+        }
+      ]
+    }
+  ]
+}

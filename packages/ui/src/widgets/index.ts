@@ -1,11 +1,11 @@
-export { WidgetFrame, type WidgetFrameProps } from './WidgetFrame';
+export { WidgetFrame, WidgetToolButton, WidgetEditButton, type WidgetFrameProps } from './WidgetFrame';
 export { QueryValue, type QueryValueProps } from './QueryValue';
 export { WqlTimeseries, type WqlTimeseriesProps } from './WqlTimeseries';
 export { WqlBars, type WqlBarsProps } from './WqlBars';
 export { WqlTable, type WqlTableProps } from './WqlTable';
 export { WidgetChart, WidgetProblemBadge, ProposedMetricBadge, type WidgetChartProps } from './WidgetChart';
 export { DashboardTokenControls, type DashboardTokenControlsProps } from './DashboardTokenControls';
-export { DashboardView, type DashboardViewProps } from './DashboardView';
+export { DashboardView, type DashboardViewProps, type WidgetSpanOption } from './DashboardView';
 export { WqlEmptyState, type WqlEmptyStateProps } from './WqlEmptyState';
 export { TopList, type TopListProps } from './TopList';
 export { StackedBar, type StackedBarProps } from './StackedBar';

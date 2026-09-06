@@ -23,6 +23,8 @@ import { ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'
 import { createPlaygroundPage } from '../../services/createPlaygroundPage'
+import { useIsMobile } from '../../hooks/useIsMobile'
+import { useInResponsiveActionsProvider } from '../../nav/ResponsiveActions'
 
 export interface PageActionsProps {
   /** Current page mode — controls which extras are shown. */
@@ -57,6 +59,13 @@ export function PageActions({
   const navigate = useNavigate()
   const [isCreating, setIsCreating] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const inActionsProvider = useInResponsiveActionsProvider()
+  const isMobile = useIsMobile()
+  // Inside the app shell on phones, the ResponsiveActions dock owns the
+  // generic controls (search FAB + global cast/actions fallback merged into
+  // the page's overflow sheet) — rendering them here too would duplicate
+  // mounted controls. Standalone (stories/tests) and desktop keep the bar.
+  const dockOwnsGeneric = inActionsProvider && isMobile
 
   const handleCreateNew = async () => {
     if (isCreating) return
@@ -100,9 +109,11 @@ export function PageActions({
         />
       )}
 
-      {showSearch && <NavSearchInput onOpen={onSearch} />}
-      <CastButtonRpc />
-      <ActionsMenu currentWorkout={currentWorkout} items={index && index.length > 0 ? mapIndexToL3(index) : undefined} />
+      {!dockOwnsGeneric && showSearch && <NavSearchInput onOpen={onSearch} />}
+      {!dockOwnsGeneric && <CastButtonRpc />}
+      {!dockOwnsGeneric && (
+        <ActionsMenu currentWorkout={currentWorkout} items={index && index.length > 0 ? mapIndexToL3(index) : undefined} />
+      )}
     </div>
   )
 }

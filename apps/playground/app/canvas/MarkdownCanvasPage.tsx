@@ -36,7 +36,6 @@ import { type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type S
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { executeNavAction, pipelineStepToNavAction, type NavActionDeps } from '../nav/navTypes'
-import { notePersistence } from '@/services/persistence'
 import { useStickyBoundaryOffset } from '@/panels/page-shells'
 export interface MarkdownCanvasPageProps {
   page: ParsedCanvasPage
@@ -135,7 +134,7 @@ export function MarkdownCanvasPage({
 
   // Runtime hook
   const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
-  const runtime = useCanvasRuntime({ canvasNoteId, getBlock })
+  const runtime = useCanvasRuntime({ canvasNoteId, getBlock, getContent: getSource, title: page.frontmatter.title })
 
 
   // Reactive state mirror of the first script block so quest validation
@@ -249,10 +248,10 @@ export function MarkdownCanvasPage({
     setPanelState: (state: 'note' | 'track' | 'review') => {
       if (state === 'track') {
         const block = getBlock()
-        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+        if (block) runtime.startRun(block)
       }
     },
-  }), [navigate, swapSource, setHeadingParam, getBlock, runtime.setFullscreen])
+  }), [navigate, swapSource, setHeadingParam, getBlock, runtime.startRun])
 
   const depsRef = useRef(deps)
   depsRef.current = deps
@@ -332,13 +331,13 @@ export function MarkdownCanvasPage({
     onPanelActionsReadyRef.current?.({
       run: () => {
         const block = scriptBlocksRef.current[0] ?? null
-        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+        if (block) runtime.startRun(block)
       },
-      reset: () => runtime.setFullscreen(null),
+      reset: () => runtime.closeRun(),
       results: () => {},
       fullscreen: () => {
         const block = scriptBlocksRef.current[0] ?? null
-        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+        if (block) runtime.startRun(block)
       },
       getSource,
     })
@@ -352,7 +351,7 @@ export function MarkdownCanvasPage({
       icon: <Play className="h-3 w-3 fill-current" />,
       primary: true,
       onClick: (block) => {
-        runtime.setFullscreen({ kind: 'timer', block, results: null })
+        runtime.startRun(block)
       },
     },
   ], [runtime])
@@ -430,8 +429,8 @@ export function MarkdownCanvasPage({
       panelSubtitle={panelSubtitle}
       panelThemeClass={activePanelTheme.panel}
       headerActions={activeHeaderActions}
-      onRun={(_doc, block) => {
-        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+      onRun={(doc, block) => {
+        if (block) void runtime.startRun(block, doc)
       }}
     />
   )
@@ -465,17 +464,9 @@ export function MarkdownCanvasPage({
       {runtime.fullscreen?.kind === 'timer' && (
         <FullscreenTimer
           block={runtime.fullscreen.block}
-          onClose={() => runtime.setFullscreen(null)}
+          onClose={runtime.closeRun}
           autoStart
-          onCompleteWorkout={(_blockId, results) => {
-            const block = getBlock()
-            if (block) {
-              runtime.handleWorkoutComplete(block, results)
-              // #945: no review overlay on completion — canvas pages record
-              // the result and return to the note.
-              runtime.setFullscreen(null)
-            }
-          }}
+          onCompleteWorkout={(_blockId, results) => { void runtime.handleWorkoutComplete(results) }}
         />
       )}
 

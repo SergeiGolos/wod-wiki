@@ -7,13 +7,14 @@
  * Registry strip, Quick Reference, and telemetry footer are gone.
  */
 
-import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
+import { ensurePlaygroundEntry } from '../services/createPlaygroundPage'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
 
@@ -105,8 +106,33 @@ mock.module('../hooks/useTourScrollQuests', () => ({
   useTourScrollQuests: () => () => {},
 }))
 
+const recordedResults: Array<Record<string, unknown>> = []
 mock.module('@/services/resultRecorder', () => ({
-  playgroundRecorder: { record: async () => {} },
+  playgroundRecorder: {
+    record: async (input: Record<string, unknown>) => {
+      recordedResults.push(input)
+    },
+  },
+}))
+
+const toastMock = mock((..._args: unknown[]) => {})
+mock.module('@/hooks/use-toast', () => ({
+  toast: toastMock,
+}))
+
+const ensureEntryCalls: Array<{ content: string; opts?: unknown }> = []
+mock.module('../services/createPlaygroundPage', () => ({
+  ensurePlaygroundEntry: mock(async (content: string, opts?: unknown) => {
+    ensureEntryCalls.push({ content, opts })
+    return { noteId: 'playground-note-test', routeId: 'playground/test' }
+  }),
+  createPlaygroundPage: mock(async () => 'test-page'),
+  movePlaygroundToJournal: mock(async (noteId: string) => ({ id: noteId })),
+}))
+
+mock.module('@/services/AnalyticsTransformer', () => ({
+  getAnalyticsFromLogs: () => ({ segments: [{ id: 'seg-1' }], groups: [] }),
+  getAnalyticsFromRuntime: () => ({ segments: [], groups: [] }),
 }))
 
 mock.module('../services/journalWorkout', () => ({
@@ -308,6 +334,8 @@ describe('HomeTour', () => {
     setTestTourProgress(0.50)
     resetScrollSpy()
     recorded = []
+    recordedResults.length = 0
+    ensureEntryCalls.length = 0
     unsubscribe = telemetry.events.subscribe((event) => recorded.push(event))
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -459,6 +487,62 @@ describe('HomeTour', () => {
     expect(await screen.findByTestId('tour-playground-overlay')).toBeTruthy()
     // The overlay is fixed-position: the runway is never scrolled into view.
     expect(scrollRunwayToCallCount()).toBe(0)
+  })
+
+  it('persists the home playground entry before running and records completion against its UUID', async () => {
+    await renderHomeTour()
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
+    await act(async () => {
+      fireEvent.click(runButton)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    // The entry was persisted (with the hero's current doc) before the
+    // overlay could open…
+    expect(ensureEntryCalls).toHaveLength(1)
+    expect(ensureEntryCalls[0]!.opts).toEqual({ reuseKey: 'home', title: 'Home playground' })
+    const overlay = await screen.findByTestId('tour-playground-overlay')
+    expect(overlay).toBeTruthy()
+
+    // …and completion records the result against the entry's Note UUID as a
+    // playground-origin result — no journal note is created.
+    await act(async () => {
+      timerPanelControl().fireTimerComplete?.(completedResults())
+      await Promise.resolve()
+    })
+    await waitFor(() => expect(recordedResults).toHaveLength(1))
+    expect(recordedResults[0]).toMatchObject({
+      noteId: 'playground-note-test',
+      origin: 'playground',
+    })
+    // The recorder is the ONLY persistence write on completion.
+    expect(recordedResults).toHaveLength(1)
+  })
+
+  it('aborts the run with a toast when the playground entry cannot be persisted', async () => {
+    const ensureMock = ensurePlaygroundEntry as unknown as Mock<
+      (content: string, opts?: unknown) => Promise<unknown>
+    >
+    ensureMock.mockImplementation(() => Promise.reject(new Error('storage blocked')))
+    try {
+      await renderHomeTour()
+      const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
+      await act(async () => {
+        fireEvent.click(runButton)
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      // No runtime execution without persistence…
+      expect(screen.queryByTestId('tour-playground-overlay')).toBeNull()
+      // …and the failure is visible.
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+    } finally {
+      ensureMock.mockImplementation(() =>
+        Promise.resolve({ noteId: 'playground-note-test', routeId: 'playground/test' }),
+      )
+    }
   })
 
   it('keeps the hero editor and the runway editor independent', async () => {

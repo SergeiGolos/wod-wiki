@@ -143,7 +143,7 @@ export async function navigateToRunPage(page: Page, id: string, wodScript: strin
 
   // Blocks-parsed signal: the Play overlay button itself (bounded auto-wait,
   // replaces the fixed 2s "let blocks parse" sleep).
-  const play = page.getByRole('button', { name: 'Play' }).first();
+  const play = page.getByRole('button', { name: 'Play', exact: true }).first();
   await expect(play).toBeVisible({ timeout: 10_000 });
   // DOM click, not pointer click: the block overlay's decoration layers
   // intermittently cover the button's center point, so pointer events land
@@ -177,12 +177,12 @@ export async function startWorkoutFromPlayground(page: Page, id: string, wodScri
 /** Click Next until the app lands on /review/ (or fail after maxClicks). */
 export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<void> {
   for (let i = 0; i < maxClicks; i++) {
-    if (/\/review\//.test(page.url())) return;
+    if (/\/(dashboard|review|results)/.test(page.url())) return;
     const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
     if ((await next.count()) === 0) break;
     await next.click().catch(() => {});
-    await page.waitForURL(/\/(dashboard|review)/, { timeout: 8_000 }).catch(() => {});
-    if (/\/(dashboard|review)/.test(page.url())) return;
+    await page.waitForURL(/\/(dashboard|review|results)/, { timeout: 8_000 }).catch(() => {});
+    if (/\/(dashboard|review|results)/.test(page.url())) return;
     // Bounded wait for the advanced block's Next control to mount — replaces
     // the fixed 1.5s settle between clicks.
     await page
@@ -191,5 +191,5 @@ export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<voi
       .waitFor({ state: 'visible', timeout: 5_000 })
       .catch(() => {});
   }
-  await page.waitForURL(/\/(dashboard|review)/, { timeout: 5_000 });
+  await page.waitForURL(/\/(dashboard|review|results)/, { timeout: 5_000 });
 }

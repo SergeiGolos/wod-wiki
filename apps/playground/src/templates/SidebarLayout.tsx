@@ -8,7 +8,7 @@ import { AppRail } from '../../app/nav/AppRail'
 import { MobileQuerySlotProvider } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
 import type { MenuSpec } from '../../app/nav/menuModel'
-import { SearchFab } from '../../app/nav/SearchFab'
+import { ResponsiveActionsProvider } from '../../app/nav/ResponsiveActions'
 
 function OpenMenuIcon() {
   return (
@@ -74,24 +74,28 @@ export function SidebarLayout({
 
   return (
     <MobileQuerySlotProvider>
+    <ResponsiveActionsProvider onSearch={onSearch}>
     <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row">
       <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row">
-        {/* Icon rail — L1 destinations; desktop only (general layout) */}
-        <div className="hidden lg:flex w-14 shrink-0 sticky top-0 h-svh flex-col items-center border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm z-40 py-3">
-          <AppRail onSearch={onSearch ?? (() => {})} />
-        </div>
+        {/* Main desktop nav — L1 Icon rail + L2 Context sidebar */}
+        <nav aria-label="Main" className="hidden lg:flex">
+          <div className="w-14 shrink-0 sticky top-0 h-svh flex flex-col items-center border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm z-40 py-3">
+            <AppRail onSearch={onSearch ?? (() => {})} />
+          </div>
 
-        {/* Context sidebar — active L1's children/panel; overlay on mobile */}
-        <nav className="hidden lg:flex lg:w-60 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:h-svh lg:overflow-y-auto lg:border-r lg:border-zinc-950/5 dark:lg:border-white/5 lg:bg-background/72 lg:backdrop-blur-sm">
-          {sidebar}
+          <div className="w-60 shrink-0 sticky top-0 self-start h-svh overflow-y-auto border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col">
+            {sidebar}
+          </div>
         </nav>
         <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
           {sidebar}
         </MobileSidebar>
 
         {/* Content column — on desktop, page headers (StickyPageHeader) own lg:top-0.
-            On mobile, this sticky navbar carries the hamburger drawer trigger. */}
-        <div className="flex flex-1 flex-col min-w-0">
+            On mobile, this sticky navbar carries the hamburger drawer trigger.
+            At xl (1280px), content halts growth at 984px (1280px viewport - 56px rail - 240px sidebar),
+            allowing right-side space to grow until the 240px secondary rail mounts at 2xl (1520px). */}
+        <div className="flex flex-1 flex-col min-w-0 xl:max-w-[984px] 2xl:max-w-none">
           <header data-page-sticky-boundary="true" className="lg:hidden sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card border-b border-border/50">
             <div className="py-2.5 shrink-0">
               <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
@@ -102,23 +106,28 @@ export function SidebarLayout({
           </header>
 
           <main className="flex flex-1 flex-col lg:min-w-0">
-            <div className="grow w-full lg:overflow-visible">
+            {/* max-lg bottom padding keeps page content clear of the floating
+                thumb dock (search + primary + overflow cluster). */}
+            <div className="grow w-full max-lg:pb-36 lg:overflow-visible">
               {children}
             </div>
           </main>
         </div>
 
-        {/* Secondary nav — zone 4; desktop (xl+) only. Below xl the same
-            entries collapse into the header ⋯ menu (see ActionsMenu). */}
-        <aside className="hidden xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
+        {/* Secondary nav — zone 4; desktop (2xl+) only. Below 2xl the same
+            entries collapse into the header ⋯ menu (see ActionsMenu).
+            Between xl (1280px) and 2xl (1520px), content remains capped at 984px
+            and right padding grows until the 240px rail fits without shrinking content. */}
+        <aside className="hidden 2xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
           <SecondaryNav spec={secondary} />
         </aside>
 
-      {/* Mobile floating search button — bottom thumb zone (right or left per
-          the appearance preference); desktop search stays in the icon rail. */}
-      {onSearch && <SearchFab onOpen={onSearch} />}
+      {/* Mobile thumb dock — single-mounted via ResponsiveActionsProvider
+          (search FAB + page primary + overflow, aligned per the appearance
+          preference); desktop search stays in the icon rail. */}
       </div>
     </div>
+    </ResponsiveActionsProvider>
     </MobileQuerySlotProvider>
   )
 }

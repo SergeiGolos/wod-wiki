@@ -24,6 +24,10 @@ export interface PlaygroundPage {
   name: string;
   content: string;
   updatedAt: number;
+  /** Note kind ('playground', 'journal', …) — undefined for unmigrated rows. */
+  type?: string;
+  /** Source bucket ('playground', 'collection:…', …) — drives source: filters. */
+  sourceId?: string;
 }
 
 /** Build a page id from its category + name (mirrors the old PlaygroundDBService.pageId). */
@@ -54,6 +58,8 @@ function toPage(entry: HistoryEntry): PlaygroundPage {
     name: entry.title || rid,
     content: entry.rawContent ?? '',
     updatedAt: entry.updatedAt ?? Date.now(),
+    type: entry.type,
+    sourceId: entry.sourceId,
   };
 }
 

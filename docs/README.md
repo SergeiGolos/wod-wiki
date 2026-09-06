@@ -22,6 +22,8 @@ This folder contains the living documentation for the WOD Wiki application and t
 | [`10-wql-composition-style.md`](./10-wql-composition-style.md) | Engine / App | WQL composition style, formula variations, and path to easy filters + graphs |
 | [`11-routes-wql-defaults-and-library-aliases.md`](./11-routes-wql-defaults-and-library-aliases.md) | App / Engine | Complete route inventory, landing WQL defaults, Library route aliases, and future results/segments view |
 | [`home-page-walkthrough.md`](./home-page-walkthrough.md) | App | The marketing home page scroll-runway, slide by slide |
+| [`12-on-this-page-navigation.md`](./12-on-this-page-navigation.md) | App | On-this-page navigation, section/workout headers, and stream group sync |
+| [`13-datadog-analytics-engine-review-and-roadmap.md`](./13-datadog-analytics-engine-review-and-roadmap.md) | Engine / App | Datadog-style analytics engine review, empirical probe findings, and roadmap |
 
 > These docs are drafts. If the code and a doc disagree, the code wins until the doc is updated.
 

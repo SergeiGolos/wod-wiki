@@ -17,11 +17,11 @@ export class EffortsPage {
   }
 
   catalogRoot(): Locator {
-    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_ROOT);
+    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_ROOT).or(this.page.getByTestId('queriable-stream-view'));
   }
 
   catalogSearch(): Locator {
-    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_SEARCH).or(this.page.getByTestId('wql-composer-input'));
+    return this.page.getByTestId('wql-composer-input').first();
   }
 
   createCustomButton(): Locator {
@@ -29,15 +29,18 @@ export class EffortsPage {
   }
 
   emptyState(): Locator {
-    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE);
+    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE).or(this.page.getByTestId('stream-empty-state'));
   }
 
   effortRow(slug: string): Locator {
-    return this.page.locator(`[data-testid="effort-row-${slug}"]`).first();
+    return this.page
+      .locator(`[data-testid="effort-row-${slug}"]`)
+      .or(this.page.locator('[data-testid="library-row-effort"]').filter({ hasText: new RegExp(slug.replace(/-/g, ' '), 'i') }))
+      .first();
   }
 
   effortRows(): Locator {
-    return this.page.locator('[data-testid^="effort-row-"]');
+    return this.page.locator('[data-testid^="effort-row-"], [data-testid="library-row-effort"]');
   }
 
   detailRoot(): Locator {

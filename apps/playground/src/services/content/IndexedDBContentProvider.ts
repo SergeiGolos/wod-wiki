@@ -33,6 +33,29 @@ function levelFromDataType(dataType: string): number | undefined {
 }
 
 /**
+ * Reconstruct one stored segment's document fragment. getEntry and
+ * getEntries share this so list and single-note reads can never drift.
+ *
+ * Segments store section DISPLAY content: wod segments hold the bare script
+ * (fences re-added here) and frontmatter segments hold the inner YAML
+ * (--- delimiters re-added here). Without the frontmatter wrap, rawContent
+ * consumers (dashboard-note discovery, canvas) see `dashboard: "true"…`
+ * with no delimiters — an unparseable Dashboard Note.
+ */
+function segmentToRawFragment(s: NoteSegment): string {
+    if (s.dataType === 'wod') {
+        const block = s.data as ScriptBlock | null;
+        const dialect = block?.dialect ?? 'time';
+        const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
+        return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
+    }
+    if (s.dataType === 'frontmatter') {
+        return `---\n${s.rawContent}\n---`;
+    }
+    return s.rawContent;
+}
+
+/**
  * Tags declared in the frontmatter sections of a document (T4 bridge).
  * Accepts parser Sections (`type`) and stored NoteSegments (`dataType`).
  */
@@ -111,13 +134,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             return [...byId.values()]
                 .filter((s) => !s.isHistory)
                 .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
-                .map(s => {
-                    if (s.dataType !== 'wod') return s.rawContent;
-                    const block = s.data as ScriptBlock | null;
-                    const dialect = block?.dialect ?? 'time';
-                    const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
-                    return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
-                })
+                .map(segmentToRawFragment)
                 .join('\n');
         };
 
@@ -173,16 +190,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // V11 — content always reconstructs from segments (note.rawContent is gone).
         const segments = await this.db.getLatestSegmentsForNote(note.id);
-        const rawContent = segments.map(s => {
-            if (s.dataType === 'wod') {
-                const block = s.data as ScriptBlock | null;
-                const dialect = block?.dialect ?? 'time';
-                const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
-                return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
-            }
-            // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
-            return s.rawContent;
-        }).join('\n');
+        const rawContent = segments.map(segmentToRawFragment).join('\n');
 
         // Derived projection fields (removed from the Note row in V11).
         const [page, tags] = await Promise.all([
@@ -337,7 +345,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'type'>> & { sourceId?: string | null; slug?: string | null; sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry> {
         let note = await this.db.getNote(id);
 
         if (!note) {
@@ -349,11 +357,12 @@ export class IndexedDBContentProvider implements IContentProvider {
         const now = Date.now();
 
         // Update Metadata — the slim V11 note row. journalDate patches map to
-        // page linkage (N-02); tags go to note_tags (N-06).
+        // page linkage (N-02); tags go to note_tags (N-06). `sourceId: null`
+        // clears the source bucket (promotion out of playground/library scope).
         if (patch.title) note.title = patch.title;
         if (patch.type) note.type = patch.type;
-        if (patch.slug !== undefined) note.slug = patch.slug;
-        if (patch.sourceId !== undefined) note.sourceId = patch.sourceId;
+        if (patch.slug !== undefined) note.slug = patch.slug ?? undefined;
+        if (patch.sourceId !== undefined) note.sourceId = patch.sourceId ?? undefined;
         if (patch.journalDate !== undefined) {
             note.pageId = patch.journalDate
                 ? (await this.db.getOrCreatePageForDate(patch.journalDate)).id

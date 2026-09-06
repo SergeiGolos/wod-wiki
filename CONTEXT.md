@@ -65,6 +65,18 @@ and its aliases. Pure, importable data + lookup. **Dialects import unit sets fro
 the parser never touches it.
 _Avoid_: unit table, unit map, lexicon.
 
+**Conversion Evidence**:
+The per-**Unit** statement of whether and how conversion is allowed: a fixed factor,
+contextual (requires measurement-time context, e.g. body mass for `bw`), or
+unavailable. A recognized unit without evidence never converts silently.
+_Avoid_: factor table, conversion factor.
+
+**Composed Catalog Snapshot**:
+The one immutable view of the **Unit Registry** plus a validated **Dialect** overlay,
+shared by every consumer of a single evaluation — recognition, conversion, and
+display defaults read identical additions.
+_Avoid_: runtime registry, live catalog.
+
 **Fusion**:
 The rewrite that turns an adjacent bare Number + Text (`Rep(100)` + `Effort("m Run")`)
 into a dimensioned Metric + residual Effort (`Distance(100, m)` + `Effort("Run")`),
@@ -125,7 +137,35 @@ _Avoid_: data layer, store (overloaded).
 ### Analytics
 **Canonical Metric Key**:
 The join dimension for cross-workout analysis — the one key two workouts must share for a metric to be compared across them. A defined family/aggregate vocabulary (`reps`, `distance`, `resistance`, `elapsed`, `power`, `pace`, `totalVolume`, `totalDistance`, `tis`, `<effortSlug>.<family>`, `calc.<target>`), allocated in `docs/analytics-data-shapes-and-composition.md` §5. One resolver maps each metric to its canonical key; display derives a human label from it. **Not** the raw `MetricType` and **not** a display string — `repetitions` is retired as a key.
+Discovered metrics extend this vocabulary: names with spaces or word separators such as underscores normalize to camelCase for matching; identity combines the normalized full property path, value type, and physical dimension for numeric measurements. Convertible units share an identity across built-in and custom sources; different value types or physical dimensions distinguish metrics, but source provenance does not.
 _Avoid_: metric type (the parser/runtime enum), display label, metric name.
+**Field Catalog**:
+The inventory of normalized metric and metadata paths present in saved data, independent of a query's time range. Supplies field discovery and typeahead without requiring users to register fields.
+_Avoid_: metric registry (implies explicit registration), query results (the catalog describes available fields, not their measurements).
+**Metric Observation**:
+One recorded value of a typed metric at its producing scope, whether directly measured or newly calculated. Multiple stored representations do not create extra observations, and a calculated observation does not inherit the sample count of its input metrics.
+_Avoid_: stored row (a representation, not necessarily an observation).
+**Substitute Summary**:
+A representation of existing metric observations through retained aggregate statistics, usable in their place only when it preserves the requested result and weighting. It does not create an additional observation of that metric.
+_Avoid_: summary row (storage grain alone does not establish this meaning).
+**Summary Coverage**:
+The precise population of metric observations represented by a substitute summary, including its applicable scope and partitions. It establishes which contributions overlap and which remain uncovered.
+_Avoid_: matching metric name (identity alone does not prove coverage).
+**Metric Date**:
+The temporal anchor of a metric observation, expressed as an occurrence instant or an explicitly date-only civil date rather than the enclosing workout's start. Date-only observations keep their recorded date; timestamped observations use the system timezone for calendar grouping.
+_Avoid_: workout date (may differ), derivation time (does not date the original observation).
+**WQL Alignment Domain**:
+The shared time-range intersection and union of observed group tuples over which compatible formula inputs are evaluated. It excludes dates outside any input's requested range and does not invent group combinations or broadcast mismatched dimensions.
+_Avoid_: matching chart labels (labels are not structural bucket/group identity).
+**Query Position**:
+A position established by a query's structure, such as a calendar bucket or aligned formula input. It may exist without a Metric Observation; elapsed time between recordings alone does not establish additional positions.
+_Avoid_: sample (implies an observation was collected).
+**Synthetic Zero**:
+A zero supplied for an absent value at a Query Position, rather than a recorded measurement. Its use depends on the operation; it remains distinguishable from a genuine observed or calculated zero.
+_Avoid_: recorded zero (a real observation).
+**Rolling Average**:
+An average of consecutive query-position values within a trailing window. Missing in-range positions contribute zero; startup windows use only available in-range positions. Distinct from an ordinary observation average, which excludes missing observations.
+_Avoid_: pooled observation average (has a different population and denominator).
 **Annotation**:
 A runtime-derived per-segment metric produced by a realtime processor (`origin: 'analyzed'` — power, pace). Distinct from **Prediction** (compile-time, `origin: 'prediction'`/`compiler`) and from summary aggregates. Re-derived on replay; predictions and Tier-0 metrics are preserved.
 _Avoid_: enrichment, derived metric (too vague — say annotation or prediction).
@@ -138,6 +178,15 @@ The Datadog-flavored query language for cross-workout analytics:
 Parsed with a Lezer grammar (house pattern) and executed by the **Query Service**
 over the **Analytics Store**. Metric namespaces build on **Canonical Metric Keys**.
 _Avoid_: query string, analytics SQL.
+**Query Document**:
+The self-contained query and formula definitions inside one query block. Named definitions belong to that block, not the surrounding note or other widgets. Explicit external parameters are inputs, not cross-block definition references.
+_Avoid_: Dashboard Note (the containing composition, not a shared query-definition scope).
+**Attached Calculation**:
+A reusable custom calculation associated with an Effort or Block Dialect. It runs for matching workout data at its declared scope and produces a named, recorded Metric Observation. The attachment selects where it applies; the Dialect analyzer itself does not execute the calculation.
+_Avoid_: query formula (read-time only).
+**Query Formula**:
+A calculation defined within a Query Document that produces query results without saving new metric observations. It shares expression capabilities with attached calculations but not their recording lifecycle.
+_Avoid_: attached calculation (produces recorded metrics).
 **Rows Query**:
 The third **WQL** family — `rows:{<tag filters>}` (optional output-type target:
 `rows:segment{…}`) — returning raw output-statement rows for one scope instead of
@@ -176,7 +225,10 @@ compose into a dashboard (format locked in #899; unified renderer #900). Widget
 type and grid span ride the fence-tag suffix (` ```query:timeseries-2 `, `-full`
 for a full row; vocabulary: `table` default, `value`, `timeseries`, `bar`,
 `toplist`, `stacked-bar`, with `goal-rings` / `zone-distribution` placeholders
-until #901). A widget's title and coaching question associate from the markdown
+until #901).
+Widget presentation parameters (goal targets, zone thresholds) ride the same suffix
+as attributes; the widget body itself is a **Query Document**.
+A widget's title and coaching question associate from the markdown
 heading/paragraph directly above its block; `dashboard.*` frontmatter dot-keys
 declare top-level controls (scalar → input, block list → segmented, first entry
 default) referenced in queries as `$name` and substituted as raw text at
@@ -348,6 +400,17 @@ _Avoid_: content library, library page.
 **Entry**:
 One row in the Library — the unified concept that abstracts a journal **Note**, a Catalog **Session**, and a Catalog **Post**. Identity = `{ source.catalog, source.item }`; kind = `Note | Session | Post`; carries title, optional **Date**, **Block Content Id**, and row actions (Open / Add to today / Run / Compare). A workout that exists in multiple sources lists as one Entry per source (a Session and a Post on the same date are two distinct Entries).
 _Avoid_: content item, library row, search result.
+
+**Playground Entry**:
+A user-owned **Note** for trying or running a workout outside the Journal, discoverable in the **Library** through `source:playground`.
+Running a home or syntax example first creates a Playground Entry; opening an encoded shared workout imports one without automatically running it.
+Moving it to a Journal date preserves its **UUID**, **Block Content Id** references, attachments, and recorded results rather than cloning and deleting it.
+_Avoid_: temporary workout, demo result, scratch copy (implies disposable data).
+
+**Entry Feed**:
+The rich-preview presentation of a **Library** query, alongside Cards and Rows, with actions to open or run an **Entry** without embedding a live editor in every preview.
+Presentation changes preserve WQL, ordering, and grouping; scrolling never silently widens an explicit query time range.
+_Avoid_: feed source (a Catalog **Post** source, not a presentation).
 
 **Session**:
 One named workout inside a Catalog — a hard-set workout you can clone into your own journal (e.g. "Fran" in "CrossFit Girls"). Source: `{ catalog: <catalog id>, item: <session id> }`. Carries a **derived date** (first published — when its source markdown entered the catalog), not a user-chosen one; time windows treat Sessions as ordinary dated content. An Add-to-today row action clones it into today's journal Note.

@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, ChevronUp, Copy, Trash2 } from 'lucide-react';
 import { isFindQuery, parseQuery, type QueryResult, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
-import { WidgetFrame } from './WidgetFrame';
+import { WidgetFrame, WidgetToolButton, WidgetEditButton } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';
 import { DashboardTokenControls } from './DashboardTokenControls';
-import { WqlQueryInspectorModal } from '../blocks/WqlQueryInspectorModal';
+
+/** A widget's grid placement — column span 1..4, or a forced full row. */
+export interface WidgetSpanOption {
+  spanCols?: number;
+  spanFull?: boolean;
+}
 
 export interface DashboardViewProps {
   /** Parsed dashboard note (buildDashboardDocument). */
@@ -15,10 +21,22 @@ export interface DashboardViewProps {
   onEnsureRollupFacts?: () => Promise<void>;
   /** Current token values; defaults to each token's declared default. */
   tokenValues?: Record<string, string>;
-  /** Present when the note is editable — control changes write back to frontmatter. */
+  /** Present when the note is editable — committed control changes write back to frontmatter. */
   onTokenChange?: (name: string, value: string) => void;
-  /** Present when the host saves widget query edits — the composer modal lives here (view-first cards, hover edit). */
-  onSaveWidgetQuery?: (widget: DashboardWidget, nextQuery: string) => void;
+  /**
+   * Edit mode: per-widget arrangement chrome (edit / duplicate / remove /
+   * reorder / size) renders on every card. View mode stays chrome-free —
+   * the host gates editing on this flag plus the handler set below.
+   */
+  editMode?: boolean;
+  /** Open the shared authoring composer for this widget (edit flow). */
+  onEditWidget?: (widget: DashboardWidget) => void;
+  /** Read-only query inspection (prebuilt seeds, teaching surfaces). */
+  onInspectWidget?: (widget: DashboardWidget) => void;
+  onDuplicateWidget?: (widget: DashboardWidget) => void;
+  onRemoveWidget?: (widget: DashboardWidget) => void;
+  onMoveWidget?: (widget: DashboardWidget, delta: -1 | 1) => void;
+  onResizeWidget?: (widget: DashboardWidget, span: WidgetSpanOption) => void;
   /** Optional execution range (ms epoch). Omit to use each query's own window. */
   rangeStart?: number;
   rangeEnd?: number;
@@ -30,19 +48,45 @@ interface WidgetRun {
   error?: string;
 }
 
-/** Grid span classes for a widget on the 1 / 2 / 4-column responsive grid. */
+/**
+ * Grid span classes for a widget on the 1 / 2 / 4-column responsive grid.
+ * An explicit fence span (`-N` / `-full`) wins; otherwise the type default.
+ */
 function spanClass(widget: DashboardWidget): string {
+  if (widget.spanFull) return 'col-span-1 md:col-span-2 lg:col-span-4';
+  if (widget.spanCols != null) {
+    if (widget.spanCols <= 1) return 'col-span-1';
+    if (widget.spanCols === 2) return 'col-span-1 md:col-span-2';
+    if (widget.spanCols === 3) return 'col-span-1 md:col-span-2 lg:col-span-3';
+    return 'col-span-1 md:col-span-2 lg:col-span-4';
+  }
   const resolved = resolveWidgetType(widget.type);
   if (resolved === 'value') return 'col-span-1';
   if (resolved === 'table') return 'col-span-1 md:col-span-2';
   return 'col-span-1 md:col-span-2 lg:col-span-4';
 }
 
+/** Size options in the edit-mode toolbar — column span or a full row. */
+const SIZE_OPTIONS: Array<{ label: string; span: WidgetSpanOption; testId: string }> = [
+  { label: 'Span 1 column', span: { spanCols: 1 }, testId: 'widget-size-1' },
+  { label: 'Span 2 columns', span: { spanCols: 2 }, testId: 'widget-size-2' },
+  { label: 'Span 4 columns', span: { spanCols: 4 }, testId: 'widget-size-4' },
+  { label: 'Full row', span: { spanFull: true }, testId: 'widget-size-full' },
+];
+
+function sizeIsActive(widget: DashboardWidget, span: WidgetSpanOption): boolean {
+  if (span.spanFull) return widget.spanFull === true;
+  return !widget.spanFull && (widget.spanCols ?? null) === (span.spanCols ?? null);
+}
+
 /**
  * DashboardView — the state-free dashboard renderer (#900, format locked in #899).
  *
  * Takes a parsed DashboardDocument + current token values, runs all widget
- * queries concurrently via the injected QueryExecutor, and renders the responsive CSS grid.
+ * queries concurrently via the injected QueryExecutor, and renders the
+ * responsive CSS grid. All authoring interactions are host-owned: the view
+ * surfaces the affordances (edit-mode toolbar, inspect button) and reports
+ * through the injected callbacks — it never owns dialog or write state.
  */
 export function DashboardView({
   document,
@@ -50,7 +94,13 @@ export function DashboardView({
   onEnsureRollupFacts,
   tokenValues,
   onTokenChange,
-  onSaveWidgetQuery,
+  editMode = false,
+  onEditWidget,
+  onInspectWidget,
+  onDuplicateWidget,
+  onRemoveWidget,
+  onMoveWidget,
+  onResizeWidget,
   rangeStart,
   rangeEnd,
   preferredUnit,
@@ -70,9 +120,6 @@ export function DashboardView({
   );
 
   const [runs, setRuns] = useState<Record<string, WidgetRun>>({});
-  // Widget currently open in the edit-composer modal; carries the raw
-  // (token-bearing) query so Apply writes the parametrized WQL back.
-  const [editing, setEditing] = useState<DashboardWidget | null>(null);
   const [loading, setLoading] = useState(true);
 
   const resolvedKey = useMemo(
@@ -153,8 +200,9 @@ export function DashboardView({
       {loading && <div className="text-sm text-muted-foreground mb-3">Loading widgets…</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {resolved.map(({ widget, query }) => {
+        {resolved.map(({ widget, query }, index) => {
           const run = runs[widget.key];
+          const canArrange = editMode && (onEditWidget || onDuplicateWidget || onRemoveWidget || onMoveWidget || onResizeWidget);
           return (
             <WidgetFrame
               key={widget.key}
@@ -162,7 +210,67 @@ export function DashboardView({
               question={widget.question ?? ''}
               query={query}
               span={spanClass(widget)}
-              onEdit={onSaveWidgetQuery ? () => setEditing(widget) : undefined}
+              onInspect={onInspectWidget ? () => onInspectWidget(widget) : undefined}
+              toolbar={
+                canArrange ? (
+                  <div className="flex flex-wrap items-center gap-1.5" data-testid={`widget-toolbar-${widget.key}`}>
+                    {onEditWidget && <WidgetEditButton title={widget.title ?? ''} onClick={() => onEditWidget(widget)} />}
+                    {onMoveWidget && (
+                      <>
+                        <WidgetToolButton
+                          label={`Move ${widget.title || 'widget'} up`}
+                          disabled={index === 0}
+                          onClick={() => onMoveWidget(widget, -1)}
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </WidgetToolButton>
+                        <WidgetToolButton
+                          label={`Move ${widget.title || 'widget'} down`}
+                          disabled={index === resolved.length - 1}
+                          onClick={() => onMoveWidget(widget, 1)}
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </WidgetToolButton>
+                      </>
+                    )}
+                    {onResizeWidget && (
+                      <div className="flex items-center gap-0 rounded bg-muted/60 p-0.5">
+                        {SIZE_OPTIONS.map((option) => (
+                          <button
+                            key={option.testId}
+                            type="button"
+                            data-testid={`${option.testId}-${widget.key}`}
+                            title={option.label}
+                            aria-label={`${option.label} for ${widget.title || 'widget'}`}
+                            aria-pressed={sizeIsActive(widget, option.span)}
+                            disabled={sizeIsActive(widget, option.span)}
+                            onClick={() => onResizeWidget(widget, option.span)}
+                            className="inline-flex items-center justify-center px-1 py-0.5 max-lg:min-h-11 max-lg:min-w-11 text-xs font-mono rounded text-muted-foreground hover:text-foreground disabled:text-primary disabled:bg-primary/10"
+                          >
+                            {option.span.spanFull ? <ChevronRight className="w-3 h-3" /> : option.span.spanCols}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {onDuplicateWidget && (
+                      <WidgetToolButton
+                        label={`Duplicate ${widget.title || 'widget'}`}
+                        onClick={() => onDuplicateWidget(widget)}
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </WidgetToolButton>
+                    )}
+                    {onRemoveWidget && (
+                      <WidgetToolButton
+                        label={`Remove ${widget.title || 'widget'}`}
+                        onClick={() => onRemoveWidget(widget)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </WidgetToolButton>
+                    )}
+                  </div>
+                ) : undefined
+              }
             >
               {run?.error ? (
                 <WidgetProblemBadge message={run.error} />
@@ -179,21 +287,6 @@ export function DashboardView({
           );
         })}
       </div>
-
-      {onSaveWidgetQuery && (
-        <WqlQueryInspectorModal
-          isOpen={editing !== null}
-          onClose={() => setEditing(null)}
-          initialQuery={editing?.query ?? ''}
-          executor={executor}
-          title="Edit Widget Query"
-          subtitle={editing?.title ? `Use the Omni-Composer to edit "${editing.title}".` : undefined}
-          applyLabel="Apply to Widget"
-          onApply={(nextQuery) => {
-            if (editing) onSaveWidgetQuery(editing, nextQuery);
-          }}
-        />
-      )}
     </div>
   );
 }

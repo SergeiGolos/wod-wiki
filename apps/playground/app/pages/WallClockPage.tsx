@@ -13,6 +13,7 @@ import { noteRefToPath } from '../lib/noteIdentity'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { playgroundRecorder } from '@/services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
+import type { WorkoutResults } from '@/components/Editor/types'
 
 export function WallClockPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
@@ -27,7 +28,7 @@ export function WallClockPage() {
   const pending = pendingRef.current
 
   const handleComplete = useCallback(
-    (_blockId: string, results: any) => {
+    (_blockId: string, results: WorkoutResults | undefined) => {
       if (!results || !runtimeId || !pending) return
       playgroundRecorder.record({
         runBlock: pending.block,
@@ -36,6 +37,7 @@ export function WallClockPage() {
         resultId: runtimeId,
         data: results,
         createdAt: results.endTime || Date.now(),
+        ...(pending.origin ? { origin: pending.origin } : {}),
       }).then(() => {
         if (results.completed) {
           // Ticket 005: post-session completion lands on the dedicated result detail route.
@@ -48,6 +50,10 @@ export function WallClockPage() {
 
   const handleClose = useCallback(() => {
     if (!pending) { navigate('/'); return }
+    if (pending.returnTo) {
+      navigate(pending.returnTo, { replace: true })
+      return
+    }
     // Route back to the note via the typed NoteRef — the kind→path rule lives
     // in noteRefToPath, not an ad-hoc noteId.split('/') switch here.
     navigate(noteRefToPath(parseNoteId(pending.noteId)), { replace: true })

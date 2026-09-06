@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Edit3 } from 'lucide-react';
+import { Edit3, Eye } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export interface WidgetFrameProps {
@@ -10,12 +10,22 @@ export interface WidgetFrameProps {
   span?: string;
   /** Show the raw WQL query box (teaching/authoring surfaces). View-first default hides it. */
   showQuery?: boolean;
-  /** Present when the host offers query editing — renders a hover edit button. */
-  onEdit?: () => void;
+  /**
+   * Read-only inspection affordance — an always-visible button (prebuilt
+   * seeds, teaching surfaces) opening the host's query inspector. Distinct
+   * from editing: present without a toolbar.
+   */
+  onInspect?: () => void;
+  /**
+   * Edit-mode action cluster (edit / duplicate / remove / reorder / size),
+   * rendered top-right and always visible while present. The host builds it;
+   * the frame only positions it.
+   */
+  toolbar?: ReactNode;
   children: ReactNode;
 }
 
-export function WidgetFrame({ title, question, query, span, showQuery = false, onEdit, children }: WidgetFrameProps) {
+export function WidgetFrame({ title, question, query, span, showQuery = false, onInspect, toolbar, children }: WidgetFrameProps) {
   return (
     <div
       className={cn(
@@ -23,25 +33,24 @@ export function WidgetFrame({ title, question, query, span, showQuery = false, o
         span,
       )}
     >
-      {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          title="Edit widget query"
-          aria-label={`Edit query for ${title || 'widget'}`}
-          className="absolute top-2 right-2 p-1 rounded bg-muted/80 text-muted-foreground hover:text-foreground opacity-0 group-hover/frame:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 transition-opacity z-10"
-        >
-          <Edit3 className="w-3.5 h-3.5" />
-        </button>
-      )}
-      <div className="flex items-baseline justify-between gap-3 mb-2">
-        <h3 className="text-sm font-semibold text-foreground min-w-0">
-          {title}
-        </h3>
-        <span className="text-[11px] text-muted-foreground italic text-right max-w-[60%] line-clamp-2 shrink-0">
-          {question}
-        </span>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          {question && <p className="mt-1 text-xs text-muted-foreground">{question}</p>}
+        </div>
+        {onInspect && (
+          <button
+            type="button"
+            onClick={onInspect}
+            title="Inspect widget query"
+            aria-label={`Inspect query for ${title || 'widget'}`}
+            className="inline-flex shrink-0 items-center justify-center p-1 max-lg:min-h-11 max-lg:min-w-11 rounded bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
+      {toolbar && <div className="mb-3">{toolbar}</div>}
       {/* Long WQL wraps in place - an in-card horizontal scrollbar reads as
           a layout bug (dogfood #4). `break-all` covers spaceless fragments
           like `sum:totalVolume{effort:bench-press}`. */}
@@ -52,5 +61,51 @@ export function WidgetFrame({ title, question, query, span, showQuery = false, o
       )}
       <div className="flex-1 min-h-0">{children}</div>
     </div>
+  );
+}
+
+/** Standard edit-mode tool-button chrome for the widget toolbar. */
+export function WidgetToolButton({
+  label,
+  onClick,
+  disabled,
+  active,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      className={cn(
+        'inline-flex items-center justify-center p-1 max-lg:min-h-11 max-lg:min-w-11 rounded bg-muted/80 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground transition-colors',
+        active && 'text-primary bg-primary/10',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** The primary "open the full editor" affordance inside the toolbar. */
+export function WidgetEditButton({ title, onClick }: { title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Edit widget"
+      aria-label={`Edit widget ${title || ''}`.trim()}
+      className="inline-flex items-center justify-center p-1 max-lg:min-h-11 max-lg:min-w-11 rounded bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <Edit3 className="w-3.5 h-3.5" />
+    </button>
   );
 }

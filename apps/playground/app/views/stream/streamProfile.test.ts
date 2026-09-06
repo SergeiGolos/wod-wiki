@@ -37,7 +37,7 @@ describe('streamProfile presets', () => {
     expect(LIBRARY_STREAM_PROFILE.route).toBe('/library')
     expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe('find:note last 2w')
     expect(LIBRARY_STREAM_PROFILE.level).toBe('note')
-    expect(LIBRARY_STREAM_PROFILE.typeOptions).toEqual(['notes', 'journal', 'collections', 'feeds', 'blocks'])
+    expect(LIBRARY_STREAM_PROFILE.typeOptions).toEqual(['notes', 'journal', 'collections', 'feeds', 'playground', 'blocks'])
   })
 
   it('defines the Efforts stream profile', () => {

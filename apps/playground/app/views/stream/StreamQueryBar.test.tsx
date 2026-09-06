@@ -111,11 +111,4 @@ describe('StreamQueryBar', () => {
     fireEvent.click(screen.getByTestId('stream-query-bar'))
     expect(usePaletteStore.getState().isOpen).toBe(true)
   })
-
-  it('compact variant wires the view-settings affordance', () => {
-    let opened = false
-    render(<Bar compact onViewSettings={() => (opened = true)} />)
-    fireEvent.click(screen.getByTestId('stream-query-view-settings'))
-    expect(opened).toBe(true)
-  })
 })

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
 import { parseDocumentSections } from '../../../components/Editor/utils/sectionParser';
+import { parseDashboardNote } from '../../../lib/dashboard/parser';
+import { buildDashboardDocument, isDashboardMeta } from '../../../lib/dashboard/model';
 
 const savedNotes: Note[] = [];
 const savedSegments: NoteSegment[] = [];
@@ -11,14 +13,16 @@ const noteTagsByNote = new Map<string, string[]>();
 mock.module('../../db/IndexedDBService', () => ({
   indexedDBService: {
     getNote: async (id: string) => notes.find(note => note.id === id) ?? savedNotes.find(note => note.id === id),
-    getAllNotes: async () => notes,
+    getAllNotes: async () => [...notes, ...savedNotes],
     getTagsForNote: async (noteId: string) =>
       (noteTagsByNote.get(noteId) ?? []).map(label => ({ id: `tag-${label}`, label, createdAt: 0 })),
     setNoteTags: async (noteId: string, labels: string[]) => {
       noteTagsByNote.set(noteId, labels);
     },
     getPage: async (_id: string) => undefined,
-    getAllSegments: async () => [],
+    getAllSegments: async () => savedSegments,
+    getResultsForNote: async () => [],
+    getAttachmentsForNote: async () => [],
     saveNote: async (note: Note) => {
       savedNotes.push(note);
       return note.id;
@@ -125,6 +129,45 @@ describe('IndexedDBContentProvider', () => {
     });
 
     expect(entry.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it('round-trips frontmatter delimiters on read (dashboard notes stay parseable)', async () => {
+    const { IndexedDBContentProvider } = await providerModule;
+    const provider = new IndexedDBContentProvider();
+    const raw = `---
+dashboard: true
+title: Benchmark PR Board
+slug: benchmark-pr-board
+---
+
+# Benchmark PR Board
+
+\`\`\`query:value
+sum:totalVolume{}
+\`\`\`
+`;
+
+    const entry = await provider.saveEntry({
+      title: 'Benchmark PR Board',
+      rawContent: raw,
+      tags: [],
+      targetDate: Date.now(),
+      type: 'note',
+    });
+
+    // Single-note read AND list read must both restore the --- delimiters —
+    // segments store the frontmatter's inner content only.
+    const read = await provider.getEntry(entry.id);
+    expect(read?.rawContent.startsWith('---\n')).toBe(true);
+    expect(read?.rawContent).toContain('\n---\n');
+
+    const listed = await provider.getEntries();
+    expect(listed.find(e => e.id === entry.id)?.rawContent).toBe(read?.rawContent);
+
+    // The Dashboard Note actually resolves: frontmatter parses, widget found.
+    const { meta, sections } = parseDashboardNote(read!.rawContent);
+    expect(isDashboardMeta(meta)).toBe(true);
+    expect(buildDashboardDocument(sections, meta).widgets).toHaveLength(1);
   });
 
   it('collapses per-keystroke updates to a single live segment (#705)', async () => {

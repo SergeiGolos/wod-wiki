@@ -87,8 +87,9 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
     });
   });
 
-  it('view-first cards: edit button opens the composer modal seeded with the raw token query; Apply writes back', async () => {
-    const onSaveWidgetQuery = vi.fn();
+  it('edit mode surfaces the arrangement affordances and reports widget actions to the host', async () => {
+    const onEditWidget = vi.fn();
+    const onRemoveWidget = vi.fn();
     const runQueryMock = vi.fn(async (query: string) => mockQueryResult(query));
     const mockExecutor: QueryExecutor = {
       runQuery: runQueryMock,
@@ -112,32 +113,59 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
         document={doc}
         executor={mockExecutor}
         tokenValues={{ exercise: 'fran' }}
-        onSaveWidgetQuery={onSaveWidgetQuery}
+        editMode
+        onEditWidget={onEditWidget}
+        onRemoveWidget={onRemoveWidget}
       />,
     );
 
-    // Card renders the result view; the raw WQL text is not on the card.
+    // Card renders the result view; view mode keeps the raw WQL off the card.
     await waitFor(() => expect(screen.getByText('100')).toBeDefined());
-    expect(screen.queryByText('sum:reps{effort:fran}')).toBeNull();
 
-    // Hover edit button → modal, seeded with the token-bearing raw query.
-    fireEvent.click(screen.getByRole('button', { name: /Edit query for/ }));
-    const input = await waitFor(() => {
-      const el = screen.getByTestId('wql-composer-input') as HTMLInputElement;
-      expect(el.value).toBe('sum:reps{effort:$exercise}');
-      return el;
-    });
-    fireEvent.change(input, { target: { value: 'sum:reps{effort:annie}' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    const apply = await waitFor(() => {
-      const btn = screen.getByText('Apply to Widget').closest('button') as HTMLButtonElement;
-      expect(btn.disabled).toBe(false);
-      return btn;
-    });
-    fireEvent.click(apply);
-    expect(onSaveWidgetQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 'w0' }),
-      'sum:reps{effort:annie}',
+    // Edit mode: the toolbar's edit affordance reports the widget identity.
+    fireEvent.click(screen.getByRole('button', { name: /Edit widget/ }));
+    expect(onEditWidget).toHaveBeenCalledWith(expect.objectContaining({ key: 'w0' }));
+
+    // Remove reports the same identity.
+    fireEvent.click(screen.getByRole('button', { name: /Remove/ }));
+    expect(onRemoveWidget).toHaveBeenCalledWith(expect.objectContaining({ key: 'w0' }));
+  });
+
+  it('view mode renders no arrangement chrome; prebuilt sources get an inspect affordance instead', async () => {
+    const onInspectWidget = vi.fn();
+    const runQueryMock = vi.fn(async (query: string) => mockQueryResult(query));
+    const mockExecutor: QueryExecutor = {
+      runQuery: runQueryMock,
+      runFind: vi.fn(async () => ({}) as unknown as FindQueryResult),
+      runRows: vi.fn(async () => ({}) as unknown as RowsQueryResult),
+    };
+
+    const doc: DashboardDocument = buildDashboardDocument(
+      [
+        {
+          type: 'query',
+          content: 'sum:reps{}',
+          widgetType: 'value',
+        },
+      ],
+      {},
     );
+
+    render(
+      <DashboardView
+        document={doc}
+        executor={mockExecutor}
+        onInspectWidget={onInspectWidget}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('100')).toBeDefined());
+
+    // No edit toolbar in view mode…
+    expect(screen.queryByRole('button', { name: /Edit widget/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Remove/ })).toBeNull();
+    // …but a read-only source can still inspect the query.
+    fireEvent.click(screen.getByRole('button', { name: /Inspect query for/ }));
+    expect(onInspectWidget).toHaveBeenCalledWith(expect.objectContaining({ key: 'w0' }));
   });
 });
