@@ -37,6 +37,9 @@ function fact(
     segmentVersion: 1,
     timestamp,
     ...identity,
+    // Post-V14 engine output: summaries carry substitution-proof stats.
+    representationKind: 'calculated',
+    reducerStats: { observedCount: 1 },
     metrics: [{
       type: metricKey,
       value,
@@ -223,8 +226,9 @@ describe('QueryService', () => {
     const service = new QueryService(makeStore().store);
 
     const byEffort = await service.runQuery('sum:totalVolume{} by {effort}');
-    expect(byEffort.series.map(s => s.key).sort()).toEqual(['back-squat', 'rowing']);
-    expect(byEffort.series.find(s => s.key === 'back-squat')!.points[0].value).toBe(6000);
+    // Ticket 16: group identity is the ordered tuple; the label is display.
+    expect(byEffort.series.map(s => s.label).sort()).toEqual(['back-squat', 'rowing']);
+    expect(byEffort.series.find(s => s.label === 'back-squat')!.points[0].value).toBe(6000);
     expect(byEffort.stages.groups).toBe(2);
 
     const bySession = await service.runQuery('sum:totalVolume{} by {session}');
@@ -238,7 +242,9 @@ describe('QueryService', () => {
     expect(byDay.stages.buckets).toBe(9);
 
     const byRound = await service.runQuery('sum:totalVolume{} by {round}');
-    expect(byRound.series[0].key).toBe('(none)');
+    // Ticket 16: the missing group resolves to the structural UNASSIGNED
+    // sentinel (label 'unassigned'), never a literal '(none)'.
+    expect(byRound.series[0].label).toBe('unassigned');
   });
 
   it('exposes stage telemetry and scalar for single-point results', async () => {

@@ -46,7 +46,7 @@ describe('Corpus Parity Tests (crossfit-multi-week.json)', () => {
     const result = ir.data as QueryResult;
 
     const disciplines = result.series.map((s) => ({
-      key: s.key,
+      key: s.label,
       total: s.points.reduce((acc, p) => acc + p.value, 0),
     }));
 

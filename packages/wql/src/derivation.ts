@@ -352,6 +352,12 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       ...(temporal?.temporalKind === 'civil-date' && temporal.civilDate
         ? { metricDate: temporal.civilDate, temporalKind: 'civil-date' as const }
         : {}),
+      // Wellness rows are reconcile-owned user recordings: DIRECT
+      // observations even before ticket 14 stamps representationKind.
+      representationKind: record.representationKind
+        ?? (record.outputType === 'wellness' ? 'direct' as const : undefined),
+      ...(record.summaryCoverage ? { summaryCoverage: record.summaryCoverage } : {}),
+      ...(record.reducerStats ? { reducerStats: record.reducerStats } : {}),
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? record.effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),

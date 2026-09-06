@@ -173,6 +173,10 @@ export interface AnalyticsDataPoint {
   metricDate?: string;
   /** Temporal kind of the observation's anchor (ticket 12). */
   temporalKind?: 'instant' | 'civil-date';
+  /** Ticket 14 provenance carried onto the fact (ticket 16 selection). */
+  representationKind?: 'direct' | 'calculated' | 'substitute_summary';
+  summaryCoverage?: SummaryCoverage;
+  reducerStats?: ReducerStats;
   timestamp: number;
   createdAt: number;
 }

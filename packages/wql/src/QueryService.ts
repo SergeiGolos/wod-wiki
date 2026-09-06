@@ -39,6 +39,7 @@ import {
 import { WQL_FIND_TARGETS } from './vocabulary';
 import { convertViaCatalog, resolveOutputUnit } from './units';
 import { projectEventToFacts } from './derivation';
+import { dedupeById, selectContributions, type CoverageReport } from './selection';
 import {
   captureContext,
   civilDateAdd,
@@ -220,6 +221,8 @@ export interface QueryResult {
   unit?: string;
   /** First diagnostic across series (ticket 13) — per-widget badges in 19. */
   error?: string;
+  /** Compact coverage references (ticket 16 explainability). */
+  coverage?: CoverageReport;
 }
 
 /** One run in a rows result: the canonical result identity plus the event
@@ -308,10 +311,16 @@ function dimValue(
   if (dim === 'week') return civilMonday(row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone));
   if (dim === 'session') return row.resultId;
   const raw = factTagValue(row, dim, noteTags);
-  if (raw === undefined) return '(none)';
+  // Ticket 16 (finding 3.5): missing group values resolve to the structural
+  // UNASSIGNED sentinel — never a literal '(none)' masquerading as data.
+  if (raw === undefined) return UNASSIGNED;
   if (typeof raw === 'string') return raw;
-  return raw.length ? raw.join(',') : '(none)';
+  return raw.length ? raw.join(',') : UNASSIGNED;
 }
+
+/** Structural missing-group sentinel — distinct from any literal text
+ *  (group identity is the JSON tuple, so it cannot collide). */
+export const UNASSIGNED = '\u0000unassigned';
 
 /** Result state of a bucket reduction (arithmetic contract §2): observed
  *  values are genuine reductions of recorded observations; absent results
@@ -746,11 +755,12 @@ export class QueryService {
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
     const noteTags = await this.loadNoteTags(candidates, touchesTags);
-    const matched = this.applyEffortScope(
-      candidates.filter(row => matchesFilters(row, parsed.filters, noteTags)), parsed,
-    );
+    // Ticket 16: no global effort suppression — coverage selection below
+    // keeps every population represented exactly once.
+    const matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
 
-    return this.buildResult(matched, parsed, options, noteTags, range);
+    const { selected, report } = selectContributions(matched, parsed.agg);
+    return this.buildResult(selected, parsed, options, noteTags, range, report);
   }
 
   /**
@@ -763,6 +773,7 @@ export class QueryService {
     options: QueryOptions,
     noteTags: ReadonlyMap<string, readonly string[]>,
     range: ResolvedRange | undefined,
+    coverage?: CoverageReport,
   ): QueryResult {
     const ctx = runContext(options);
     // Stage 2: BUCKET — structural bucket identity (ticket 12): calendar
@@ -843,20 +854,29 @@ export class QueryService {
     const shouldConvert = unitResolution.convert === true;
     const seriesError = unitResolution.error;
 
-    // Stage 3+4: GROUP + AGGREGATE per bucket
-    const groups = new Map<string, AnalyticsDataPoint[]>();
+    // Stage 3+4: GROUP + AGGREGATE per bucket. Group identity (ticket 16)
+    // is the canonical ordered tuple of resolved dimension values, JSON
+    // encoded — delimiter-containing labels cannot collide; a missing
+    // dimension resolves to the structural UNASSIGNED sentinel (distinct
+    // from any literal text). The display label is derived, never identity.
+    const UNASSIGNED = '\u0000unassigned';
+    const unassignedLabel = 'unassigned';
+    const groups = new Map<string, { label: string; rows: AnalyticsDataPoint[] }>();
     for (const row of matched) {
-      const key = tagDims.length
-        ? tagDims.map((d) => dimValue(row, d, noteTags, ctx)).join(' · ')
+      const tuple = tagDims.map((d) => dimValue(row, d, noteTags, ctx));
+      const key = tagDims.length ? JSON.stringify(tuple) : parsed.metric;
+      const label = tagDims.length
+        ? tuple.map((v) => (v === UNASSIGNED ? unassignedLabel : v)).join(' · ')
         : parsed.metric;
       const bucket = groups.get(key);
-      if (bucket) bucket.push(row);
-      else groups.set(key, [row]);
+      if (bucket) bucket.rows.push(row);
+      else groups.set(key, { label, rows: [row] });
     }
 
-    const series: Series[] = [...groups.entries()].map(([key, rows]) => {
+    const series: Series[] = [...groups.entries()].map(([key, group]) => {
+      const rows = group.rows;
       if (seriesError) {
-        return { key, label: key, points: [], unit: undefined, error: seriesError };
+        return { key, label: group.label, points: [], unit: undefined, error: seriesError };
       }
       const byBucket = new Map<string, AnalyticsDataPoint[]>();
       for (const row of rows) {
@@ -905,7 +925,7 @@ export class QueryService {
       // Output unit is the resolved one — count reduces to count; no
       // first-record fallback (ticket 13 cutover).
       const seriesUnit = parsed.agg === 'count' ? 'count' : targetUnit;
-      return { key, label: key, points, unit: seriesUnit, ...(error ? { error } : {}) };
+      return { key, label: group.label, points, unit: seriesUnit, ...(error ? { error } : {}) };
     });
 
     const aggregated = series.reduce((n, s) => n + s.points.length, 0);
@@ -917,6 +937,11 @@ export class QueryService {
         ? new Set(matched.map((p) => bucketKey(p))).size
         : (matched.length ? 1 : 0);
 
+    const insufficient = coverage?.insufficientScopes ?? [];
+    const resultError = series.find((s) => s.error)?.error
+      ?? (insufficient.length > 0
+        ? `Insufficient evidence: ${insufficient.map((s) => `${s.resultId}/${s.metricKey} (${s.reason})`).join('; ')}`
+        : undefined);
     return {
       parsed,
       series,
@@ -924,7 +949,8 @@ export class QueryService {
       matched,
       scalar,
       unit: resultUnit,
-      ...(series.find((s) => s.error)?.error ? { error: series.find((s) => s.error)!.error } : {}),
+      ...(resultError ? { error: resultError } : {}),
+      ...(coverage ? { coverage } : {}),
     };
   }
 
@@ -943,7 +969,10 @@ export class QueryService {
     const contentIds = await this.contentIdsFromFindResult(findResult);
     if (contentIds.size === 0) return empty;
 
-    let facts = await this.deriveMetricFacts(contentIds, parsed.metric);
+    // Ticket 16: content-joined queries keep eligible event-grain
+    // observations (the summary-only join filter is gone); overlapping
+    // scope fetches dedupe by stable observation identity.
+    let facts = dedupeById(await this.deriveMetricFacts(contentIds, parsed.metric));
     // Ticket 12 precedence + context: query window wins; host range is the
     // default; membership half-open against the captured context.
     const ctx = runContext(options);
@@ -963,11 +992,9 @@ export class QueryService {
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
     const noteTags = await this.loadNoteTags(facts, touchesTags);
-    const matched = this.applyEffortScope(
-      facts.filter(f => matchesFilters(f, parsed.filters, noteTags)), parsed,
-    );
-
-    return this.buildResult(matched, parsed, options, noteTags, joinRange);
+    const matched = facts.filter(f => matchesFilters(f, parsed.filters, noteTags));
+    const { selected, report } = selectContributions(matched, parsed.agg);
+    return this.buildResult(selected, parsed, options, noteTags, joinRange, report);
   }
 
   /** Direction 1 — keep only content owning a wod block whose raw-log metric
@@ -1004,12 +1031,12 @@ export class QueryService {
     contentIds: Set<string>,
     join: MetricPredicate,
   ): Promise<Set<string>> {
-    const facts = await this.deriveMetricFacts(contentIds, join.metric);
+    const facts = dedupeById(await this.deriveMetricFacts(contentIds, join.metric));
     const noteTags = await this.loadNoteTags(facts, join.filters.some(f => f.key === 'tags'));
-    const filtered = this.applyEffortScope(
+    const filtered = selectContributions(
       facts.filter(f => matchesFilters(f, join.filters, noteTags)),
-      { filters: join.filters, groupBy: [] },
-    );
+      join.agg,
+    ).selected;
     const byContent = new Map<string, AnalyticsDataPoint[]>();
     for (const f of filtered) {
       const cid = f.blockContentId ?? '';
@@ -1027,18 +1054,6 @@ export class QueryService {
     return passing;
   }
 
-  /** Filter per-effort vs un-attributed overall summary rows to avoid
-   *  double-counting. */
-  private applyEffortScope(matched: AnalyticsDataPoint[], scope: { filters: TagFilter[]; groupBy: string[] }): AnalyticsDataPoint[] {
-    if (scope.groupBy.includes('effort') || scope.filters.some(f => f.key === 'effort')) {
-      return matched.some(r => r.effortSlug !== undefined)
-        ? matched.filter(r => r.effortSlug !== undefined)
-        : matched;
-    }
-    return matched.some(r => r.effortSlug === undefined)
-      ? matched.filter(r => r.effortSlug === undefined)
-      : matched;
-  }
 
   /** Summary facts for one Canonical Metric Key across the given content ids —
    *  the cross-store join source. Reads finalize-written summary rows straight
@@ -1050,9 +1065,11 @@ export class QueryService {
   ): Promise<AnalyticsDataPoint[]> {
     const ids = [...new Set(contentIds)];
     const rows = await Promise.all(ids.map((blockContentId) => this.store.getEventsByContent(blockContentId)));
+    // Ticket 16 (finding 3.7): content-joined queries read every eligible
+    // representation — the coverage selection shares the direct path's
+    // contract, so detail rows are no longer filtered out here.
     return rows
       .flat()
-      .filter((row) => row.grain === 'summary')
       .flatMap(projectEventToFacts)
       .filter((f) => f.metricKey === metricKey);
   }
