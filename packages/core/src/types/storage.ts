@@ -240,6 +240,37 @@ export interface UnifiedEventRecord {
    *  timestamp remains the V16 fetch anchor until the by-metricDate index
    *  (ticket 14); it must not relocate a metric whose own date differs. */
   metricTemporal?: MetricTemporal[];
+  /** Ticket 14: civil-date keys (d:YYYY-MM-DD) of every metricTemporal with
+   *  temporalKind 'civil-date' — the multiEntry `by-metric-date` index
+   *  source. Kept distinct from the instant index on purpose: a date-only
+   *  observation is never a midnight instant. */
+  metricDateKeys?: string[];
+  /** Ticket 14 provenance: how this row represents the underlying
+   *  observations — directly recorded, calculated, or a substitute summary. */
+  representationKind?: 'direct' | 'calculated' | 'substitute_summary';
+  /** Ticket 14: the temporal/production scope a substitute summary covers. */
+  summaryCoverage?: SummaryCoverage;
+  /** Ticket 14: retained reducer statistics for substitution proofs. */
+  reducerStats?: ReducerStats;
+}
+
+/** Scope descriptor of a substitute summary's coverage (ticket 14). */
+export interface SummaryCoverage {
+  scope: 'workout' | 'effort' | 'partition';
+  effortSlug?: string;
+  /** Partition identity (group-tag pairs, key-sorted). */
+  groupTags?: Record<string, string>;
+}
+
+/** Retained statistics for substitution proofs (ticket 16 consumes).
+ *  `observedCount` is the true represented observation count — never
+ *  invented for legacy rows that lack it (undefined = insufficient
+ *  evidence, not 1). */
+export interface ReducerStats {
+  observedCount?: number;
+  sum?: number;
+  min?: number;
+  max?: number;
 }
 
 export interface MetricTemporal {
@@ -248,4 +279,72 @@ export interface MetricTemporal {
   instant?: number;
   /** Civil YYYY-MM-DD when temporalKind === 'civil-date'. */
   civilDate?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Field Catalog — V17 derived stores (wayfinder datadog-analytics tickets
+// 14/15). The catalog is a derived index of saved data: reference counts
+// track supporting source records, rows prune at zero, and deltas commit
+// atomically with the source mutation.
+// ---------------------------------------------------------------------------
+
+/** One typed field identity in the catalog. `id` is the collision-free
+ *  typed key (see fieldRefKey in fields/fieldIdentity). */
+export interface FieldCatalogEntry {
+  id: string;
+  /** Normalized full path — the ordered prefix-lookup key for typeahead. */
+  path: string;
+  kind: string;
+  /** Physical/named dimension of a numeric variant, when known. */
+  dimension?: string;
+  /** Observed original spellings → supporting-source counts (provenance,
+   *  not identity); a spelling disappears when its final support does. */
+  spellings: Record<string, number>;
+  /** Observed effective units → supporting-source counts. */
+  units: Record<string, number>;
+  /** Number of source records currently supporting this identity. */
+  sourceCount: number;
+  firstSeen: number;
+  lastSeen: number;
+}
+
+/** One field identity a source record supports, with everything needed to
+ *  reverse the contribution (per-source unit/spelling/value evidence). */
+export interface FieldContribution {
+  fieldId: string;
+  path: string;
+  kind: string;
+  unit?: string;
+  /** Original spelling this source used. */
+  spelling?: string;
+  /** Categorical value (string/boolean fields only) — original spelling. */
+  value?: string;
+}
+
+/** The contribution set of one stable source record — the reversal record
+ *  that makes re-saves idempotent and deletions reversible. Contributions
+ *  are attributed to their owning row id, so streaming appends, finalize
+ *  replacement, and cascade deletes reverse exactly the affected rows. */
+export interface FieldSourceRecord {
+  /** `${entityKind}:${recordId}` — e.g. `result:r1`, `note:n1`. */
+  id: string;
+  contributions: Array<FieldContribution & { rowId: string }>;
+}
+
+/** One observed categorical value of a field (string/boolean only). */
+export interface FieldValueRecord {
+  key: [string, string]; // [fieldId, value] — value keeps original spelling
+  fieldId: string;
+  value: string;
+  sourceCount: number;
+}
+
+/** Backfill progress/completion marker (field_catalog_meta store). */
+export interface CatalogBackfillState {
+  id: 'backfill';
+  status: 'initializing' | 'complete';
+  /** Last processed source key per source store (resume cursor). */
+  cursor?: { results?: string; notes?: string };
+  revision: number;
+  updatedAt: number;
 }

@@ -113,6 +113,9 @@ export function wellnessEventsForNote(
     grain: 'summary' as const,
     origin: 'user' as const,
     outputType: 'wellness',
+    // Ticket 14: user-recorded summary-grain values are DIRECT observations
+    // — never fabricated coverage.
+    representationKind: 'direct' as const,
     metrics: [{
       type: entry.key,
       value: entry.value,

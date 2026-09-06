@@ -29,8 +29,25 @@ import {
     Attachment,
     UnifiedEventRecord,
     SegmentDataType,
+    CatalogBackfillState,
+    FieldCatalogEntry,
+    FieldSourceRecord,
+    FieldValueRecord,
 } from '../../types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import {
+    extractContributionsFromEventRows,
+    extractContributionsFromNote,
+    extractContributionsFromResult,
+    fieldSourceId,
+} from '../catalog/fieldCatalog';
+import {
+    removeRowSetContributionsTx,
+    removeRowContributionsTx,
+    removeSourceTx,
+    replaceRowContributionsTx,
+    runCatalogBackfill,
+} from './catalogStore';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
@@ -132,8 +149,11 @@ export interface WodWikiDB extends DBSchema {
      * V16 — THE single store for all workout data (unified event store).
      * Event rows (grain 'event') are appended per statement during a run;
      * summary rows (grain 'summary') are finalize-owned (engine-authored)
-     * or reconcile-owned (user-authored wellness). Six indexes per ticket
-     * 002/003 — `by-metric` deliberately absent (scan beats it, ticket 001).
+     * or reconcile-owned (user-authored wellness). `by-metric-date` (V17)
+     * is a multiEntry index over civil-date keys (d:YYYY-MM-DD) so a
+     * date-only metric's own date is candidate-complete — the complete-
+     * fetch strategy for per-Metric dates (deepening 07 §7): civil dates
+     * index separately from the instant index, never as midnight instants.
      */
     events: {
         key: string;
@@ -145,7 +165,35 @@ export interface WodWikiDB extends DBSchema {
             'by-effort': string;
             'by-outputType': string;
             'by-grain': string;
+            'by-metric-date': string;            // V17 — multiEntry civil-date keys
         };
+    };
+    /**
+     * V17 — Field Catalog (wayfinder datadog-analytics ticket 14). Derived
+     * index of saved data; disposable via explicit rebuild only — never a
+     * per-query fallback. Reference counts track supporting source records
+     * and prune at zero.
+     */
+    field_catalog: {
+        key: string; // typed field identity (fieldRefKey)
+        value: FieldCatalogEntry;
+        indexes: { 'by-path': string }; // ordered normalized-path prefix lookup (typeahead)
+    };
+    field_sources: {
+        key: string; // `${entityKind}:${recordId}` — the reversal record
+        value: FieldSourceRecord;
+        indexes: {};
+    };
+    field_values: {
+        key: [string, string]; // [fieldId, categorical value]
+        value: FieldValueRecord;
+        indexes: { 'by-field': string };
+    };
+    /** V17 — backfill progress/completion marker (single 'backfill' record). */
+    field_catalog_meta: {
+        key: string;
+        value: CatalogBackfillState;
+        indexes: {};
     };
     efforts: {
         key: string;
@@ -162,7 +210,7 @@ export interface WodWikiDB extends DBSchema {
         };
     };
 }
-const DB_VERSION = 16; // V16 — unified event store: +events, −analytics, re-derive from logs (tickets 002–004)
+const DB_VERSION = 17; // V17 — field catalog stores + events.by-metric-date (wayfinder datadog-analytics ticket 14)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -879,6 +927,33 @@ export class IndexedDBService {
                     store.createIndex('by-outputType', 'outputType');
                     store.createIndex('by-grain', 'grain');
                 }
+                {
+                    // V17 — by-metric-date: multiEntry over civil-date keys
+                    // (d:YYYY-MM-DD). Complete-fetch strategy for per-Metric
+                    // dates (deepening 07 §7): civil dates index separately
+                    // from the timestamp instant index — never midnight
+                    // instants masquerading as dates.
+                    const events = tx.objectStore('events');
+                    if (!events.indexNames.contains('by-metric-date')) {
+                        events.createIndex('by-metric-date', 'metricDateKeys', { multiEntry: true });
+                    }
+                }
+
+                // ---- Field Catalog (V17 — wayfinder ticket 14) ----
+                if (!db.objectStoreNames.contains('field_catalog')) {
+                    const store = db.createObjectStore('field_catalog', { keyPath: 'id' });
+                    store.createIndex('by-path', 'path');
+                }
+                if (!db.objectStoreNames.contains('field_sources')) {
+                    db.createObjectStore('field_sources', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('field_values')) {
+                    const store = db.createObjectStore('field_values', { keyPath: 'key' });
+                    store.createIndex('by-field', 'fieldId');
+                }
+                if (!db.objectStoreNames.contains('field_catalog_meta')) {
+                    db.createObjectStore('field_catalog_meta', { keyPath: 'id' });
+                }
 
                 // ---- Efforts ----
                 if (!db.objectStoreNames.contains('efforts')) {
@@ -1049,6 +1124,19 @@ export class IndexedDBService {
     }
 
     /**
+     * Ticket 14 — resumable field-catalog backfill. Runs after open, outside
+     * the versionchange upgrade (an interrupted versionchange is never a
+     * committed halfway upgrade); the persisted marker distinguishes an
+     * initializing catalog from a genuinely empty one. Idempotent: skips a
+     * completed backfill, and per-source field_sources re-checks inside each
+     * batch keep concurrent live saves from double-counting.
+     */
+    async ensureFieldCatalogBackfill(): Promise<void> {
+        const db = await this.dbPromise;
+        await runCatalogBackfill(db);
+    }
+
+    /**
      * Close the underlying connection. Must run before {@link wipe}: an open
      * connection blocks `indexedDB.deleteDatabase` (it fires `blocked` and
      * never completes until every connection closes). Safe to call when the
@@ -1108,8 +1196,19 @@ export class IndexedDBService {
         return (await this.dbPromise).getAll('notes');
     }
 
+    /** Save a note; ticket 14 — frontmatter scalar fields join the catalog
+     *  atomically with the note write. */
     async saveNote(note: Note): Promise<string> {
-        return (await this.dbPromise).put('notes', note);
+        const db = await this.dbPromise;
+        const tx = db.transaction(['notes', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
+        const now = Date.now();
+        tx.objectStore('notes').put(note);
+        const contributions = extractContributionsFromNote(note);
+        for (const c of contributions) {
+            await replaceRowContributionsTx(tx, 'note', note.id, c.rowId, [c], now);
+        }
+        await tx.done;
+        return note.id;
     }
 
     // ======================================================================
@@ -1202,14 +1301,25 @@ export class IndexedDBService {
     async countEvents(): Promise<number> {
         return (await this.dbPromise).count('events');
     }
-
-    /** Append event rows (per-statement flush; wellness reconcile upserts). */
+    /**
+     * Append event rows (per-statement flush; wellness reconcile upserts).
+     * Ticket 14: catalog reference deltas commit in the same transaction —
+     * a replaced row (wellness upsert) removes its previous row-scoped
+     * contributions before the new ones land.
+     */
     async appendEvents(rows: UnifiedEventRecord[]): Promise<void> {
         if (rows.length === 0) return;
         const db = await this.dbPromise;
-        const tx = db.transaction('events', 'readwrite');
+        const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
+        const now = Date.now();
+        const events = tx.objectStore('events');
         for (const row of rows) {
-            await tx.store.put(row);
+            const existing = await events.get(row.id);
+            if (existing) {
+                await removeRowContributionsTx(tx, 'result', row.resultId, row.id);
+            }
+            await events.put(row);
+            await replaceRowContributionsTx(tx, 'result', row.resultId, row.id, extractContributionsFromEventRows([row]), now);
         }
         await tx.done;
     }
@@ -1219,43 +1329,59 @@ export class IndexedDBService {
      * summaries and write the finals in one transaction. User-authored rows
      * (origin 'user' — wellness) are reconcile-owned and survive; matches the
      * engine's inMemoryEventStore semantics. Deterministic summary ids make
-     * re-finalize idempotent.
+     * re-finalize idempotent. Ticket 14: the replaced summaries' catalog
+     * contributions are reversed in the same transaction — stale coverage
+     * never survives beside its replacement.
      */
     async finalizeSummaries(resultId: string, rows: UnifiedEventRecord[]): Promise<void> {
         const db = await this.dbPromise;
-        const tx = db.transaction('events', 'readwrite');
-        const index = tx.store.index('by-result-grain');
+        const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
+        const now = Date.now();
+        const events = tx.objectStore('events');
+        const index = events.index('by-result-grain');
         for await (const cursor of index.iterate(IDBKeyRange.only([resultId, 'summary']))) {
             if (cursor.value.origin !== 'user') {
+                await removeRowContributionsTx(tx, 'result', resultId, cursor.value.id);
                 await cursor.delete();
             }
         }
         for (const row of rows) {
-            await tx.store.put(row);
+            await replaceRowContributionsTx(tx, 'result', resultId, row.id, extractContributionsFromEventRows([row]), now);
+            await events.put(row);
         }
         await tx.done;
     }
 
-    /** Reconcile deletes (wellness note-save) + GC sweeps. */
+    /** Reconcile deletes (wellness note-save) + GC sweeps. Ticket 14:
+     *  deleted rows' catalog contributions are reversed in the same tx. */
     async deleteEvents(ids: string[]): Promise<void> {
         if (ids.length === 0) return;
         const db = await this.dbPromise;
-        const tx = db.transaction('events', 'readwrite');
+        const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
+        const events = tx.objectStore('events');
         for (const id of ids) {
-            await tx.store.delete(id);
+            const row = await events.get(id);
+            if (row) {
+                await removeRowContributionsTx(tx, 'result', row.resultId, row.id);
+            }
+            await events.delete(id);
         }
         await tx.done;
     }
 
-    /** Delete every event row of one result (note-delete cascade). */
+    /** Delete every event row of one result (note-delete cascade). Ticket
+     *  14: the whole source's catalog support is removed in the same tx. */
     private async deleteEventsForResultTx(
         tx: IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'readwrite'>,
         resultId: string,
     ): Promise<void> {
         const index = tx.objectStore('events').index('by-result-grain');
+        const rowIds: string[] = [];
         for await (const cursor of index.iterate(IDBKeyRange.bound([resultId, ''], [resultId, []]))) {
+            rowIds.push(cursor.value.id);
             await cursor.delete();
         }
+        await removeSourceTx(tx, 'result', resultId, rowIds);
     }
 
     /**
@@ -1364,10 +1490,13 @@ export class IndexedDBService {
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(
-            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags'],
+            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values'],
             'readwrite',
         );
 
+        // Ticket 14 — the note's own frontmatter contributions reverse with
+        // the note (same transaction).
+        await removeSourceTx(tx, 'note', id, []);
         await tx.objectStore('notes').delete(id);
 
         // V11 — drop the note's tag links (shared tags themselves stay).
@@ -1555,8 +1684,28 @@ export class IndexedDBService {
     // Results
     // ======================================================================
 
+    /** Save a result; ticket 14 — the result's catalog contribution set is
+     *  replaced in the same transaction (identical re-save = empty delta). */
     async saveResult(result: WorkoutResult): Promise<string> {
-        return (await this.dbPromise).put('results', result);
+        const db = await this.dbPromise;
+        const tx = db.transaction(['results', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
+        const now = Date.now();
+        const rowIds: string[] = [];
+        tx.objectStore('results').put(result);
+        const contributions = extractContributionsFromResult(result);
+        for (const c of contributions) {
+            rowIds.push(c.rowId);
+            await replaceRowContributionsTx(tx, 'result', result.id, c.rowId, [c], now);
+        }
+        // Log statements removed by this save reverse their contributions.
+        const record = await tx.objectStore('field_sources').get(fieldSourceId('result', result.id));
+        if (record) {
+            const stale = record.contributions.filter((c) => !rowIds.includes(c.rowId));
+            const seen = new Set(stale.map((c) => c.rowId));
+            await removeRowSetContributionsTx(tx, 'result', result.id, [...seen]);
+        }
+        await tx.done;
+        return result.id;
     }
 
     async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
