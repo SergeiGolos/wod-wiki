@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { normalizeFieldPath } from '@bitcobblers/wod-wiki-core';
+import {
+  resolveCanonicalMetricKey,
+} from '../src/derivation';
 import {
   WQL_AGGREGATORS,
   WQL_CALC_TARGETS,
@@ -59,5 +63,35 @@ describe('WQL Vocabulary Alignment', () => {
 describe('grain vocabulary — unified pair (ticket 003)', () => {
   it('offers exactly summary | event; rollup is retired', () => {
     expect([...WQL_GRAINS]).toEqual(['summary', 'event']);
+  });
+});
+
+describe('discovered-identity sync (ticket 11)', () => {
+  it('vocabulary keys are stable under field-identity normalization', () => {
+    // Every canonical vocabulary key must BE a normalized field identity:
+    // discovered entries can never silently diverge from the dictionary.
+    const keys = [
+      ...WQL_METRIC_FAMILIES,
+      ...WQL_METRIC_AGGREGATES,
+      ...WQL_TAG_KEYS,
+      ...WQL_VIRTUAL_DIMS,
+      ...WQL_CALC_TARGETS,
+    ];
+    for (const key of keys) {
+      expect(normalizeFieldPath(key), `${key} must be identity-normalized`).toBe(key);
+    }
+  });
+
+  it('label-derived canonical keys and field-identity normalization agree', () => {
+    // The legacy label fallback and the typed-identity normalizer produce
+    // the same key for the same words — one identity space, no drift.
+    for (const [label, key] of [
+      ['Total Volume', 'totalVolume'],
+      ['Heart Rate', 'heartRate'],
+      ['sleep score', 'sleepScore'],
+    ] as const) {
+      expect(resolveCanonicalMetricKey(label)).toBe(key);
+      expect(normalizeFieldPath(label)).toBe(key);
+    }
   });
 });

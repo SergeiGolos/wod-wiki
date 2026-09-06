@@ -4,7 +4,9 @@
 
 import {
   MetricType,
+  fieldRefKey,
   type AnalyticsDataPoint,
+  type FieldRef,
   type ResultOrigin,
   type StoredOutputStatement,
   type UnifiedEventRecord,
@@ -68,6 +70,19 @@ function metadataString(metadata: Record<string, unknown> | undefined, key: stri
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/**
+ * Read the typed field reference off a metric's metadata (ticket 11) —
+ * `{ path, kind, dimension? }` stamped by PropertyMetric at authoring.
+ * Defensive shape check: legacy logs predate the stamp.
+ */
+function readFieldRef(metadata: Record<string, unknown> | undefined): FieldRef | undefined {
+  const ref = metadata?.fieldRef;
+  if (!ref || typeof ref !== 'object') return undefined;
+  const { path, kind, dimension } = ref as Record<string, unknown>;
+  if (typeof path !== 'string' || path.length === 0 || typeof kind !== 'string') return undefined;
+  return { path, kind: kind as FieldRef['kind'], ...(typeof dimension === 'string' ? { dimension } : {}) };
+}
+
 /** Group-tag pairs from grouped composed-calc emission, key-sorted. */
 function readGroupTags(metadata: Record<string, unknown> | undefined): Record<string, string> | undefined {
   const tags = metadata?.groupTags;
@@ -107,9 +122,14 @@ function foldSummaryOutputs(logs: readonly SummaryFactSourceOutput[]): Map<strin
 
     const projectionName = String(label.value ?? label.image ?? '');
     if (!projectionName) continue;
-    // Composed calcs carry their Canonical Metric Key explicitly (#878);
+    // Key resolution order (ticket 11): explicitly-stamped canonicalKey
+    // (calc seeds, wellness) keeps working unchanged; the typed field
+    // reference (PropertyMetric fieldRef) is the normalized custom identity;
     // legacy projections fall back to name-derived keys during cutover.
-    const metricKey = metadataString(value.metadata, 'canonicalKey') ?? resolveCanonicalMetricKey(projectionName);
+    const fieldRef = readFieldRef(value.metadata);
+    const metricKey = metadataString(value.metadata, 'canonicalKey')
+      ?? fieldRef?.path
+      ?? resolveCanonicalMetricKey(projectionName);
 
     const effortSlug = metadataString(value.metadata, 'effortSlug');
     const discipline = metadataString(value.metadata, 'effortDiscipline');
@@ -119,9 +139,14 @@ function foldSummaryOutputs(logs: readonly SummaryFactSourceOutput[]): Map<strin
     // Grouped dims auto-tag; legacy per-effort projections tag `effort`
     // from their effortSlug metadata.
     const groupTags = readGroupTags(value.metadata) ?? (effortSlug ? { effort: effortSlug } : undefined);
-    const rowKey = groupTags
-      ? `${metricKey}:${Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':')}`
-      : metricKey;
+    // Fold identity (ticket 11): typed variants fold under the full typed
+    // key — path + kind + dimension — so two variants of one path never
+    // fold together. Legacy rows keep the metricKey[:k=v…] shape.
+    const rowKey = fieldRef
+      ? `${fieldRefKey(fieldRef)}${groupTags ? ':' + Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':') : ''}`
+      : groupTags
+        ? `${metricKey}:${Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':')}`
+        : metricKey;
 
     folded.set(rowKey, {
       projectionName, metricKey, value: value.value as number, unit: value.unit,
@@ -270,7 +295,12 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   if (record.grain === 'summary') {
     const m = metrics[0];
     if (!m || typeof m.value !== 'number') return [];
-    const metricKey = metadataString(m.metadata, 'canonicalKey') ?? (m.type ?? '');
+    // Ticket 11: canonicalKey (calc/wellness stamps) first, then the typed
+    // field reference; legacy unkeyed summaries keep their type key.
+    const fieldRef = readFieldRef(m.metadata);
+    const metricKey = metadataString(m.metadata, 'canonicalKey')
+      ?? fieldRef?.path
+      ?? (m.type ?? '');
     return [{
       id: `${record.id}:0`,
       noteId: record.noteId,
@@ -307,8 +337,22 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   const facts: AnalyticsDataPoint[] = [];
   metrics.forEach((m) => {
     if (m.type === MetricType.Label || m.type === 'label' || typeof m.value !== 'number') return;
+    // Ticket 11 key resolution: explicitly-stamped canonicalKey first, then
+    // the typed field reference — PropertyMetric variants survive under
+    // their normalized path instead of collapsing into a pooled `custom`.
+    // Legacy fallbacks for unlabeled legacy data only (pre-fieldRef logs):
+    // label-derived key, `reps` for rep metrics, or the metric's own type.
+    // A Custom-typed metric with no identity source no longer invents the
+    // pooled `custom` key (finding 3.1) — it has no queryable identity, so
+    // it projects no fact.
+    const fieldRef = readFieldRef(m.metadata);
+    const legacyFallback = m.type === MetricType.Rep || m.type === 'rep'
+      ? 'reps'
+      : (m.type ?? 'metric');
+    if (!fieldRef && legacyFallback === 'custom') return;
     const metricKey = metadataString(m.metadata, 'canonicalKey')
-      ?? (labelName ? resolveCanonicalMetricKey(labelName) : (m.type === MetricType.Rep || m.type === 'rep' ? 'reps' : (m.type ?? 'metric')));
+      ?? fieldRef?.path
+      ?? (labelName ? resolveCanonicalMetricKey(labelName) : legacyFallback);
     const ordinal = facts.length;
     facts.push({
       id: `${record.id}:${ordinal}`,

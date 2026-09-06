@@ -7,6 +7,7 @@
 
 export * from './contracts';
 export * from './ownership';
+export * from './fields/fieldIdentity';
 export * from './models';
 export * from './types';
 export * from './version';
