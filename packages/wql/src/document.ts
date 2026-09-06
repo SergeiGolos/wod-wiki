@@ -17,7 +17,7 @@
  * allowed; cycles are a document-level diagnostic.
  */
 
-import { parseQuery, isAggregateQuery, type ParsedAggregateQuery, type QueryWindow } from './wql';
+import { parseQuery, type AnyParsedQuery, type QueryWindow } from './wql';
 
 export interface DocumentDefaults {
     groupBy?: string[];
@@ -37,9 +37,9 @@ export interface DocumentFormula {
 export interface DocumentAssignment {
     name: string;
     kind: 'query' | 'formula';
-    /** For kind 'query' — the parsed aggregate query (defaults merged at run). */
+    /** For kind 'query' — the parsed query of any family (defaults merged at run). */
     queryText?: string;
-    parsed?: ParsedAggregateQuery;
+    parsed?: AnyParsedQuery;
     formula?: DocumentFormula;
     raw: string;
 }
@@ -132,10 +132,10 @@ export function parseDocument(text: string): ParsedDocument {
 
             if (looksLikeQuery) {
                 const parsed = parseQuery(expression);
-                if (isAggregateQuery(parsed) && !parsed.error) {
+                if (!parsed.error) {
                     assignments.push({ name, kind: 'query', queryText: expression, parsed, raw: line });
                 } else {
-                    diagnostics.push(`Assignment "${name}" is not a valid aggregate query`);
+                    diagnostics.push(`Assignment "${name}" is not a valid query`);
                 }
                 continue;
             }
@@ -166,7 +166,8 @@ export function parseDocument(text: string): ParsedDocument {
     }
     if (!hasDefaults && show === undefined && assignments.length === 0) {
         const parsed = parseQuery(lines.join(' '));
-        if (isAggregateQuery(parsed) && !parsed.error) {
+        // Ticket 19: any family (aggregate / rows / find) runs degenerately.
+        if (!parsed.error) {
             known.add('query');
             assignments.push({ name: 'query', kind: 'query', queryText: lines.join(' '), parsed, raw: lines.join(' ') });
             show = ['query'];

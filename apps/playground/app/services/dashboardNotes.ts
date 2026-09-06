@@ -1,7 +1,7 @@
 /**
  * dashboardNotes — creation flow for dashboard notes (#907, format locked in
  * #899). A new dashboard is a plain vault note (`type: 'note'`, no journal
- * date) carrying the scaffold from src/lib/dashboard/scaffold; creation marks
+ * date) carrying the scaffold from packages/wql/src/dashboard/scaffold (canonical, ticket 19); creation marks
  * it active and clears `dashboard.active` from every other dashboard note so
  * the route's discovery (active wins, else first) always lands on the new one.
  */
@@ -10,7 +10,7 @@ import type { INotePersistence } from '@/services/persistence';
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
 import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
-import { buildDashboardScaffold, DEFAULT_DASHBOARD_TITLE } from '@/lib/dashboard/scaffold';
+import { buildDashboardScaffold, DEFAULT_DASHBOARD_TITLE } from '@bitcobblers/wod-wiki-wql';
 
 import { journalNotes, type JournalNotes } from './journalNotes';
 

@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 
-import { buildDashboardScaffold } from './scaffold';
-import { parseFrontmatter } from '@/lib/frontmatter';
-import { parseDashboardNote } from './parser';
-import { buildDashboardDocument } from './model';
+import { buildDashboardScaffold } from '../src/dashboard/scaffold';
+import { parseFrontmatter } from '../src/dashboard/frontmatter';
+import { parseDashboardNote } from '../src/dashboard/parser';
+import { buildDashboardDocument } from '../src/dashboard/model';
 
 describe('buildDashboardScaffold', () => {
   it('produces a dashboard note (dashboard: true) marked active', () => {

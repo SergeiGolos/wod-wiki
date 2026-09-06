@@ -31,14 +31,14 @@ import { useAnalyticsRange } from '../../hooks/useAnalyticsRange';
 import { journalNotes } from '../../services/journalNotes';
 import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
-import { parseDashboardNote } from '@/lib/dashboard/parser';
+import { parseDashboardNote } from '@bitcobblers/wod-wiki-wql';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import {
   buildDashboardDocument,
   defaultTokenValues,
   setDashboardTokenValue,
   type DashboardWidget as ModelWidget,
-} from '@/lib/dashboard/model';
+} from '@bitcobblers/wod-wiki-wql';
 import {
   appendWidget,
   duplicateWidget,
@@ -46,7 +46,7 @@ import {
   removeWidget,
   resizeWidget,
   updateWidget,
-} from '@/lib/dashboard/noteOps';
+} from '@bitcobblers/wod-wiki-wql';
 import { useDashboardSource } from '../../hooks/useDashboards';
 import { ResponsiveActions } from '../../nav/ResponsiveActions';
 import { StickyPageHeader } from '@/panels/page-shells';

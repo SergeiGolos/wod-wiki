@@ -10,8 +10,8 @@ import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseFrontmatter } from '@/lib/frontmatter';
-import { parseDashboardNote } from '@/lib/dashboard/parser';
-import { buildDashboardDocument, isDashboardWidgetType, resolveWidgetType } from '@/lib/dashboard/model';
+import { parseDashboardNote } from '@bitcobblers/wod-wiki-wql';
+import { buildDashboardDocument, isDashboardWidgetType, resolveWidgetType } from '@bitcobblers/wod-wiki-wql';
 
 const SEEDS_DIR = join(import.meta.dir, '../../../../markdown/dashboards');
 const seedFiles = readdirSync(SEEDS_DIR).filter((f) => f.endsWith('.md'));

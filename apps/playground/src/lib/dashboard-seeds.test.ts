@@ -9,13 +9,13 @@ import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import { parseFrontmatter } from '@/lib/frontmatter';
 
-import { parseDashboardNote } from './parser';
-import { buildDashboardDocument, isDashboardWidgetType, resolveWidgetType, splitWidgetBody } from './model';
+import { parseDashboardNote } from '@bitcobblers/wod-wiki-wql';
+import { buildDashboardDocument, isDashboardWidgetType, resolveWidgetType, splitWidgetBody } from '@bitcobblers/wod-wiki-wql';
 
-const SEEDS_DIR = join(import.meta.dir, '../../../../../markdown/dashboards');
+const SEEDS_DIR = join(import.meta.dir, '../../../../markdown/dashboards');
 const seedFiles = readdirSync(SEEDS_DIR).filter((f) => f.endsWith('.md'));
 
 describe('Dashboard Catalog seeds', () => {

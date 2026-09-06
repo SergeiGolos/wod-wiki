@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 
-import { buildDashboardDocument } from './model';
-import { parseDashboardNote } from './parser';
+import { buildDashboardDocument } from '../src/dashboard/model';
+import { parseDashboardNote } from '../src/dashboard/parser';
 import {
   appendWidget,
   duplicateWidget,
@@ -12,7 +12,7 @@ import {
   widgetBodyLine,
   widgetFenceTag,
   type WidgetSpec,
-} from './noteOps';
+} from '../src/dashboard/noteOps';
 
 const RAW = `---
 dashboard: true

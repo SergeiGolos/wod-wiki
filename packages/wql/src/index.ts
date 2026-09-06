@@ -33,6 +33,13 @@ export * from './catalog';
 // 6d. Query documents + runner (ticket 17)
 export * from './document';
 export * from './documentRunner';
+export {
+  QueryDocumentRunner as SharedQueryDocumentRunner,
+  substituteTokens as substituteTokensRaw,
+  consumesRollupFacts,
+  type QueryDocumentRunnerHost,
+  type SharedRunnerOptions,
+} from './queryDocumentRunner';
 
 // 7. Derivation & Static projections
 export * from './derivation';

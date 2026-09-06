@@ -140,7 +140,9 @@ export function createBuiltinFormulaEvaluator(): FormulaEvaluator {
 /** One ordered `show` output — widget-independent (ticket 19 consumes). */
 export interface DocumentOutput {
     name: string;
-    kind: 'aggregate' | 'formula';
+    kind: 'aggregate' | 'formula' | 'rows' | 'find';
+    /** Ticket 19 — TabularResult for cross-workout rows outputs. */
+    table?: import('./QueryService').TabularResult;
     unit?: string;
     groupBy?: string[];
     window?: QueryWindow;
@@ -162,6 +164,10 @@ export interface QueryDocumentRunnerOptions {
     /** Host default window — used only when the document has none. */
     rangeStart?: number;
     rangeEnd?: number;
+    /** Ticket 19 family dispatch: rows queries surface TabularResult. */
+    runRows?: (queryText: string) => Promise<{ table?: unknown; runs?: unknown[]; error?: string }>;
+    /** Ticket 19 family dispatch: find queries surface FindQueryResult. */
+    runFind?: (queryText: string) => Promise<{ notes?: unknown[]; blocks?: unknown[]; error?: string }>;
 }
 
 export class QueryDocumentRunner {
@@ -175,8 +181,10 @@ export class QueryDocumentRunner {
         }>,
         options: QueryDocumentRunnerOptions = {},
     ) {
+        this.options = options;
         this.evaluator = options.formulaEvaluator ?? createBuiltinFormulaEvaluator();
     }
+    private readonly options: QueryDocumentRunnerOptions;
 
     /** Parse → validate → evaluate in reference order → ordered outputs. */
     async run(text: string): Promise<DocumentResult> {
@@ -190,6 +198,28 @@ export class QueryDocumentRunner {
         const evaluate = async (assignment: DocumentAssignment): Promise<void> => {
             if (assignment.kind === 'query') {
                 const merged = this.mergeDefaults(assignment, doc);
+                // Ticket 19 family dispatch: rows/find never aggregate.
+                const parsedFamily = assignment.parsed?.family;
+                if (parsedFamily === 'rows') {
+                    const rowsRun = await this.options?.runRows?.(merged.queryText);
+                    const output: DocumentOutput = {
+                        name: assignment.name,
+                        kind: 'rows',
+                        ...(rowsRun?.table ? { table: rowsRun.table as DocumentOutput['table'] } : {}),
+                        ...(rowsRun?.error ? { error: rowsRun.error } : {}),
+                    };
+                    outputs.push(output);
+                    return;
+                }
+                if (parsedFamily === 'find') {
+                    const findRun = await this.options?.runFind?.(merged.queryText);
+                    outputs.push({
+                        name: assignment.name,
+                        kind: 'find',
+                        ...(findRun?.error ? { error: findRun.error } : {}),
+                    });
+                    return;
+                }
                 const run = await this.runAggregate(merged.queryText, {
                     groupBy: merged.groupBy,
                     window: merged.window,
@@ -343,7 +373,8 @@ export class QueryDocumentRunner {
         doc: QueryDocument,
     ): { queryText: string; groupBy?: string[]; window?: QueryWindow } {
         const parsed = assignment.parsed;
-        const groupBy = parsed?.groupBy?.length ? parsed.groupBy : doc.defaults?.groupBy;
+        const aggregateGroupBy = parsed?.family === 'aggregate' ? parsed.groupBy : undefined;
+        const groupBy = aggregateGroupBy?.length ? aggregateGroupBy : doc.defaults?.groupBy;
         const window = parsed?.window ?? doc.defaults?.window;
         return {
             queryText: assignment.queryText ?? '',

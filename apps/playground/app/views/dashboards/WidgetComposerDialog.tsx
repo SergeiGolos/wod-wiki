@@ -31,7 +31,7 @@ import {
   DASHBOARD_WIDGET_TYPES,
   substituteTokens,
   unknownTokensMessage,
-} from '@/lib/dashboard/model';
+} from '@bitcobblers/wod-wiki-wql';
 
 export interface WidgetComposerApply {
   title?: string;

@@ -3,7 +3,7 @@
  * frontmatter tokens, $token substitution, widget-body param split, and the
  * section → document builder with markdown title/question association.
  */
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import {
   buildDashboardDocument,
   defaultTokenValues,
@@ -17,7 +17,7 @@ import {
   splitWidgetBody,
   substituteTokens,
   type DashboardSectionInput,
-} from './model';
+} from '../src/dashboard/model';
 
 describe('parseQueryWidgetSuffix', () => {
   it('parses a bare type', () => {
