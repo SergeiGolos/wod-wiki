@@ -43,11 +43,24 @@ function civilParts(iso: string): { y: number; m: number; d: number } {
   return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) };
 }
 
+// Formatter cache (ticket 20): constructing Intl.DateTimeFormat dominates
+// civil-date formatting cost — one formatter per (locale, options) key.
+const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function dateFormatter(timeZone: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${timeZone}|${JSON.stringify(options)}`;
+  let formatter = dateFormatterCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', { timeZone, ...options });
+    dateFormatterCache.set(key, formatter);
+  }
+  return formatter;
+}
+
 /** Civil YYYY-MM-DD of `instant` interpreted in `timeZone` — the calendar
  *  the athlete lives in, not UTC. */
 export function civilDateOf(instant: number, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
+  const parts = dateFormatter(timeZone, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

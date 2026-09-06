@@ -563,16 +563,31 @@ export class QueryService {
       segments.push(row);
     }
 
-    // Tag/metadata filters over the segment's projected tags.
+    // Tag/metadata filters read the segment's promoted fields directly —
+    // no per-row fact allocation on the hot path (ticket 20 budgets).
     const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
     const eligible = segments.filter((row) => {
-      const fact = projectEventToFacts(row)[0];
-      if (!fact && parsed.filters.length > 0) return false;
-      if (!fact) return true;
+      if (parsed.filters.length === 0) return true;
+      const fact = (projectEventToFacts(row)[0] ?? {
+        id: row.id, resultId: row.resultId, noteId: row.noteId, segmentId: '', segmentVersion: 0,
+        type: '', value: null, label: '', timestamp: row.timestamp, createdAt: row.timestamp,
+        effortSlug: row.effortSlug,
+      }) as AnalyticsDataPoint;
       return matchesFilters(fact, parsed.filters, noteTags);
     });
 
     const totalCount = eligible.length;
+    // Civil-date memo: one formatToParts per distinct instant per run.
+    const civilDateCache = new Map<number, string>();
+    const dateOf = (row: UnifiedEventRecord): string => {
+      const temporal = row.metricTemporal?.[0];
+      if (temporal?.temporalKind === 'civil-date' && temporal.civilDate) return temporal.civilDate;
+      const cached = civilDateCache.get(row.timestamp);
+      if (cached) return cached;
+      const computed = civilDateOf(row.timestamp, ctx.timeZone);
+      civilDateCache.set(row.timestamp, computed);
+      return computed;
+    };
 
     // Default columns when no | select: date, effort, discipline, + numeric metrics.
     const unitByMetric = new Map<string, string>();
@@ -610,7 +625,7 @@ export class QueryService {
       for (const col of selectCols) {
         const type = typeOf.get(col);
         if (type === 'date') {
-          record.date = row.metricTemporal?.[0]?.civilDate ?? civilDateOf(row.timestamp, ctx.timeZone);
+          record.date = dateOf(row);
         } else if (col === 'effort') {
           record.effort = row.effortSlug;
         } else if (col === 'discipline') {
