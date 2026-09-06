@@ -2,7 +2,7 @@
 
 Labels: wayfinder:map
 Status: open
-
+Running: loop
 ## Destination
 
 An implementation-ready specification and dependency-ordered implementation tickets for a general-purpose WQL analytics engine: workout trends, custom-property analysis, relationships between metrics, and cross-workout tables, with consistent behavior in dashboards and embedded note queries. Reaching the destination leaves no unresolved design decisions needed to implement the agreed scope; production implementation is not part of this map.
