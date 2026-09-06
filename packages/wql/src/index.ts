@@ -27,6 +27,9 @@ export * from './units';
 // 6b. Calendar — civil time arithmetic over execution contexts (ticket 12)
 export * from './calendar';
 
+// 6c. Field catalog consumer interface (ticket 15)
+export * from './catalog';
+
 // 7. Derivation & Static projections
 export * from './derivation';
 export * from './static';

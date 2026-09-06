@@ -1123,6 +1123,19 @@ export class IndexedDBService {
         return this.dbPromise;
     }
 
+    private readonly catalogListeners = new Set<() => void>();
+
+    /** Ticket 15 — post-commit signal for catalog consumers (typeahead
+     *  providers observe this so new fields appear without reload). */
+    onCatalogChanged(listener: () => void): () => void {
+        this.catalogListeners.add(listener);
+        return () => this.catalogListeners.delete(listener);
+    }
+
+    private signalCatalogChanged(): void {
+        for (const listener of this.catalogListeners) listener();
+    }
+
     /**
      * Ticket 14 — resumable field-catalog backfill. Runs after open, outside
      * the versionchange upgrade (an interrupted versionchange is never a
@@ -1134,6 +1147,7 @@ export class IndexedDBService {
     async ensureFieldCatalogBackfill(): Promise<void> {
         const db = await this.dbPromise;
         await runCatalogBackfill(db);
+        this.signalCatalogChanged();
     }
 
     /**
@@ -1208,6 +1222,7 @@ export class IndexedDBService {
             await replaceRowContributionsTx(tx, 'note', note.id, c.rowId, [c], now);
         }
         await tx.done;
+        this.signalCatalogChanged();
         return note.id;
     }
 
@@ -1350,6 +1365,7 @@ export class IndexedDBService {
             await events.put(row);
         }
         await tx.done;
+        this.signalCatalogChanged();
     }
 
     /** Reconcile deletes (wellness note-save) + GC sweeps. Ticket 14:
@@ -1367,6 +1383,7 @@ export class IndexedDBService {
             await events.delete(id);
         }
         await tx.done;
+        this.signalCatalogChanged();
     }
 
     /** Delete every event row of one result (note-delete cascade). Ticket
@@ -1705,6 +1722,7 @@ export class IndexedDBService {
             await removeRowSetContributionsTx(tx, 'result', result.id, [...seen]);
         }
         await tx.done;
+        this.signalCatalogChanged();
         return result.id;
     }
 
