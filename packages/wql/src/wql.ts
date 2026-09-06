@@ -139,7 +139,14 @@ export function isAggregateQuery(parsed: AnyParsedQuery): parsed is ParsedAggreg
   return parsed.family === 'aggregate';
 }
 
-export interface SeriesPoint { ts: number; value: number }
+export interface SeriesPoint {
+  ts: number;
+  value: number;
+  /** True for a structurally present bucket with no recorded observations
+   *  (ticket 12 calendar domain generation) — display zero-fill, never an
+   *  observation. */
+  missing?: boolean;
+}
 
 /**
  * Result of parsing a rows query (`rows:{filters}` / `rows:segment{filters}`) —

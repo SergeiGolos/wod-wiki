@@ -187,7 +187,9 @@ export function normalizeSummaryFacts(
     ...(f.discipline ? { discipline: f.discipline } : {}),
     ...(f.intensityTier ? { intensityTier: f.intensityTier } : {}),
     ...(f.grade ? { grade: f.grade } : {}),
-    timestamp: identity.workoutTimestamp ?? f.started ?? now,
+    // Ticket 12: own coverage start first — the workout timestamp is the
+    // fallback anchor, never a relocation of the represented observations.
+    timestamp: f.started ?? identity.workoutTimestamp ?? now,
     createdAt: now,
   }));
 }
@@ -209,8 +211,13 @@ function firstEffortSlug(metrics: StoredOutputStatement['metrics']): string | un
 
 /**
  * Logs → event rows, 1:1 per statement (ticket 002). Deterministic ids
- * `${resultId}:${seq}`; canonical workout time wins over the statement's own
- * timeSpan; query-critical scalars promoted top-level.
+ * `${resultId}:${seq}`; query-critical scalars promoted top-level.
+ *
+ * Ticket 12 temporal anchoring: the row timestamp is the statement's OWN
+ * timeSpan start when it has one — the workout-start timestamp never
+ * relocates a metric observation whose own instant differs. Statements with
+ * a timeSpan carry per-metric temporal anchors ('instant') so projection
+ * groups each observation under its own date.
  */
 export function toEventRows(
   logs: readonly StoredOutputStatement[],
@@ -223,13 +230,16 @@ export function toEventRows(
     blockContentId: identity.blockContentId,
     pageId: identity.pageId,
     origin: identity.origin,
-    timestamp: identity.workoutTimestamp ?? output.timeSpan?.started ?? Date.now(),
+    timestamp: output.timeSpan?.started ?? identity.workoutTimestamp ?? Date.now(),
     grain: 'event' as const,
     outputType: output.outputType ?? 'segment',
     effortSlug: firstEffortSlug(output.metrics),
     metrics: output.metrics,
     timeSpan: output.timeSpan?.started !== undefined
       ? { started: output.timeSpan.started, ended: output.timeSpan.ended }
+      : undefined,
+    metricTemporal: output.timeSpan?.started !== undefined
+      ? output.metrics.map(() => ({ temporalKind: 'instant' as const, instant: output.timeSpan!.started }))
       : undefined,
     sourceBlockKey: output.sourceBlockKey,
     stackLevel: output.stackLevel,
@@ -257,7 +267,12 @@ export function toSummaryEventRows(
     blockContentId: identity.blockContentId,
     pageId: identity.pageId,
     origin: identity.origin,
-    timestamp: identity.workoutTimestamp ?? f.started ?? now,
+    // Ticket 12: a summary's timestamp describes the temporal coverage of
+    // the observations it represents — its own coverage start wins; the
+    // workout timestamp is the fallback fetch anchor, never a relocation.
+    // The derivation clock is the degenerate last resort for rows with no
+    // evidence at all.
+    timestamp: f.started ?? identity.workoutTimestamp ?? now,
     grain: 'summary' as const,
     outputType: 'analytics',
     effortSlug: f.effortSlug,
@@ -301,6 +316,10 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
     const metricKey = metadataString(m.metadata, 'canonicalKey')
       ?? fieldRef?.path
       ?? (m.type ?? '');
+    // Ticket 12: a civil-date temporal anchor keeps its recorded civil date
+    // (never a fabricated midnight instant); instant facts group under the
+    // anchor instant's civil date in the execution timezone at query time.
+    const temporal = record.metricTemporal?.[0];
     return [{
       id: `${record.id}:0`,
       noteId: record.noteId,
@@ -318,6 +337,10 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       metricKey,
       metricLabel: metricKey,
       metricUnit: m.unit,
+      ...(fieldRef ? { fieldRef } : {}),
+      ...(temporal?.temporalKind === 'civil-date' && temporal.civilDate
+        ? { metricDate: temporal.civilDate, temporalKind: 'civil-date' as const }
+        : {}),
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? record.effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
@@ -354,6 +377,13 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       ?? fieldRef?.path
       ?? (labelName ? resolveCanonicalMetricKey(labelName) : legacyFallback);
     const ordinal = facts.length;
+    // Ticket 12: the fact carries its own temporal anchor — the metric's
+    // occurrence instant when the row has one, so a workout-start
+    // timestamp never relocates an observation whose own date differs.
+    const temporal = record.metricTemporal?.[ordinal];
+    const factTimestamp = temporal?.temporalKind === 'instant' && temporal.instant !== undefined
+      ? temporal.instant
+      : record.timestamp;
     facts.push({
       id: `${record.id}:${ordinal}`,
       noteId: record.noteId,
@@ -371,11 +401,15 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       metricKey,
       metricLabel: labelName || metricKey,
       metricUnit: m.unit,
+      ...(fieldRef ? { fieldRef } : {}),
+      ...(temporal?.temporalKind === 'civil-date' && temporal.civilDate
+        ? { metricDate: temporal.civilDate, temporalKind: 'civil-date' as const }
+        : {}),
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
       grade: metadataString(m.metadata, 'grade'),
-      timestamp: record.timestamp,
+      timestamp: factTimestamp,
       createdAt: record.timestamp,
     });
   });

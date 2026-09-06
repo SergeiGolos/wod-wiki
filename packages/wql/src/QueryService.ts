@@ -39,6 +39,18 @@ import {
 import { WQL_FIND_TARGETS } from './vocabulary';
 import { convert, resolveDisplayUnit } from './units';
 import { projectEventToFacts } from './derivation';
+import {
+  captureContext,
+  civilDateAdd,
+  civilDateDiff,
+  civilDateOf,
+  civilMonday,
+  inRange,
+  resolveWindowRange,
+  zonedNoon,
+  type ExecutionContext,
+  type ResolvedRange,
+} from './calendar';
 import type {
   UnifiedEventStore,
   NoteQueryStore,
@@ -62,13 +74,6 @@ const DAY = 86_400_000;
 /** Rows content planes (C4): targets that scope by content ownership rather
  *  than the outputType column — no statement narrowing for these. */
 const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(WQL_FIND_TARGETS);
-function localDateString(ts: number): string {
-  const d = new Date(ts);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
-
 /** Extract the catalog directory id from a Note or BlockIndexRow.
  *  Uses explicit `catalog` when present; falls back to parsing `sourceId`
  *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`. */
@@ -126,62 +131,26 @@ function applySourceFilter<T extends { sourceId?: string; type?: string }>(items
   return items;
 }
 
-/** Local midnight (instant) of a civil YYYY-MM-DD date — C1 range windows
- *  run on the athlete's calendar, not UTC midnights. */
-function civilMidnight(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y!, m! - 1, d!).getTime();
+/** Resolve the single execution context for a run: the caller's captured
+ *  context when provided (ticket 19's runner captures once per document),
+ *  else a fresh capture from `anchorNow`/now in the system timezone. */
+function runContext(options: { context?: ExecutionContext; anchorNow?: number }): ExecutionContext {
+  if (options.context) return options.context;
+  return captureContext(options.anchorNow);
 }
 
-/** Next civil day's local midnight (component math — Date overflow handles
- *  month/year rollover and DST days). */
-function nextCivilMidnight(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y!, m! - 1, d! + 1).getTime();
-}
-
-/** Resolve a parsed window to a [start, end] instant range — the single
- *  window→range mapping every execution path shares (C1). Relative windows
- *  cut off from `anchorNow ?? now`; range windows are inclusive civil days. */
-function windowRange(
-  w: QueryWindow | undefined,
-  anchorNow?: number,
-): { start: number; end: number } | undefined {
-  if (!w) return undefined;
-  if (w.kind === 'relative') {
-    return { start: (anchorNow ?? Date.now()) - w.size * (w.unit === 'w' ? 7 : 1) * DAY, end: Number.MAX_SAFE_INTEGER };
-  }
-  const start = civilMidnight(w.start);
-  // End-of-day by component math (next day's midnight − 1ms): +DAY−1 is
-  // off by an hour on 23h/25h DST days.
-  const end = w.end !== undefined ? nextCivilMidnight(w.end) - 1 : Number.MAX_SAFE_INTEGER;
-  return { start, end };
-}
-
-/** Time-window predicate for a row, given the parsed window (C1) and the
- *  optional explicit `range` option. The option overrides the window; when
- *  neither is set, the row passes. */
+/** Time-window predicate for a row (C1 + ticket 12): the query's own window
+ *  WINS over the explicit host `range` option — the host range supplies the
+ *  default only when the query has none. Resolution happens against the one
+ *  captured execution context; membership is half-open [start, end). */
 function effectiveTimeWindow(
   createdAt: number,
   window: QueryWindow | undefined,
-  range: { start: number; end: number } | undefined,
-  anchorNow?: number,
+  range: ResolvedRange | undefined,
+  ctx: ExecutionContext,
 ): boolean {
-  const resolved = range ?? windowRange(window, anchorNow);
-  if (resolved) return createdAt >= resolved.start && createdAt <= resolved.end;
-  return true;
-}
-
-
-
-/** Resolve the window anchor timestamp for a find run, per FindOptions. */
-function windowAnchor<T extends { createdAt: number }>(
-  _selected: T[],
-  _parsed: ParsedFindQuery,
-  options: FindOptions,
-): number | undefined {
-  if (options.anchorNow !== undefined) return options.anchorNow;
-  return undefined;
+  const resolved = window ? resolveWindowRange(window, ctx) : range;
+  return inRange(createdAt, resolved);
 }
 
 const defaultEventStore: UnifiedEventStore = {
@@ -223,14 +192,21 @@ export interface QueryOptions {
   rangeEnd?: number;
   /** App-level unit preference ('kg' | 'lb'). Used when query has no `in <unit>` directive. */
   preferredUnit?: string;
+  /** Captured execution context (ticket 12) — one `{instant, timeZone}`
+   *  capture per document run; defaults to a fresh system capture. */
+  context?: ExecutionContext;
 }
 
 /** Options for `runFind` / `runFindBlock` — overrides for the parsed WQL. */
 export interface FindOptions {
-  /** Explicit timestamp range; overrides parsed WQL's `last` clause when set. */
-  range?: { start: number; end: number };
-  /** Explicit reference time for the window (useful for tests/replay). */
+  /** Host-supplied timestamp range (half-open [start, end)) — the DEFAULT
+   *  when the parsed WQL has no window; an explicit query window wins. */
+  range?: ResolvedRange;
+  /** Explicit reference time for the window (tests/replay). Superseded by
+   *  `context` when both are given. */
   anchorNow?: number;
+  /** Captured execution context (ticket 12). */
+  context?: ExecutionContext;
 }
 
 export interface QueryResult {
@@ -318,13 +294,17 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
  *  filters them out of tagDims, so the time-dim branches below are
  *  defensive only — kept canonical in case a caller surfaces time dims as
  *  string keys. */
-function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<string, readonly string[]>): string {
-  if (dim === 'day') return localDateString(row.timestamp);
-  if (dim === 'week') {
-    const d = new Date(row.timestamp);
-    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7);
-    return localDateString(monday.getTime());
-  }
+function dimValue(
+  row: AnalyticsDataPoint,
+  dim: string,
+  noteTags: ReadonlyMap<string, readonly string[]>,
+  ctx: ExecutionContext,
+): string {
+  // Calendar grouping uses the observation's own temporal anchor (ticket 12):
+  // a date-only fact groups under its recorded civil date — never a fabricated
+  // midnight instant; an instant fact under its civil date in the context tz.
+  if (dim === 'day') return row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone);
+  if (dim === 'week') return civilMonday(row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone));
   if (dim === 'session') return row.resultId;
   const raw = factTagValue(row, dim, noteTags);
   if (raw === undefined) return '(none)';
@@ -438,7 +418,7 @@ export class QueryService {
    * Reads event rows directly over the unified store: outputType narrowing
    * hits the promoted column; content-plane targets scope by content.
    */
-  async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number } = {}): Promise<RowsQueryResult> {
+  async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number; context?: ExecutionContext } = {}): Promise<RowsQueryResult> {
     const empty: RowsQueryResult = { parsed, runs: [] };
     if (parsed.error) return { ...empty, error: parsed.error };
 
@@ -466,11 +446,12 @@ export class QueryService {
     for (const id of resultIds) collect(await this.store.getEventsByResult(id));
     for (const blockContentId of blockIds) collect(await this.store.getEventsByContent(blockContentId));
     for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
-
     let groups = [...byResult.entries()].filter(([, rows]) => rows.length > 0);
+
     if (parsed.window) {
+      const ctx = runContext(options);
       groups = groups.filter(([, rows]) =>
-        effectiveTimeWindow(rows[0].timestamp, parsed.window, undefined, options.anchorNow),
+        effectiveTimeWindow(rows[0].timestamp, parsed.window, undefined, ctx),
       );
     }
     groups.sort((a, b) => b[1][0].timestamp - a[1][0].timestamp);
@@ -511,7 +492,7 @@ export class QueryService {
     }
     notes = applySourceFilter(notes, parsed.filters);
     const selectedCount = notes.length;
-    const anchorNow = windowAnchor(notes, parsed, options);
+    const ctx = runContext(options);
     // Tag filters — intersect note IDs across OR'd values within a key.
     for (const filter of parsed.filters) {
       if (filter.key === 'tags' && !filter.negate) {
@@ -560,9 +541,10 @@ export class QueryService {
         });
       }
     }
-    // Time window — the `range` parameter overrides the WQL's `last` clause.
+    // Time window (ticket 12 precedence): an explicit query window wins; the
+    // host `range` option supplies the default when the query has none.
     if (parsed.window || options.range) {
-      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.window, options.range, anchorNow));
+      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.window, options.range, ctx));
     }
 
     // Cross-store join (direction 1): keep notes owning a wod block whose
@@ -585,7 +567,7 @@ export class QueryService {
     }
     blocks = applySourceFilter(blocks, parsed.filters);
     const selectedCount = blocks.length;
-    const anchorNow = windowAnchor(blocks, parsed, options);
+    const ctx = runContext(options);
     // Text filter — substring on rawContent
     for (const filter of parsed.filters) {
       if (filter.key === 'text' && !filter.negate) {
@@ -629,9 +611,9 @@ export class QueryService {
       }
     }
 
-    // Time window
+    // Time window (ticket 12 precedence): explicit query window wins over host.
     if (parsed.window || options.range) {
-      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.window, options.range, anchorNow));
+      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.window, options.range, ctx));
     }
 
     // Cross-store join (direction 1): keep blocks whose raw-log metric
@@ -700,16 +682,28 @@ export class QueryService {
     if (parsed.join) return this.runJoined(parsed, options);
 
     // Stage 1: SELECT — window-first hybrid (ticket 003): a time window
-    // (the dashboard default) fetches through by-timestamp, the one proven
-    // culling index; all-time queries scan. by-metric is never used —
-    // ticket 001 measured it non-selective and slower than scanning.
-    // C1: explicit range options win; otherwise a parsed window (relative or
-    // civil range) drives the by-timestamp fetch; no window scans.
-    const range = options.rangeStart !== undefined || options.rangeEnd !== undefined
-      ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
-      : windowRange(parsed.window);
-    const eventRows = range
-      ? await this.store.getEventsByTimeRange(range.start, range.end)
+    // fetches through by-timestamp, the one proven culling index; all-time
+    // queries scan. by-metric is never used — ticket 001 measured it
+    // non-selective and slower than scanning.
+    // C1 + ticket 12 precedence: the query's own window WINS over the host
+    // range options — the host range is the default when the query has none.
+    // Resolution uses the one captured execution context (half-open bounds).
+    const ctx = runContext(options);
+    const range: ResolvedRange | undefined = parsed.window
+      ? resolveWindowRange(parsed.window, ctx)
+      : options.rangeStart !== undefined || options.rangeEnd !== undefined
+        ? {
+            start: options.rangeStart ?? 0,
+            end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
+            endExclusive: false,
+          }
+        : undefined;
+    // The store fetch bound is an upper cutoff, not the membership test —
+    // pass the resolved end through unchanged (MAX_SAFE_INTEGER for the
+    // unbounded side).
+    const fetchRange = range ? { start: range.start, end: range.end } : undefined;
+    const eventRows = fetchRange
+      ? await this.store.getEventsByTimeRange(fetchRange.start, fetchRange.end)
       : await this.store.scanAll();
     const matchesMetric = (metricKey: string | undefined, queryMetric: string) =>
       metricKey === queryMetric ||
@@ -726,7 +720,7 @@ export class QueryService {
       candidates.filter(row => matchesFilters(row, parsed.filters, noteTags)), parsed,
     );
 
-    return this.buildResult(matched, parsed, options, noteTags);
+    return this.buildResult(matched, parsed, options, noteTags, range);
   }
 
   /**
@@ -738,42 +732,73 @@ export class QueryService {
     parsed: ParsedAggregateQuery,
     options: QueryOptions,
     noteTags: ReadonlyMap<string, readonly string[]>,
+    range: ResolvedRange | undefined,
   ): QueryResult {
-    // Stage 2: BUCKET
+    const ctx = runContext(options);
+    // Stage 2: BUCKET — structural bucket identity (ticket 12): calendar
+    // day buckets anchor on the observation's civil date in the context
+    // timezone, week buckets on the Monday date; fixed-duration `.rollup`
+    // keeps its epoch-aligned width (a deliberately distinct kind, not a
+    // calendar week). Display timestamps (local noon / epoch midpoint) are
+    // presentation-only — never join keys.
     const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
     const tagDims = parsed.groupBy.filter((d) => d !== 'day' && d !== 'week');
-    const bucketMs = timeDim
-      ? (timeDim === 'week' ? 7 : 1) * DAY
+    const rollupMs = timeDim
+      ? null
       : parsed.rollup
         ? parsed.rollup.size * (parsed.rollup.unit === 'w' ? 7 : 1) * DAY
         : null;
-    // Civil time-dim buckets (spec v2 decision 2): `day` buckets are LOCAL
-    // civil days, `week` buckets are civil-Monday weeks — component math,
-    // never epoch floors (which align weeks to UTC Thursdays and split
-    // DST-shifted days). `.rollup` windows keep epoch math: they are
-    // fixed-size trailing windows, not calendar dims.
-    const civilDay = (ts: number): number => {
-      const d = new Date(ts);
-      return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
-    };
-    const bucketKey = (ts: number): number => {
-      if (timeDim === 'day') return civilDay(ts);
-      if (timeDim === 'week') {
-        const d = new Date(ts);
-        return civilDay(ts) - (d.getDay() + 6) % 7;
-      }
-      return bucketMs ? Math.floor(ts / bucketMs) : 0;
-    };
-    const bucketCount = bucketMs
-      ? new Set(matched.map((p) => bucketKey(p.timestamp))).size
-      : (matched.length ? 1 : 0);
+    const DAY_MS = 86_400_000;
 
-    /** Representative instant for a civil time-dim bucket — local noon of
-     *  the bucket's civil day (day), or of its civil Monday (week). */
-    const civilBucketInstant = (anchor: number, dim: 'day' | 'week'): number => {
-      const d = new Date(anchor);
-      const back = dim === 'week' ? (d.getDay() + 6) % 7 : 0;
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate() - back, 12).getTime();
+    /** The observation's own temporal anchor: its recorded metric date when
+     *  it carries one (date-only facts keep their civil date), else the
+     *  fact timestamp's civil date in the context timezone. */
+    const anchorDate = (row: AnalyticsDataPoint): string =>
+      row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone);
+    const bucketKey = (row: AnalyticsDataPoint): string => {
+      if (timeDim === 'day') return `d:${anchorDate(row)}`;
+      if (timeDim === 'week') return `w:${civilMonday(anchorDate(row))}`;
+      if (rollupMs !== null) return `r:${Math.floor(row.timestamp / rollupMs)}`;
+      return '';
+    };
+    /** Presentation-only representative instant for a structural key. */
+    const bucketDisplayTs = (key: string): number => {
+      if (key.startsWith('d:')) return zonedNoon(key.slice(2), ctx.timeZone);
+      if (key.startsWith('w:')) return zonedNoon(key.slice(2), ctx.timeZone);
+      if (key.startsWith('r:')) {
+        const b = Number(key.slice(2));
+        return (rollupMs ?? DAY_MS) * b + (rollupMs ?? DAY_MS) / 2;
+      }
+      return Number.MAX_SAFE_INTEGER;
+    };
+
+    // Chronological bucket domain (ticket 12): bounded calendar queries
+    // generate every period in the requested bounds — including empty ones;
+    // unbounded sides use the observed extent; relative windows never
+    // generate future buckets because their exclusive end is the captured
+    // instant. No domain generation for rollup (duration buckets are
+    // observed-only) or ungrouped queries.
+    const MAX_DOMAIN = 10_000;
+    const bareDate = (key: string): string => (key.startsWith('d:') || key.startsWith('w:') ? key.slice(2) : key);
+    const calendarDomain = (observed: string[]): string[] => {
+      if (!timeDim || observed.length === 0) return observed;
+      const bounds = range && range.end !== Number.MAX_SAFE_INTEGER
+        ? {
+            startIso: civilDateOf(range.start, ctx.timeZone),
+            endIso: range.endExclusive ? civilDateOf(range.end - 1, ctx.timeZone) : civilDateOf(range.end, ctx.timeZone),
+          }
+        : { startIso: bareDate(observed[0]!), endIso: bareDate(observed[observed.length - 1]!) };
+      const first = timeDim === 'week' ? civilMonday(bounds.startIso) : bounds.startIso;
+      const last = timeDim === 'week' ? civilMonday(bounds.endIso) : bounds.endIso;
+      const step = timeDim === 'week' ? 7 : 1;
+      const span = civilDateDiff(first, last);
+      if (span < 0 || span / step > MAX_DOMAIN) return observed;
+      const domain: string[] = [];
+      for (let cursor = first; ; cursor = civilDateAdd(cursor, step)) {
+        domain.push(timeDim === 'week' ? `w:${cursor}` : `d:${cursor}`);
+        if (cursor === last) break;
+      }
+      return domain;
     };
 
     // Unit display preference / directive
@@ -786,7 +811,7 @@ export class QueryService {
     const groups = new Map<string, AnalyticsDataPoint[]>();
     for (const row of matched) {
       const key = tagDims.length
-        ? tagDims.map((d) => dimValue(row, d, noteTags)).join(' · ')
+        ? tagDims.map((d) => dimValue(row, d, noteTags, ctx)).join(' · ')
         : parsed.metric;
       const bucket = groups.get(key);
       if (bucket) bucket.push(row);
@@ -794,26 +819,32 @@ export class QueryService {
     }
 
     const series: Series[] = [...groups.entries()].map(([key, rows]) => {
-      const byBucket = new Map<number, AnalyticsDataPoint[]>();
+      const byBucket = new Map<string, AnalyticsDataPoint[]>();
       for (const row of rows) {
-        const b = bucketKey(row.timestamp);
+        const b = bucketKey(row);
         const members = byBucket.get(b);
         if (members) members.push(row);
         else byBucket.set(b, [row]);
       }
-      const points: SeriesPoint[] = [...byBucket.entries()]
-        .sort(([a], [b]) => a - b)
-        .map(([b, members]) => {
-          const values = members.map((m) =>
-            toDisplayValue(m.value as number, m.unit ?? m.metricUnit, shouldConvert ? targetUnit : undefined),
-          );
-          return {
-            ts: timeDim
-              ? civilBucketInstant(members[0]!.timestamp, timeDim)
-              : bucketMs ? b * bucketMs + bucketMs / 2 : Math.min(...members.map((m) => m.timestamp)),
-            value: Math.round(aggregate(values, parsed.agg, members, shouldConvert ? targetUnit : undefined) * 100) / 100,
-          };
-        });
+      const observedKeys = [...byBucket.keys()].sort();
+      const domain = timeDim ? calendarDomain(observedKeys) : observedKeys;
+      const points: SeriesPoint[] = domain.map((b) => {
+        const members = byBucket.get(b);
+        if (!members) {
+          // Empty calendar period: structurally present, no recorded
+          // observation (presence semantics per the arithmetic contract).
+          return { ts: bucketDisplayTs(b), value: 0, missing: true };
+        }
+        const values = members.map((m) =>
+          toDisplayValue(m.value as number, m.unit ?? m.metricUnit, shouldConvert ? targetUnit : undefined),
+        );
+        return {
+          ts: timeDim || rollupMs !== null
+            ? bucketDisplayTs(b)
+            : Math.min(...members.map((m) => m.timestamp)),
+          value: Math.round(aggregate(values, parsed.agg, members, shouldConvert ? targetUnit : undefined) * 100) / 100,
+        };
+      });
       const seriesUnit = shouldConvert
         ? targetUnit
         : (rows[0]?.unit ?? rows[0]?.metricUnit);
@@ -823,6 +854,11 @@ export class QueryService {
     const aggregated = series.reduce((n, s) => n + s.points.length, 0);
     const scalar = series.length === 1 && series[0].points.length === 1 ? series[0].points[0].value : undefined;
     const resultUnit = series.length > 0 ? series[0].unit : undefined;
+    const bucketCount = timeDim
+      ? (series[0]?.points.length ?? 0)
+      : rollupMs !== null
+        ? new Set(matched.map((p) => bucketKey(p))).size
+        : (matched.length ? 1 : 0);
 
     return {
       parsed,
@@ -850,11 +886,20 @@ export class QueryService {
     if (contentIds.size === 0) return empty;
 
     let facts = await this.deriveMetricFacts(contentIds, parsed.metric);
-    const joinRange = options.rangeStart !== undefined || options.rangeEnd !== undefined
-      ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
-      : windowRange(parsed.window);
+    // Ticket 12 precedence + context: query window wins; host range is the
+    // default; membership half-open against the captured context.
+    const ctx = runContext(options);
+    const joinRange: ResolvedRange | undefined = parsed.window
+      ? resolveWindowRange(parsed.window, ctx)
+      : options.rangeStart !== undefined || options.rangeEnd !== undefined
+        ? {
+            start: options.rangeStart ?? 0,
+            end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
+            endExclusive: false,
+          }
+        : undefined;
     if (joinRange) {
-      facts = facts.filter(f => f.timestamp >= joinRange.start && f.timestamp <= joinRange.end);
+      facts = facts.filter(f => inRange(f.timestamp, joinRange));
     }
 
     const touchesTags =
@@ -864,7 +909,7 @@ export class QueryService {
       facts.filter(f => matchesFilters(f, parsed.filters, noteTags)), parsed,
     );
 
-    return this.buildResult(matched, parsed, options, noteTags);
+    return this.buildResult(matched, parsed, options, noteTags, joinRange);
   }
 
   /** Direction 1 — keep only content owning a wod block whose raw-log metric

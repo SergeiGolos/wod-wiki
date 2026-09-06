@@ -70,21 +70,25 @@ describe('toEventRows — logs → event rows, 1:1 per statement (ticket 002)', 
       origin: 'journal',
       grain: 'event',
       outputType: 'segment',
-      // canonical workout time wins over the statement's own timeSpan
-      timestamp: TS,
-      effortSlug: 'effort-01',
+      // Ticket 12: the statement's OWN timeSpan wins — the workout-start
+      // timestamp never relocates an observation whose own instant differs.
+      metricTemporal: [
+        { temporalKind: 'instant', instant: TS + 5_000 },
+        { temporalKind: 'instant', instant: TS + 5_000 },
+      ],
       sourceBlockKey: 'blk-1',
       stackLevel: 2,
     });
     expect(rows[1].id).toBe('r1:1');
-    expect(rows[1].timestamp).toBe(TS);
+    expect(rows[1].timestamp).toBe(TS + 5_000);
     // metrics array carried verbatim
     expect(rows[0].metrics).toEqual(statement().metrics);
   });
 
-  it('falls back to the statement timeSpan start when no workout timestamp is given', () => {
-    const rows = toEventRows([statement()], { ...IDENTITY, workoutTimestamp: undefined });
-    expect(rows[0].timestamp).toBe(TS + 5_000);
+  it('falls back to the workout timestamp when the statement has no timeSpan', () => {
+    const rows = toEventRows([statement({ timeSpan: undefined })], IDENTITY);
+    expect(rows[0].timestamp).toBe(TS);
+    expect(rows[0].metricTemporal).toBeUndefined();
   });
 
   it('takes effortSlug from the first metric that carries one', () => {
@@ -164,8 +168,7 @@ describe('projectEventToFacts — event rows → flat fact currency (ticket 003 
       grain: 'event',
       metricKey: 'totalVolume', // metadata.canonicalKey wins
       value: 142,
-      effortSlug: 'effort-01',
-      timestamp: TS,
+      timestamp: TS + 5_000, // the metric's own occurrence instant (ticket 12)
     });
     // no canonicalKey → name-derived from the row's label metric
     expect(facts[1].metricKey).toBe('totalVolume');

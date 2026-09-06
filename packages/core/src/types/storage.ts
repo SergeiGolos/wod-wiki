@@ -165,6 +165,14 @@ export interface AnalyticsDataPoint {
   metricKey?: string;
   metricLabel?: string;
   metricUnit?: string;
+  /** Typed field reference provenance (ticket 11) — normalized path + kind
+   *  of the variant this observation belongs to. */
+  fieldRef?: { path: string; kind: string; dimension?: string };
+  /** The observation's own civil date (YYYY-MM-DD) when it is date-only
+   *  (ticket 12) — grouping uses this instead of a fabricated instant. */
+  metricDate?: string;
+  /** Temporal kind of the observation's anchor (ticket 12). */
+  temporalKind?: 'instant' | 'civil-date';
   timestamp: number;
   createdAt: number;
 }
@@ -212,9 +220,9 @@ export interface UnifiedEventRecord {
   /** Canonical time — when the workout happened, never when derived. */
   timestamp: number;
   grain: EventGrain;
+  effortSlug?: string;
   /** Open vocabulary — see KNOWN_OUTPUT_TYPES. */
   outputType: string;
-  effortSlug?: string;
   /** Typed metric array; EXACTLY ONE entry when grain:'summary'. Summary
    *  fold identity (canonicalKey, groupTags, effort metadata) lives in
    *  metrics[0].metadata — shape-uniform with events. */
@@ -225,4 +233,19 @@ export interface UnifiedEventRecord {
   completionReason?: string;
   segmentId?: string;
   segmentVersion?: number;
+  /** Per-metric temporal anchors (ticket 12) — parallel to `metrics` when
+   *  the producing statement carries its own instants/dates:
+   *  'instant' = recorded occurrence instant; 'civil-date' = recorded civil
+   *  date (date-only wellness), never a fabricated midnight. The row
+   *  timestamp remains the V16 fetch anchor until the by-metricDate index
+   *  (ticket 14); it must not relocate a metric whose own date differs. */
+  metricTemporal?: MetricTemporal[];
+}
+
+export interface MetricTemporal {
+  temporalKind: 'instant' | 'civil-date';
+  /** Occurrence instant (ms epoch) when temporalKind === 'instant'. */
+  instant?: number;
+  /** Civil YYYY-MM-DD when temporalKind === 'civil-date'. */
+  civilDate?: string;
 }

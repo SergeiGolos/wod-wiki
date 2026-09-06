@@ -97,10 +97,13 @@ export function wellnessEventsForNote(
   const entries = extractWellnessEntries(rawContent);
   if (entries.length === 0) return [];
   const ref = options.targetDate ?? options.now ?? Date.now();
+  // Ticket 12: date-only wellness keeps its recorded civil date — the
+  // row carries a MetricTemporal civil-date anchor, and the timestamp is
+  // only the V16 fetch hint (local midnight of the journal date, system
+  // clock) until the by-metricDate index lands. Projection and grouping
+  // use the civil date; no fabricated midnight instant is the anchor.
   const refDay = new Date(ref);
-  // Local midnight of the target civil date — the canonical instant for a
-  // dayBucket key: localDateString(localMidnight) is the same journal date
-  // in every timezone (day * DAY would be UTC midnight and slip a day).
+  const civilDate = `${refDay.getFullYear()}-${String(refDay.getMonth() + 1).padStart(2, '0')}-${String(refDay.getDate()).padStart(2, '0')}`;
   const timestamp = new Date(refDay.getFullYear(), refDay.getMonth(), refDay.getDate()).getTime();
   return entries.map((entry) => ({
     id: wellnessFactId(noteId, entry.key),
@@ -118,6 +121,7 @@ export function wellnessEventsForNote(
       // canonicalKey drives the fact projection's metricKey (projectEventToFacts).
       metadata: { canonicalKey: entry.key },
     }],
+    metricTemporal: [{ temporalKind: 'civil-date' as const, civilDate }],
   }));
 }
 

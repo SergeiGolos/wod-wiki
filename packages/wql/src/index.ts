@@ -24,6 +24,9 @@ export * from './language';
 // 6. Units
 export * from './units';
 
+// 6b. Calendar — civil time arithmetic over execution contexts (ticket 12)
+export * from './calendar';
+
 // 7. Derivation & Static projections
 export * from './derivation';
 export * from './static';
