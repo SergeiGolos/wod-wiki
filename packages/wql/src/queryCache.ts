@@ -1,4 +1,7 @@
 /**
+ * INTEGRATION STATUS (wayfinder): intentionally unwired — no production
+ * consumer yet. Wiring is the open item of wayfinder ticket 20 (runner/store wiring); do not
+ * delete these exports (they are the tested deliverable awaiting cutover).
  * Query cache, scan coalescing, and invalidation (wayfinder
  * datadog-analytics ticket 20, per the invalidation and performance
  * contract).

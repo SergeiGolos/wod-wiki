@@ -40,3 +40,7 @@ From the [shared execution contract](../assets/shared-execution-contract.md) and
 7. Switching a query block's fence suffix from `table` to `timeseries` changes presentation only — values, units, and group identity are byte-identical.
 8. Editor previews show typeahead from the injected catalog (15) with no IndexedDB access from `packages/wql`.
 9. kg/lb preference removal: distance output defaults to `m`, mass to `kg`, from the shared table — no first-record or widget-specific fallback remains.
+
+## Wiring status (2026-09-06)
+
+QueryDocumentRunner ships and is unit-tested, but no production surface executes through it yet (Explorer, dashboard route, previews still call QueryService/parseQuery directly). Cutover is the open item.

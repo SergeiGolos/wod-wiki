@@ -1,4 +1,7 @@
 /**
+ * INTEGRATION STATUS (wayfinder): intentionally unwired — no production
+ * consumer yet. Wiring is the open item of wayfinder ticket 23 (widget/planner consumption); do not
+ * delete these exports (they are the tested deliverable awaiting cutover).
  * Presentation planner (wayfinder decision 23): the explicit product rules
  * for how widgets consume structured query results.
  *

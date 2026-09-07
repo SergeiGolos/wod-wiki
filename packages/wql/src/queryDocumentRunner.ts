@@ -1,4 +1,7 @@
 /**
+ * INTEGRATION STATUS (wayfinder): intentionally unwired — no production
+ * consumer yet. Wiring is the open item of wayfinder ticket 19 (surface cutover: Explorer, dashboards, previews); do not
+ * delete these exports (they are the tested deliverable awaiting cutover).
  * QueryDocumentRunner — the ONE execution path for query documents
  * (wayfinder datadog-analytics ticket 19, per the shared query execution
  * contract). Explorer, dashboard route, embedded note queries, and CodeMirror

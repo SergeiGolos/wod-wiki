@@ -30,3 +30,7 @@ Agreed 2026-09-06, grilling session with serge (two questions):
 3. **Provenance boundary — confirmed in the same breath.** Synthetic points exist for display only and never re-enter statistics; `corr` remains paired-only regardless of any display decision.
 
 Consumer: [ticket 19](19-shared-query-execution.md) — the presentation planner and all scalar-reducing widgets apply rule 1; the scatter renderer applies rule 2; every renderer inherits rule 3.
+
+## Wiring status (2026-09-06)
+
+The planner module exists but no renderer consumes it; QueryValue/TopList still apply first-point/zero-fallback semantics. Wiring is the open item.

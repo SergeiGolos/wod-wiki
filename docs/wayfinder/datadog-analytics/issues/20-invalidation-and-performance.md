@@ -41,3 +41,7 @@ From the [invalidation contract](../assets/invalidation-performance-contract.md)
 4. Two tabs editing tags concurrently leave both tabs' caches consistent with the committed store state (no stale classification survives a received mutation).
 5. A `last 12w` formula with a persisted `(normalize 1w)` reuses cache across reloads of the same document under identical context, and recomputes when the document's normalization intent changes.
 6. Budget numbers are recorded against the scale fixture; any miss is treated as a defect to fix or an explicit renegotiation with the user — never by dropping input records.
+
+## Wiring status (2026-09-06)
+
+Cache/coalescing/invalidation modules are implemented and unit-tested but unwired: no store adapter coalesces, no surface reads QueryCache, no commit path publishes mutations. Wiring is the open item.
