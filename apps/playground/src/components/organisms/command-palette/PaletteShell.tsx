@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { useNavigate } from 'react-router-dom';
 import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
@@ -58,9 +59,31 @@ export const PaletteShell: React.FC = () => {
     requestRef.current = request;
     requestSeqRef.current += 1;
   }
+  const navigate = useNavigate();
+
+  // ── Back navigation closes the palette ──────────────────────────────────
+  // A sentinel history entry is pushed on open, so the Android back gesture
+  // and the desktop back button pop it (popstate) and dismiss the palette
+  // instead of leaving the page. Closing by any other path (Escape /
+  // overlay / Cancel / selection) consumes the sentinel — unless a later
+  // navigation (e.g. a selected result) already superseded it as the
+  // current entry.
+  useEffect(() => {
+    if (!isOpen) return;
+    navigate(window.location.pathname + window.location.search + window.location.hash, {
+      state: { ...(history.state?.usr ?? {}), paletteClose: true },
+    });
+    const onPopState = () => _dismiss();
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      if ((history.state?.usr as { paletteClose?: boolean } | null | undefined)?.paletteClose) {
+        navigate(-1);
+      }
+    };
+  }, [isOpen, _dismiss, navigate]);
 
   const wqlConfig = request?.wql;
-
   // Mobile (<lg): the palette floats near the viewport top and its height is
   // capped to the visual viewport so the soft keyboard never covers results.
   // Tracked live (on open + viewport resize/scroll — both fire when the
@@ -165,8 +188,18 @@ export const PaletteShell: React.FC = () => {
         onSubmit={wqlConfig.onApply ? applyQuery : undefined}
         autoFocus
       />
-      {wqlConfig.onApply && (
-        <div className="flex items-center justify-end pt-1.5">
+      {/* Action row: Cancel is the mobile close affordance (no Escape key on
+          touch); it collapses to zero height on sm+ where Esc/overlay close. */}
+      <div className={`flex items-center justify-end gap-2 ${wqlConfig.onApply ? 'pt-1.5' : ''}`}>
+        <button
+          type="button"
+          onClick={_dismiss}
+          data-testid="palette-cancel"
+          className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors sm:hidden dark:border-zinc-700"
+        >
+          Cancel
+        </button>
+        {wqlConfig.onApply && (
           <button
             type="button"
             onClick={applyQuery}
@@ -175,8 +208,8 @@ export const PaletteShell: React.FC = () => {
           >
             Apply query
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   ) : undefined;
 
@@ -209,6 +242,7 @@ export const PaletteShell: React.FC = () => {
             onSelect={handleSelect}
             isOpen={true}
             onClose={_dismiss}
+            mobileClose
             placeholder={request?.placeholder ?? 'Search…'}
             searchRow={searchRow}
             filterResults={!wqlConfig}

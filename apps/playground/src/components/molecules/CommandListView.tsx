@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useListState } from './useListState';
 import { DefaultListItem } from './DefaultListItem';
@@ -33,7 +33,9 @@ export interface CommandListViewProps<TPayload> {
   actions?: (item: IListItem<TPayload>) => IItemAction[];
   /** Override item renderer */
   renderItem?: (item: IListItem<TPayload>, ctx: ListItemContext) => React.ReactNode;
-  /** Shown when there are no results */
+  /** Render a touch close button in the input row (mobile — no Escape key
+   *  there). Hidden on sm+ where the keyboard affordance (esc) applies. */
+  mobileClose?: boolean;
   emptyState?: React.ReactNode;
   className?: string;
 }
@@ -51,6 +53,7 @@ export function CommandListView<TPayload>({
   placeholder = 'Search…',
   actions,
   renderItem,
+  mobileClose,
   emptyState,
   className,
 }: CommandListViewProps<TPayload>) {
@@ -135,6 +138,17 @@ export function CommandListView<TPayload>({
             placeholder={placeholder}
             className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
           />
+          {mobileClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              data-testid="palette-cancel"
+              className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:text-foreground sm:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
           <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
             esc
           </kbd>

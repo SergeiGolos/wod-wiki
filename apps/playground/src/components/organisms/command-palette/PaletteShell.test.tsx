@@ -13,6 +13,8 @@
  *      not dismiss the palette (composer keyboard events stay inside the
  *      composer).
  *   5. Escape dismisses and resolves { dismissed: true }.
+ *   6. The mobile Cancel button dismisses (WQL and non-WQL modes).
+ *   7. Back navigation (popstate) dismisses instead of leaving the page.
  */
 import { beforeAll, afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -203,5 +205,48 @@ describe('PaletteShell WQL mode', () => {
 
     const result = await response
     expect(result).toEqual({ dismissed: true })
+  })
+
+  it('closes via the mobile Cancel button in WQL mode', async () => {
+    const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
+    renderShell()
+    const response = openPalette({
+      wql: { initialQuery: paletteQuery, execute },
+      sources: [{ id: 'wql-search', search }],
+    })
+
+    fireEvent.click(await screen.findByTestId('palette-cancel'))
+
+    const result = await response
+    expect(result).toEqual({ dismissed: true })
+    expect(usePaletteStore.getState().isOpen).toBe(false)
+  })
+
+  it('closes via the touch close button in non-WQL mode', async () => {
+    const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
+    renderShell()
+    openPalette({ placeholder: 'Pick one…', sources: [{ id: 'plain', search }] })
+
+    fireEvent.click(await screen.findByTestId('palette-cancel'))
+
+    expect(usePaletteStore.getState().isOpen).toBe(false)
+  })
+
+  it('dismisses on back navigation (popstate) instead of leaving the page', async () => {
+    const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
+    renderShell()
+    const response = openPalette({
+      wql: { initialQuery: paletteQuery, execute },
+      sources: [{ id: 'wql-search', search }],
+    })
+    await screen.findByTestId('wql-composer')
+
+    act(() => {
+      fireEvent.popState(window)
+    })
+
+    const result = await response
+    expect(result).toEqual({ dismissed: true })
+    expect(usePaletteStore.getState().isOpen).toBe(false)
   })
 })
