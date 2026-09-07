@@ -15,7 +15,6 @@ import {
   isRowsQuery,
   parseQuery,
   parseQueryWidgetSuffix,
-  splitWidgetBody,
 } from '@bitcobblers/wod-wiki-engine';
 
 import {
@@ -92,9 +91,9 @@ describe('gallery manifest coverage', () => {
 
   it('every card query parses and every declared type is a known fence tag', () => {
     for (const card of GALLERY_CARDS) {
-      const { query, params } = splitWidgetBody(
-        card.params?.length ? [card.query, ...card.params].join(' / ') : card.query,
-      );
+      // Decision 22: bodies are documents — no positional split. Params
+      // live in the card manifest, not the query text.
+      const query = card.query;
       expect(query, card.title).toBe(card.query);
       const parsed = parseQuery(query);
       if (card.expectError) {
@@ -107,7 +106,7 @@ describe('gallery manifest coverage', () => {
         expect(suffix.error, `${card.title}: type "${card.widgetType}"`).toBeUndefined();
         expect(DASHBOARD_WIDGET_TYPES as readonly string[]).toContain(card.widgetType);
       }
-      for (const param of params) {
+      for (const param of card.params ?? []) {
         expect(param.length, `${card.title}: empty param`).toBeGreaterThan(0);
       }
     }

@@ -94,9 +94,9 @@ describe('ticket 20 — invalidation bus and cache', () => {
     expect(tabA.generationId).toBe(0);
     expect(tabB.generationId).toBe(0);
     await tabA.publishMutation();
-    // Tab B's epoch advanced via the received receipt — equal-counter states
-    // stay correct across reloads.
-    expect(tabB.generationId).toBe(1);
+    // Tab B's epoch advanced PAST the remote receipt — equal-counter states
+    // must never alias (a receipt is always a new mutation for cache keys).
+    expect(tabB.generationId).toBe(2);
   });
 });
 

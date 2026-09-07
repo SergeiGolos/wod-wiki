@@ -251,6 +251,40 @@ export interface TabularColumn {
   unit?: string;
 }
 
+/** Civil dates (YYYY-MM-DD, `timeZone`-local) whose [local midnight,
+ * next local midnight) windows intersect `[start, end)` — the by-metric-date
+ * candidate set for the complete fetch (ticket 12/14). Bounded callers cap
+ * the list before calling the store. */
+export function civilDatesCoveredByRange(start: number, end: number, timeZone: string): string[] {
+    const dates: string[] = [];
+    let cursor = start;
+    for (let i = 0; i < 400; i++) {
+        const iso = civilDateOf(cursor, timeZone);
+        if (!dates.includes(iso)) dates.push(iso);
+        const nextMidnight = Number.isNaN(Date.parse(`${iso}T00:00:00Z`)) ? cursor + 86_400_000 : nextLocalMidnight(iso, timeZone);
+        if (nextMidnight >= end) break;
+        cursor = nextMidnight;
+    }
+    return dates;
+}
+
+function nextLocalMidnight(iso: string, timeZone: string): number {
+    // Local midnight of the day AFTER `iso` — one civil day added, then the
+    // zoned offset applied (component math, never 86 400 000 multiplication).
+    const { y, m, d } = (() => {
+        const [yy, mm, dd] = iso.split('-').map(Number);
+        return { y: yy!, m: mm!, d: dd! };
+    })();
+    const nextUtc = Date.UTC(y, m - 1, d + 1);
+    // Offset at that UTC instant, applied forward: midnight local == that
+    // civil date 00:00 in zone. Approximate via the formatter offset at
+    // nextUtc: exact DST handling is delegated to civilDateOf rounding.
+    const guess = nextUtc;
+    const isoGuess = civilDateOf(guess, timeZone);
+    if (isoGuess > iso) return guess;
+    return guess + 3_600_000;
+}
+
 /** The stable tabular shape consumed by table widgets (ticket 19 wires
  *  widgets): bounded page + full match count. Missing column values are
  *  ABSENT (undefined) — strictly distinct from a recorded 0. */
@@ -378,19 +412,24 @@ function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint
     }
     case 'delta': {
       if (points.length < 2) return { state: 'absent', value: 0 };
-      const ordered = [...points].sort((a, b) => a.timestamp - b.timestamp);
+      // Sort (point, converted value) PAIRS — the values[i] ↔ points[i]
+      // alignment must survive the reorder (ticket 13: conversion before
+      // arithmetic; metric-date chronological endpoints).
+      const ordered = points
+        .map((point, i) => ({ point, value: values[i]! }))
+        .sort((a, b) => a.point.timestamp - b.point.timestamp);
       const first = ordered[0]!;
       const last = ordered[ordered.length - 1]!;
       // Equal-timestamp endpoints with different values and no recorded
       // order evidence are an ambiguous-order error.
-      const atFirst = ordered.filter((p) => p.timestamp === first.timestamp);
-      const atLast = ordered.filter((p) => p.timestamp === last.timestamp);
-      const firstVals = new Set(atFirst.map((p) => p.value));
-      const lastVals = new Set(atLast.map((p) => p.value));
+      const atFirst = ordered.filter((p) => p.point.timestamp === first.point.timestamp);
+      const atLast = ordered.filter((p) => p.point.timestamp === last.point.timestamp);
+      const firstVals = new Set(atFirst.map((p) => p.point.value));
+      const lastVals = new Set(atLast.map((p) => p.point.value));
       if (firstVals.size > 1 || lastVals.size > 1) {
         return { state: 'error', message: 'Ambiguous delta order: tied endpoint observations differ in value without recorded order' };
       }
-      return { state: 'observed', value: (last.value as number) - (first.value as number) };
+      return { state: 'observed', value: last.value - first.value };
     }
   }
 }
@@ -568,12 +607,11 @@ export class QueryService {
     const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
     const eligible = segments.filter((row) => {
       if (parsed.filters.length === 0) return true;
-      const fact = (projectEventToFacts(row)[0] ?? {
-        id: row.id, resultId: row.resultId, noteId: row.noteId, segmentId: '', segmentVersion: 0,
-        type: '', value: null, label: '', timestamp: row.timestamp, createdAt: row.timestamp,
-        effortSlug: row.effortSlug,
-      }) as AnalyticsDataPoint;
-      return matchesFilters(fact, parsed.filters, noteTags);
+      // A row matches when ANY of its projected facts satisfies the filters
+      // (projection emits one fact per metric; the row is the observation).
+      const facts = projectEventToFacts(row);
+      if (facts.length === 0) return false;
+      return facts.some((fact) => matchesFilters(fact, parsed.filters, noteTags));
     });
 
     const totalCount = eligible.length;
@@ -904,9 +942,22 @@ export class QueryService {
     // pass the resolved end through unchanged (MAX_SAFE_INTEGER for the
     // unbounded side).
     const fetchRange = range ? { start: range.start, end: range.end } : undefined;
-    const eventRows = fetchRange
+    let eventRows = fetchRange
       ? await this.store.getEventsByTimeRange(fetchRange.start, fetchRange.end)
       : await this.store.scanAll();
+    // Ticket 12/14 complete fetch: a timestamp window alone misses rows
+    // whose METRIC date is in range but whose fetch-hint timestamp is not.
+    // Union by-metric-date candidates over the covered civil dates.
+    if (fetchRange && this.store.getEventsByMetricDates) {
+      const civilDates = civilDatesCoveredByRange(fetchRange.start, fetchRange.end, ctx.timeZone);
+      if (civilDates.length > 0 && civilDates.length <= 400) {
+        const byDate = await this.store.getEventsByMetricDates(civilDates);
+        if (byDate.length > 0) {
+          const seen = new Set(eventRows.map((r) => r.id));
+          eventRows = [...eventRows, ...byDate.filter((r) => !seen.has(r.id))];
+        }
+      }
+    }
     const matchesMetric = (metricKey: string | undefined, queryMetric: string) =>
       metricKey === queryMetric ||
       (queryMetric === 'rep' && metricKey === 'reps') ||

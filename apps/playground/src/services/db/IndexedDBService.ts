@@ -962,29 +962,35 @@ export class IndexedDBService {
                 // Runs for every oldVersion < 18 on the existing notes store,
                 // batched inside this single versionchange transaction per
                 // ticket 14's lifecycle patterns.
-                if (oldVersion < 18 && db.objectStoreNames.contains('notes')) {
-                    const notesStore = tx.objectStore('notes');
-                    let cursor = await notesStore.openCursor();
+                if (oldVersion < 18 && db.objectStoreNames.contains('segments')) {
+                    // V18 — dashboard bodies rewritten to Query Documents
+                    // (decision 22), following the backfillV15 fence-cutover
+                    // pattern: iterate segments' rawContent (the CONTENT
+                    // store — notes rows carry no body), rewrite legacy
+                    // ` / ` bodies into fence-tag attributes. Per-segment
+                    // try/catch: one malformed row must never abort the
+                    // whole versionchange transaction.
+                    const segments = tx.objectStore('segments');
+                    let cursor = await segments.openCursor();
+                    let rewritten = 0;
                     while (cursor) {
-                        const note = cursor.value as {
-                            content?: string;
-                            raw?: string;
-                            frontmatter?: Record<string, unknown>;
-                        } | undefined;
-                        const body = (note?.content ?? note?.raw ?? '') as string;
-                        const isDashboard =
-                            note?.frontmatter?.['dashboard'] === 'true' ||
-                            note?.frontmatter?.['dashboard'] === true;
-                        if (isDashboard && body.includes(' / ')) {
-                            const migrated = migrateLegacyDashboardBodies(body);
-                            if (migrated !== body) {
-                                const updated = { ...(cursor.value as Record<string, unknown>) };
-                                if ('content' in updated) updated['content'] = migrated;
-                                if ('raw' in updated) updated['raw'] = migrated;
-                                cursor.update(updated);
+                        const segment = cursor.value as { rawContent?: unknown } | undefined;
+                        const raw = typeof segment?.rawContent === 'string' ? segment.rawContent : '';
+                        if (raw.includes(' / ')) {
+                            try {
+                                const migrated = migrateLegacyDashboardBodies(raw);
+                                if (migrated !== raw) {
+                                    cursor.update({ ...(cursor.value as Record<string, unknown>), rawContent: migrated });
+                                    rewritten += 1;
+                                }
+                            } catch (err) {
+                                console.warn('[IndexedDBService] V18 segment migration skipped a row', err);
                             }
                         }
                         cursor = await cursor.continue();
+                    }
+                    if (rewritten > 0) {
+                        console.info(`[IndexedDBService] V18: ${rewritten} dashboard segment(s) rewritten to Query Documents`);
                     }
                 }
 
@@ -1314,6 +1320,19 @@ export class IndexedDBService {
     /** Windowed fetch — the one proven culling index (ticket 001/003). */
     async getEventsByTimeRange(start: number, end: number): Promise<UnifiedEventRecord[]> {
         return (await this.dbPromise).getAllFromIndex('events', 'by-timestamp', IDBKeyRange.bound(start, end));
+    }
+
+    /** Ticket 12/14 complete fetch — union over the by-metric-date
+     *  multiEntry index (`d:YYYY-MM-DD` keys): rows whose metric date is in
+     *  range even when their fetch-hint timestamp is not. */
+    async getEventsByMetricDates(dates: readonly string[]): Promise<UnifiedEventRecord[]> {
+        const db = await this.dbPromise;
+        const out: UnifiedEventRecord[] = [];
+        for (const date of dates) {
+            const rows = await db.getAllFromIndex('events', 'by-metric-date', IDBKeyRange.bound(`d:${date}`, `d:${date}\uFFFF`, false, true));
+            out.push(...rows);
+        }
+        return out;
     }
 
     /** Per-result fetch (rows:{result:…}, re-finalize, orphan inspection). */
@@ -1743,9 +1762,18 @@ export class IndexedDBService {
         const rowIds: string[] = [];
         tx.objectStore('results').put(result);
         const contributions = extractContributionsFromResult(result);
+        // One replacement per ROW with the row's FULL next set — per-
+        // contribution calls would reverse earlier metrics' support
+        // (multi-metric statements must keep every metric's contribution).
+        const nextByRow = new Map<string, typeof contributions>();
         for (const c of contributions) {
             rowIds.push(c.rowId);
-            await replaceRowContributionsTx(tx, 'result', result.id, c.rowId, [c], now);
+            const bucket = nextByRow.get(c.rowId);
+            if (bucket) bucket.push(c);
+            else nextByRow.set(c.rowId, [c]);
+        }
+        for (const [rowId, set] of nextByRow) {
+            await replaceRowContributionsTx(tx, 'result', result.id, rowId, set, now);
         }
         // Log statements removed by this save reverse their contributions.
         const record = await tx.objectStore('field_sources').get(fieldSourceId('result', result.id));

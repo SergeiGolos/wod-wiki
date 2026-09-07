@@ -214,7 +214,10 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
     };
     const result = await service.run(parsed);
-    expect(result.scalar).toBeCloseTo(3000 * 0.45359237, 4); // kg system default (ticket 13)
+    // Engine summaries carry no fabricated observedCount (tickets 14/16):
+    // avg over a summary-only population reports insufficient evidence.
+    expect(result.scalar).toBeUndefined();
+    expect(result.coverage?.insufficientScopes?.length).toBeGreaterThan(0);
   });
 
   it('respects the time-range option on the joined logs', async () => {

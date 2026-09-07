@@ -108,6 +108,9 @@ interface FoldedSummary {
   intensityTier?: string;
   grade?: string;
   groupTags?: Record<string, string>;
+  /** Typed identity (ticket 11) — carried so re-emission keeps ONE catalog
+   *  identity for the field instead of splitting path-only duplicates. */
+  fieldRef?: FieldRef;
   rowKey: string;
   started?: number;
 }
@@ -151,6 +154,7 @@ function foldSummaryOutputs(logs: readonly SummaryFactSourceOutput[]): Map<strin
     folded.set(rowKey, {
       projectionName, metricKey, value: value.value as number, unit: value.unit,
       effortSlug, discipline, intensityTier, grade, groupTags, rowKey,
+      ...(fieldRef ? { fieldRef } : {}),
       started: output.timeSpan?.started,
     });
   }
@@ -277,15 +281,16 @@ export function toSummaryEventRows(
     grain: 'summary' as const,
     outputType: 'analytics',
     // Ticket 14 provenance: engine-authored summaries are calculated
-    // representations covering their producing scope, with the retained
-    // statistics a substitution proof needs (ticket 16 consumes).
+    // representations covering their producing scope. NO fabricated
+    // reducerStats: the fold retains only the value, and the contract forbids
+    // inventing observedCount (undefined = insufficient evidence for
+    // count/avg; sum-shaped operations answer from the value alone).
     representationKind: 'calculated' as const,
     summaryCoverage: {
         scope: (f.effortSlug ? 'effort' : f.groupTags ? 'partition' : 'workout') as 'effort' | 'partition' | 'workout',
         ...(f.effortSlug ? { effortSlug: f.effortSlug } : {}),
         ...(f.groupTags ? { groupTags: f.groupTags } : {}),
     },
-    reducerStats: { observedCount: 1, sum: f.value },
     effortSlug: f.effortSlug,
     metrics: [{
       type: f.metricKey,
@@ -293,6 +298,7 @@ export function toSummaryEventRows(
       ...(f.unit ? { unit: f.unit } : {}),
       metadata: {
         canonicalKey: f.metricKey,
+        ...(f.fieldRef ? { fieldRef: f.fieldRef, originalKey: f.projectionName } : {}),
         ...(f.effortSlug ? { effortSlug: f.effortSlug } : {}),
         ...(f.discipline ? { effortDiscipline: f.discipline } : {}),
         ...(f.intensityTier ? { effortIntensityTier: f.intensityTier } : {}),

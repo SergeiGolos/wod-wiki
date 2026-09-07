@@ -9,7 +9,7 @@
  * `docs/wayfinder/analytics-widget-gallery/assets/003-gallery-architecture-and-coverage-manifest.md`.
  *
  * Card dispatch follows the real Dashboard Note contract: `body` is one
- * line of `query / param1 param2` (splitWidgetBody), the declared
+ * Query Document body (decision 22 — no positional split), the declared
  * `widgetType` rides the fence-tag suffix (parseQueryWidgetSuffix), and
  * WidgetChart renders the parsed type + params.
  */

@@ -6,7 +6,7 @@
  * (selected → buckets → aggregated → groups).
  *
  * Dispatch by query family: aggregates render through the real Dashboard
- * Note contract (splitWidgetBody + parseQueryWidgetSuffix → WidgetChart,
+ * Note contract (Query Document body + parseQueryWidgetSuffix → WidgetChart,
  * auto-section via useChartShape); rows:{…} renders through RowsTable;
  * find:{target} renders through the gallery-local FindResultList.
  */
@@ -18,7 +18,6 @@ import {
   isRowsQuery,
   parseQuery,
   parseQueryWidgetSuffix,
-  splitWidgetBody,
   type FindQueryResult,
   type QueryResult,
   type RowsQueryResult,
@@ -167,9 +166,8 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
           // In-flight query: keep result undefined to showcase the loading state
           return;
         }
-        // Dashboard Note body contract: one line, `query / param1 param2`.
-        const { query } = splitWidgetBody(wql);
-        const parsed = parseQuery(query);
+        // Decision 22: the body IS the Query Document — no positional split.
+        const parsed = parseQuery(wql);
         if (parsed.error) {
           if (!cancelled) {
             setError(parsed.error);
@@ -334,7 +332,7 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
             <WidgetChart
               type={suffix?.type ?? def.widgetType}
               result={result}
-              params={splitWidgetBody(body).params}
+              params={def.params ?? []}
               label={def.title}
             />
           )}

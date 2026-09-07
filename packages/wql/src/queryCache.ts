@@ -55,9 +55,10 @@ export class AnalyticsInvalidationBus {
         this.channel?.addEventListener('message', (event: MessageEvent) => {
             const data = event.data as { type?: string; generation?: number } | null;
             if (data?.type !== MUTATION_MESSAGE) return;
-            // Advance to at least the remote generation — a local counter
-            // behind a peer's must catch up so cache comparisons stay sound.
-            this.generation = Math.max(this.generation, (data.generation ?? 0));
+            // A receipt is always a NEW mutation for cache purposes: reloads
+            // and equal-counter states must not alias (query freshness §6).
+            // Advance past the remote epoch unconditionally.
+            this.generation = Math.max(this.generation, (data.generation ?? 0)) + 1;
             this.notify();
         });
     }
@@ -123,8 +124,12 @@ export function computeCacheKey(
     // one document).
     const canonical = JSON.stringify([
         parsed.family,
-        parsed.family === 'aggregate' ? [parsed.agg, parsed.metric, parsed.filters, parsed.groupBy, parsed.rollup ?? null, parsed.window ?? null, parsed.displayUnit ?? null] : null,
-        parsed.family === 'find' ? [parsed.target, parsed.filters, parsed.window ?? null] : null,
+        parsed.family === 'aggregate'
+            // `join` participates: different joined populations are different
+            // queries even with identical aggregates.
+            ? [parsed.agg, parsed.metric, parsed.filters, parsed.groupBy, parsed.rollup ?? null, parsed.window ?? null, parsed.displayUnit ?? null, parsed.join ?? null]
+            : null,
+        parsed.family === 'find' ? [parsed.target, parsed.filters, parsed.window ?? null, parsed.join ?? null] : null,
         parsed.family === 'rows' ? [parsed.target ?? null, parsed.outputType ?? null, parsed.filters, parsed.window ?? null, parsed.pipes ?? null] : null,
     ]);
     return JSON.stringify([
@@ -161,7 +166,10 @@ export function coalescingEventStore<S extends {
             if (existing) return existing.promise;
             const entry: CoalescingEntry = {
                 promise: inner.getEventsByTimeRange(start, end).finally(() => {
-                    inFlight.delete(key);
+                    // Identity check: invalidateInFlight may already have
+                    // cleared the map and a REPLACEMENT fetch registered —
+                    // the stale entry's completion must not delete it.
+                    if (inFlight.get(key) === entry) inFlight.delete(key);
                 }),
             };
             inFlight.set(key, entry);

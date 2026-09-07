@@ -18,7 +18,7 @@
 
 import { QueryDocumentRunner as FormulaAwareRunner, type DocumentResult, type DocumentOutput, type FormulaEvaluator } from './documentRunner';
 import { parseDocument, serializeDocument } from './document';
-import type { ExecutionContext } from './calendar';
+import { captureContext, type ExecutionContext } from './calendar';
 import type { DocumentAssignment } from './document';
 import type { ParsedAggregateQuery } from './wql';
 
@@ -69,45 +69,32 @@ export interface SharedRunnerOptions {
 const ROLLUP_TARGETS = ['calc.acwr', 'calc.monotony', 'calc.strain'];
 
 export class QueryDocumentRunner {
-    private readonly formulaRunner: FormulaAwareRunner;
     private readonly host: QueryDocumentRunnerHost;
     private readonly initialOptions: SharedRunnerOptions;
-    private captured: SharedRunnerOptions;
 
     constructor(host: QueryDocumentRunnerHost, options: SharedRunnerOptions = {}) {
         this.host = host;
         this.initialOptions = options;
-        this.captured = options;
-        // The formula-aware document evaluation (ticket 17) drives the
-        // document semantics; this runner adds tokens, rollup ensure,
-        // context capture, and family dispatch around it.
-        this.formulaRunner = new FormulaAwareRunner(async (queryText, overrides) => {
-            if (overrides.window) {
-                queryText = appendSuffixes(queryText, overrides.window, overrides.groupBy);
-            }
-            return this.host.runAggregate(queryText, { context: this.captured?.context, window: overrides.window });
-        }, {
-            formulaEvaluator: (host as { formulaEvaluator?: FormulaEvaluator }).formulaEvaluator,
-            // Ticket 19 family dispatch — host hooks surface the tabular and
-            // find results through the document outputs.
-            runRows: (queryText) => (host.runRows?.(queryText, this.captured?.context) ?? Promise.resolve({})) as Promise<{ table?: unknown; runs?: unknown[]; error?: string }>,
-            runFind: (queryText) => (host.runFind?.(queryText, this.captured?.context) ?? Promise.resolve({})) as Promise<{ notes?: unknown[]; blocks?: unknown[]; error?: string }>,
-        });
     }
 
     /**
      * Run one document. `runOptions` override construction-time captures
-     * (tokens, context) — one capture per run either way.
+     * (tokens, context) — one capture per run. Each run gets its OWN
+     * evaluation snapshot: overlapping runs (one awaiting rollupEnsure while
+     * another executes) can never borrow each other's context.
      */
     async run(text: string, runOptions: SharedRunnerOptions = {}): Promise<DocumentResult> {
-        this.captured = {
+        const captured: SharedRunnerOptions = {
             ...this.initialOptions,
             ...runOptions,
             tokens: { ...this.initialOptions.tokens, ...runOptions.tokens },
+            // One captured execution context per run (ticket 12): callers
+            // that supply none still get a single capture for the run.
+            context: runOptions.context ?? this.initialOptions.context ?? captureContext(),
         };
 
         // 1. Token substitution — raw text at execution time.
-        const substituted = substituteTokens(text, this.captured.tokens ?? {});
+        const substituted = substituteTokens(text, captured.tokens ?? {});
 
         // 3. AST rollup inspection on the substituted text: a calc.* target
         // in the parsed head triggers the host ensure exactly once.
@@ -118,10 +105,21 @@ export class QueryDocumentRunner {
             await this.host.rollupEnsure?.();
         }
 
-        // 4+5. Document evaluation — family dispatch flows through the host
-        // hooks (rows/find queries run in the aggregate hook, which the host
-        // implements by dispatching on the parsed family).
-        return this.formulaRunner.run(substituted);
+        // 4+5. Document evaluation — the formula-aware runner (ticket 17)
+        // drives semantics; its hooks bind THIS run's snapshot.
+        const formulaRunner = new FormulaAwareRunner(async (queryText, overrides) => {
+            if (overrides.window) {
+                queryText = appendSuffixes(queryText, overrides.window, overrides.groupBy);
+            }
+            return this.host.runAggregate(queryText, { context: captured.context, window: overrides.window });
+        }, {
+            // The injected evaluator (ticket 17 seam) wins; the host may also
+            // carry one; otherwise the built-in evaluates.
+            formulaEvaluator: captured.formulaEvaluator ?? (this.host as { formulaEvaluator?: FormulaEvaluator }).formulaEvaluator,
+            runRows: (queryText) => (this.host.runRows?.(queryText, captured.context) ?? Promise.resolve({})) as Promise<{ table?: unknown; runs?: unknown[]; error?: string }>,
+            runFind: (queryText) => (this.host.runFind?.(queryText, captured.context) ?? Promise.resolve({})) as Promise<{ notes?: unknown[]; blocks?: unknown[]; error?: string }>,
+        });
+        return formulaRunner.run(substituted);
     }
 }
 

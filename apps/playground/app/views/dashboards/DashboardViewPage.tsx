@@ -142,9 +142,12 @@ export function DashboardViewPage() {
         const result = mutate(raw);
         if (!result.ok) {
           // Structured refusals (decision 22): not-found vs stale-body are
-          // distinct failures — both refuse the write.
+          // distinct failures — both refuse the write. (Discriminant access
+          // is explicit: the app compiles without strictNullChecks, so union
+          // narrowing by `ok` is unavailable.)
+          const reason = (result as { reason?: 'not-found' | 'stale-body' }).reason;
           throw new Error(
-            result.reason === 'stale-body'
+            reason === 'stale-body'
               ? 'Widget changed since you opened this page — reload and retry.'
               : 'Widget no longer exists — reload the dashboard.',
           );
@@ -166,7 +169,18 @@ export function DashboardViewPage() {
         await mutateNote(composer.expectedRaw, (raw) => appendWidget(raw, spec));
       } else {
         const widget = composer.widget;
-        await mutateNote(composer.expectedRaw, (raw) => updateWidget(raw, widget.key, widget.body, spec));
+        await mutateNote(composer.expectedRaw, (raw) => {
+          const result = updateWidget(raw, widget.key, widget.body, spec);
+          if (!result.ok) {
+            const reason = (result as { reason?: 'not-found' | 'stale-body' }).reason;
+            throw new Error(
+              reason === 'stale-body'
+                ? 'Widget changed since you opened this page — reload and retry.'
+                : 'Widget no longer exists — reload the dashboard.',
+            );
+          }
+          return result.note;
+        });
       }
     },
     [composer, mutateNote],
