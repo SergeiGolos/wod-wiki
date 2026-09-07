@@ -361,55 +361,58 @@ export function QueriableStreamView({
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
       {/* Desktop: single-line header — the query bar fills the row left
-          empty by the removed title.
+          empty by the removed title. The header itself is the sticky zone
+          (lg:sticky top-0) and MUST be a direct child of this full-height
+          column: a wrapper div would box the sticky element to its own
+          height and let it scroll away. max-lg:hidden therefore rides on
+          the header root via className.
           Mobile: no page-level header at all (it would stack over the app
           navbar and hide the menu trigger); the query bar portals up into
           that navbar instead. */}
-      <div className="max-lg:hidden">
-        <StickyPageHeader
-          actions={
-            <ResponsiveActions
-              primary={
-                <div className="flex items-center gap-1.5">
+      <StickyPageHeader
+        className="max-lg:hidden"
+        actions={
+          <ResponsiveActions
+            primary={
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                  title="View Settings"
+                  data-testid="stream-view-settings-trigger"
+                >
+                  <SlidersHorizontal className="size-3.5" />
+                  <span className="hidden sm:inline">View</span>
+                </Button>
+                {profile.route === '/efforts' && (
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                    title="View Settings"
-                    data-testid="stream-view-settings-trigger"
+                    onClick={() => navigate('/effort/new?mode=create')}
+                    className="h-8 px-2.5 text-xs gap-1.5"
+                    data-testid="efforts-catalog-create-btn"
                   >
-                    <SlidersHorizontal className="size-3.5" />
-                    <span className="hidden sm:inline">View</span>
+                    <Plus className="size-3.5" />
+                    <span>New</span>
                   </Button>
-                  {profile.route === '/efforts' && (
-                    <Button
-                      size="sm"
-                      onClick={() => navigate('/effort/new?mode=create')}
-                      className="h-8 px-2.5 text-xs gap-1.5"
-                      data-testid="efforts-catalog-create-btn"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>New</span>
-                    </Button>
-                  )}
-                </div>
-              }
-              label="Stream actions"
-            >
-              {actions}
-            </ResponsiveActions>
-          }
-          queryBar={
-            <StreamQueryBar
-              query={query}
-              onQueryChange={setQuery}
-              options={profile.typeOptions}
-              execute={execute}
-            />
-          }
-        />
-      </div>
+                )}
+              </div>
+            }
+            label="Stream actions"
+          >
+            {actions}
+          </ResponsiveActions>
+        }
+        queryBar={
+          <StreamQueryBar
+            query={query}
+            onQueryChange={setQuery}
+            options={profile.typeOptions}
+            execute={execute}
+          />
+        }
+      />
       {isMobile && mobileSlot && (
         createPortal(
           <StreamQueryBar
@@ -477,6 +480,7 @@ export function QueriableStreamView({
           <StreamFeed
             groups={visibleGroups}
             batch={entriesBatch}
+            stickyOffset={stickyOffset}
             onRunEntry={handleRunEntry}
             onSendToPlayground={handleSendToPlayground}
           />
