@@ -73,10 +73,10 @@ describe('Direct route mounting classification (routeView)', () => {
 describe('Route-aware stream profile resolution', () => {
   it('resolves canonical StreamProfile configurations per route', () => {
     expect(resolveStreamProfile('/journal')).toBe(JOURNAL_STREAM_PROFILE)
-    expect(resolveStreamProfile('/journal').defaultWql).toBe('find:note{source:journal} last 2w')
+    expect(resolveStreamProfile('/journal').defaultWql).toBe('find:note{source:journal} last 4w')
 
     expect(resolveStreamProfile('/collections')).toBe(COLLECTIONS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/collections').defaultWql).toBe('find:note{source:collections}')
+    expect(resolveStreamProfile('/collections').defaultWql).toBe('find:note{source:collections} by {tag}')
 
     expect(resolveStreamProfile('/feeds')).toBe(FEEDS_STREAM_PROFILE)
     expect(resolveStreamProfile('/feeds').defaultWql).toBe('find:note{source:feeds} last 2w')

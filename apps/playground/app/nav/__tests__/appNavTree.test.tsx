@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
-import { buildAppNavTree, appNavTree } from '../appNavTree'
+import { buildAppNavTree, appNavTree, PLAYGROUND_LIBRARY_WQL } from '../appNavTree'
 import { ROUTE_PATTERNS } from '../../lib/routes'
 import { NavProvider } from '../NavContext'
 import { NavSidebar } from '../NavSidebar'
@@ -43,7 +43,7 @@ describe('appNavTree - Library navigation', () => {
     expect(playground.label).toBe('Playground')
     expect(playground.action).toEqual({
       type: 'route',
-      to: `/library?q=${encodeURIComponent('find:note{source:playground}')}`,
+      to: `/library?q=${encodeURIComponent(PLAYGROUND_LIBRARY_WQL)}`,
     })
 
     expect(feeds.id).toBe('library-feeds')

@@ -53,7 +53,7 @@ function safeSlug(text: string): string {
 }
 
 /**
- * Group entries by a specified dimension (date, week, month, year, discipline, origin, kind, tag).
+ * Group entries by a specified dimension (date, week, month, year, discipline, origin, kind, source, tag).
  */
 export function groupEntriesByDimension(
   entries: Entry[],
@@ -286,6 +286,25 @@ export function groupEntriesByDimension(
       label: key,
       entries: groupEntries,
     }))
+  }
+
+  if (dim === 'source') {
+    const map = new Map<string, Entry[]>()
+    for (const e of entries) {
+      const source = e.sourceCatalog || 'Other'
+      const label = source.charAt(0).toUpperCase() + source.slice(1)
+      const arr = map.get(label)
+      if (arr) arr.push(e)
+      else map.set(label, [e])
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, groupEntries]) => ({
+        id: `group-source-${safeSlug(key)}`,
+        key,
+        label: key,
+        entries: groupEntries,
+      }))
   }
 
   if (dim === 'kind' || dim === 'type') {

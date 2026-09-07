@@ -130,8 +130,9 @@ const homeChildren: NavItem[] = [
 // ─── L2 children for Library ──────────────────────────────────────────────────
 
 /** Canonical playground library view — the WQL-encoded library stream query
- *  (no dedicated route; the stream profile resolves /library + ?q=). */
-export const PLAYGROUND_LIBRARY_WQL = 'find:note{source:playground}'
+ *  (no dedicated route; the stream profile resolves /library + ?q=).
+ *  One-month window; bucketed by the notes' source plane. */
+export const PLAYGROUND_LIBRARY_WQL = 'find:note{source:playground} by {source} last 4w'
 export const PLAYGROUND_LIBRARY_HREF = `/library?q=${encodeURIComponent(PLAYGROUND_LIBRARY_WQL)}`
 
 function isLibraryPlaygroundActive(loc: Location): boolean {

@@ -26,6 +26,7 @@ import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { createPortal } from 'react-dom'
 import {
   StickyPageHeader,
+  StickyGroupHeader,
   useStickyBoundaryOffset,
   useMobileQuerySlot,
 } from '@/panels/page-shells'
@@ -472,6 +473,7 @@ export function QueriableStreamView({
             entries={entries}
             level={profile.level}
             visibleFieldIds={settings.visibleFields}
+            stickyHeaderTop={stickyOffset}
             emptyMessage={profile.emptyMessage ?? 'No matching records found.'}
           />
         </div>
@@ -541,25 +543,17 @@ export function QueriableStreamView({
 
                 return (
                   <div key={group.id} id={group.id} className="group/date" data-testid={`date-group-${group.key}`}>
-                    <div
-                      className="sticky z-10 px-6 py-2 bg-card/95 backdrop-blur border-y border-border/60 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                      style={{ top: `${stickyOffset}px` }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="size-3.5 text-muted-foreground" />
-                        <span className="text-xs font-bold text-foreground">
-                          {group.label}
+                    <StickyGroupHeader
+                      top={stickyOffset}
+                      icon={<CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />}
+                      label={group.label}
+                      badge={group.isToday ? (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                          Today
                         </span>
-                        {group.isToday && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                            Today
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {totalInGroup} {totalInGroup === 1 ? 'entry' : 'entries'}
-                      </span>
-                    </div>
+                      ) : undefined}
+                      meta={`${totalInGroup} ${totalInGroup === 1 ? 'entry' : 'entries'}`}
+                    />
                     <div className="divide-y divide-border/30">
                       {group.entries.map(entry => (
                         <LibraryRow

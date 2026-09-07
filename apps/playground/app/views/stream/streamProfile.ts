@@ -74,7 +74,7 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
 
 export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   route: '/journal',
-  defaultWql: 'find:note{source:journal} last 2w',
+  defaultWql: 'find:note{source:journal} last 4w',
   level: 'note',
   typeOptions: ['journal'],
   legacy: createContentLegacyConfig('journal'),
@@ -82,7 +82,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   route: '/collections',
-  defaultWql: 'find:note{source:collections}',
+  defaultWql: 'find:note{source:collections} by {tag}',
   level: 'session',
   typeOptions: ['collections'],
   shelfVisible: true,
