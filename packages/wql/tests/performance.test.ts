@@ -86,11 +86,18 @@ describe('ticket 20 — measured budgets', () => {
     };
     // Warm the code path once.
     await service.runRows(parsed as never);
-    const start = performance.now();
     const result = await service.runRows(parsed as never);
-    const elapsed = performance.now() - start;
-    expect(result.table).toBeDefined();
-    expect(result.table!.rows).toHaveLength(50);
+    // Median of several timed runs: a single sample on a loaded CI runner
+    // is noise-dominated (one GC pause breaches the budget); the median
+    // tracks the real query cost (ticket 20 measured-budget contract).
+    const samples: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const t0 = performance.now();
+      const run = await service.runRows(parsed as never);
+      samples.push(performance.now() - t0);
+      expect(run.table!.rows).toHaveLength(50);
+    }
+    const elapsed = samples.sort((a, b) => a - b)[2]!;
     expect(result.table!.totalCount).toBe(5000);
     expect(elapsed).toBeLessThan(50);
   });
