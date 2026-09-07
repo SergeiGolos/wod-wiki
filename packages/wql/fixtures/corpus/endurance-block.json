@@ -193,7 +193,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 8
+      }
     },
     {
       "id": "res-run-w0:summary:tis",
@@ -219,7 +224,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 44
+      }
     },
     {
       "id": "res-run-w0:summary:sessionLoad",
@@ -245,7 +255,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 190
+      }
     },
     {
       "id": "res-row-w0:summary:distance",
@@ -271,7 +286,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 6000
+      }
     },
     {
       "id": "res-row-w0:summary:tis",
@@ -297,7 +317,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 40
+      }
     },
     {
       "id": "res-row-w0:summary:sessionLoad",
@@ -323,7 +348,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 170
+      }
     },
     {
       "id": "res-bike-w0:summary:distance",
@@ -349,7 +379,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 28
+      }
     },
     {
       "id": "res-bike-w0:summary:tis",
@@ -375,7 +410,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 42
+      }
     },
     {
       "id": "res-bike-w0:summary:sessionLoad",
@@ -401,7 +441,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 200
+      }
     },
     {
       "id": "res-run-w1:summary:distance",
@@ -427,7 +472,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 8.4
+      }
     },
     {
       "id": "res-run-w1:summary:tis",
@@ -453,7 +503,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 45
+      }
     },
     {
       "id": "res-run-w1:summary:sessionLoad",
@@ -479,7 +534,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 197
+      }
     },
     {
       "id": "res-row-w1:summary:distance",
@@ -505,7 +565,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 6150
+      }
     },
     {
       "id": "res-row-w1:summary:tis",
@@ -531,7 +596,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 41
+      }
     },
     {
       "id": "res-row-w1:summary:sessionLoad",
@@ -557,7 +627,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 175
+      }
     },
     {
       "id": "res-bike-w1:summary:distance",
@@ -583,7 +658,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 29.2
+      }
     },
     {
       "id": "res-bike-w1:summary:tis",
@@ -609,7 +689,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 43
+      }
     },
     {
       "id": "res-bike-w1:summary:sessionLoad",
@@ -635,7 +720,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 206
+      }
     },
     {
       "id": "res-run-w2:summary:distance",
@@ -661,7 +751,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 8.8
+      }
     },
     {
       "id": "res-run-w2:summary:tis",
@@ -687,7 +782,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 46
+      }
     },
     {
       "id": "res-run-w2:summary:sessionLoad",
@@ -713,7 +813,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 204
+      }
     },
     {
       "id": "res-row-w2:summary:distance",
@@ -739,7 +844,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 6300
+      }
     },
     {
       "id": "res-row-w2:summary:tis",
@@ -765,7 +875,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 42
+      }
     },
     {
       "id": "res-row-w2:summary:sessionLoad",
@@ -791,7 +906,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 180
+      }
     },
     {
       "id": "res-bike-w2:summary:distance",
@@ -817,7 +937,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 30.4
+      }
     },
     {
       "id": "res-bike-w2:summary:tis",
@@ -843,7 +968,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 44
+      }
     },
     {
       "id": "res-bike-w2:summary:sessionLoad",
@@ -869,7 +999,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 212
+      }
     },
     {
       "id": "res-run-w3:summary:distance",
@@ -895,7 +1030,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 9.2
+      }
     },
     {
       "id": "res-run-w3:summary:tis",
@@ -921,7 +1061,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 47
+      }
     },
     {
       "id": "res-run-w3:summary:sessionLoad",
@@ -947,7 +1092,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 211
+      }
     },
     {
       "id": "res-row-w3:summary:distance",
@@ -973,7 +1123,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 6450
+      }
     },
     {
       "id": "res-row-w3:summary:tis",
@@ -999,7 +1154,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 43
+      }
     },
     {
       "id": "res-row-w3:summary:sessionLoad",
@@ -1025,7 +1185,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 185
+      }
     },
     {
       "id": "res-bike-w3:summary:distance",
@@ -1051,7 +1216,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 31.6
+      }
     },
     {
       "id": "res-bike-w3:summary:tis",
@@ -1077,7 +1247,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 45
+      }
     },
     {
       "id": "res-bike-w3:summary:sessionLoad",
@@ -1103,7 +1278,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 218
+      }
     },
     {
       "id": "res-run-w4:summary:distance",
@@ -1129,7 +1309,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 9.6
+      }
     },
     {
       "id": "res-run-w4:summary:tis",
@@ -1155,7 +1340,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 48
+      }
     },
     {
       "id": "res-run-w4:summary:sessionLoad",
@@ -1181,7 +1371,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 218
+      }
     },
     {
       "id": "res-row-w4:summary:distance",
@@ -1207,7 +1402,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 6600
+      }
     },
     {
       "id": "res-row-w4:summary:tis",
@@ -1233,7 +1433,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 44
+      }
     },
     {
       "id": "res-row-w4:summary:sessionLoad",
@@ -1259,7 +1464,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 190
+      }
     },
     {
       "id": "res-bike-w4:summary:distance",
@@ -1285,7 +1495,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 32.8
+      }
     },
     {
       "id": "res-bike-w4:summary:tis",
@@ -1311,7 +1526,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 46
+      }
     },
     {
       "id": "res-bike-w4:summary:sessionLoad",
@@ -1337,7 +1557,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 224
+      }
     },
     {
       "id": "res-run-w5:summary:distance",
@@ -1363,7 +1588,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 10
+      }
     },
     {
       "id": "res-run-w5:summary:tis",
@@ -1389,7 +1619,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 49
+      }
     },
     {
       "id": "res-run-w5:summary:sessionLoad",
@@ -1415,7 +1650,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 225
+      }
     },
     {
       "id": "res-row-w5:summary:distance",
@@ -1441,7 +1681,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 6750
+      }
     },
     {
       "id": "res-row-w5:summary:tis",
@@ -1467,7 +1712,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 45
+      }
     },
     {
       "id": "res-row-w5:summary:sessionLoad",
@@ -1493,7 +1743,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 195
+      }
     },
     {
       "id": "res-bike-w5:summary:distance",
@@ -1519,7 +1774,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 34
+      }
     },
     {
       "id": "res-bike-w5:summary:tis",
@@ -1545,7 +1805,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 47
+      }
     },
     {
       "id": "res-bike-w5:summary:sessionLoad",
@@ -1571,7 +1836,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 230
+      }
     },
     {
       "id": "res-run-w5:1",

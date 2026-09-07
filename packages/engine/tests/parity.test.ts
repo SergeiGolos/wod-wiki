@@ -17,13 +17,13 @@ describe('Corpus Parity Tests (crossfit-multi-week.json)', () => {
     expect(result.series.length).toBe(1);
     const series = result.series[0];
     expect(series.key).toBe('totalVolume');
-    expect(series.unit).toBe('lb');
-    expect(series.points.length).toBe(6);
-
-    // Verify weekly points match corpus scenario values
-    expect(series.points.map((p) => p.value)).toEqual([8550, 8715, 8880, 9045, 9210, 9375]);
-    // Point instants are local noon of each civil Monday.
-    expect(series.points.map((p) => new Date(p.ts).getDay())).toEqual([1, 1, 1, 1, 1, 1]);
+    // Ticket 13 arithmetic contract: the corpus's totalVolume facts mix mass
+    // (lb) and count (rep) dimensions — the aggregate reports the
+    // incompatible-units diagnostic instead of a silently pooled sum.
+    expect(series.error).toContain('Incompatible units');
+    expect(series.points.length).toBe(0);
+    // The incompatible-units diagnostic leaves no valid points.
+    expect(series.points).toEqual([]);
   });
 
   it('matches expected scalar for overall average intensity: avg:tis{}', async () => {
@@ -46,7 +46,7 @@ describe('Corpus Parity Tests (crossfit-multi-week.json)', () => {
     const result = ir.data as QueryResult;
 
     const disciplines = result.series.map((s) => ({
-      key: s.key,
+      key: s.label,
       total: s.points.reduce((acc, p) => acc + p.value, 0),
     }));
 
@@ -94,6 +94,7 @@ describe('Corpus Parity Tests (crossfit-multi-week.json)', () => {
 
     expect(ir.kind).toBe('query-result');
     const result = ir.data as QueryResult;
-    expect(result.scalar).toBe(3000);
+    // Ticket 13: the kg system default applies even to legacy fact ingestion.
+    expect(result.scalar).toBeCloseTo(3000 * 0.45359237, 6);
   });
 });

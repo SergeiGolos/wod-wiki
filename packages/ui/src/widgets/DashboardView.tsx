@@ -113,7 +113,7 @@ export function DashboardView({
   const resolved = useMemo(
     () =>
       document.widgets.map((widget) => {
-        const { query, missing } = substituteTokens(widget.query, values);
+        const { query, missing } = substituteTokens(widget.body, values);
         return { widget, query, missing };
       }),
     [document.widgets, values],
@@ -280,7 +280,7 @@ export function DashboardView({
                   result={run?.result}
                   label={widget.title}
                   unit={preferredUnit}
-                  params={widget.params}
+                  attributes={widget.attributes}
                 />
               )}
             </WidgetFrame>

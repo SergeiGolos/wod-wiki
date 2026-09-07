@@ -18,8 +18,8 @@ ring target is the frontmatter $hangGoal token.
 ## Max-hang goal
 Finger strength vs the benchmark cohort?
 
-```query:goal-rings-2
-max:calc.mvcBw{} / $hangGoal
+```query:goal-rings-2 goal=$hangGoal
+max:calc.mvcBw{}
 ```
 
 ## Max-hang trend

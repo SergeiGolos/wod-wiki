@@ -148,7 +148,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 4500
+      }
     },
     {
       "id": "res-str-w0:summary:tis",
@@ -174,7 +179,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 50
+      }
     },
     {
       "id": "res-cardio-w0:summary:distance",
@@ -200,7 +210,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 4
+      }
     },
     {
       "id": "wellness:note-well-2026-06-10:sleep",
@@ -262,7 +277,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 4650
+      }
     },
     {
       "id": "res-str-w1:summary:tis",
@@ -288,7 +308,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 52
+      }
     },
     {
       "id": "res-cardio-w1:summary:distance",
@@ -314,7 +339,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5.25
+      }
     },
     {
       "id": "wellness:note-well-2026-06-17:sleep",
@@ -414,7 +444,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 4950
+      }
     },
     {
       "id": "res-str-w3:summary:tis",
@@ -440,7 +475,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 56
+      }
     },
     {
       "id": "res-cardio-w3:summary:distance",
@@ -466,7 +506,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5.75
+      }
     }
   ]
 }

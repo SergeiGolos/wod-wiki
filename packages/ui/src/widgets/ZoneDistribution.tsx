@@ -24,7 +24,7 @@ function parseTargetNum(val: string | undefined, fallback: number): number {
   return isNaN(num) ? fallback : num;
 }
 
-export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
+export function ZoneDistribution({ result, params, attributes }: ZoneDistributionProps & { attributes?: Record<string, string> }) {
   if (!result || result.series.length === 0) {
     return <WqlEmptyState result={result} />;
   }
@@ -33,8 +33,9 @@ export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
   let targetMod = 0;
   let targetHigh = 20;
 
-  if (params && params.length > 0) {
-    const rawTokens = params[0].trim().split(/\s+/);
+  const rawTargets = attributes?.['targets'];
+  if (rawTargets) {
+    const rawTokens = rawTargets.trim().split(/\s+/);
     if (rawTokens.length >= 3) {
       targetLow = parseTargetNum(rawTokens[0], 80);
       targetMod = parseTargetNum(rawTokens[1], 0);
@@ -47,6 +48,15 @@ export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
       targetLow = parseTargetNum(rawTokens[0], 80);
       targetHigh = Math.max(0, 100 - targetLow);
       targetMod = 0;
+    }
+  } else if (params && params.length > 0) {
+    // Legacy positional form (pre-decision-22 notes): one space-separated
+    // params token carrying the same targets.
+    const rawTokens = params[0]!.trim().split(/\s+/);
+    if (rawTokens.length >= 3) {
+      targetLow = parseTargetNum(rawTokens[0], 80);
+      targetMod = parseTargetNum(rawTokens[1], 0);
+      targetHigh = parseTargetNum(rawTokens[2], 20);
     }
   }
 

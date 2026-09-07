@@ -37,6 +37,9 @@ function fact(
     segmentVersion: 1,
     timestamp,
     ...identity,
+    // Post-V14 engine output: summaries carry substitution-proof stats.
+    representationKind: 'calculated',
+    reducerStats: { observedCount: 1 },
     metrics: [{
       type: metricKey,
       value,
@@ -200,7 +203,8 @@ describe('QueryService', () => {
       ['max:totalVolume{}', 3000],
       ['count:totalVolume{}', 4],
       ['last:totalVolume{}', 3000],
-      ['delta:totalVolume{}', 500 - 1000],
+      // Ticket 13: delta is chronological (metric-date order), not fetch order.
+      ['delta:totalVolume{}', 3000 - 1000],
     ];
     for (const [query, expected] of cases) {
       expect((await service.runQuery(query)).scalar).toBe(expected);
@@ -222,19 +226,25 @@ describe('QueryService', () => {
     const service = new QueryService(makeStore().store);
 
     const byEffort = await service.runQuery('sum:totalVolume{} by {effort}');
-    expect(byEffort.series.map(s => s.key).sort()).toEqual(['back-squat', 'rowing']);
-    expect(byEffort.series.find(s => s.key === 'back-squat')!.points[0].value).toBe(6000);
+    // Ticket 16: group identity is the ordered tuple; the label is display.
+    expect(byEffort.series.map(s => s.label).sort()).toEqual(['back-squat', 'rowing']);
+    expect(byEffort.series.find(s => s.label === 'back-squat')!.points[0].value).toBe(6000);
     expect(byEffort.stages.groups).toBe(2);
 
     const bySession = await service.runQuery('sum:totalVolume{} by {session}');
     expect(bySession.stages.groups).toBe(4);
 
     const byDay = await service.runQuery('sum:totalVolume{discipline:strength} by {day}');
-    expect(byDay.series[0].points).toHaveLength(3);
-    expect(byDay.stages.buckets).toBe(3);
+    // Ticket 12: the day domain spans the observed extent including empty
+    // interior days (day0, day0+1d, day0+8d → 9 civil days, 6 missing).
+    expect(byDay.series[0].points).toHaveLength(9);
+    expect(byDay.series[0].points.filter((p) => p.missing)).toHaveLength(6);
+    expect(byDay.stages.buckets).toBe(9);
 
     const byRound = await service.runQuery('sum:totalVolume{} by {round}');
-    expect(byRound.series[0].key).toBe('(none)');
+    // Ticket 16: the missing group resolves to the structural UNASSIGNED
+    // sentinel (label 'unassigned'), never a literal '(none)'.
+    expect(byRound.series[0].label).toBe('unassigned');
   });
 
   it('exposes stage telemetry and scalar for single-point results', async () => {
@@ -269,23 +279,24 @@ describe('QueryService unit conversion', () => {
 
     expect(result.unit).toBe('kg');
     expect(result.series[0]?.unit).toBe('kg');
-    expect(result.scalar).toBe(2721.55);
+    // Unrounded — renderers format (ticket 13).
+    expect(result.scalar).toBeCloseTo(2721.55422, 4);
   });
 
-  it('converts to a preferred unit when the query has no directive', async () => {
+  it('applies the system kg default when no directive (preference tier retired, ticket 13)', async () => {
     const service = new QueryService(makeStore(lbFacts).store);
     const result = await service.runQuery('sum:totalVolume{}', { preferredUnit: 'kg' });
 
     expect(result.unit).toBe('kg');
-    expect(result.scalar).toBe(2721.55);
+    expect(result.scalar).toBeCloseTo(2721.55422, 4);
   });
 
-  it('leaves mass values in the recorded unit when no directive or preference is given', async () => {
+  it('outputs the system kg default for mass when no directive is given (ticket 13)', async () => {
     const service = new QueryService(makeStore(lbFacts).store);
     const result = await service.runQuery('sum:totalVolume{}');
 
-    expect(result.unit).toBe('lb');
-    expect(result.scalar).toBe(6000);
+    expect(result.unit).toBe('kg');
+    expect(result.scalar).toBeCloseTo(2721.55422, 4);
   });
 
   it('ignores a preferred unit for non-mass metrics', async () => {
@@ -296,7 +307,7 @@ describe('QueryService unit conversion', () => {
     const service = new QueryService(makeStore(repsFacts).store);
     const result = await service.runQuery('sum:totalReps{}', { preferredUnit: 'kg' });
 
-    expect(result.unit).toBe('reps');
+    expect(result.unit).toBe('count');
     expect(result.scalar).toBe(80);
   });
 
@@ -306,9 +317,10 @@ describe('QueryService unit conversion', () => {
 
     expect(result.series).toHaveLength(1);
     expect(result.series[0]?.unit).toBe('kg');
-    expect(result.series[0]?.points[0]?.value).toBe(2721.55);
+    expect(result.series[0]?.points[0]?.value).toBeCloseTo(2721.55422, 4); // unrounded (ticket 13)
     expect(result.matched[0]?.unit).toBe('lb');
     expect(result.matched[0]?.value).toBe(1000);
+    expect(result.series[0]?.points[0]?.value).toBeCloseTo(2721.55422, 4); // unrounded (ticket 13)
   });
 });
 
@@ -342,17 +354,23 @@ describe('window module (C1) execution', () => {
     );
   });
 
-  it('no window scans; explicit options still win over the parsed window', async () => {
+  it('no window scans; the query window wins over host range options (ticket 12)', async () => {
     const { store, calls } = makeStore();
     const service = new QueryService({ eventStore: store });
     await service.runQuery('sum:totalVolume{}');
     expect(calls).toContain('scan-all');
+    // Explicit query window beats the host range — the host range is only
+    // the default when the query has none.
     calls.length = 0;
     await service.runQuery('sum:totalVolume{} last 1w', { rangeStart: 0, rangeEnd: 10 });
+    expect(calls).not.toEqual(['by-timestamp:0-10']);
+    // Host range applies when the query has no window.
+    calls.length = 0;
+    await service.runQuery('sum:totalVolume{}', { rangeStart: 0, rangeEnd: 10 });
     expect(calls).toEqual(['by-timestamp:0-10']);
   });
 
-  it('by {day} buckets points on LOCAL civil days (spec v2 decision 2)', async () => {
+  it('by {day} buckets points on LOCAL civil days with gap domain (ticket 12)', async () => {
     // Fixtures built from local components — deterministic in every zone.
     const monday = new Date(2026, 5, 8, 10).getTime();   // Mon Jun 8
     const tuesday = new Date(2026, 5, 9, 10).getTime();  // Tue Jun 9
@@ -367,10 +385,15 @@ describe('window module (C1) execution', () => {
     const service = new QueryService({ eventStore: store });
     const result = await service.runQuery('sum:totalVolume{} by {day}');
     const points = result.series[0]!.points;
-    expect(points).toHaveLength(3); // 3 civil days, not UTC-shifted buckets
+    // Ticket 12: the unbounded query uses the observed extent — Jun 8 …
+    // Jun 15 with every interior civil day present (8 buckets, 5 missing).
+    expect(points).toHaveLength(8);
+    expect(points.filter((p) => p.missing)).toHaveLength(5);
     // Point ts is local noon of its civil day.
-    expect(points.map((p) => new Date(p.ts).getDate())).toEqual([8, 9, 15]);
+    expect(points.map((p) => new Date(p.ts).getDate())).toEqual([8, 9, 10, 11, 12, 13, 14, 15]);
     expect(points[0]!.value).toBe(300); // both Jun-8 facts folded
+    expect(points[0]!.missing).toBeUndefined();
+    expect(points[7]!.value).toBe(500);
   });
 
   it('by {week} buckets points on civil-Monday weeks', async () => {

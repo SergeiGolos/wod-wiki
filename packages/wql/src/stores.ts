@@ -15,6 +15,10 @@ import type { BlockIndexRow, Note, UnifiedEventRecord } from '@bitcobblers/wod-w
  * lifecycle (ticket 005).
  */
 export interface UnifiedEventStore {
+    /** Ticket 12/14 complete-fetch seam: candidates whose METRIC date
+     *  (civil, multiEntry index) falls in the requested dates — rows whose
+     *  own date differs from their fetch-hint timestamp are reachable. */
+    getEventsByMetricDates?(dates: readonly string[]): Promise<UnifiedEventRecord[]>;
   // ── reads (all return UnifiedEventRecord) ──────────────────────────
   /** Windowed fetch — the one proven culling index (ticket 001). */
   getEventsByTimeRange(start: number, end: number): Promise<UnifiedEventRecord[]>;

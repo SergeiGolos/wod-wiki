@@ -8,13 +8,17 @@ const DAY = 86_400_000;
 const day0 = Math.floor(1_700_000_000_000 / DAY) * DAY;
 
 let logSeq = 0;
-function log(outputType: NonNullable<StoredOutputStatement['outputType']>): StoredOutputStatement {
+function log(outputType: NonNullable<StoredOutputStatement['outputType']>, started: number): StoredOutputStatement {
   logSeq += 1;
-  return { id: logSeq, outputType, timeSpan: { started: day0, ended: day0 + 1000 }, metrics: [] };
+  return { id: logSeq, outputType, timeSpan: { started, ended: started + 1000 }, metrics: [] };
 }
 
-/** The event rows a streaming write path appended for one result. */
-function makeResult(id: string, noteId: string, blockContentId: string, endTime: number, logs = [log('segment'), log('segment'), log('milestone')]): UnifiedEventRecord[] {
+/** The event rows a streaming write path appended for one result.
+ *  Ticket 12: statements carry their own timeSpans, anchored at the
+ *  workout's end time — row timestamps are the statements' own instants,
+ *  never the derivation clock. */
+function makeResult(id: string, noteId: string, blockContentId: string, endTime: number): UnifiedEventRecord[] {
+  const logs = [log('segment', endTime), log('segment', endTime + 1000), log('milestone', endTime + 2000)];
   return toEventRows(logs, { noteId, resultId: id, blockContentId, workoutTimestamp: endTime });
 }
 

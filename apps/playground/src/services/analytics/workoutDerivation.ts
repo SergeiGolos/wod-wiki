@@ -9,6 +9,13 @@
  * which is exactly what post-hoc re-derivation (replay) needs.
  *
  * Policies enforced here (one home, no drift):
+ *
+ * LEGACY (wayfinder datadog-analytics ticket 11): this module duplicates
+ * `resolveCanonicalMetricKey` and the V12/V13 fact-row emitters of
+ * `packages/wql/src/derivation.ts` for pre-V16 upgrade backfills. Do NOT
+ * extend it and do NOT port new identity behavior into it (typed field
+ * references live only in the wql canonical copy); retirement belongs to
+ * the DB-v17 minimum-version decision (ticket 14).
  *   - Canonical input/output is StoredOutputStatement[] — a SINGLE logs
  *     stream holding all tiers. Tier 2 is discriminated by outputType
  *     ('analytics'); there is no separate analytics property (CONTEXT.md,

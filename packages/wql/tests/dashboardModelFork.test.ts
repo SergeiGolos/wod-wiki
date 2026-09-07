@@ -3,7 +3,7 @@
  * frontmatter tokens, $token substitution, widget-body param split, and the
  * section → document builder with markdown title/question association.
  */
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import {
   buildDashboardDocument,
   defaultTokenValues,
@@ -14,34 +14,35 @@ import {
   parseQueryWidgetSuffix,
   referencedTokens,
   setDashboardTokenValue,
-  splitWidgetBody,
   substituteTokens,
   type DashboardSectionInput,
-} from './model';
+} from '../src/dashboard/model';
 
 describe('parseQueryWidgetSuffix', () => {
   it('parses a bare type', () => {
-    expect(parseQueryWidgetSuffix('timeseries')).toEqual({ type: 'timeseries' });
+    expect(parseQueryWidgetSuffix('timeseries')).toEqual({ type: 'timeseries', attributes: {}, attributeOrder: [] });
   });
 
   it('parses type with column span', () => {
-    expect(parseQueryWidgetSuffix('bar-2')).toEqual({ type: 'bar', spanCols: 2 });
+    expect(parseQueryWidgetSuffix('bar-2')).toEqual({ type: 'bar', spanCols: 2, attributes: {}, attributeOrder: [] });
   });
 
   it('parses type with full-row flag', () => {
-    expect(parseQueryWidgetSuffix('heatmap-full')).toEqual({ type: 'heatmap', spanFull: true });
+    expect(parseQueryWidgetSuffix('heatmap-full')).toEqual({ type: 'heatmap', spanFull: true, attributes: {}, attributeOrder: [] });
   });
 
   it('parses kebab-case types', () => {
-    expect(parseQueryWidgetSuffix('stacked-bar')).toEqual({ type: 'stacked-bar' });
+    expect(parseQueryWidgetSuffix('stacked-bar')).toEqual({ type: 'stacked-bar', attributes: {}, attributeOrder: [] });
     expect(parseQueryWidgetSuffix('zone-distribution-4')).toEqual({
       type: 'zone-distribution',
       spanCols: 4,
+      attributes: {},
+      attributeOrder: [],
     });
   });
 
   it('lowercases the type', () => {
-    expect(parseQueryWidgetSuffix('TimeSeries')).toEqual({ type: 'timeseries' });
+    expect(parseQueryWidgetSuffix('TimeSeries')).toEqual({ type: 'timeseries', attributes: {}, attributeOrder: [] });
   });
 
   it('flags an empty type', () => {
@@ -195,42 +196,52 @@ describe('referencedTokens', () => {
   });
 });
 
-describe('splitWidgetBody', () => {
-  it('returns a bare query untouched', () => {
-    expect(splitWidgetBody('sum:totalVolume{}')).toEqual({ query: 'sum:totalVolume{}', params: [] });
-  });
-
-  it('splits trailing params at the first " / "', () => {
-    expect(splitWidgetBody('max:calc.e1rm{effort:squat} / $squat-goal')).toEqual({
-      query: 'max:calc.e1rm{effort:squat}',
-      params: ['$squat-goal'],
+describe('fence-tag attributes (decision 22)', () => {
+  it('parses trailing key=value attributes', () => {
+    expect(parseQueryWidgetSuffix('goal-ring-2 goal=100')).toEqual({
+      type: 'goal-ring', spanCols: 2, attributes: { goal: '100' }, attributeOrder: ['goal'],
     });
   });
 
-  it('splits multiple positional params', () => {
-    expect(splitWidgetBody('sum:sessionLoad{} by {intensity} / 80 20')).toEqual({
-      query: 'sum:sessionLoad{} by {intensity}',
-      params: ['80', '20'],
+  it('keeps quoted values verbatim minus quotes', () => {
+    expect(parseQueryWidgetSuffix('table label="300 Air Squats"').attributes).toEqual({
+      label: '300 Air Squats',
     });
   });
 
-  it('keeps additional " / " inside the params', () => {
-    expect(splitWidgetBody('sum:x{} / a / b').params).toEqual(['a', '/', 'b']);
+  it('duplicate attributes are a suffix error', () => {
+    expect(parseQueryWidgetSuffix('bar a=1 a=2').error).toContain('duplicate');
   });
 });
 
-// ── buildDashboardDocument ─────────────────────────────────────────────────
+function md(type: string, content: string): DashboardSectionInput {
+  return { type: 'markdown', subtype: type, content };
+}
 
-const md = (subtype: string, content: string): DashboardSectionInput => ({
-  type: 'markdown',
-  subtype,
-  content,
-});
-const query = (content: string, extra: Partial<DashboardSectionInput> = {}): DashboardSectionInput => ({
-  type: 'query',
-  content,
-  ...extra,
-});
+function query(
+  body: string,
+  opts: string | { widgetType?: string; spanCols?: number; spanFull?: boolean } = {},
+): DashboardSectionInput {
+  const spec = typeof opts === 'string'
+    ? parseQueryWidgetSuffix(opts)
+    : {
+        type: opts.widgetType ?? '',
+        spanCols: opts.spanCols,
+        spanFull: opts.spanFull,
+        attributes: {},
+        attributeOrder: [],
+      };
+  return {
+    type: 'query',
+    content: body,
+    widgetType: spec.type || undefined,
+    spanCols: spec.spanCols,
+    spanFull: spec.spanFull,
+    attributes: spec.attributes,
+    attributeOrder: spec.attributeOrder,
+    widgetError: 'error' in spec ? spec.error : undefined,
+  };
+}
 
 describe('buildDashboardDocument', () => {
   it('marks non-dashboard notes and still collects widgets', () => {
@@ -264,7 +275,7 @@ describe('buildDashboardDocument', () => {
       spanCols: 2,
       title: 'Weekly tonnage',
       question: 'Is volume rising?',
-      query: 'sum:totalVolume{} by {week}.rollup(1w)',
+      body: 'sum:totalVolume{} by {week}.rollup(1w)',
     });
   });
 
@@ -305,10 +316,15 @@ describe('buildDashboardDocument', () => {
     expect(doc.widgets[1].question).toBe('q2');
   });
 
-  it('splits widget params from the body', () => {
-    const doc = buildDashboardDocument([query('max:calc.e1rm{} / $goal')], {});
-    expect(doc.widgets[0].query).toBe('max:calc.e1rm{}');
-    expect(doc.widgets[0].params).toEqual(['$goal']);
+  it('keeps the full document body verbatim; no positional split (decision 22)', () => {
+    const doc = buildDashboardDocument([query('max:calc.e1rm{}')], {});
+    expect(doc.widgets[0].body).toBe('max:calc.e1rm{}');
+    expect(doc.widgets[0].attributes).toEqual({});
+    const multi = buildDashboardDocument(
+      [query('sum:distance{}\nshow in km') as never],
+      {},
+    );
+    expect(multi.widgets[0]!.body).toBe('sum:distance{}\nshow in km');
   });
 
   it('skips comment and blank lines to find the body', () => {

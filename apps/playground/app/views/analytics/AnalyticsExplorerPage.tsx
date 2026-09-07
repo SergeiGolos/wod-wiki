@@ -30,6 +30,8 @@ import { groupEntriesByDate } from '../../lib/entryGrouping';
 import { formatDateHeader } from '../../lib/dateFormat';
 import { LibraryRow } from '../library/LibraryRow';
 import { QueryToDashboardDialog } from './QueryToDashboardDialog';
+import { AvailableFieldsPanel } from './AvailableFieldsPanel';
+import { fieldCatalog, startFieldCatalogBackfill } from '../../services/fieldCatalog';
 import type { Entry } from '../../lib/entryMapper';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import {
@@ -134,6 +136,11 @@ export interface AnalyticsExplorerPageProps {
 }
 
 export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
+  // Ticket 14/15: ensure the field catalog is populated (resumable no-op
+  // when complete) before discovery reads it.
+  useEffect(() => {
+    startFieldCatalogBackfill();
+  }, []);
   const { draft, setDraft, submitted, submit, weeks: activeWeeks, setWeeks } =
     useExplorerQueryState();
   const { unit: preferredUnit } = useAnalyticsUnitPreference();
@@ -341,6 +348,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
 
   return (
     <div className="bg-card flex flex-col flex-1">
+      <AvailableFieldsPanel catalog={fieldCatalog} />
       <StickyPageHeader
         title="Metric Explorer"
         actions={

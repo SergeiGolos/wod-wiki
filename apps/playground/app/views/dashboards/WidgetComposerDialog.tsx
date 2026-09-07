@@ -27,11 +27,28 @@ import {
   type QueryExecutor,
 } from '@bitcobblers/wod-wiki-ui';
 import { parseQuery, isFindQuery, isRowsQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
+
+/** Parse the composer's attribute text: whitespace-separated `key=value`
+ *  tokens (values may be double-quoted) — the fence-tag encoding. */
+function parseAttributes(text: string): Record<string, string> | undefined {
+  const tokens = text.trim().split(/\s+/).filter((tok) => tok !== '');
+  if (tokens.length === 0) return undefined;
+  const attributes: Record<string, string> = {};
+  for (const token of tokens) {
+    const eq = token.indexOf('=');
+    if (eq === -1) continue; // malformed tokens are ignored by the composer
+    const key = token.slice(0, eq);
+    let value = token.slice(eq + 1);
+    if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) value = value.slice(1, -1);
+    attributes[key] = value;
+  }
+  return Object.keys(attributes).length === 0 ? undefined : attributes;
+}
 import {
   DASHBOARD_WIDGET_TYPES,
   substituteTokens,
   unknownTokensMessage,
-} from '@/lib/dashboard/model';
+} from '@bitcobblers/wod-wiki-wql';
 
 export interface WidgetComposerApply {
   title?: string;
@@ -40,7 +57,7 @@ export interface WidgetComposerApply {
   spanCols?: number;
   spanFull?: boolean;
   wql: string;
-  params?: string[];
+  attributes?: Record<string, string>;
 }
 
 export interface WidgetComposerDialogProps {
@@ -57,7 +74,7 @@ export interface WidgetComposerDialogProps {
     type?: string;
     spanCols?: number;
     spanFull?: boolean;
-    params?: string[];
+    attributes?: Record<string, string>;
   };
   /**
    * The dataset step: the subset WQL this calculation joins, shown
@@ -129,7 +146,9 @@ function ComposerSession({
     spanCols: initial?.spanCols,
     spanFull: initial?.spanFull,
   });
-  const [paramsText, setParamsText] = useState((initial?.params ?? []).join(' '));
+  const [paramsText, setParamsText] = useState(
+    Object.entries(initial?.attributes ?? {}).map(([k, v]) => `${k}=${v}`).join(' '),
+  );
   const [applying, setApplying] = useState(false);
   // A refused write (e.g. the note changed while this dialog was open) stays
   // on screen; the draft is untouched and the author can retry or cancel.
@@ -191,7 +210,7 @@ function ComposerSession({
         spanCols: span.spanFull ? undefined : span.spanCols,
         spanFull: span.spanFull || undefined,
         wql: wql.trim(),
-        params: paramsText.trim() === '' ? undefined : paramsText.trim().split(/\s+/),
+        attributes: parseAttributes(paramsText),
       });
       onClose();
     } catch (err) {
@@ -453,7 +472,7 @@ function ComposerSession({
                 result={preview.result}
                 label={title.trim() || undefined}
                 unit={preferredUnit}
-                params={paramsText.trim() === '' ? undefined : paramsText.trim().split(/\s+/)}
+                attributes={parseAttributes(paramsText)}
               />
             )}
           </div>

@@ -18,6 +18,7 @@ import type { Extension } from "@codemirror/state";
 import { styleTags, tags as t } from "@lezer/highlight";
 import type { SyntaxNode } from "@lezer/common";
 import { parser } from "./grammar/wql.parser";
+import type { IFieldCatalog } from "./catalog";
 import { EFFORT_DISCIPLINES } from "./disciplines";
 import {
   WQL_AGGREGATORS,
@@ -100,6 +101,13 @@ export interface WqlCompletionOptions {
    * `() => resolver.list().map(e => e.slug)`.
    */
   effortNames?: () => readonly string[];
+  /**
+   * Injected field catalog (ticket 15): discovered typed variants join the
+   * static metric vocabulary, and categorical values back filter-value
+   * suggestions for discovered fields. Bounded prefix lookups only — the
+   * catalog never scans event/result history.
+   */
+  catalog?: IFieldCatalog;
 }
 
 /** Nearest ancestor (or self) of `node` with one of `names`. */
@@ -115,7 +123,26 @@ function options(labels: readonly (string | Completion)[]): Completion[] {
 }
 
 export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
-  const { effortNames } = options_;
+  const { effortNames, catalog } = options_;
+
+  /** Discovered typed variants for the typed metric word — bounded lookup. */
+  const catalogMetricOptions = async (typed: string): Promise<Completion[]> => {
+    if (!catalog) return [];
+    const entries = await catalog.listByPrefix(typed, 20);
+    return entries.map((entry) => ({
+      label: entry.path,
+      detail: [entry.kind, ...entry.units].filter(Boolean).join(' · '),
+      type: 'variable',
+      apply: entry.path,
+    }));
+  };
+
+  /** Categorical values for a discovered field key (original spellings). */
+  const catalogValueOptions = async (key: string, typed: string): Promise<Completion[]> => {
+    if (!catalog) return [];
+    const values = await catalog.listValues(key, typed, 20);
+    return values.map((v) => ({ label: v.value, type: 'constant' }));
+  };
 
   const metricOptions = (): Completion[] => {
     const efforts = effortNames?.() ?? [];
@@ -140,8 +167,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       default: return null; // note/page/block/result/tags — free-form
     }
   };
-
-  function source(context: CompletionContext): CompletionResult | null {
+  function source(context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
     const word = context.matchBefore(/[\w.*-]*/)!;
     if (!word || (word.from === word.to && !context.explicit)) return null;
     const tree = syntaxTree(context.state);
@@ -158,8 +184,16 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       }
       const key = filterText.slice(0, colonIndex).replace(/^!/, '').trim();
       const valueOptions = tagValueOptions(key);
-      if (!valueOptions) return null;
-      return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
+      if (valueOptions) return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
+      // Discovered categorical fields back filter-value suggestions
+      // (original spellings — ticket 15).
+      if (catalog) {
+        const typed = context.state.sliceDoc(word.from, context.pos);
+        return catalogValueOptions(key, typed).then((opts) => (
+          opts.length ? { from: word.from, options: opts, validFor: /^[\w*-]*$/ } : null
+        ));
+      }
+      return null;
     }
 
     // Inside Filters braces but not in a parsed Filter yet (e.g. `{` + cursor).
@@ -189,6 +223,16 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     const inMetric = node.name === 'Metric' || (node.name === 'Word' && node.parent?.name === 'Metric');
 
     if (inMetric) {
+      // Discovered typed variants join the static vocabulary (ticket 15) —
+      // the bounded catalog lookup merges with the static option list.
+      if (catalog) {
+        const typed = context.state.sliceDoc(word.from, context.pos);
+        return catalogMetricOptions(typed).then((extra) => ({
+          from: word.from,
+          options: [...metricOptions(), ...extra],
+          validFor: /^[\w.-]*$/,
+        }));
+      }
       return { from: word.from, options: metricOptions(), validFor: /^[\w.-]*$/ };
     }
 

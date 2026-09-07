@@ -24,6 +24,23 @@ export * from './language';
 // 6. Units
 export * from './units';
 
+// 6b. Calendar — civil time arithmetic over execution contexts (ticket 12)
+export * from './calendar';
+
+// 6c. Field catalog consumer interface (ticket 15)
+export * from './catalog';
+
+// 6d. Query documents + runner (ticket 17)
+export * from './document';
+export * from './documentRunner';
+export {
+  QueryDocumentRunner as SharedQueryDocumentRunner,
+  substituteTokens as substituteTokensRaw,
+  consumesRollupFacts,
+  type QueryDocumentRunnerHost,
+  type SharedRunnerOptions,
+} from './queryDocumentRunner';
+
 // 7. Derivation & Static projections
 export * from './derivation';
 export * from './static';

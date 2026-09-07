@@ -59,7 +59,7 @@ describe('range parameter — runFind', () => {
     expect(result.notes.map(n => n.id).sort()).toEqual(['mid', 'new']);
   });
 
-  it('overrides the WQL\'s `last 8w` clause when both are set', async () => {
+  it('the WQL window wins over the host range; the range applies alone (ticket 12)', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
@@ -68,8 +68,20 @@ describe('range parameter — runFind', () => {
       filters: [],
       window: { kind: 'relative', size: 8, unit: 'w' },
     };
-    const result = await service.runFind(parsed, { range: { start: T_OLD, end: T_OLD } });
-    expect(result.notes.map(n => n.id)).toEqual(['old']);
+    // Query window wins — the old host range around T_OLD does not override it.
+    const result = await service.runFind(parsed, {
+      range: { start: T_OLD, end: T_OLD, endExclusive: false },
+      anchorNow: TS_BASE,
+    });
+    // Query window wins — the old host range around T_OLD does not override
+    // it. `last 8w` ends at the captured instant: 'new' (T0+1d, the future)
+    // is excluded, never silently extended into.
+    expect(result.notes.map(n => n.id).sort()).toEqual(['mid', 'old']);
+
+    // Without a window, the host range is the default.
+    const noWindow: ParsedFindQuery = { family: 'find', raw: 'find:note', target: 'note', filters: [] };
+    const byRange = await service.runFind(noWindow, { range: { start: T_OLD, end: T_OLD, endExclusive: false } });
+    expect(byRange.notes.map(n => n.id)).toEqual(['old']);
   });
 
   it('omitting the range leaves the WQL `last` clause in effect', async () => {

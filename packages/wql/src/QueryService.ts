@@ -37,8 +37,21 @@ import {
   type TagFilter,
 } from './wql';
 import { WQL_FIND_TARGETS } from './vocabulary';
-import { convert, resolveDisplayUnit } from './units';
+import { convertViaCatalog, resolveOutputUnit } from './units';
 import { projectEventToFacts } from './derivation';
+import { dedupeById, selectContributions, type CoverageReport } from './selection';
+import {
+  captureContext,
+  civilDateAdd,
+  civilDateDiff,
+  civilDateOf,
+  civilMonday,
+  inRange,
+  resolveWindowRange,
+  zonedNoon,
+  type ExecutionContext,
+  type ResolvedRange,
+} from './calendar';
 import type {
   UnifiedEventStore,
   NoteQueryStore,
@@ -62,13 +75,6 @@ const DAY = 86_400_000;
 /** Rows content planes (C4): targets that scope by content ownership rather
  *  than the outputType column — no statement narrowing for these. */
 const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(WQL_FIND_TARGETS);
-function localDateString(ts: number): string {
-  const d = new Date(ts);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
-
 /** Extract the catalog directory id from a Note or BlockIndexRow.
  *  Uses explicit `catalog` when present; falls back to parsing `sourceId`
  *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`. */
@@ -126,62 +132,26 @@ function applySourceFilter<T extends { sourceId?: string; type?: string }>(items
   return items;
 }
 
-/** Local midnight (instant) of a civil YYYY-MM-DD date — C1 range windows
- *  run on the athlete's calendar, not UTC midnights. */
-function civilMidnight(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y!, m! - 1, d!).getTime();
+/** Resolve the single execution context for a run: the caller's captured
+ *  context when provided (ticket 19's runner captures once per document),
+ *  else a fresh capture from `anchorNow`/now in the system timezone. */
+function runContext(options: { context?: ExecutionContext; anchorNow?: number }): ExecutionContext {
+  if (options.context) return options.context;
+  return captureContext(options.anchorNow);
 }
 
-/** Next civil day's local midnight (component math — Date overflow handles
- *  month/year rollover and DST days). */
-function nextCivilMidnight(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y!, m! - 1, d! + 1).getTime();
-}
-
-/** Resolve a parsed window to a [start, end] instant range — the single
- *  window→range mapping every execution path shares (C1). Relative windows
- *  cut off from `anchorNow ?? now`; range windows are inclusive civil days. */
-function windowRange(
-  w: QueryWindow | undefined,
-  anchorNow?: number,
-): { start: number; end: number } | undefined {
-  if (!w) return undefined;
-  if (w.kind === 'relative') {
-    return { start: (anchorNow ?? Date.now()) - w.size * (w.unit === 'w' ? 7 : 1) * DAY, end: Number.MAX_SAFE_INTEGER };
-  }
-  const start = civilMidnight(w.start);
-  // End-of-day by component math (next day's midnight − 1ms): +DAY−1 is
-  // off by an hour on 23h/25h DST days.
-  const end = w.end !== undefined ? nextCivilMidnight(w.end) - 1 : Number.MAX_SAFE_INTEGER;
-  return { start, end };
-}
-
-/** Time-window predicate for a row, given the parsed window (C1) and the
- *  optional explicit `range` option. The option overrides the window; when
- *  neither is set, the row passes. */
+/** Time-window predicate for a row (C1 + ticket 12): the query's own window
+ *  WINS over the explicit host `range` option — the host range supplies the
+ *  default only when the query has none. Resolution happens against the one
+ *  captured execution context; membership is half-open [start, end). */
 function effectiveTimeWindow(
   createdAt: number,
   window: QueryWindow | undefined,
-  range: { start: number; end: number } | undefined,
-  anchorNow?: number,
+  range: ResolvedRange | undefined,
+  ctx: ExecutionContext,
 ): boolean {
-  const resolved = range ?? windowRange(window, anchorNow);
-  if (resolved) return createdAt >= resolved.start && createdAt <= resolved.end;
-  return true;
-}
-
-
-
-/** Resolve the window anchor timestamp for a find run, per FindOptions. */
-function windowAnchor<T extends { createdAt: number }>(
-  _selected: T[],
-  _parsed: ParsedFindQuery,
-  options: FindOptions,
-): number | undefined {
-  if (options.anchorNow !== undefined) return options.anchorNow;
-  return undefined;
+  const resolved = window ? resolveWindowRange(window, ctx) : range;
+  return inRange(createdAt, resolved);
 }
 
 const defaultEventStore: UnifiedEventStore = {
@@ -223,14 +193,21 @@ export interface QueryOptions {
   rangeEnd?: number;
   /** App-level unit preference ('kg' | 'lb'). Used when query has no `in <unit>` directive. */
   preferredUnit?: string;
+  /** Captured execution context (ticket 12) — one `{instant, timeZone}`
+   *  capture per document run; defaults to a fresh system capture. */
+  context?: ExecutionContext;
 }
 
 /** Options for `runFind` / `runFindBlock` — overrides for the parsed WQL. */
 export interface FindOptions {
-  /** Explicit timestamp range; overrides parsed WQL's `last` clause when set. */
-  range?: { start: number; end: number };
-  /** Explicit reference time for the window (useful for tests/replay). */
+  /** Host-supplied timestamp range (half-open [start, end)) — the DEFAULT
+   *  when the parsed WQL has no window; an explicit query window wins. */
+  range?: ResolvedRange;
+  /** Explicit reference time for the window (tests/replay). Superseded by
+   *  `context` when both are given. */
   anchorNow?: number;
+  /** Captured execution context (ticket 12). */
+  context?: ExecutionContext;
 }
 
 export interface QueryResult {
@@ -242,6 +219,10 @@ export interface QueryResult {
   scalar?: number;
   /** Result display unit, if determined by directive, preference, or fact metadata. */
   unit?: string;
+  /** First diagnostic across series (ticket 13) — per-widget badges in 19. */
+  error?: string;
+  /** Compact coverage references (ticket 16 explainability). */
+  coverage?: CoverageReport;
 }
 
 /** One run in a rows result: the canonical result identity plus the event
@@ -258,6 +239,61 @@ export interface RowsQueryResult {
   parsed: ParsedRowsQuery;
   runs: RowsRun[];
   error?: string;
+  /** Ticket 18 — cross-workout tabular result (cross-workout rows only). */
+  table?: TabularResult;
+}
+
+// ── Ticket 18: cross-workout analytical tables ──────────────────────────
+
+export interface TabularColumn {
+  name: string;
+  type: 'date' | 'string' | 'number';
+  unit?: string;
+}
+
+/** Civil dates (YYYY-MM-DD, `timeZone`-local) whose [local midnight,
+ * next local midnight) windows intersect `[start, end)` — the by-metric-date
+ * candidate set for the complete fetch (ticket 12/14). Bounded callers cap
+ * the list before calling the store. */
+export function civilDatesCoveredByRange(start: number, end: number, timeZone: string): string[] {
+    const dates: string[] = [];
+    let cursor = start;
+    for (let i = 0; i < 400; i++) {
+        const iso = civilDateOf(cursor, timeZone);
+        if (!dates.includes(iso)) dates.push(iso);
+        const nextMidnight = Number.isNaN(Date.parse(`${iso}T00:00:00Z`)) ? cursor + 86_400_000 : nextLocalMidnight(iso, timeZone);
+        if (nextMidnight >= end) break;
+        cursor = nextMidnight;
+    }
+    return dates;
+}
+
+function nextLocalMidnight(iso: string, timeZone: string): number {
+    // Local midnight of the day AFTER `iso` — one civil day added, then the
+    // zoned offset applied (component math, never 86 400 000 multiplication).
+    const { y, m, d } = (() => {
+        const [yy, mm, dd] = iso.split('-').map(Number);
+        return { y: yy!, m: mm!, d: dd! };
+    })();
+    const nextUtc = Date.UTC(y, m - 1, d + 1);
+    // Offset at that UTC instant, applied forward: midnight local == that
+    // civil date 00:00 in zone. Approximate via the formatter offset at
+    // nextUtc: exact DST handling is delegated to civilDateOf rounding.
+    const guess = nextUtc;
+    const isoGuess = civilDateOf(guess, timeZone);
+    if (isoGuess > iso) return guess;
+    return guess + 3_600_000;
+}
+
+/** The stable tabular shape consumed by table widgets (ticket 19 wires
+ *  widgets): bounded page + full match count. Missing column values are
+ *  ABSENT (undefined) — strictly distinct from a recorded 0. */
+export interface TabularResult {
+  columns: TabularColumn[];
+  rows: Array<Record<string, unknown>>;
+  totalCount: number;
+  limit?: number;
+  offset?: number;
 }
 
 /**
@@ -268,7 +304,6 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
   switch (key) {
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
-    case 'grade': return row.grade;
     case 'intensity': return row.intensityTier;
     case 'note': return row.noteId;
     case 'page': return row.pageId;
@@ -318,40 +353,84 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
  *  filters them out of tagDims, so the time-dim branches below are
  *  defensive only — kept canonical in case a caller surfaces time dims as
  *  string keys. */
-function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<string, readonly string[]>): string {
-  if (dim === 'day') return localDateString(row.timestamp);
-  if (dim === 'week') {
-    const d = new Date(row.timestamp);
-    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7);
-    return localDateString(monday.getTime());
-  }
+function dimValue(
+  row: AnalyticsDataPoint,
+  dim: string,
+  noteTags: ReadonlyMap<string, readonly string[]>,
+  ctx: ExecutionContext,
+): string {
+  // Calendar grouping uses the observation's own temporal anchor (ticket 12):
+  // a date-only fact groups under its recorded civil date — never a fabricated
+  // midnight instant; an instant fact under its civil date in the context tz.
+  if (dim === 'day') return row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone);
+  if (dim === 'week') return civilMonday(row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone));
   if (dim === 'session') return row.resultId;
   const raw = factTagValue(row, dim, noteTags);
-  if (raw === undefined) return '(none)';
+  // Ticket 16 (finding 3.5): missing group values resolve to the structural
+  // UNASSIGNED sentinel — never a literal '(none)' masquerading as data.
+  if (raw === undefined) return UNASSIGNED;
   if (typeof raw === 'string') return raw;
-  return raw.length ? raw.join(',') : '(none)';
+  return raw.length ? raw.join(',') : UNASSIGNED;
 }
 
-/** Convert a single fact value to the target display unit, if known. */
-function toDisplayValue(value: number, unit: string | undefined, targetUnit: string | undefined): number {
-  if (!targetUnit || unit === targetUnit) return value;
-  return convert(value, unit, targetUnit);
-}
+/** Structural missing-group sentinel — distinct from any literal text
+ *  (group identity is the JSON tuple, so it cannot collide). */
+export const UNASSIGNED = '\u0000unassigned';
 
-/** Aggregate values already converted to the target display unit. */
-function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[], targetUnit: string | undefined): number {
-  if (agg === 'count') return points.length;
-  if (values.length === 0) return 0;
+/** Result state of a bucket reduction (arithmetic contract §2): observed
+ *  values are genuine reductions of recorded observations; absent results
+ *  have no observation (render zero only at display); errors are
+ *  diagnostics, not numbers. */
+type ReducedValue =
+  | { state: 'observed'; value: number }
+  | { state: 'absent'; value: 0 }
+  | { state: 'error'; message: string };
+
+/** Reduce one bucket's already-converted observation values per the
+ *  operation matrix. Missing domain positions are handled by the caller
+ *  (zero-filled synthetic points); this reduces actual observations. */
+function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[]): ReducedValue {
+  if (agg === 'count') return { state: 'observed', value: points.length };
+  if (values.length === 0) return { state: 'absent', value: 0 };
   switch (agg) {
-    case 'sum': return values.reduce((a, b) => a + b, 0);
-    case 'avg': return values.reduce((a, b) => a + b, 0) / values.length;
-    case 'min': return Math.min(...values);
-    case 'max': return Math.max(...values);
+    case 'sum':
+      return { state: 'observed', value: values.reduce((a, b) => a + b, 0) };
+    case 'avg':
+      return { state: 'observed', value: values.reduce((a, b) => a + b, 0) / values.length };
+    case 'min':
+      return { state: 'observed', value: Math.min(...values) };
+    case 'max':
+      return { state: 'observed', value: Math.max(...values) };
     case 'last': {
-      const latest = [...points].sort((a, b) => b.timestamp - a.timestamp)[0];
-      return toDisplayValue(latest.value as number, latest.unit ?? latest.metricUnit, targetUnit);
+      // Metric-date order — fetch order never decides the endpoint. The
+      // value comes from the already-converted array (values[i] ↔ points[i]).
+      let latest = 0;
+      for (let i = 0; i < points.length; i++) {
+        if (points[i]!.timestamp > points[latest]!.timestamp) latest = i;
+      }
+      return { state: 'observed', value: values[latest]! };
     }
-    case 'delta': return values[values.length - 1] - values[0];
+    case 'delta': {
+      if (points.length < 2) return { state: 'absent', value: 0 };
+      // Sort (point, converted value) PAIRS — the values[i] ↔ points[i]
+      // alignment must survive the reorder (ticket 13: conversion before
+      // arithmetic; metric-date chronological endpoints).
+      const ordered = points
+        .map((point, i) => ({ point, value: values[i]! }))
+        .sort((a, b) => a.point.timestamp - b.point.timestamp);
+      const first = ordered[0]!;
+      const last = ordered[ordered.length - 1]!;
+      // Equal-timestamp endpoints with different values and no recorded
+      // order evidence are an ambiguous-order error.
+      const atFirst = ordered.filter((p) => p.point.timestamp === first.point.timestamp);
+      const atLast = ordered.filter((p) => p.point.timestamp === last.point.timestamp);
+      const firstVals = new Set(atFirst.map((p) => p.point.value));
+      const lastVals = new Set(atLast.map((p) => p.point.value));
+      if (firstVals.size > 1 || lastVals.size > 1) {
+        return { state: 'error', message: 'Ambiguous delta order: tied endpoint observations differ in value without recorded order' };
+      }
+      return { state: 'observed', value: last.value - first.value };
+    }
   }
 }
 
@@ -438,19 +517,22 @@ export class QueryService {
    * Reads event rows directly over the unified store: outputType narrowing
    * hits the promoted column; content-plane targets scope by content.
    */
-  async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number } = {}): Promise<RowsQueryResult> {
+  async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number; context?: ExecutionContext } = {}): Promise<RowsQueryResult> {
     const empty: RowsQueryResult = { parsed, runs: [] };
     if (parsed.error) return { ...empty, error: parsed.error };
 
-    // Filter rules and the scope requirement are validated at parse (C4);
-    // runRows executes only. Hand-built ASTs bypass parse — treat them the
-    // same way: no scope filters means no rows.
     const scopeValues = (key: string) =>
       parsed.filters.filter((f) => f.key === key).flatMap((f) => f.values.map((v) => v.value));
     const resultIds = scopeValues('result');
     const blockIds = scopeValues('block');
     const noteIds = scopeValues('note');
+
+    // Ticket 18 — cross-workout form: rows:segment with no result:/block:/
+    // note: scope explores segments across every workout in the window.
     if (resultIds.length + blockIds.length + noteIds.length === 0) {
+      if (parsed.target === 'segment') {
+        return this.runRowsCrossWorkout(parsed, options);
+      }
       return { ...empty, runs: [] };
     }
 
@@ -466,11 +548,12 @@ export class QueryService {
     for (const id of resultIds) collect(await this.store.getEventsByResult(id));
     for (const blockContentId of blockIds) collect(await this.store.getEventsByContent(blockContentId));
     for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
-
     let groups = [...byResult.entries()].filter(([, rows]) => rows.length > 0);
+
     if (parsed.window) {
+      const ctx = runContext(options);
       groups = groups.filter(([, rows]) =>
-        effectiveTimeWindow(rows[0].timestamp, parsed.window, undefined, options.anchorNow),
+        effectiveTimeWindow(rows[0].timestamp, parsed.window, undefined, ctx),
       );
     }
     groups.sort((a, b) => b[1][0].timestamp - a[1][0].timestamp);
@@ -486,6 +569,144 @@ export class QueryService {
       }))
       .filter((run) => run.events.length > 0);
     return { parsed, runs };
+  }
+
+  /**
+   * Ticket 18 — cross-workout `rows:segment{<tag/metadata filters>}
+   * [window]`: one row per segment observation across all workouts, identity
+   * `resultId:segmentIndex`; the date column is the segment's own metric
+   * date. Pipes (select / order by / limit offset) govern PRESENTATION only
+   * — the underlying match and totalCount are unaffected by paging.
+   */
+  private async runRowsCrossWorkout(
+      parsed: ParsedRowsQuery,
+      options: { anchorNow?: number; context?: ExecutionContext },
+  ): Promise<RowsQueryResult> {
+    const ctx = runContext(options);
+    // Indexed candidate selection: windowed fetch through by-timestamp,
+    // all-time scan otherwise (the same SELECT strategy as aggregates).
+    const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : undefined;
+    const eventRows = range
+      ? await this.store.getEventsByTimeRange(range.start, range.end)
+      : await this.store.scanAll();
+
+    // Eligible segment observations, deduped by stable record identity —
+    // overlapping scope fetches contribute each segment exactly once.
+    const seen = new Set<string>();
+    const segments: UnifiedEventRecord[] = [];
+    for (const row of eventRows) {
+      if (row.grain !== 'event') continue;
+      if (parsed.outputType && row.outputType !== parsed.outputType) continue;
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      segments.push(row);
+    }
+
+    // Tag/metadata filters read the segment's promoted fields directly —
+    // no per-row fact allocation on the hot path (ticket 20 budgets).
+    const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
+    const eligible = segments.filter((row) => {
+      if (parsed.filters.length === 0) return true;
+      // A row matches when ANY of its projected facts satisfies the filters
+      // (projection emits one fact per metric; the row is the observation).
+      const facts = projectEventToFacts(row);
+      if (facts.length === 0) return false;
+      return facts.some((fact) => matchesFilters(fact, parsed.filters, noteTags));
+    });
+
+    const totalCount = eligible.length;
+    // Civil-date memo: one formatToParts per distinct instant per run.
+    const civilDateCache = new Map<number, string>();
+    const dateOf = (row: UnifiedEventRecord): string => {
+      const temporal = row.metricTemporal?.[0];
+      if (temporal?.temporalKind === 'civil-date' && temporal.civilDate) return temporal.civilDate;
+      const cached = civilDateCache.get(row.timestamp);
+      if (cached) return cached;
+      const computed = civilDateOf(row.timestamp, ctx.timeZone);
+      civilDateCache.set(row.timestamp, computed);
+      return computed;
+    };
+
+    // Default columns when no | select: date, effort, discipline, + numeric metrics.
+    const unitByMetric = new Map<string, string>();
+    const numericMetrics = new Set<string>();
+    for (const row of eligible) {
+      for (const m of row.metrics as Array<{ type?: string; value?: unknown; unit?: string; metadata?: Record<string, unknown> }>) {
+        if (m.type && m.type !== 'label' && typeof m.value === 'number') {
+          numericMetrics.add(m.type);
+          const key = typeof m.metadata?.canonicalKey === 'string' ? m.metadata.canonicalKey : undefined;
+          if (key && m.unit) unitByMetric.set(key, m.unit);
+          if (m.unit) unitByMetric.set(m.type, m.unit);
+        }
+      }
+    }
+
+    const pipes = parsed.pipes;
+    const selectCols = pipes?.select?.map((s) => s.col) ?? [
+      'date', 'effort', 'discipline', ...numericMetrics,
+    ];
+    const unitFor = (col: string): string | undefined =>
+      pipes?.select?.find((s) => s.col === col)?.unit ?? unitByMetric.get(col);
+
+    const columns: TabularColumn[] = selectCols.map((col) => {
+      if (col === 'date') return { name: 'date', type: 'date' as const };
+      if (col === 'effort' || col === 'discipline' || col === 'note' || col === 'grade' || col === 'intensity') {
+        return { name: col, type: 'string' as const };
+      }
+      return { name: col, type: 'number' as const, ...(unitFor(col) ? { unit: unitFor(col) } : {}) };
+    });
+
+    const typeOf = new Map(columns.map((c) => [c.name, c.type]));
+
+    let records = eligible.map((row) => {
+      const record: Record<string, unknown> = {};
+      for (const col of selectCols) {
+        const type = typeOf.get(col);
+        if (type === 'date') {
+          record.date = dateOf(row);
+        } else if (col === 'effort') {
+          record.effort = row.effortSlug;
+        } else if (col === 'discipline') {
+          const m = (row.metrics as Array<{ metadata?: Record<string, unknown> }>).find((m) => m.metadata?.effortDiscipline);
+          record.discipline = m?.metadata?.effortDiscipline;
+        } else {
+          const m = (row.metrics as Array<{ type?: string; value?: unknown; metadata?: Record<string, unknown> }>).find(
+            (m) => m.type === col || m.metadata?.canonicalKey === col,
+          );
+          record[col] = m ? m.value : undefined; // absent ≠ 0
+        }
+      }
+      record.__id = row.id;
+      record.__resultId = row.resultId;
+      return record;
+    });
+
+    // Order by — deterministic tie-break by resultId, segmentIndex (id).
+    for (const order of [...(pipes?.order ?? [])].reverse()) {
+      const dir = order.dir === 'desc' ? -1 : 1;
+      records = [...records].sort((a, b) => {
+        const av = a[order.col] ?? a.__id;
+        const bv = b[order.col] ?? b.__id;
+        if (av === bv) return 0;
+        return ((av as number | string) > (bv as number | string) ? 1 : -1) * dir;
+      });
+    }
+
+    const offset = pipes?.offset ?? 0;
+    const limit = pipes?.limit;
+    const page = limit !== undefined ? records.slice(offset, offset + limit) : records.slice(offset);
+
+    return {
+      parsed,
+      runs: [],
+      table: {
+        columns,
+        rows: page,
+        totalCount,
+        ...(limit !== undefined ? { limit } : {}),
+        ...(offset > 0 ? { offset } : {}),
+      },
+    };
   }
 
   /**
@@ -511,7 +732,7 @@ export class QueryService {
     }
     notes = applySourceFilter(notes, parsed.filters);
     const selectedCount = notes.length;
-    const anchorNow = windowAnchor(notes, parsed, options);
+    const ctx = runContext(options);
     // Tag filters — intersect note IDs across OR'd values within a key.
     for (const filter of parsed.filters) {
       if (filter.key === 'tags' && !filter.negate) {
@@ -560,9 +781,10 @@ export class QueryService {
         });
       }
     }
-    // Time window — the `range` parameter overrides the WQL's `last` clause.
+    // Time window (ticket 12 precedence): an explicit query window wins; the
+    // host `range` option supplies the default when the query has none.
     if (parsed.window || options.range) {
-      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.window, options.range, anchorNow));
+      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.window, options.range, ctx));
     }
 
     // Cross-store join (direction 1): keep notes owning a wod block whose
@@ -585,7 +807,7 @@ export class QueryService {
     }
     blocks = applySourceFilter(blocks, parsed.filters);
     const selectedCount = blocks.length;
-    const anchorNow = windowAnchor(blocks, parsed, options);
+    const ctx = runContext(options);
     // Text filter — substring on rawContent
     for (const filter of parsed.filters) {
       if (filter.key === 'text' && !filter.negate) {
@@ -629,9 +851,9 @@ export class QueryService {
       }
     }
 
-    // Time window
+    // Time window (ticket 12 precedence): explicit query window wins over host.
     if (parsed.window || options.range) {
-      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.window, options.range, anchorNow));
+      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.window, options.range, ctx));
     }
 
     // Cross-store join (direction 1): keep blocks whose raw-log metric
@@ -700,17 +922,42 @@ export class QueryService {
     if (parsed.join) return this.runJoined(parsed, options);
 
     // Stage 1: SELECT — window-first hybrid (ticket 003): a time window
-    // (the dashboard default) fetches through by-timestamp, the one proven
-    // culling index; all-time queries scan. by-metric is never used —
-    // ticket 001 measured it non-selective and slower than scanning.
-    // C1: explicit range options win; otherwise a parsed window (relative or
-    // civil range) drives the by-timestamp fetch; no window scans.
-    const range = options.rangeStart !== undefined || options.rangeEnd !== undefined
-      ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
-      : windowRange(parsed.window);
-    const eventRows = range
-      ? await this.store.getEventsByTimeRange(range.start, range.end)
+    // fetches through by-timestamp, the one proven culling index; all-time
+    // queries scan. by-metric is never used — ticket 001 measured it
+    // non-selective and slower than scanning.
+    // C1 + ticket 12 precedence: the query's own window WINS over the host
+    // range options — the host range is the default when the query has none.
+    // Resolution uses the one captured execution context (half-open bounds).
+    const ctx = runContext(options);
+    const range: ResolvedRange | undefined = parsed.window
+      ? resolveWindowRange(parsed.window, ctx)
+      : options.rangeStart !== undefined || options.rangeEnd !== undefined
+        ? {
+            start: options.rangeStart ?? 0,
+            end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
+            endExclusive: false,
+          }
+        : undefined;
+    // The store fetch bound is an upper cutoff, not the membership test —
+    // pass the resolved end through unchanged (MAX_SAFE_INTEGER for the
+    // unbounded side).
+    const fetchRange = range ? { start: range.start, end: range.end } : undefined;
+    let eventRows = fetchRange
+      ? await this.store.getEventsByTimeRange(fetchRange.start, fetchRange.end)
       : await this.store.scanAll();
+    // Ticket 12/14 complete fetch: a timestamp window alone misses rows
+    // whose METRIC date is in range but whose fetch-hint timestamp is not.
+    // Union by-metric-date candidates over the covered civil dates.
+    if (fetchRange && this.store.getEventsByMetricDates) {
+      const civilDates = civilDatesCoveredByRange(fetchRange.start, fetchRange.end, ctx.timeZone);
+      if (civilDates.length > 0 && civilDates.length <= 400) {
+        const byDate = await this.store.getEventsByMetricDates(civilDates);
+        if (byDate.length > 0) {
+          const seen = new Set(eventRows.map((r) => r.id));
+          eventRows = [...eventRows, ...byDate.filter((r) => !seen.has(r.id))];
+        }
+      }
+    }
     const matchesMetric = (metricKey: string | undefined, queryMetric: string) =>
       metricKey === queryMetric ||
       (queryMetric === 'rep' && metricKey === 'reps') ||
@@ -722,11 +969,12 @@ export class QueryService {
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
     const noteTags = await this.loadNoteTags(candidates, touchesTags);
-    const matched = this.applyEffortScope(
-      candidates.filter(row => matchesFilters(row, parsed.filters, noteTags)), parsed,
-    );
+    // Ticket 16: no global effort suppression — coverage selection below
+    // keeps every population represented exactly once.
+    const matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
 
-    return this.buildResult(matched, parsed, options, noteTags);
+    const { selected, report } = selectContributions(matched, parsed.agg);
+    return this.buildResult(selected, parsed, options, noteTags, range, report);
   }
 
   /**
@@ -738,92 +986,176 @@ export class QueryService {
     parsed: ParsedAggregateQuery,
     options: QueryOptions,
     noteTags: ReadonlyMap<string, readonly string[]>,
+    range: ResolvedRange | undefined,
+    coverage?: CoverageReport,
   ): QueryResult {
-    // Stage 2: BUCKET
+    const ctx = runContext(options);
+    // Stage 2: BUCKET — structural bucket identity (ticket 12): calendar
+    // day buckets anchor on the observation's civil date in the context
+    // timezone, week buckets on the Monday date; fixed-duration `.rollup`
+    // keeps its epoch-aligned width (a deliberately distinct kind, not a
+    // calendar week). Display timestamps (local noon / epoch midpoint) are
+    // presentation-only — never join keys.
     const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
     const tagDims = parsed.groupBy.filter((d) => d !== 'day' && d !== 'week');
-    const bucketMs = timeDim
-      ? (timeDim === 'week' ? 7 : 1) * DAY
+    const rollupMs = timeDim
+      ? null
       : parsed.rollup
         ? parsed.rollup.size * (parsed.rollup.unit === 'w' ? 7 : 1) * DAY
         : null;
-    // Civil time-dim buckets (spec v2 decision 2): `day` buckets are LOCAL
-    // civil days, `week` buckets are civil-Monday weeks — component math,
-    // never epoch floors (which align weeks to UTC Thursdays and split
-    // DST-shifted days). `.rollup` windows keep epoch math: they are
-    // fixed-size trailing windows, not calendar dims.
-    const civilDay = (ts: number): number => {
-      const d = new Date(ts);
-      return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
+    const DAY_MS = 86_400_000;
+
+    /** The observation's own temporal anchor: its recorded metric date when
+     *  it carries one (date-only facts keep their civil date), else the
+     *  fact timestamp's civil date in the context timezone. */
+    const anchorDate = (row: AnalyticsDataPoint): string =>
+      row.metricDate ?? civilDateOf(row.timestamp, ctx.timeZone);
+    const bucketKey = (row: AnalyticsDataPoint): string => {
+      if (timeDim === 'day') return `d:${anchorDate(row)}`;
+      if (timeDim === 'week') return `w:${civilMonday(anchorDate(row))}`;
+      if (rollupMs !== null) return `r:${Math.floor(row.timestamp / rollupMs)}`;
+      return '';
     };
-    const bucketKey = (ts: number): number => {
-      if (timeDim === 'day') return civilDay(ts);
-      if (timeDim === 'week') {
-        const d = new Date(ts);
-        return civilDay(ts) - (d.getDay() + 6) % 7;
+    /** Presentation-only representative instant for a structural key. */
+    const bucketDisplayTs = (key: string): number => {
+      if (key.startsWith('d:')) return zonedNoon(key.slice(2), ctx.timeZone);
+      if (key.startsWith('w:')) return zonedNoon(key.slice(2), ctx.timeZone);
+      if (key.startsWith('r:')) {
+        const b = Number(key.slice(2));
+        return (rollupMs ?? DAY_MS) * b + (rollupMs ?? DAY_MS) / 2;
       }
-      return bucketMs ? Math.floor(ts / bucketMs) : 0;
-    };
-    const bucketCount = bucketMs
-      ? new Set(matched.map((p) => bucketKey(p.timestamp))).size
-      : (matched.length ? 1 : 0);
-
-    /** Representative instant for a civil time-dim bucket — local noon of
-     *  the bucket's civil day (day), or of its civil Monday (week). */
-    const civilBucketInstant = (anchor: number, dim: 'day' | 'week'): number => {
-      const d = new Date(anchor);
-      const back = dim === 'week' ? (d.getDay() + 6) % 7 : 0;
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate() - back, 12).getTime();
+      return Number.MAX_SAFE_INTEGER;
     };
 
-    // Unit display preference / directive
-    const { unit: targetUnit, convert: shouldConvert } = resolveDisplayUnit(matched, {
+    // Chronological bucket domain (ticket 12): bounded calendar queries
+    // generate every period in the requested bounds — including empty ones;
+    // unbounded sides use the observed extent; relative windows never
+    // generate future buckets because their exclusive end is the captured
+    // instant. No domain generation for rollup (duration buckets are
+    // observed-only) or ungrouped queries.
+    const MAX_DOMAIN = 10_000;
+    const bareDate = (key: string): string => (key.startsWith('d:') || key.startsWith('w:') ? key.slice(2) : key);
+    const calendarDomain = (observed: string[]): string[] => {
+      if (!timeDim || observed.length === 0) return observed;
+      const bounds = range && range.end !== Number.MAX_SAFE_INTEGER
+        ? {
+            startIso: civilDateOf(range.start, ctx.timeZone),
+            endIso: range.endExclusive ? civilDateOf(range.end - 1, ctx.timeZone) : civilDateOf(range.end, ctx.timeZone),
+          }
+        : { startIso: bareDate(observed[0]!), endIso: bareDate(observed[observed.length - 1]!) };
+      const first = timeDim === 'week' ? civilMonday(bounds.startIso) : bounds.startIso;
+      const last = timeDim === 'week' ? civilMonday(bounds.endIso) : bounds.endIso;
+      const step = timeDim === 'week' ? 7 : 1;
+      const span = civilDateDiff(first, last);
+      if (span < 0 || span / step > MAX_DOMAIN) return observed;
+      const domain: string[] = [];
+      for (let cursor = first; ; cursor = civilDateAdd(cursor, step)) {
+        domain.push(timeDim === 'week' ? `w:${cursor}` : `d:${cursor}`);
+        if (cursor === last) break;
+      }
+      return domain;
+    };
+
+    // Output unit (ticket 13): explicit `in <unit>` directive wins when
+    // dimensionally compatible; otherwise the system default for the
+    // observations' dimension; unitless observations stay unitless. No
+    // first-record fallback, no widget-preference tier.
+    const unitResolution = resolveOutputUnit(matched, {
       directive: parsed.displayUnit,
       preferred: options.preferredUnit,
     });
+    const targetUnit = unitResolution.unit;
+    const shouldConvert = unitResolution.convert === true;
+    const seriesError = unitResolution.error;
 
-    // Stage 3+4: GROUP + AGGREGATE per bucket
-    const groups = new Map<string, AnalyticsDataPoint[]>();
+    // Stage 3+4: GROUP + AGGREGATE per bucket. Group identity (ticket 16)
+    // is the canonical ordered tuple of resolved dimension values, JSON
+    // encoded — delimiter-containing labels cannot collide; a missing
+    // dimension resolves to the structural UNASSIGNED sentinel (distinct
+    // from any literal text). The display label is derived, never identity.
+    const UNASSIGNED = '\u0000unassigned';
+    const unassignedLabel = 'unassigned';
+    const groups = new Map<string, { label: string; rows: AnalyticsDataPoint[] }>();
     for (const row of matched) {
-      const key = tagDims.length
-        ? tagDims.map((d) => dimValue(row, d, noteTags)).join(' · ')
+      const tuple = tagDims.map((d) => dimValue(row, d, noteTags, ctx));
+      const key = tagDims.length ? JSON.stringify(tuple) : parsed.metric;
+      const label = tagDims.length
+        ? tuple.map((v) => (v === UNASSIGNED ? unassignedLabel : v)).join(' · ')
         : parsed.metric;
       const bucket = groups.get(key);
-      if (bucket) bucket.push(row);
-      else groups.set(key, [row]);
+      if (bucket) bucket.rows.push(row);
+      else groups.set(key, { label, rows: [row] });
     }
 
-    const series: Series[] = [...groups.entries()].map(([key, rows]) => {
-      const byBucket = new Map<number, AnalyticsDataPoint[]>();
+    const series: Series[] = [...groups.entries()].map(([key, group]) => {
+      const rows = group.rows;
+      if (seriesError) {
+        return { key, label: group.label, points: [], unit: undefined, error: seriesError };
+      }
+      const byBucket = new Map<string, AnalyticsDataPoint[]>();
       for (const row of rows) {
-        const b = bucketKey(row.timestamp);
+        const b = bucketKey(row);
         const members = byBucket.get(b);
         if (members) members.push(row);
         else byBucket.set(b, [row]);
       }
-      const points: SeriesPoint[] = [...byBucket.entries()]
-        .sort(([a], [b]) => a - b)
-        .map(([b, members]) => {
-          const values = members.map((m) =>
-            toDisplayValue(m.value as number, m.unit ?? m.metricUnit, shouldConvert ? targetUnit : undefined),
+      const observedKeys = [...byBucket.keys()].sort();
+      const domain = timeDim ? calendarDomain(observedKeys) : observedKeys;
+      let error: string | undefined;
+      const points: SeriesPoint[] = domain.map((b) => {
+        const members = byBucket.get(b);
+        if (!members) {
+          // Missing query position (ticket 12 domain + ticket 13 matrix):
+          // zero-filled with absence provenance — never an observation.
+          return { ts: bucketDisplayTs(b), value: 0, missing: true };
+        }
+        // Compatible-unit normalization BEFORE arithmetic (finding 3.3).
+        let values: number[];
+        try {
+          values = members.map((m) =>
+            shouldConvert && targetUnit
+              ? convertViaCatalog(m.value as number, (m.unit ?? m.metricUnit) as string, targetUnit)
+              : m.value as number,
           );
-          return {
-            ts: timeDim
-              ? civilBucketInstant(members[0]!.timestamp, timeDim)
-              : bucketMs ? b * bucketMs + bucketMs / 2 : Math.min(...members.map((m) => m.timestamp)),
-            value: Math.round(aggregate(values, parsed.agg, members, shouldConvert ? targetUnit : undefined) * 100) / 100,
-          };
-        });
-      const seriesUnit = shouldConvert
-        ? targetUnit
-        : (rows[0]?.unit ?? rows[0]?.metricUnit);
-      return { key, label: key, points, unit: seriesUnit };
+        } catch (e) {
+          error = e instanceof Error ? e.message : String(e);
+          return { ts: bucketDisplayTs(b), value: 0, missing: true };
+        }
+        const reduced = aggregate(values, parsed.agg, members);
+        if (reduced.state === 'error') {
+          error = reduced.message;
+          return { ts: bucketDisplayTs(b), value: 0, missing: true };
+        }
+        return {
+          ts: timeDim || rollupMs !== null
+            ? bucketDisplayTs(b)
+            : Math.min(...members.map((m) => m.timestamp)),
+          // Unrounded — renderers format (ticket 13 precision policy).
+          value: reduced.value,
+          ...(reduced.state === 'absent' ? { missing: true } : {}),
+        };
+      });
+      // `count` reduces to the count dimension regardless of input.
+      // Output unit is the resolved one — count reduces to count; no
+      // first-record fallback (ticket 13 cutover).
+      const seriesUnit = parsed.agg === 'count' ? 'count' : targetUnit;
+      return { key, label: group.label, points, unit: seriesUnit, ...(error ? { error } : {}) };
     });
 
     const aggregated = series.reduce((n, s) => n + s.points.length, 0);
     const scalar = series.length === 1 && series[0].points.length === 1 ? series[0].points[0].value : undefined;
     const resultUnit = series.length > 0 ? series[0].unit : undefined;
+    const bucketCount = timeDim
+      ? (series[0]?.points.length ?? 0)
+      : rollupMs !== null
+        ? new Set(matched.map((p) => bucketKey(p))).size
+        : (matched.length ? 1 : 0);
 
+    const insufficient = coverage?.insufficientScopes ?? [];
+    const resultError = series.find((s) => s.error)?.error
+      ?? (insufficient.length > 0
+        ? `Insufficient evidence: ${insufficient.map((s) => `${s.resultId}/${s.metricKey} (${s.reason})`).join('; ')}`
+        : undefined);
     return {
       parsed,
       series,
@@ -831,6 +1163,8 @@ export class QueryService {
       matched,
       scalar,
       unit: resultUnit,
+      ...(resultError ? { error: resultError } : {}),
+      ...(coverage ? { coverage } : {}),
     };
   }
 
@@ -849,22 +1183,32 @@ export class QueryService {
     const contentIds = await this.contentIdsFromFindResult(findResult);
     if (contentIds.size === 0) return empty;
 
-    let facts = await this.deriveMetricFacts(contentIds, parsed.metric);
-    const joinRange = options.rangeStart !== undefined || options.rangeEnd !== undefined
-      ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
-      : windowRange(parsed.window);
+    // Ticket 16: content-joined queries keep eligible event-grain
+    // observations (the summary-only join filter is gone); overlapping
+    // scope fetches dedupe by stable observation identity.
+    let facts = dedupeById(await this.deriveMetricFacts(contentIds, parsed.metric));
+    // Ticket 12 precedence + context: query window wins; host range is the
+    // default; membership half-open against the captured context.
+    const ctx = runContext(options);
+    const joinRange: ResolvedRange | undefined = parsed.window
+      ? resolveWindowRange(parsed.window, ctx)
+      : options.rangeStart !== undefined || options.rangeEnd !== undefined
+        ? {
+            start: options.rangeStart ?? 0,
+            end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
+            endExclusive: false,
+          }
+        : undefined;
     if (joinRange) {
-      facts = facts.filter(f => f.timestamp >= joinRange.start && f.timestamp <= joinRange.end);
+      facts = facts.filter(f => inRange(f.timestamp, joinRange));
     }
 
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
     const noteTags = await this.loadNoteTags(facts, touchesTags);
-    const matched = this.applyEffortScope(
-      facts.filter(f => matchesFilters(f, parsed.filters, noteTags)), parsed,
-    );
-
-    return this.buildResult(matched, parsed, options, noteTags);
+    const matched = facts.filter(f => matchesFilters(f, parsed.filters, noteTags));
+    const { selected, report } = selectContributions(matched, parsed.agg);
+    return this.buildResult(selected, parsed, options, noteTags, joinRange, report);
   }
 
   /** Direction 1 — keep only content owning a wod block whose raw-log metric
@@ -901,12 +1245,12 @@ export class QueryService {
     contentIds: Set<string>,
     join: MetricPredicate,
   ): Promise<Set<string>> {
-    const facts = await this.deriveMetricFacts(contentIds, join.metric);
+    const facts = dedupeById(await this.deriveMetricFacts(contentIds, join.metric));
     const noteTags = await this.loadNoteTags(facts, join.filters.some(f => f.key === 'tags'));
-    const filtered = this.applyEffortScope(
+    const filtered = selectContributions(
       facts.filter(f => matchesFilters(f, join.filters, noteTags)),
-      { filters: join.filters, groupBy: [] },
-    );
+      join.agg,
+    ).selected;
     const byContent = new Map<string, AnalyticsDataPoint[]>();
     for (const f of filtered) {
       const cid = f.blockContentId ?? '';
@@ -917,23 +1261,13 @@ export class QueryService {
     const passing = new Set<string>();
     for (const [cid, rows] of byContent) {
       const values = rows.map(r => r.value as number);
-      if (compareOp(aggregate(values, join.agg, rows, undefined), join.operator, join.threshold)) passing.add(cid);
+      const reduced = aggregate(values, join.agg, rows);
+      if (reduced.state !== 'observed') continue; // absent/insufficient never satisfies
+      if (compareOp(reduced.value, join.operator, join.threshold)) passing.add(cid);
     }
     return passing;
   }
 
-  /** Filter per-effort vs un-attributed overall summary rows to avoid
-   *  double-counting. */
-  private applyEffortScope(matched: AnalyticsDataPoint[], scope: { filters: TagFilter[]; groupBy: string[] }): AnalyticsDataPoint[] {
-    if (scope.groupBy.includes('effort') || scope.filters.some(f => f.key === 'effort')) {
-      return matched.some(r => r.effortSlug !== undefined)
-        ? matched.filter(r => r.effortSlug !== undefined)
-        : matched;
-    }
-    return matched.some(r => r.effortSlug === undefined)
-      ? matched.filter(r => r.effortSlug === undefined)
-      : matched;
-  }
 
   /** Summary facts for one Canonical Metric Key across the given content ids —
    *  the cross-store join source. Reads finalize-written summary rows straight
@@ -945,9 +1279,11 @@ export class QueryService {
   ): Promise<AnalyticsDataPoint[]> {
     const ids = [...new Set(contentIds)];
     const rows = await Promise.all(ids.map((blockContentId) => this.store.getEventsByContent(blockContentId)));
+    // Ticket 16 (finding 3.7): content-joined queries read every eligible
+    // representation — the coverage selection shares the direct path's
+    // contract, so detail rows are no longer filtered out here.
     return rows
       .flat()
-      .filter((row) => row.grain === 'summary')
       .flatMap(projectEventToFacts)
       .filter((f) => f.metricKey === metricKey);
   }

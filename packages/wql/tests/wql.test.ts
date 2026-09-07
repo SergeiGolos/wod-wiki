@@ -447,9 +447,9 @@ describe('rows-in-grammar cutover (C4)', () => {
     expect(_parseQuery('rows:all{block:bc-*}').error).toContain('Unsupported rows filter');
   });
 
-  it('scope requirement errors at parse', () => {
-    expect(_parseQuery('rows:segment{}').error).toContain('needs a scope');
+  it('scope requirement: rows:all needs a scope; unscoped rows:segment is the cross-workout form (ticket 18)', () => {
     expect(_parseQuery('rows:all{}').error).toContain('needs a scope');
+    expect(_parseQuery('rows:segment{}').error).toBeUndefined();
   });
 });
 

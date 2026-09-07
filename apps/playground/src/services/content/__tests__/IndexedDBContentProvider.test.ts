@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
 import { parseDocumentSections } from '../../../components/Editor/utils/sectionParser';
-import { parseDashboardNote } from '../../../lib/dashboard/parser';
-import { buildDashboardDocument, isDashboardMeta } from '../../../lib/dashboard/model';
+import { parseDashboardNote, buildDashboardDocument, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';
 
 const savedNotes: Note[] = [];
 const savedSegments: NoteSegment[] = [];

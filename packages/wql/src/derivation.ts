@@ -4,7 +4,9 @@
 
 import {
   MetricType,
+  fieldRefKey,
   type AnalyticsDataPoint,
+  type FieldRef,
   type ResultOrigin,
   type StoredOutputStatement,
   type UnifiedEventRecord,
@@ -68,6 +70,19 @@ function metadataString(metadata: Record<string, unknown> | undefined, key: stri
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/**
+ * Read the typed field reference off a metric's metadata (ticket 11) —
+ * `{ path, kind, dimension? }` stamped by PropertyMetric at authoring.
+ * Defensive shape check: legacy logs predate the stamp.
+ */
+function readFieldRef(metadata: Record<string, unknown> | undefined): FieldRef | undefined {
+  const ref = metadata?.fieldRef;
+  if (!ref || typeof ref !== 'object') return undefined;
+  const { path, kind, dimension } = ref as Record<string, unknown>;
+  if (typeof path !== 'string' || path.length === 0 || typeof kind !== 'string') return undefined;
+  return { path, kind: kind as FieldRef['kind'], ...(typeof dimension === 'string' ? { dimension } : {}) };
+}
+
 /** Group-tag pairs from grouped composed-calc emission, key-sorted. */
 function readGroupTags(metadata: Record<string, unknown> | undefined): Record<string, string> | undefined {
   const tags = metadata?.groupTags;
@@ -93,6 +108,9 @@ interface FoldedSummary {
   intensityTier?: string;
   grade?: string;
   groupTags?: Record<string, string>;
+  /** Typed identity (ticket 11) — carried so re-emission keeps ONE catalog
+   *  identity for the field instead of splitting path-only duplicates. */
+  fieldRef?: FieldRef;
   rowKey: string;
   started?: number;
 }
@@ -107,9 +125,14 @@ function foldSummaryOutputs(logs: readonly SummaryFactSourceOutput[]): Map<strin
 
     const projectionName = String(label.value ?? label.image ?? '');
     if (!projectionName) continue;
-    // Composed calcs carry their Canonical Metric Key explicitly (#878);
+    // Key resolution order (ticket 11): explicitly-stamped canonicalKey
+    // (calc seeds, wellness) keeps working unchanged; the typed field
+    // reference (PropertyMetric fieldRef) is the normalized custom identity;
     // legacy projections fall back to name-derived keys during cutover.
-    const metricKey = metadataString(value.metadata, 'canonicalKey') ?? resolveCanonicalMetricKey(projectionName);
+    const fieldRef = readFieldRef(value.metadata);
+    const metricKey = metadataString(value.metadata, 'canonicalKey')
+      ?? fieldRef?.path
+      ?? resolveCanonicalMetricKey(projectionName);
 
     const effortSlug = metadataString(value.metadata, 'effortSlug');
     const discipline = metadataString(value.metadata, 'effortDiscipline');
@@ -119,13 +142,19 @@ function foldSummaryOutputs(logs: readonly SummaryFactSourceOutput[]): Map<strin
     // Grouped dims auto-tag; legacy per-effort projections tag `effort`
     // from their effortSlug metadata.
     const groupTags = readGroupTags(value.metadata) ?? (effortSlug ? { effort: effortSlug } : undefined);
-    const rowKey = groupTags
-      ? `${metricKey}:${Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':')}`
-      : metricKey;
+    // Fold identity (ticket 11): typed variants fold under the full typed
+    // key — path + kind + dimension — so two variants of one path never
+    // fold together. Legacy rows keep the metricKey[:k=v…] shape.
+    const rowKey = fieldRef
+      ? `${fieldRefKey(fieldRef)}${groupTags ? ':' + Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':') : ''}`
+      : groupTags
+        ? `${metricKey}:${Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':')}`
+        : metricKey;
 
     folded.set(rowKey, {
       projectionName, metricKey, value: value.value as number, unit: value.unit,
       effortSlug, discipline, intensityTier, grade, groupTags, rowKey,
+      ...(fieldRef ? { fieldRef } : {}),
       started: output.timeSpan?.started,
     });
   }
@@ -162,6 +191,8 @@ export function normalizeSummaryFacts(
     ...(f.discipline ? { discipline: f.discipline } : {}),
     ...(f.intensityTier ? { intensityTier: f.intensityTier } : {}),
     ...(f.grade ? { grade: f.grade } : {}),
+    // Ticket 12: anchored at the producing scope (workout timestamp); the
+    // derivation clock is only the degenerate last resort.
     timestamp: identity.workoutTimestamp ?? f.started ?? now,
     createdAt: now,
   }));
@@ -184,8 +215,13 @@ function firstEffortSlug(metrics: StoredOutputStatement['metrics']): string | un
 
 /**
  * Logs → event rows, 1:1 per statement (ticket 002). Deterministic ids
- * `${resultId}:${seq}`; canonical workout time wins over the statement's own
- * timeSpan; query-critical scalars promoted top-level.
+ * `${resultId}:${seq}`; query-critical scalars promoted top-level.
+ *
+ * Ticket 12 temporal anchoring: the row timestamp is the statement's OWN
+ * timeSpan start when it has one — the workout-start timestamp never
+ * relocates a metric observation whose own instant differs. Statements with
+ * a timeSpan carry per-metric temporal anchors ('instant') so projection
+ * groups each observation under its own date.
  */
 export function toEventRows(
   logs: readonly StoredOutputStatement[],
@@ -198,13 +234,16 @@ export function toEventRows(
     blockContentId: identity.blockContentId,
     pageId: identity.pageId,
     origin: identity.origin,
-    timestamp: identity.workoutTimestamp ?? output.timeSpan?.started ?? Date.now(),
+    timestamp: output.timeSpan?.started ?? identity.workoutTimestamp ?? Date.now(),
     grain: 'event' as const,
     outputType: output.outputType ?? 'segment',
     effortSlug: firstEffortSlug(output.metrics),
     metrics: output.metrics,
     timeSpan: output.timeSpan?.started !== undefined
       ? { started: output.timeSpan.started, ended: output.timeSpan.ended }
+      : undefined,
+    metricTemporal: output.timeSpan?.started !== undefined
+      ? output.metrics.map(() => ({ temporalKind: 'instant' as const, instant: output.timeSpan!.started }))
       : undefined,
     sourceBlockKey: output.sourceBlockKey,
     stackLevel: output.stackLevel,
@@ -232,9 +271,26 @@ export function toSummaryEventRows(
     blockContentId: identity.blockContentId,
     pageId: identity.pageId,
     origin: identity.origin,
+    // Ticket 12: a summary is anchored at its producing scope — the workout
+    // timestamp. The derivation clock is only the degenerate last resort
+    // (rebuilding must never date a summary from the replay clock — a
+    // headless replay's output timeSpan is derivation time, not coverage).
+    // Coverage descriptors that describe the represented observations land
+    // with ticket 14's summaryCoverage.
     timestamp: identity.workoutTimestamp ?? f.started ?? now,
     grain: 'summary' as const,
     outputType: 'analytics',
+    // Ticket 14 provenance: engine-authored summaries are calculated
+    // representations covering their producing scope. NO fabricated
+    // reducerStats: the fold retains only the value, and the contract forbids
+    // inventing observedCount (undefined = insufficient evidence for
+    // count/avg; sum-shaped operations answer from the value alone).
+    representationKind: 'calculated' as const,
+    summaryCoverage: {
+        scope: (f.effortSlug ? 'effort' : f.groupTags ? 'partition' : 'workout') as 'effort' | 'partition' | 'workout',
+        ...(f.effortSlug ? { effortSlug: f.effortSlug } : {}),
+        ...(f.groupTags ? { groupTags: f.groupTags } : {}),
+    },
     effortSlug: f.effortSlug,
     metrics: [{
       type: f.metricKey,
@@ -242,6 +298,7 @@ export function toSummaryEventRows(
       ...(f.unit ? { unit: f.unit } : {}),
       metadata: {
         canonicalKey: f.metricKey,
+        ...(f.fieldRef ? { fieldRef: f.fieldRef, originalKey: f.projectionName } : {}),
         ...(f.effortSlug ? { effortSlug: f.effortSlug } : {}),
         ...(f.discipline ? { effortDiscipline: f.discipline } : {}),
         ...(f.intensityTier ? { effortIntensityTier: f.intensityTier } : {}),
@@ -270,7 +327,16 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   if (record.grain === 'summary') {
     const m = metrics[0];
     if (!m || typeof m.value !== 'number') return [];
-    const metricKey = metadataString(m.metadata, 'canonicalKey') ?? (m.type ?? '');
+    // Ticket 11: canonicalKey (calc/wellness stamps) first, then the typed
+    // field reference; legacy unkeyed summaries keep their type key.
+    const fieldRef = readFieldRef(m.metadata);
+    const metricKey = metadataString(m.metadata, 'canonicalKey')
+      ?? fieldRef?.path
+      ?? (m.type ?? '');
+    // Ticket 12: a civil-date temporal anchor keeps its recorded civil date
+    // (never a fabricated midnight instant); instant facts group under the
+    // anchor instant's civil date in the execution timezone at query time.
+    const temporal = record.metricTemporal?.[0];
     return [{
       id: `${record.id}:0`,
       noteId: record.noteId,
@@ -288,6 +354,16 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       metricKey,
       metricLabel: metricKey,
       metricUnit: m.unit,
+      ...(fieldRef ? { fieldRef } : {}),
+      ...(temporal?.temporalKind === 'civil-date' && temporal.civilDate
+        ? { metricDate: temporal.civilDate, temporalKind: 'civil-date' as const }
+        : {}),
+      // Wellness rows are reconcile-owned user recordings: DIRECT
+      // observations even before ticket 14 stamps representationKind.
+      representationKind: record.representationKind
+        ?? (record.outputType === 'wellness' ? 'direct' as const : undefined),
+      ...(record.summaryCoverage ? { summaryCoverage: record.summaryCoverage } : {}),
+      ...(record.reducerStats ? { reducerStats: record.reducerStats } : {}),
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? record.effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
@@ -307,9 +383,30 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   const facts: AnalyticsDataPoint[] = [];
   metrics.forEach((m) => {
     if (m.type === MetricType.Label || m.type === 'label' || typeof m.value !== 'number') return;
+    // Ticket 11 key resolution: explicitly-stamped canonicalKey first, then
+    // the typed field reference — PropertyMetric variants survive under
+    // their normalized path instead of collapsing into a pooled `custom`.
+    // Legacy fallbacks for unlabeled legacy data only (pre-fieldRef logs):
+    // label-derived key, `reps` for rep metrics, or the metric's own type.
+    // A Custom-typed metric with no identity source no longer invents the
+    // pooled `custom` key (finding 3.1) — it has no queryable identity, so
+    // it projects no fact.
+    const fieldRef = readFieldRef(m.metadata);
+    const legacyFallback = m.type === MetricType.Rep || m.type === 'rep'
+      ? 'reps'
+      : (m.type ?? 'metric');
+    if (!fieldRef && legacyFallback === 'custom') return;
     const metricKey = metadataString(m.metadata, 'canonicalKey')
-      ?? (labelName ? resolveCanonicalMetricKey(labelName) : (m.type === MetricType.Rep || m.type === 'rep' ? 'reps' : (m.type ?? 'metric')));
+      ?? fieldRef?.path
+      ?? (labelName ? resolveCanonicalMetricKey(labelName) : legacyFallback);
     const ordinal = facts.length;
+    // Ticket 12: the fact carries its own temporal anchor — the metric's
+    // occurrence instant when the row has one, so a workout-start
+    // timestamp never relocates an observation whose own date differs.
+    const temporal = record.metricTemporal?.[ordinal];
+    const factTimestamp = temporal?.temporalKind === 'instant' && temporal.instant !== undefined
+      ? temporal.instant
+      : record.timestamp;
     facts.push({
       id: `${record.id}:${ordinal}`,
       noteId: record.noteId,
@@ -327,11 +424,15 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       metricKey,
       metricLabel: labelName || metricKey,
       metricUnit: m.unit,
+      ...(fieldRef ? { fieldRef } : {}),
+      ...(temporal?.temporalKind === 'civil-date' && temporal.civilDate
+        ? { metricDate: temporal.civilDate, temporalKind: 'civil-date' as const }
+        : {}),
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
       grade: metadataString(m.metadata, 'grade'),
-      timestamp: record.timestamp,
+      timestamp: factTimestamp,
       createdAt: record.timestamp,
     });
   });

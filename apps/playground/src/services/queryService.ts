@@ -29,6 +29,8 @@ import { staticNoteStore, staticBlockStore } from '@/services/content/staticBloc
 /** Unified event store over IndexedDB — the `events` object store (V16). */
 export const indexedDbEventStore: UnifiedEventStore = {
   getEventsByTimeRange: (start: number, end: number) => indexedDBService.getEventsByTimeRange(start, end),
+  // Ticket 12/14 complete fetch — the V17 by-metric-date multiEntry index.
+  getEventsByMetricDates: (dates) => indexedDBService.getEventsByMetricDates(dates),
   getEventsByResult: (resultId: string) => indexedDBService.getEventsByResult(resultId),
   getEventsForNote: (noteId: string) => indexedDBService.getEventsForNote(noteId),
   getEventsByContent: (blockContentId: string) => indexedDBService.getEventsByContent(blockContentId),

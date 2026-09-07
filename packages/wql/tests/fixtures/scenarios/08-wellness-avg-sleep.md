@@ -11,5 +11,5 @@ avg:sleep{}
 
 ## Expected
 
-- scalar: 7.25
-- unit: hr
+- scalar: 26100
+- unit: s

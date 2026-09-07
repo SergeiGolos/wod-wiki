@@ -33,11 +33,17 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
 
     // Query block
     if (/^```query/.test(trimmed)) {
-      const tag = trimmed.slice(3).split(/[\s\t]/)[0].toLowerCase();
+      // The full suffix (after ```query) may carry `key=value` presentation
+      // attributes (decision 22) — the whole remainder parses as one suffix.
+      // NOT lowercased: attribute values are case-sensitive ($Token names);
+      // parseQueryWidgetSuffix lowercases the type and keys itself.
+      const tag = trimmed.slice(3);
       let widgetType;
       let spanCols;
       let spanFull;
       let widgetError;
+      let attributes: Record<string, string> | undefined;
+      let attributeOrder: string[] | undefined;
 
       if (tag.startsWith('query:')) {
         const spec = parseQueryWidgetSuffix(tag.slice('query:'.length));
@@ -45,6 +51,8 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
         spanCols = spec.spanCols;
         spanFull = spec.spanFull;
         widgetError = spec.error;
+        attributes = spec.attributes;
+        attributeOrder = spec.attributeOrder;
       }
 
       const startLine = i;
@@ -63,6 +71,8 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
         spanCols,
         spanFull,
         widgetError,
+        attributes,
+        attributeOrder,
         startLine,
         endLine,
       });

@@ -9,7 +9,6 @@ corpus: crossfit-multi-week
 sum:totalVolume{}
 ```
 
-## Expected
+## Errors
 
-- scalar: 53775
-- unit: lb
+- Incompatible units

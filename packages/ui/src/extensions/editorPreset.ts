@@ -14,7 +14,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
 import { whiteboardScriptLanguage, whiteboardScript } from '@bitcobblers/wod-wiki-lang';
-import { wql, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
+import { wql, wqlLanguage, type IFieldCatalog } from '@bitcobblers/wod-wiki-wql';
 import { editorTheme } from "./theme";
 import { sectionField } from "./section-state";
 import { previewDecorations } from "./preview-decorations";
@@ -47,6 +47,9 @@ export interface EditorPresetOptions {
   lineWrapping?: boolean;
   executor?: QueryExecutor;
   onResultSaved?: (callback: () => void) => (() => void) | void;
+  /** Injected field catalog (ticket 15) — catalog-backed typeahead for wql
+   *  editors. The app supplies it; this package never opens storage. */
+  catalog?: IFieldCatalog;
   extensions?: Extension[];
 }
 
@@ -67,6 +70,7 @@ export function editorPreset(optionsOrDialect: string | EditorPresetOptions = 'm
     lineWrapping = true,
     executor,
     onResultSaved,
+    catalog,
     extensions: extraExtensions = [],
   } = options;
 
@@ -96,7 +100,8 @@ export function editorPreset(optionsOrDialect: string | EditorPresetOptions = 'm
   }
 
   if (dialect === 'wql') {
-    extensions.push(wql());
+    const completionOptions = catalog ? { catalog } : {};
+    extensions.push(wql(completionOptions));
   } else if (dialect === 'wod' || dialect === 'whiteboard' || dialect === 'time') {
     extensions.push(
       whiteboardScript(),

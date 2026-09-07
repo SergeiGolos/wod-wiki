@@ -3,11 +3,11 @@
   "kind": "event-journal",
   "id": "crossfit-multi-week",
   "title": "CrossFit multi-week block",
-  "description": "6 weeks \u00d7 Fran / Simple & Sinister / bodyweight chipper \u2014 aggregates, by-dimensions, .rollup windows.",
+  "description": "6 weeks × Fran / Simple & Sinister / bodyweight chipper — aggregates, by-dimensions, .rollup windows.",
   "notes": [
     {
       "id": "note-journal-2026-06-01",
-      "title": "WOD \u2014 Fran",
+      "title": "WOD — Fran",
       "createdAt": 1780315200000,
       "tags": [
         "crossfit",
@@ -17,7 +17,7 @@
     },
     {
       "id": "note-journal-2026-06-03",
-      "title": "Strength \u2014 Simple & Sinister",
+      "title": "Strength — Simple & Sinister",
       "createdAt": 1780488000000,
       "tags": [
         "crossfit",
@@ -26,7 +26,7 @@
     },
     {
       "id": "note-journal-2026-06-06",
-      "title": "Metcon \u2014 bodyweight chipper",
+      "title": "Metcon — bodyweight chipper",
       "createdAt": 1780747200000,
       "tags": [
         "crossfit",
@@ -35,7 +35,7 @@
     },
     {
       "id": "note-journal-2026-06-08",
-      "title": "WOD \u2014 Fran",
+      "title": "WOD — Fran",
       "createdAt": 1780920000000,
       "tags": [
         "crossfit",
@@ -45,7 +45,7 @@
     },
     {
       "id": "note-journal-2026-06-10",
-      "title": "Strength \u2014 Simple & Sinister",
+      "title": "Strength — Simple & Sinister",
       "createdAt": 1781092800000,
       "tags": [
         "crossfit",
@@ -54,7 +54,7 @@
     },
     {
       "id": "note-journal-2026-06-13",
-      "title": "Metcon \u2014 bodyweight chipper",
+      "title": "Metcon — bodyweight chipper",
       "createdAt": 1781352000000,
       "tags": [
         "crossfit",
@@ -63,7 +63,7 @@
     },
     {
       "id": "note-journal-2026-06-15",
-      "title": "WOD \u2014 Fran",
+      "title": "WOD — Fran",
       "createdAt": 1781524800000,
       "tags": [
         "crossfit",
@@ -73,7 +73,7 @@
     },
     {
       "id": "note-journal-2026-06-17",
-      "title": "Strength \u2014 Simple & Sinister",
+      "title": "Strength — Simple & Sinister",
       "createdAt": 1781697600000,
       "tags": [
         "crossfit",
@@ -82,7 +82,7 @@
     },
     {
       "id": "note-journal-2026-06-20",
-      "title": "Metcon \u2014 bodyweight chipper",
+      "title": "Metcon — bodyweight chipper",
       "createdAt": 1781956800000,
       "tags": [
         "crossfit",
@@ -91,7 +91,7 @@
     },
     {
       "id": "note-journal-2026-06-22",
-      "title": "WOD \u2014 Fran",
+      "title": "WOD — Fran",
       "createdAt": 1782129600000,
       "tags": [
         "crossfit",
@@ -101,7 +101,7 @@
     },
     {
       "id": "note-journal-2026-06-24",
-      "title": "Strength \u2014 Simple & Sinister",
+      "title": "Strength — Simple & Sinister",
       "createdAt": 1782302400000,
       "tags": [
         "crossfit",
@@ -110,7 +110,7 @@
     },
     {
       "id": "note-journal-2026-06-27",
-      "title": "Metcon \u2014 bodyweight chipper",
+      "title": "Metcon — bodyweight chipper",
       "createdAt": 1782561600000,
       "tags": [
         "crossfit",
@@ -119,7 +119,7 @@
     },
     {
       "id": "note-journal-2026-06-29",
-      "title": "WOD \u2014 Fran",
+      "title": "WOD — Fran",
       "createdAt": 1782734400000,
       "tags": [
         "crossfit",
@@ -129,7 +129,7 @@
     },
     {
       "id": "note-journal-2026-06-31",
-      "title": "Strength \u2014 Simple & Sinister",
+      "title": "Strength — Simple & Sinister",
       "createdAt": 1782907200000,
       "tags": [
         "crossfit",
@@ -138,7 +138,7 @@
     },
     {
       "id": "note-journal-2026-06-34",
-      "title": "Metcon \u2014 bodyweight chipper",
+      "title": "Metcon — bodyweight chipper",
       "createdAt": 1783166400000,
       "tags": [
         "crossfit",
@@ -147,7 +147,7 @@
     },
     {
       "id": "note-journal-2026-06-36",
-      "title": "WOD \u2014 Fran",
+      "title": "WOD — Fran",
       "createdAt": 1783339200000,
       "tags": [
         "crossfit",
@@ -157,7 +157,7 @@
     },
     {
       "id": "note-journal-2026-06-38",
-      "title": "Strength \u2014 Simple & Sinister",
+      "title": "Strength — Simple & Sinister",
       "createdAt": 1783512000000,
       "tags": [
         "crossfit",
@@ -166,7 +166,7 @@
     },
     {
       "id": "note-journal-2026-06-41",
-      "title": "Metcon \u2014 bodyweight chipper",
+      "title": "Metcon — bodyweight chipper",
       "createdAt": 1783771200000,
       "tags": [
         "crossfit",
@@ -199,7 +199,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 2790
+      }
     },
     {
       "id": "res-fran-w0:summary:tis",
@@ -225,7 +230,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 46
+      }
     },
     {
       "id": "res-fran-w0:summary:sessionLoad",
@@ -251,7 +261,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 210
+      }
     },
     {
       "id": "res-ss-w0:summary:totalVolume",
@@ -277,7 +292,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5400
+      }
     },
     {
       "id": "res-ss-w0:summary:tis",
@@ -303,7 +323,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 52
+      }
     },
     {
       "id": "res-ss-w0:summary:sessionLoad",
@@ -329,7 +354,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 260
+      }
     },
     {
       "id": "res-chip-w0:summary:totalVolume",
@@ -355,7 +385,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 360
+      }
     },
     {
       "id": "res-chip-w0:summary:tis",
@@ -381,7 +416,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 38
+      }
     },
     {
       "id": "res-chip-w0:summary:sessionLoad",
@@ -407,7 +447,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 150
+      }
     },
     {
       "id": "res-fran-w1:summary:totalVolume",
@@ -433,7 +478,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 2850
+      }
     },
     {
       "id": "res-fran-w1:summary:tis",
@@ -459,7 +509,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 47.5
+      }
     },
     {
       "id": "res-fran-w1:summary:sessionLoad",
@@ -485,7 +540,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 218
+      }
     },
     {
       "id": "res-ss-w1:summary:totalVolume",
@@ -511,7 +571,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5490
+      }
     },
     {
       "id": "res-ss-w1:summary:tis",
@@ -537,7 +602,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 54
+      }
     },
     {
       "id": "res-ss-w1:summary:sessionLoad",
@@ -563,7 +633,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 270
+      }
     },
     {
       "id": "res-chip-w1:summary:totalVolume",
@@ -589,7 +664,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 375
+      }
     },
     {
       "id": "res-chip-w1:summary:tis",
@@ -615,7 +695,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 39
+      }
     },
     {
       "id": "res-chip-w1:summary:sessionLoad",
@@ -641,7 +726,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 156
+      }
     },
     {
       "id": "res-fran-w2:summary:totalVolume",
@@ -667,7 +757,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 2910
+      }
     },
     {
       "id": "res-fran-w2:summary:tis",
@@ -693,7 +788,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 49
+      }
     },
     {
       "id": "res-fran-w2:summary:sessionLoad",
@@ -719,7 +819,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 226
+      }
     },
     {
       "id": "res-ss-w2:summary:totalVolume",
@@ -745,7 +850,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5580
+      }
     },
     {
       "id": "res-ss-w2:summary:tis",
@@ -771,7 +881,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 56
+      }
     },
     {
       "id": "res-ss-w2:summary:sessionLoad",
@@ -797,7 +912,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 280
+      }
     },
     {
       "id": "res-chip-w2:summary:totalVolume",
@@ -823,7 +943,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 390
+      }
     },
     {
       "id": "res-chip-w2:summary:tis",
@@ -849,7 +974,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 40
+      }
     },
     {
       "id": "res-chip-w2:summary:sessionLoad",
@@ -875,7 +1005,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 162
+      }
     },
     {
       "id": "res-fran-w3:summary:totalVolume",
@@ -901,7 +1036,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 2970
+      }
     },
     {
       "id": "res-fran-w3:summary:tis",
@@ -927,7 +1067,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 50.5
+      }
     },
     {
       "id": "res-fran-w3:summary:sessionLoad",
@@ -953,7 +1098,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 234
+      }
     },
     {
       "id": "res-ss-w3:summary:totalVolume",
@@ -979,7 +1129,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5670
+      }
     },
     {
       "id": "res-ss-w3:summary:tis",
@@ -1005,7 +1160,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 58
+      }
     },
     {
       "id": "res-ss-w3:summary:sessionLoad",
@@ -1031,7 +1191,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 290
+      }
     },
     {
       "id": "res-chip-w3:summary:totalVolume",
@@ -1057,7 +1222,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 405
+      }
     },
     {
       "id": "res-chip-w3:summary:tis",
@@ -1083,7 +1253,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 41
+      }
     },
     {
       "id": "res-chip-w3:summary:sessionLoad",
@@ -1109,7 +1284,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 168
+      }
     },
     {
       "id": "res-fran-w4:summary:totalVolume",
@@ -1135,7 +1315,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 3030
+      }
     },
     {
       "id": "res-fran-w4:summary:tis",
@@ -1161,7 +1346,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 52
+      }
     },
     {
       "id": "res-fran-w4:summary:sessionLoad",
@@ -1187,7 +1377,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 242
+      }
     },
     {
       "id": "res-ss-w4:summary:totalVolume",
@@ -1213,7 +1408,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5760
+      }
     },
     {
       "id": "res-ss-w4:summary:tis",
@@ -1239,7 +1439,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 60
+      }
     },
     {
       "id": "res-ss-w4:summary:sessionLoad",
@@ -1265,7 +1470,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 300
+      }
     },
     {
       "id": "res-chip-w4:summary:totalVolume",
@@ -1291,7 +1501,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 420
+      }
     },
     {
       "id": "res-chip-w4:summary:tis",
@@ -1317,7 +1532,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 42
+      }
     },
     {
       "id": "res-chip-w4:summary:sessionLoad",
@@ -1343,7 +1563,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 174
+      }
     },
     {
       "id": "res-fran-w5:summary:totalVolume",
@@ -1369,7 +1594,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 3090
+      }
     },
     {
       "id": "res-fran-w5:summary:tis",
@@ -1395,7 +1625,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 53.5
+      }
     },
     {
       "id": "res-fran-w5:summary:sessionLoad",
@@ -1421,7 +1656,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 250
+      }
     },
     {
       "id": "res-ss-w5:summary:totalVolume",
@@ -1447,7 +1687,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 5850
+      }
     },
     {
       "id": "res-ss-w5:summary:tis",
@@ -1473,7 +1718,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 62
+      }
     },
     {
       "id": "res-ss-w5:summary:sessionLoad",
@@ -1499,7 +1749,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 310
+      }
     },
     {
       "id": "res-chip-w5:summary:totalVolume",
@@ -1525,7 +1780,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 435
+      }
     },
     {
       "id": "res-chip-w5:summary:tis",
@@ -1551,7 +1811,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 43
+      }
     },
     {
       "id": "res-chip-w5:summary:sessionLoad",
@@ -1577,7 +1842,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 180
+      }
     },
     {
       "id": "res-fran-w5:1",
@@ -1729,7 +1999,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 0.87
+      }
     },
     {
       "id": "res-chip-w0:summary:calc.monotony",
@@ -1755,7 +2030,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.4
+      }
     },
     {
       "id": "res-chip-w0:summary:calc.strain",
@@ -1781,7 +2061,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 950
+      }
     },
     {
       "id": "res-chip-w1:summary:calc.acwr",
@@ -1807,7 +2092,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.02
+      }
     },
     {
       "id": "res-chip-w1:summary:calc.monotony",
@@ -1833,7 +2123,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.8
+      }
     },
     {
       "id": "res-chip-w1:summary:calc.strain",
@@ -1859,7 +2154,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1220
+      }
     },
     {
       "id": "res-chip-w2:summary:calc.acwr",
@@ -1885,7 +2185,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.15
+      }
     },
     {
       "id": "res-chip-w2:summary:calc.monotony",
@@ -1911,7 +2216,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 2.1
+      }
     },
     {
       "id": "res-chip-w2:summary:calc.strain",
@@ -1937,7 +2247,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1430
+      }
     },
     {
       "id": "res-chip-w3:summary:calc.acwr",
@@ -1963,7 +2278,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 0.94
+      }
     },
     {
       "id": "res-chip-w3:summary:calc.monotony",
@@ -1989,7 +2309,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.3
+      }
     },
     {
       "id": "res-chip-w3:summary:calc.strain",
@@ -2015,7 +2340,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 880
+      }
     },
     {
       "id": "res-chip-w4:summary:calc.acwr",
@@ -2041,7 +2371,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.21
+      }
     },
     {
       "id": "res-chip-w4:summary:calc.monotony",
@@ -2067,7 +2402,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 2.3
+      }
     },
     {
       "id": "res-chip-w4:summary:calc.strain",
@@ -2093,7 +2433,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1560
+      }
     },
     {
       "id": "res-chip-w5:summary:calc.acwr",
@@ -2119,7 +2464,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.08
+      }
     },
     {
       "id": "res-chip-w5:summary:calc.monotony",
@@ -2145,7 +2495,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1.7
+      }
     },
     {
       "id": "res-chip-w5:summary:calc.strain",
@@ -2171,7 +2526,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1150
+      }
     }
   ]
 }

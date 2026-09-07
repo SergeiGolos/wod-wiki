@@ -161,7 +161,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 30
+      }
     },
     {
       "id": "res-boulder-w0:summary:sessionLoad",
@@ -187,7 +192,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 120
+      }
     },
     {
       "id": "res-yoga-w0:summary:tis",
@@ -213,7 +223,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 20
+      }
     },
     {
       "id": "res-yoga-w0:summary:sessionLoad",
@@ -239,7 +254,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 60
+      }
     },
     {
       "id": "res-swim-w0:summary:distance",
@@ -265,7 +285,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1500
+      }
     },
     {
       "id": "res-swim-w0:summary:tis",
@@ -291,7 +316,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 35
+      }
     },
     {
       "id": "res-boulder-w1:summary:tis",
@@ -317,7 +347,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 31
+      }
     },
     {
       "id": "res-boulder-w1:summary:sessionLoad",
@@ -343,7 +378,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 125
+      }
     },
     {
       "id": "res-yoga-w1:summary:tis",
@@ -369,7 +409,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 20.5
+      }
     },
     {
       "id": "res-yoga-w1:summary:sessionLoad",
@@ -395,7 +440,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 62
+      }
     },
     {
       "id": "res-swim-w1:summary:distance",
@@ -421,7 +471,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1550
+      }
     },
     {
       "id": "res-swim-w1:summary:tis",
@@ -447,7 +502,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 36
+      }
     },
     {
       "id": "res-boulder-w2:summary:tis",
@@ -473,7 +533,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 32
+      }
     },
     {
       "id": "res-boulder-w2:summary:sessionLoad",
@@ -499,7 +564,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 130
+      }
     },
     {
       "id": "res-yoga-w2:summary:tis",
@@ -525,7 +595,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 21
+      }
     },
     {
       "id": "res-yoga-w2:summary:sessionLoad",
@@ -551,7 +626,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 64
+      }
     },
     {
       "id": "res-swim-w2:summary:distance",
@@ -577,7 +657,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1600
+      }
     },
     {
       "id": "res-swim-w2:summary:tis",
@@ -603,7 +688,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 37
+      }
     },
     {
       "id": "res-boulder-w3:summary:tis",
@@ -629,7 +719,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 33
+      }
     },
     {
       "id": "res-boulder-w3:summary:sessionLoad",
@@ -655,7 +750,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 135
+      }
     },
     {
       "id": "res-yoga-w3:summary:tis",
@@ -681,7 +781,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 21.5
+      }
     },
     {
       "id": "res-yoga-w3:summary:sessionLoad",
@@ -707,7 +812,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 66
+      }
     },
     {
       "id": "res-swim-w3:summary:distance",
@@ -733,7 +843,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1650
+      }
     },
     {
       "id": "res-swim-w3:summary:tis",
@@ -759,7 +874,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 38
+      }
     },
     {
       "id": "res-boulder-w4:summary:tis",
@@ -785,7 +905,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 34
+      }
     },
     {
       "id": "res-boulder-w4:summary:sessionLoad",
@@ -811,7 +936,12 @@
             "effortIntensityTier": "high"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 140
+      }
     },
     {
       "id": "res-yoga-w4:summary:tis",
@@ -837,7 +967,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 22
+      }
     },
     {
       "id": "res-yoga-w4:summary:sessionLoad",
@@ -863,7 +998,12 @@
             "effortIntensityTier": "low"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 68
+      }
     },
     {
       "id": "res-swim-w4:summary:distance",
@@ -889,7 +1029,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 1700
+      }
     },
     {
       "id": "res-swim-w4:summary:tis",
@@ -915,7 +1060,12 @@
             "effortIntensityTier": "moderate"
           }
         }
-      ]
+      ],
+      "representationKind": "calculated",
+      "reducerStats": {
+        "observedCount": 1,
+        "sum": 39
+      }
     },
     {
       "id": "res-boulder-w4:1",

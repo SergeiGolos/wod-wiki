@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test';
-import { parseDashboardNote } from './parser';
+import { describe, expect, it } from 'vitest';
+import { parseDashboardNote } from '../src/dashboard/parser';
 
 describe('parseDashboardNote', () => {
   it('parses a basic dashboard note', () => {

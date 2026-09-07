@@ -56,11 +56,14 @@ describe("wall-clock window anchoring (#1009)", () => {
     expect(result.notes).toEqual([]);
   });
 
-  it('explicit range overrides relative window', async () => {
+  it('the query window wins over the host range option (ticket 12 precedence)', async () => {
     const service = makeService();
+    // `last 2w` anchored at T0 → [recent, newest]; the host range around
+    // T_OLD is only a default and does not override the explicit window.
     const result = await service.runFind(LAST_2W, {
-      range: { start: T_OLD, end: T_OLD },
+      anchorNow: T0,
+      range: { start: T_OLD, end: T_OLD, endExclusive: false },
     });
-    expect(result.notes.map(n => n.id)).toEqual(['old']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['newest', 'recent']);
   });
 });

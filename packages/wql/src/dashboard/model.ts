@@ -6,7 +6,8 @@
  * ```query[:<type>][-<N>|-full] blocks whose title/question associate from the
  * markdown heading/paragraph directly above each block. Queries reference
  * tokens as `$name`, substituted as raw text at execution time. A block body
- * is one line: WQL query + optional `/`-separated positional params.
+ * body is a Query Document (decision 22); presentation params ride the
+ * fence tag as `key=value` attributes.
  *
  * This module is pure — no React, no editor, no query service — so the editor
  * extensions, the inline block renderer, and the dashboard route all share it.
@@ -78,6 +79,11 @@ export interface QueryWidgetSuffix {
   spanCols?: number;
   /** Full-row flag (`-full`). Mutually exclusive with spanCols. */
   spanFull?: boolean;
+  /** Presentation attributes: `key=value` tokens after the type/span
+   *  (decision 22 — positional params ride the fence tag, not the body). */
+  attributes: Record<string, string>;
+  /** Attribute order for stable re-serialization. */
+  attributeOrder: string[];
   /** Set when the suffix is malformed (the type is still reported raw). */
   error?: string;
 }
@@ -88,9 +94,38 @@ export interface QueryWidgetSuffix {
  * problems (empty type, bad span, `-N-full` combo) set `error`.
  */
 export function parseQueryWidgetSuffix(suffix: string): QueryWidgetSuffix {
-  if (suffix === '') return { type: '', error: 'missing widget type after "query:"' };
+  if (suffix === '') {
+    return { type: '', attributes: {}, attributeOrder: [], error: 'missing widget type after "query:"' };
+  }
 
-  let rest = suffix.toLowerCase();
+  // Attributes: `key=value` pairs after the type/span token (a quoted value
+  // may contain spaces). The head token carries type + span; everything
+  // after the first whitespace is attribute tail.
+  const attributes: Record<string, string> = {};
+  const attributeOrder: string[] = [];
+  const trimmedSuffix = suffix.trim();
+  const headEnd = trimmedSuffix.search(/\s/);
+  const head = headEnd === -1 ? trimmedSuffix : trimmedSuffix.slice(0, headEnd);
+  const attrTail = headEnd === -1 ? '' : trimmedSuffix.slice(headEnd);
+  const attrPattern = /([a-zA-Z][a-zA-Z0-9_-]*)=("([^"]*)"|\S+)/g;
+  let consumed = 0;
+  for (const match of attrTail.matchAll(attrPattern)) {
+    consumed += match[0].length;
+    const key = match[1]!.toLowerCase();
+    const value = match[3] !== undefined ? match[3] : match[2]!;
+    if (key in attributes) {
+      return { type: head, attributes, attributeOrder, error: `duplicate attribute "${key}"` };
+    }
+    attributes[key] = value;
+    attributeOrder.push(key);
+  }
+  const leftover = attrTail.replace(attrPattern, '').trim();
+  if (leftover !== '') {
+    return { type: head, attributes, attributeOrder, error: `malformed attribute "${leftover.split(/\s+/)[0]}"` };
+  }
+  void consumed;
+
+  let rest = head.toLowerCase();
   let spanCols: number | undefined;
   let spanFull: boolean | undefined;
 
@@ -106,17 +141,17 @@ export function parseQueryWidgetSuffix(suffix: string): QueryWidgetSuffix {
   }
 
   if (rest === '' || !/^[a-z][a-z0-9-]*$/.test(rest)) {
-    return { type: rest, spanCols, spanFull, error: `malformed widget type "${suffix}"` };
+    return { type: rest, spanCols, spanFull, attributes, attributeOrder, error: `malformed widget type "${suffix}"` };
   }
   if (/-(\d+|full)$/.test(rest)) {
     // A second trailing modifier (e.g. `bar-2-full`, `bar-full-2`) — span and
     // full are mutually exclusive. Kebab hyphens inside the type are fine.
-    return { type: rest, spanCols, spanFull, error: `malformed widget suffix "${suffix}"` };
+    return { type: rest, spanCols, spanFull, attributes, attributeOrder, error: `malformed widget suffix "${suffix}"` };
   }
   if (spanCols != null && (spanCols < 1 || spanCols > DASHBOARD_GRID_MAX_COLS)) {
-    return { type: rest, spanCols, spanFull, error: `span ${spanCols} outside 1..${DASHBOARD_GRID_MAX_COLS}` };
+    return { type: rest, spanCols, spanFull, attributes, attributeOrder, error: `span ${spanCols} outside 1..${DASHBOARD_GRID_MAX_COLS}` };
   }
-  return { type: rest, spanCols, spanFull };
+  return { type: rest, spanCols, spanFull, attributes, attributeOrder };
 }
 
 // ── Frontmatter tokens ─────────────────────────────────────────────────────
@@ -222,25 +257,6 @@ export function referencedTokens(query: string): string[] {
 
 // ── Widget body ────────────────────────────────────────────────────────────
 
-/**
- * Split a block body into the WQL query and its trailing `/`-separated
- * positional parameters (decision #899-7). Splits at the FIRST ` / ` so
- * params stay trailing; a literal ` / ` inside a tag value is pathological
- * and unsupported. Params are whitespace-split literals or `$token` refs.
- */
-export function splitWidgetBody(body: string): { query: string; params: string[] } {
-  const trimmed = body.trim();
-  const sep = trimmed.indexOf(' / ');
-  if (sep === -1) return { query: trimmed, params: [] };
-  const query = trimmed.slice(0, sep).trim();
-  const params = trimmed
-    .slice(sep + 3)
-    .split(/\s+/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-  return { query, params };
-}
-
 // ── Dashboard document ─────────────────────────────────────────────────────
 
 /** Structural input for the builder — satisfied by EditorSection + doc text. */
@@ -259,6 +275,9 @@ export interface DashboardSectionInput {
   spanFull?: boolean;
   /** Malformed fence-suffix reason — carried so route mode badges it too. */
   widgetError?: string;
+  /** Fence-tag presentation attributes (decision 22). */
+  attributes?: Record<string, string>;
+  attributeOrder?: string[];
 }
 
 export interface DashboardWidget {
@@ -268,14 +287,15 @@ export interface DashboardWidget {
   type: string;
   spanCols?: number;
   spanFull?: boolean;
-  /** Raw block body (query + params). */
+  /** Full fenced body — a Query Document (decision 22), comment lines
+   *  stripped, surrounding whitespace trimmed, line structure preserved. */
   body: string;
   /** Malformed fence-suffix reason — renderers badge instead of executing. */
   widgetError?: string;
-  /** WQL query after parameter split. */
-  query: string;
-  /** Positional parameters (literals or `$token` refs). */
-  params: string[];
+  /** Fence-tag presentation attributes (decision 22) — positional params
+   *  ride the tag, never the body. */
+  attributes: Record<string, string>;
+  attributeOrder: string[];
   /** Title from the markdown heading directly above (or above the question). */
   title?: string;
   /** Coaching question from the paragraph directly above the block. */
@@ -319,12 +339,14 @@ export function buildDashboardDocument(
   sections.forEach((section, i) => {
     if (section.type !== 'query') return;
 
-    const bodyLine =
-      section.content
-        .split('\n')
-        .map((l) => l.trim())
-        .find((l) => l !== '' && !l.startsWith('#')) ?? '';
-    const { query, params } = splitWidgetBody(bodyLine);
+    // Decision 22: the widget body is the FULL fenced content — a multi-line
+    // Query Document. Comment lines are stripped; line structure is kept so
+    // documents survive round-trips byte-for-byte.
+    const body = section.content
+      .split('\n')
+      .filter((l) => { const s = l.trim(); return s !== '' && !s.startsWith('#'); })
+      .map((l) => l.trim())
+      .join('\n');
 
     let title: string | undefined;
     let question: string | undefined;
@@ -345,9 +367,9 @@ export function buildDashboardDocument(
       spanCols: section.spanCols,
       spanFull: section.spanFull,
       widgetError: section.widgetError,
-      body: bodyLine,
-      query,
-      params,
+      body,
+      attributes: section.attributes ?? {},
+      attributeOrder: section.attributeOrder ?? [],
       title,
       question,
     });

@@ -260,7 +260,15 @@ describe('backfillV12 (real IndexedDB stack)', () => {
     // 3. Orphan (partial-save) result: facts from stored logs, canonical time.
     const orphanFacts = facts.filter((row) => row.resultId === orphanResultId);
     expect(orphanFacts.length).toBeGreaterThan(0);
-    expect(orphanFacts.every((row) => row.timestamp === ORPHAN_RESULT.createdAt)).toBe(true);
+    // Ticket 12: event facts anchor at their own statement instants (T0) —
+    // the workout bracket no longer relocates them; summaries stay anchored
+    // at the producing scope (the result's canonical time).
+    const orphanEvents = orphanFacts.filter((row) => row.grain === 'event');
+    expect(orphanEvents.length).toBeGreaterThan(0);
+    // Segment facts anchor at their own statement instant (T0); no fact is
+    // relocated before the workout or dated from the derivation clock.
+    expect(orphanEvents.every((row) => row.timestamp >= T0)).toBe(true);
+    expect(orphanFacts.filter((row) => row.grain === 'summary').every((row) => row.timestamp === ORPHAN_RESULT.createdAt)).toBe(true);
     expect(orphanFacts.some((row) => row.metricKey === 'totalReps')).toBe(true);
 
     // 4. Frontmatter tag swept in; the manual link survived.
