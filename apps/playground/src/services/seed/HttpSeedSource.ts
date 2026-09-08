@@ -1,0 +1,31 @@
+/**
+ * HttpSeedSource — production adapter: fetches the compiled seed from the
+ * static host (same origin, `BASE_URL/seed/`). The manifest is fetched with
+ * `cache: 'no-cache'` so a fresh deploy is seen immediately; chunks are
+ * content-hashed filenames and cache aggressively.
+ */
+import type { SeedManifest, SeedRow } from '@/types/seed';
+import { assertManifest, assertRows, SeedSourceError, type ISeedSource } from './ISeedSource';
+
+export class HttpSeedSource implements ISeedSource {
+  constructor(
+    private readonly baseUrl: string = `${import.meta.env.BASE_URL}seed/`,
+    private readonly fetchImpl: typeof fetch = fetch.bind(globalThis),
+  ) {}
+
+  async fetchManifest(): Promise<SeedManifest> {
+    const res = await this.fetchImpl(`${this.baseUrl}manifest.json`, { cache: 'no-cache' });
+    if (!res.ok) {
+      throw new SeedSourceError(`seed manifest fetch failed: HTTP ${res.status}`, res.status);
+    }
+    return assertManifest(await res.json());
+  }
+
+  async fetchChunk(path: string): Promise<SeedRow[]> {
+    const res = await this.fetchImpl(`${this.baseUrl}${path}`);
+    if (!res.ok) {
+      throw new SeedSourceError(`seed chunk fetch failed: HTTP ${res.status} for ${path}`, res.status);
+    }
+    return assertRows(await res.json());
+  }
+}

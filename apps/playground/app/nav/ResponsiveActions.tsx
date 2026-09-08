@@ -50,6 +50,7 @@ interface ActionsRegistration {
   primary?: ReactNode
   children?: ReactNode
   label: string
+  fallback: boolean
 }
 
 interface ActionsRegistry {
@@ -70,21 +71,29 @@ export interface ResponsiveActionsProps {
   primary?: ReactNode
   /** Remaining page actions — dock overflow sheet on mobile, inline on desktop. */
   children?: ReactNode
-  /** Accessible name for the mobile overflow group (defaults to 'More actions'). */
+  /** Accessible name for the mobile overflow group (defaults to 'Page options'). */
   label?: string
+  /**
+   * Global Page options: renders nothing inline; its children merge into
+   * every page's dock sheet (below the page rows, under a rule) and serve
+   * as the sheet's sole contents on pages that declare no actions. Mount
+   * once inside the provider, near the app root.
+   */
+  fallback?: boolean
 }
-
 export function ResponsiveActions({
   primary,
   children,
   label,
+  fallback = false,
 }: ResponsiveActionsProps) {
   const registry = useContext(RegistryContext)
   const nested = useContext(InsideActionsContext)
   const isMobile = useIsMobile()
   const id = useId()
 
-  const registers = registry !== null && !nested && isMobile
+  const registers = registry !== null && !nested && isMobile && !fallback
+  const fallbackRegisters = registry !== null && fallback
 
   // Registered children carry the nesting marker so a ResponsiveActions
   // declared INSIDE another's children renders inline (within the sheet)
@@ -96,11 +105,14 @@ export function ResponsiveActions({
   )
 
   useEffect(() => {
-    if (!registers) return
-    registry!.register({ id, primary, children: registeredChildren, label: label ?? 'More actions' })
+    if (!registers && !fallbackRegisters) return
+    registry!.register({ id, primary, children: registeredChildren, label: label ?? 'Page options', fallback })
     return () => registry!.unregister(id)
-  }, [registers, registry, id, primary, registeredChildren, label])
+  }, [registers, fallbackRegisters, registry, id, primary, registeredChildren, label, fallback])
 
+  // Fallback never renders inline (desktop keeps its existing header
+  // affordances); below lg the dock owns the surface.
+  if (fallback) return null
   // Inside the provider on mobile the dock owns rendering; standalone (no
   // provider) always renders inline so Storybook/tests keep working.
   if (registry && isMobile && !nested) return null
@@ -165,11 +177,20 @@ function ResponsiveActionsDock({
   const sheetRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
 
-  // Most recent page registration wins.
-  const active = useMemo(
-    () => registrations[registrations.length - 1],
-    [registrations],
-  )
+  // Most recent page registration wins; the most recent fallback supplies
+  // the global Page options rows merged into every page's sheet.
+  const active = useMemo(() => {
+    for (let i = registrations.length - 1; i >= 0; i -= 1) {
+      if (!registrations[i].fallback) return registrations[i]
+    }
+    return undefined
+  }, [registrations])
+  const globalActions = useMemo(() => {
+    for (let i = registrations.length - 1; i >= 0; i -= 1) {
+      if (registrations[i].fallback) return registrations[i]
+    }
+    return undefined
+  }, [registrations])
 
   // Route change: collapse the sheet (registered page actions unmount with
   // the page; a stale open sheet must not outlive them).
@@ -182,23 +203,30 @@ function ResponsiveActionsDock({
     if (sheetOpen) sheetRef.current?.focus()
   }, [sheetOpen])
 
-  // Pages whose registered children render nothing (shell-owned generic bars
-  // suppressed on mobile) must not offer an empty sheet: measured on open,
-  // remembered per registration, trigger suppressed.
+  // Sheets whose content renders nothing (shell-owned generic bars
+  // suppressed on mobile) must not be offered: measured on open, remembered
+  // per registration, trigger suppressed.
   const [emptySheetIds, setEmptySheetIds] = useState<ReadonlySet<string>>(() => new Set())
   useLayoutEffect(() => {
     if (!sheetOpen) return
     const empty = sheetRef.current !== null && sheetRef.current.childElementCount === 0
-    if (empty && active) {
-      setEmptySheetIds(prev => new Set(prev).add(active.id))
+    if (empty) {
+      setEmptySheetIds(prev => {
+        const next = new Set(prev)
+        if (active) next.add(active.id)
+        if (globalActions) next.add(globalActions.id)
+        return next
+      })
       setSheetOpen(false)
     }
-  }, [sheetOpen, active])
+  }, [sheetOpen, active, globalActions])
 
-  const showOverflow = Boolean(active?.children) && !(active && emptySheetIds.has(active.id))
+  const hasContent = (reg?: { id: string; children?: ReactNode }) =>
+    !!reg?.children && !emptySheetIds.has(reg.id)
+  const showOverflow = hasContent(active) || hasContent(globalActions)
 
   if (!isMobile) return null
-  if (!onSearch && !active) return null
+  if (!onSearch && !active && !globalActions) return null
 
   return (
     <div
@@ -206,12 +234,13 @@ function ResponsiveActionsDock({
         'lg:hidden fixed z-40 flex flex-col items-center gap-3',
         alignment === 'left' ? 'left-4 items-start' : 'right-4 items-end',
       )}
-      style={{ bottom: `calc(1rem + ${viewport.offsetBottom}px + env(safe-area-inset-bottom))` }}
+      style={{ bottom: `calc(1rem + var(--thumb-dock-lift, 0px) + ${viewport.offsetBottom}px + env(safe-area-inset-bottom))` }}
     >
-      {/* Overflow sheet — mounts its contents lazily, only while open, so page
-          controls are never double-mounted. Page children stack full-width at
-          ≥44px touch targets. Global chrome (cast, page options) lives in the
-          header, never here. */}
+      {/* Overflow sheet — mounts its contents lazily, only while open, so
+          page controls are never double-mounted. Page rows stack first at
+          ≥44px touch targets; the global Page options rows (secondary nav,
+          On this page, download, coffee) follow under a rule as stacked
+          buttons. Cast lives in the navbar, never here. */}
       {sheetOpen && showOverflow && (
         <>
           <button
@@ -224,7 +253,7 @@ function ResponsiveActionsDock({
           <div
             ref={sheetRef}
             role="dialog"
-            aria-label={active?.label ?? 'More actions'}
+            aria-label={active?.label ?? globalActions?.label ?? 'Page options'}
             tabIndex={-1}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
@@ -239,11 +268,18 @@ function ResponsiveActionsDock({
             style={{ maxHeight: `calc(${viewport.height === null ? '100dvh' : `${viewport.height}px`} - 6rem - env(safe-area-inset-bottom))` }}
           >
             {active?.children}
+            {active?.children && globalActions?.children && (
+              <div className="my-1 border-t border-border/60" aria-hidden="true" />
+            )}
+            {globalActions?.children}
           </div>
         </>
       )}
 
-      <div className={cn('relative z-40 flex items-center gap-2', alignment === 'left' && 'flex-row-reverse')}>
+      {/* Buttons stack vertically, rising from the thumb corner — the
+          search FAB stays lowest (the corner position it held in the old
+          horizontal row); the page primary sits on top. */}
+      <div className="relative z-40 flex flex-col items-center gap-2">
         {active?.primary && (
           <div className="[&_button]:min-h-11 [&_button]:min-w-11">{active.primary}</div>
         )}
@@ -252,7 +288,7 @@ function ResponsiveActionsDock({
         <button
           type="button"
           onClick={() => setSheetOpen(open => !open)}
-          aria-label={active?.label ?? 'More actions'}
+          aria-label={active?.label ?? globalActions?.label ?? 'Page options'}
           aria-expanded={sheetOpen}
           data-testid="actions-overflow"
           className={cn(

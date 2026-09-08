@@ -3,11 +3,14 @@
  *
  * Provides a CompositeEffortRegistry instance to the playground app.
  * Lazy-initializes on first mount and exposes async init state.
+ * Re-hydrates when the Seed Import lands a new seed (BroadcastChannel
+ * 'wodwiki.seed') so bundled efforts appear without a reload.
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { IEffortRegistry, IEffort, EffortRegistrySource } from '@bitcobblers/wod-wiki-lang';
-import { getAppEffortRegistry } from '@/services/effortRegistry';
+import { getAppEffortRegistry, hydrateAppEffortRegistry } from '@/services/effortRegistry';
+import { SEED_BROADCAST_CHANNEL } from '@/services/seed/seedSync';
 
 interface EffortRegistryContextValue {
   registry: IEffortRegistry;
@@ -27,7 +30,7 @@ export function EffortRegistryProvider({ children }: { children: React.ReactNode
   const init = useCallback(async () => {
     try {
       if (!registry.isInitialized()) {
-        await registry.loadBundled();
+        await hydrateAppEffortRegistry(registry);
       }
       setIsReady(true);
       setError(null);
@@ -46,6 +49,14 @@ export function EffortRegistryProvider({ children }: { children: React.ReactNode
     init();
   }, [init]);
 
+  // Seed Import landed a new seed → re-read efforts from Storage.
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(SEED_BROADCAST_CHANNEL);
+    channel.onmessage = () => { void refresh(); };
+    return () => channel.close();
+  }, [refresh]);
+
   return (
     <EffortRegistryContext.Provider value={{ registry, isReady, error, refresh }}>
       {children}
@@ -56,7 +67,7 @@ export function EffortRegistryProvider({ children }: { children: React.ReactNode
 export function useEffortRegistry(): EffortRegistryContextValue {
   const ctx = useContext(EffortRegistryContext);
   if (!ctx) {
-    throw new Error('useEffortRegistry must be used within EffortRegistryProvider');
+    throw new Error('useEffortRegistry must be within EffortRegistryProvider');
   }
   return ctx;
 }

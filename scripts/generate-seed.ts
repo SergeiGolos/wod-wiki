@@ -34,6 +34,8 @@
  * always carries a fresh seed. Idempotent: wipes the output dir first.
  */
 import { Glob } from 'bun';
+import { SEED_SCHEMA } from '@/types/seed';
+import type { ManifestChunk, SeedManifest, SeedRow } from '@/types/seed';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
@@ -51,41 +53,18 @@ const MARKDOWN_DIR = join(ROOT, 'markdown');
 const TEMPLATE_FILE = join(ROOT, 'apps', 'playground', 'app', 'templates', 'new-playground.md');
 const DEFAULT_OUT_DIR = join(ROOT, 'apps', 'playground', 'public', 'seed');
 
-export const SEED_SCHEMA = 1;
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-export interface SeedRow {
-  /** Repo-relative POSIX path of the source markdown. */
-  path: string;
-  /** Raw file text. */
-  content: string;
-}
+// Shared seed shapes (SeedRow / ManifestChunk / SeedManifest / SEED_SCHEMA)
+// live in apps/playground/src/types/seed.ts — the single contract between
+// this compiler and the runtime importer.
 
 export interface ChunkGroup {
   id: string;
   files: string[];
 }
 
-export interface ManifestChunk {
-  id: string;
-  /** Path under the seed dir, e.g. `chunks/efforts.ab12cd34.json`. */
-  path: string;
-  /** Full hex sha256 of the chunk bytes. */
-  sha256: string;
-  bytes: number;
-  /** Row count (== md file count in phase 1). */
-  count: number;
-}
-
-export interface SeedManifest {
-  /** Seed format version — bump on incompatible row-shape changes. */
-  schema: number;
-  /** Monotonic: builtAt epoch ms. */
-  version: number;
-  builtAt: string;
-  chunks: ManifestChunk[];
-}
 
 export interface GenerateSeedOptions {
   markdownDir?: string;

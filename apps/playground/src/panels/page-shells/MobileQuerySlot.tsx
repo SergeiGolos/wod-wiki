@@ -1,19 +1,23 @@
 /**
- * MobileQuerySlot — the portal target where a page's query bar floats up into
- * the app-level mobile header (the sticky navbar that carries the hamburger).
+ * MobileQuerySlot — the portal target where a page's query bar floats into
+ * the app-level mobile thumb footer: a fixed bar at the bottom of the
+ * screen (the thumb-control zone), mounted by SidebarLayout.
  *
- * Stream routes render no page-level header on mobile (it would double-stack
- * over the navbar and hide the menu trigger). Instead the page portals its
- * StreamQueryBar into this slot, which the app navbar mounts between the
- * breadcrumb and the right-hand actions:
+ * Stream routes render no page-level header on mobile (the page header is
+ * desktop-only). Instead the page portals its StreamQueryBar — the WQL
+ * composer — into this slot:
  *
- *   [hamburger] [breadcrumb] [· · · slot · · ·] [cast] [actions]
+ *   navbar:  [hamburger] [breadcrumb]            [cast] [actions]
+ *   footer:  [· · · query bar (WQL composer) · · ·]        ← thumb zone
+ *
+ * The ResponsiveActionsDock reads `--thumb-dock-lift` (published by the
+ * footer) so the FAB cluster stacks above the bar.
  *
  * Desktop rendering is untouched — the same bar renders inline inside
  * StickyPageHeader's title row via its `queryBar` prop.
  *
- * Provider/target split: SidebarLayout wraps its content in the provider;
- * the App navbar (stream routes only) renders the target; the page consumes
+ * Provider/target split: SidebarLayout wraps its content in the provider
+ * and mounts the target inside MobileQueryFooter; the page consumes
  * `useMobileQuerySlot()` and portals into it while the node exists.
  */
 

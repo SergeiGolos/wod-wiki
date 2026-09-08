@@ -7,6 +7,7 @@ import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
+import { ResponsiveActions } from './nav/ResponsiveActions'
 import type { PageKind } from './lib/routeView'
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
@@ -45,7 +46,7 @@ import { HomeView } from './views/HomeView'
 import { QueriableStreamView } from './views/stream/QueriableStreamView'
 import { resolveStreamProfile } from './views/stream/streamProfile'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
-import { CanvasPage, MobileQuerySlotTarget } from '@/panels/page-shells'
+import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
@@ -66,7 +67,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { DashboardViewPage } from './views/dashboards/DashboardViewPage'
 import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
-import { ActionsMenu } from './pages/shared/PageToolbar'
+import { PageOptionsSheetRows } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 import type { MenuSpec } from './nav/menuModel'
@@ -343,15 +344,14 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             )}
             {canvasTitleAccessory}
           </nav>
-          {/* Query portals into the navbar; cast + page options (L3 index)
-              stay in the header at every breakpoint — the thumb dock carries
-              only page-specific actions. This navbar is mobile-only
-              (lg:hidden in SidebarLayout); desktop page headers host the same
-              controls via their PageActions bar. */}
-          <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />
-          <div className="flex shrink-0 items-center gap-1">
+          {/* Cast stays in the header at every breakpoint (navbar here on
+              mobile, PageActions bar in desktop page headers). The Page
+              options ⋮ lives in the thumb dock instead — its functions
+              (secondary nav, On this page, download, coffee) surface as
+              stacked buttons in the dock sheet via the global fallback
+              registration below. */}
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <CastButtonRpc />
-            <ActionsMenu currentWorkout={currentWorkout} />
           </div>
         </Navbar>
       }
@@ -359,6 +359,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       secondary={secondarySpec}
       onSearch={openSearchPalette}
     >
+      {/* Global Page options for the mobile thumb dock — stacked function
+          rows (secondary nav, On this page, download, coffee) under every
+          page's own sheet rows. */}
+      <ResponsiveActions fallback label="Page options">
+        <PageOptionsSheetRows currentWorkout={currentWorkout} />
+      </ResponsiveActions>
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {renderShell(renderInner[view.page]())}
@@ -398,10 +404,14 @@ function ScrollToTop() {
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
 import { useZipProcessor } from './hooks/useZipProcessor'
 import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
+import { runSeedSync } from '@/services/seed/seedSync'
 
 function GlobalState() {
   useZipProcessor()
   useJournalZipProcessor()
+  // Seed import (phase 2, ships dark — docs/prototypes/seed-data-unification.md):
+  // no-op unless localStorage['wodwiki.seedImport.enabled'] === '1'.
+  useEffect(() => { void runSeedSync() }, [])
   return null
 }
 

@@ -19,9 +19,9 @@ import {
   collectCorpusMarkdown,
   generateSeed,
   partitionIntoChunks,
-  SEED_SCHEMA,
   chunkIdFor,
 } from './generate-seed';
+import { SEED_SCHEMA } from '@/types/seed';
 
 const sha256 = (data: string | Buffer): string =>
   createHash('sha256').update(data).digest('hex');

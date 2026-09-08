@@ -367,9 +367,9 @@ export function QueriableStreamView({
           column: a wrapper div would box the sticky element to its own
           height and let it scroll away. max-lg:hidden therefore rides on
           the header root via className.
-          Mobile: no page-level header at all (it would stack over the app
-          navbar and hide the menu trigger); the query bar portals up into
-          that navbar instead. */}
+          Mobile: no page-level header at all; the query bar portals into
+          the app's mobile thumb footer (fixed bottom bar) instead — the
+          WQL composer lives in the thumb-control zone. */}
       <StickyPageHeader
         className="max-lg:hidden"
         actions={

@@ -1,6 +1,6 @@
 # Seed-Based Data Unification
 
-**Status:** Phase 1 (seed compiler) landed — `scripts/generate-seed.ts`, wired into playground `build`/`dev`; phases 2–4 pending.
+**Status:** Phase 1 (seed compiler) landed. Phase 2 (seed import seam) landed — default-on, opt out via `localStorage['wodwiki.seedImport.enabled'] = '0'`. Phase 3 **in progress**: efforts corpus flipped (effort rows materialized from the efforts chunk, registry hydrated from IndexedDB, `getBundledEfforts`/`getEffortMarkdown` glob deleted); remaining flips: syntax → dashboards → collections/feeds (+ Query Service `block_index`) → canvas → workoutIndex/page-examples.
 **Date:** 2026-09-07
 **Related:** `docs/05-architecture.md` (stale repo layout), `CONTEXT.md` § Persistence & storage, § Identity & result recording
 

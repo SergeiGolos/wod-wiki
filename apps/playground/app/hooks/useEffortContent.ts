@@ -1,9 +1,10 @@
 /**
- * useEffortContent — Load/save effort documents with IDB-first fallback.
+ * useEffortContent — Load/save effort documents through the effort registry.
  *
- *   1. Try IndexedDB effort store (user edits, clones)
- *   2. Fall back to markdown file (bundled efforts)
- *   3. Debounced save → registry.upsert() + IDB
+ * The registry is the single resolution surface: both tiers live in
+ * IndexedDB (bundled = seed rows, user = clones/edits) — docs/prototypes/
+ * seed-data-unification.md. Save → registry.upsert() (which persists via
+ * the storage adapter); editing a bundled effort auto-clones `-custom`.
  *
  * The document format is YAML frontmatter + body (effort-markdown.ts).
  */
@@ -12,8 +13,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditorSave } from './useEditorSave';
 import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
-import { indexedDBService } from '@/services/db/IndexedDBService';
-import { getEffortMarkdown } from '@/repositories/effort-markdown';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { toast } from '@/hooks/use-toast';
 
@@ -37,12 +36,8 @@ export interface UseEffortContentResult {
 }
 
 /**
- * Load the effort document for a given slug.
- *
- * Priority:
- *   1. User effort from IndexedDB (has been edited before)
- *   2. Bundled effort from registry (resolved, has body from markdown)
- *   3. Markdown file fallback (for bundled efforts without IDB entry)
+ * Load the effort document for a given slug — one resolution surface:
+ * the registry (bundled + user tiers from IndexedDB).
  */
 export function useEffortContent(slug: string | undefined): UseEffortContentResult {
   const { registry, isReady, refresh } = useEffortRegistry();
@@ -67,40 +62,11 @@ export function useEffortContent(slug: string | undefined): UseEffortContentResu
 
     async function load() {
       try {
-        // 1. Try IDB first (user edits)
-        const idbEffort = await indexedDBService.getEffort(slug);
-        if (idbEffort && !cancelled) {
-          const ie = idbEffort as unknown as IEffort;
-          setEffort(ie);
-          setDocumentState(effortToDocument(ie));
-          setIsLoading(false);
-          return;
-        }
-
-        // 2. Try registry (bundled or user)
-        const regEffort = registry.resolve(slug);
-        if (regEffort && !cancelled) {
-          setEffort(regEffort);
-          // If it has a body, use it; otherwise try markdown file
-          if (regEffort.body) {
-            setDocumentState(effortToDocument(regEffort));
-          } else {
-            // 3. Fallback to markdown file
-            const md = await getEffortMarkdown(slug);
-            if (md && !cancelled) {
-              setDocumentState(md);
-            } else if (!cancelled) {
-              setDocumentState(effortToDocument(regEffort));
-            }
-          }
-          setIsLoading(false);
-          return;
-        }
-
-        // 4. Try markdown file as last resort
-        const md = await getEffortMarkdown(slug);
-        if (md && !cancelled) {
-          setDocumentState(md);
+        // One resolution surface: the registry (both tiers from IndexedDB).
+        const resolved = registry.resolve(slug);
+        if (resolved && !cancelled) {
+          setEffort(resolved);
+          setDocumentState(effortToDocument(resolved));
           setIsLoading(false);
           return;
         }
@@ -157,7 +123,6 @@ export function useEffortContent(slug: string | undefined): UseEffortContentResu
 
     try {
       await registry.upsert(parsed);
-      await indexedDBService.saveEffort(parsed as any);
       await refresh();
       setEffort(parsed);
     } catch (err) {

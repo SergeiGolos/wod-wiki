@@ -71,7 +71,6 @@ export type { IAnalyticsProcessorDescriptor } from '@bitcobblers/wod-wiki-engine
 // Effort registry (Tier 3 §3.4)
 export { CompositeEffortRegistry, InMemoryEffortRegistry } from '@bitcobblers/wod-wiki-lang';
 export { EffortResolver } from '@bitcobblers/wod-wiki-lang';
-export { getBundledEfforts as bundledEfforts, getBundledEffortCount as BUNDLED_EFFORT_COUNT } from './repositories/effort-markdown';
 export type { IEffort, IEffortRegistry, IEffortResolver, ResolvedEffort } from '@bitcobblers/wod-wiki-lang';
 
 // Registries

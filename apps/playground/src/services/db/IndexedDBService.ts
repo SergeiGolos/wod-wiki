@@ -210,8 +210,15 @@ export interface WodWikiDB extends DBSchema {
             'by-type': string;       // V14 — dataType; filter by block kind
         };
     };
+    /** V19 — key-value checkpoint records (seed import; open for future
+     *  import/GC state). Values are opaque at the schema level; readers cast. */
+    meta: {
+        key: string;
+        value: unknown;
+        indexes: {};
+    };
 }
-const DB_VERSION = 18; // V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
+const DB_VERSION = 19; // V19 — meta kv store (seed import checkpoint); V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -1007,6 +1014,11 @@ export class IndexedDBService {
                     store.createIndex('by-note', 'noteId');
                     store.createIndex('by-content', 'blockContentId');
                     store.createIndex('by-type', 'dataType');
+                }
+
+                // ---- Meta (V19 — kv checkpoints: seed import state) ----
+                if (!db.objectStoreNames.contains('meta')) {
+                    db.createObjectStore('meta', { keyPath: 'key' });
                 }
 
                 // ---- Page / Tags / NoteTags (V10 — additive) ----

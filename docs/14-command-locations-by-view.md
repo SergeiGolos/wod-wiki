@@ -21,17 +21,21 @@ breakpoint:
 | Page header (`StickyPageHeader`) | Sticky top bar: title + subtitle + right-aligned actions + query bar | Hidden entirely (`max-lg:hidden`, `src/panels/page-shells/StickyPageHeader.tsx:66`); page identity = navbar breadcrumb |
 | Page **primary** action | Inline in the header (first control) | Thumb-dock **FAB** (floating, bottom corner) |
 | Page **children** actions | Inline in the header after the primary | Dock **⋮ overflow sheet** (lazy-mounted, ≥44px rows) |
-| Global chrome — Cast + Page options ⋮ (L3 nav, Download Markdown, Buy Me a Coffee) | Page header, via the page's `PageActions` bar | **App navbar**, right of the query slot — never in the thumb dock |
+| Cast | Header (via the page's `PageActions` bar) | **App navbar**, right side |
+| Page options ⋮ — secondary nav, *On this page*, Download Markdown, Buy Me a Coffee | Header ⋮ dropdown (nav sections hidden ≥2xl, where the secondary rail owns them) | **Thumb dock**: the ⋮ FAB sits just above the search FAB; tapping it stacks its functions as buttons in the sheet, under the page's own rows (global `fallback` registration, `app/App.tsx`) |
 | Search | Header input / icon-rail button; `Ctrl/Cmd+K`, `+/`, `+P` (`app/App.tsx:161-172`) | Dedicated **search FAB** in the dock |
-| WQL stream query bar | Header `queryBar` slot | Compact bar **portaled into the navbar** (`MobileQuerySlotTarget`, `app/App.tsx:348`) |
+| WQL stream query bar | Header `queryBar` slot — full chips bar + inline composer | **Thumb footer** — fixed bottom bar hosting the compact composer (`MobileQueryFooter`, `src/templates/SidebarLayout.tsx`); tap opens the same WQL palette |
 
 Dock mechanics (`ResponsiveActions.tsx`): corner set by *Settings →
 Appearance → Actions Button Position* (right by default, mirrored left;
 `app/lib/fabAlignment.ts`); rises with the on-screen keyboard and respects the
 safe area; sheet collapses on route change; the most recent page registration
 wins; a registration whose children render nothing (generic bars the dock
-replaces) shows no ⋮ trigger. The sheet carries **page actions only** —
-global chrome never rides the dock.
+replaces) shows no ⋮ trigger. The sheet stacks the **page's own rows first**,
+then the global Page options rows under a rule. The buttons **stack vertically, rising
+from the thumb corner** (search FAB lowest, page primary on top), and the
+whole cluster lifts above the stream pages' thumb footer via
+`--thumb-dock-lift` (published by `MobileQueryFooter`).
 
 **Location vocabulary used below**
 
@@ -39,9 +43,9 @@ global chrome never rides the dock.
 |---|---|
 | Header | Desktop sticky page header, right of the title |
 | Dock FAB | Mobile floating primary button |
-| Dock ⋮ sheet | Mobile "More actions" overflow — **page-specific rows only** |
-| Navbar ⋮ / navbar cast | Mobile top-right header controls: Page options (secondary nav, On this page, download) + Cast |
-| Navbar query slot | Mobile top-navbar portal for stream query bars |
+| Dock ⋮ sheet | Mobile "More actions" overflow: the page's own rows first, then the global Page options rows (secondary nav, On this page, Download, Buy Me a Coffee) under a rule |
+| Navbar cast | Mobile top-right header control — Cast only; the Page options ⋮ moved down into the dock |
+| Thumb footer | Mobile fixed bottom bar hosting the WQL composer on stream pages; the dock stacks above it |
 | Body (unchanged) | Same placement at both breakpoints |
 | Desktop-only / Mobile-only | Rendered at exactly one breakpoint |
 
@@ -55,10 +59,10 @@ Source: `src/templates/SidebarLayout.tsx`, `app/nav/NavSidebar.tsx`,
 | Global search palette | Icon-rail search button (`AppRail.tsx:79-83`) + keyboard shortcuts | Search FAB in the thumb dock |
 | L1 nav (Home / Library / Dashboards / Efforts) | 56px left icon rail | Hamburger in the sticky navbar → drawer (L1 list is drawer-only, `NavSidebar.tsx`) |
 | L2 context sidebar | 240px second column | Inside the drawer, under the L1 list |
-| Page TOC / secondary nav | Right rail, ≥2xl only; below 2xl it folds into the header ⋮ menu | Navbar ⋮ → secondary sections + *On this page* |
-| Cast + Page options (Download Markdown, Buy Me a Coffee) | Header controls via `PageActions` (`app/pages/shared/PageToolbar.tsx`) | App navbar, right side (cast icon + ⋮); Download is omitted when the route has no resolved document |
-| Stream query bar | Header queryBar slot | Navbar query slot (tap opens the WQL palette) |
-| Content clearance | — | `max-lg:pb-36` keeps content clear of the floating dock |
+| Page TOC / secondary nav | Right rail, ≥2xl only; below 2xl it folds into the header ⋮ menu | Dock ⋮ sheet → stacked secondary sections + *On this page* rows |
+| Cast + Page options (Download Markdown, Buy Me a Coffee) | Header controls via `PageActions` (`app/pages/shared/PageToolbar.tsx`) | Cast: App navbar. Page options: dock ⋮ → stacked rows; Download is omitted when the route has no resolved document |
+| Stream query bar | Header queryBar slot | Thumb footer (fixed bottom bar; tap opens the WQL palette) |
+| Content clearance | — | `max-lg:pb-48` keeps content clear of the stacked dock; the footer adds its own flow spacer |
 
 Routes that bypass the shell entirely (no rail / navbar / dock):
 `/run/:runtimeId`, `/load`, `/load/journal(/:date)`, `/settings/library/calcs`,
@@ -123,7 +127,7 @@ inside the `CanvasPage` shell. One shared command map for
 | Inline prose buttons (```button fences) | Rendered inline in the scrolling prose (`CanvasSection.tsx:183-191`) | Same — never relocated |
 | Page quest badge | Navbar `ChallengeHeaderBadge` when the page defines quests (`app/App.tsx:288-295`) | Same navbar badge |
 | Search input | Header (PageActions bar) | Suppressed — dock search FAB |
-| Cast + Page options ⋮ | Header | App navbar (cast icon + ⋮) |
+| Cast + Page options ⋮ | Cast: header · Page options: header ⋮ dropdown | Cast: App navbar · Page options: dock ⋮ sheet (stacked rows) |
 | Collection filter strip (`/collections/:slug`) | `TextFilterStrip` subheader in the sticky header (`app/App.tsx:304-307`) | Its own sticky bar below the navbar (`src/panels/page-shells/CanvasPage.tsx`) |
 | Page header identity | `StickyPageHeader` title | Hidden; navbar breadcrumb (L1 › title) |
 
@@ -153,9 +157,9 @@ Shared command map:
 |---|---|---|
 | **View** settings (sliders button) | Header, first action (`QueriableStreamView.tsx:379-389`) | Dock FAB |
 | **New** (effort) — `/efforts` only | Header, next to View (`:390-400`) | Dock FAB (second) |
-| WQL query bar (type chips + query) | Header queryBar slot — the full chips bar (`:408-415`) | Navbar query slot — compact pill; tap opens the same WQL palette dialog (`:417-428`, `StreamQueryBar.tsx:18-19`) |
+| WQL query bar (type chips + query) | Header queryBar slot — the full chips bar + inline composer (`:408-415`) | Thumb footer — compact composer (`:417-428` portal into `MobileQueryFooter`); tap opens the same WQL palette dialog (`StreamQueryBar.tsx:18-19`) |
 | Cast | Header (PageActions bar, `app/App.tsx`) | App navbar |
-| Page options ⋮ (Download Markdown, Buy Me a Coffee) | Header | App navbar ⋮ |
+| Page options ⋮ (Download Markdown, Buy Me a Coffee) | Header dropdown | Dock ⋮ → stacked rows in the sheet |
 | Search input | **None** — the query bar is the search entry (`showSearch={view.page !== 'library'}` → false for all stream routes) | Dock search FAB |
 | Row actions: Open / Add to today / Run / Compare | Hover-revealed stack at the row end (`app/views/library/LibraryRow.tsx:183-201`); row click also opens (`:102-106`) | Row tap = Open; the hover-revealed stack does not show on touch |
 | Feed-card actions: Open / Run / Playground | Inline pills in the card, ≥44px targets (`app/views/stream/StreamFeed.tsx:16-19,205-224`) | Same — never relocated |
@@ -190,7 +194,7 @@ Note: `/collections/:slug` is **not** a stream — it is a canvas page (§6).
 | **New** (fresh playground note) | Header, inline (PageActions `mode="playground"` ButtonGroup) | Dock ⋮ sheet |
 | **Reset to default** (same ButtonGroup) | Header, inline | Dock ⋮ sheet |
 | Search | Header, inline | Suppressed — dock search FAB |
-| Cast + Page options ⋮ | Header, inline | App navbar (cast icon + ⋮) |
+| Cast + Page options ⋮ | Cast: header · Page options: header ⋮ dropdown | Cast: App navbar · Page options: dock ⋮ sheet (stacked rows) |
 | Per-block **Play / Share / Today / Schedule** (`useScriptBlockCommands('playground')`, `:289-294`) | Inline affordances on each WOD block | Body (unchanged) |
 | In-content widget buttons (attention CTA, code-example Run, `new-note`) | Body (unchanged) | Body (unchanged) |
 | FirstNoteWizard (first empty note) | Modal | Same modal |
@@ -208,7 +212,7 @@ not a command; `/journal/:date/:uuid` normalizes the same way).
 | Command | Desktop (≥1024px) | Mobile (<1024px) |
 |---|---|---|
 | **Edit / Read mode** toggle (only when the date has ≥1 note) | Header, inline — the page's *only* header control (`<ResponsiveActions primary={editToggle} />`, `:224`) | Dock FAB |
-| Cast + Page options ⋮ | **Not rendered** — this page mounts no PageActions, so the desktop header shows only the page's own actions | App navbar (cast icon + ⋮) |
+| Cast + Page options ⋮ | **Not rendered** — this page mounts no PageActions, so the desktop header shows only the page's own actions | Cast: App navbar · Page options: dock ⋮ sheet (stacked rows) |
 | Search | None in header | Dock search FAB |
 | Per-block run/share; Complete-workout → `FullscreenTimer` (also on `?autoStart`) | Body / fullscreen overlay (`:247-260`) | Body / fullscreen overlay |
 
@@ -220,7 +224,7 @@ not a command; `/journal/:date/:uuid` normalizes the same way).
 |---|---|---|
 | **Edit / Read mode** toggle | Header, inline (primary, `:170-183`) | Dock FAB |
 | Search | Header, inline | Suppressed — dock search FAB |
-| Cast + Page options ⋮ | Header, inline | App navbar (cast icon + ⋮) |
+| Cast + Page options ⋮ | Cast: header · Page options: header ⋮ dropdown | Cast: App navbar · Page options: dock ⋮ sheet (stacked rows) |
 | Per-block **Run / Share / Add to today / Schedule / Open in playground** (`useScriptBlockCommands('collection-readonly')`, `:160-166`) | Inline affordances on each WOD block | Body (unchanged) |
 | **Schedule** date picker | Centered `EditorDialog` + CalendarCard (`:218-232`) | Same modal |
 | Run behavior | Popup categories → `/run/:id`; collection categories → appends to today's journal and autostarts there (`:90-117`) | Same seam |
@@ -252,7 +256,7 @@ breakpoints (`:183-247`).
 
 | Command | Desktop (≥1024px) | Mobile (<1024px) |
 |---|---|---|
-| Page-level commands | None — no header actions declared | App navbar cast + ⋮; dock search FAB |
+| Page-level commands | None — no header actions declared | Cast: App navbar · Page options: dock ⋮ sheet; dock search FAB |
 | **Add to journal** (per feed item) | Inline per-item control in the body (`:124-146`) | Body (unchanged) |
 | Open item / open journal date entry / toast "Open" action | Inline in body rows / toast (`:136-153`) | Body (unchanged) |
 
@@ -265,7 +269,7 @@ breakpoints (`:183-247`).
 | Page primary | None declared — the mobile dock shows the search FAB only (no ⋮ trigger: nothing page-specific to overflow) | — |
 | Search | Header, inline | Suppressed — dock search FAB |
 | Cast | Header, inline | App navbar |
-| Page options ⋮ | Header, inline | App navbar ⋮ |
+| Page options ⋮ | Header, inline dropdown | Dock ⋮ → stacked rows in the sheet |
 | Per-block **Run / Share / Add to Today / Schedule / Open in Playground** (`useScriptBlockCommands('collection-readonly')`, `:148-155`) | Inline editor affordances | Body (unchanged) |
 | Schedule → CalendarCard dialog | Centered modal (`:181-196`) | Same modal |
 
@@ -280,7 +284,7 @@ rides the desktop-only header (`app/App.tsx:212-222`).
 |---|---|---|
 | Search | Header input | Suppressed — dock search FAB |
 | Cast | Header, inline | App navbar |
-| Page options ⋮ | Header, inline | App navbar ⋮ |
+| Page options ⋮ | Header, inline dropdown | Dock ⋮ → stacked rows in the sheet |
 | Explorer options (range weeks / unit) | Header, left of the actions | **Desktop-only** — lives inside the hidden header |
 | Examples combo + WQL composer + **Run** | Body command bar | Body (unchanged) |
 | **Save** → Query-to-dashboard dialog | Composer actions | Body (unchanged) |
@@ -321,8 +325,8 @@ navbar breadcrumb is the identity. All controls are body content:
 | Debug mode toggle | Body switch | Body (unchanged) |
 | Reset & clear cache (+ confirm modal) | Danger zone | Body (unchanged) |
 
-On mobile the dock still floats over this page (search FAB; cast + Page
-options live in the navbar).
+On mobile the dock still floats over this page (search FAB + the global
+Page options ⋮; cast lives in the navbar).
 
 ### `/settings/library/calcs` — CalcAuthoringPanel
 

@@ -17,10 +17,10 @@
  *   ---
  *
  * This module owns both directions:
- *   - `effortToDocument` / `documentToEffort` — serialize/parse user and
- *     bundled effort documents (round-trip safe).
- *   - `getBundledEfforts` / `getBundledEffortCount` / `getEffortMarkdown` —
- *     the bundled markdown/efforts/ repository (Vite import.meta.glob).
+ *   - `effortToDocument` / `documentToEffort` — serialize/parse effort
+ *     documents (round-trip safe).
+ *   - `parseEffortFile` — parse one bundled effort markdown file (the seed
+ *     importer uses it; the bundled tier itself lives in IndexedDB).
  */
 
 import { v7 as uuidv7 } from 'uuid';
@@ -384,53 +384,6 @@ function readNestedSection(lines: string[], key: string): Record<string, unknown
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
-/**
- * Raw glob, deferred into a function so importing this module has no side
- * effects (unit tests run under bun, which lacks Vite's glob transform);
- * Vite still resolves the literal pattern at build time.
- */
-function globEffortModules(): Record<string, string> {
-  try {
-    // Vite transforms this into an inline module map at build time. Call it
-    // directly — after the transform `import.meta.glob` is no longer a
-    // function, so a typeof guard would always take the fallback here.
-    // Relative to this file so it resolves identically under any Vite root
-    // (Storybook at the repo root, the playground app at playground/).
-    return import.meta.glob('../../../../markdown/efforts/**/*.md', {
-      query: '?raw',
-      eager: true,
-      import: 'default',
-    }) as Record<string, string>;
-  } catch {
-    // Bun and Node do not provide Vite's import.meta.glob transform.
-  }
-  try {
-    // Bun/Node branch of a synchronous fallback: ESM imports hoist and would
-    // defeat the try/catch guarding the Vite-only glob call above.
-    // eslint-disable-next-line no-restricted-syntax
-    const fs = require('fs');
-    // eslint-disable-next-line no-restricted-syntax
-    const path = require('path');
-    const res: Record<string, string> = {};
-    const effortsDir = path.resolve(process.cwd(), 'markdown/efforts');
-    if (fs.existsSync(effortsDir)) {
-      const walk = (dir: string) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-          const full = path.join(dir, entry.name);
-          if (entry.isDirectory()) {
-            walk(full);
-          } else if (entry.name.endsWith('.md')) {
-            res[full] = fs.readFileSync(full, 'utf8');
-          }
-        }
-      };
-      walk(effortsDir);
-    }
-    return res;
-  } catch {
-    return {};
-  }
-}
 
 /** Parse a single markdown file into an IEffort */
 export function parseEffortFile(raw: string): IEffort | null {
@@ -476,42 +429,3 @@ export function parseEffortFile(raw: string): IEffort | null {
   };
 }
 
-/** Cached result */
-let _bundledEfforts: readonly IEffort[] | null = null;
-
-/**
- * Get all bundled efforts derived from markdown/efforts/ markdown files.
- * Results are cached after first call.
- */
-export function getBundledEfforts(): readonly IEffort[] {
-  if (_bundledEfforts) return _bundledEfforts;
-
-  const efforts: IEffort[] = [];
-
-  for (const [path, content] of Object.entries(globEffortModules())) {
-    const effort = parseEffortFile(content);
-    if (effort) {
-      efforts.push(effort);
-    } else {
-      console.warn(`[effort-markdown] Failed to parse effort file: ${path}`);
-    }
-  }
-
-  _bundledEfforts = efforts.sort((a, b) => a.slug.localeCompare(b.slug));
-  return _bundledEfforts;
-}
-
-/** Number of bundled efforts shipped with the app */
-export function getBundledEffortCount(): number {
-  return getBundledEfforts().length;
-}
-
-/**
- * Get raw markdown content for a specific effort by slug.
- * Returns null if not found.
- */
-export function getEffortMarkdown(slug: string): string | null {
-  const effort = getBundledEfforts().find(e => e.slug === slug);
-  if (!effort) return null;
-  return effortToDocument(effort);
-}

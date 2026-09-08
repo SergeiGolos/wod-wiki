@@ -1,13 +1,13 @@
 'use client'
 
 import * as Headless from '@headlessui/react'
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
-import { MobileQuerySlotProvider } from '../panels/page-shells'
+import { MobileQuerySlotProvider, MobileQuerySlotTarget } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
-import type { MenuSpec } from '../../app/nav/menuModel'
+import { cn } from '@/lib/utils'
 import { ResponsiveActionsProvider } from '../../app/nav/ResponsiveActions'
 
 function OpenMenuIcon() {
@@ -105,13 +105,17 @@ export function SidebarLayout({
             <div className="min-w-0 flex-1">{navbar}</div>
           </header>
 
-          <main className="flex flex-1 flex-col lg:min-w-0">
-            {/* max-lg bottom padding keeps page content clear of the floating
-                thumb dock (search + primary + overflow cluster). */}
-            <div className="grow w-full max-lg:pb-36 lg:overflow-visible">
-              {children}
-            </div>
-          </main>
+        <main className="flex flex-1 flex-col lg:min-w-0">
+          <div className="grow w-full max-lg:pb-48 lg:overflow-visible">
+            {children}
+          </div>
+          {/* Mobile thumb-area footer — pages portal their query bar (the
+              WQL composer) into the slot at the bottom of the screen; the
+              thumb dock stacks above it via --thumb-dock-lift. Collapses
+              when unoccupied. */}
+          <MobileQueryFooter />
+        </main>
+
         </div>
 
         {/* Secondary nav — zone 4; desktop (2xl+) only. Below 2xl the same
@@ -129,5 +133,45 @@ export function SidebarLayout({
     </div>
     </ResponsiveActionsProvider>
     </MobileQuerySlotProvider>
+  )
+}
+/**
+ * MobileQueryFooter — the fixed bottom bar of the mobile shell where pages
+ * portal thumb-zone controls (stream routes: the WQL composer). Publishes
+ * its height as `--thumb-dock-lift` so ResponsiveActionsDock stacks above
+ * it, and renders a flow spacer so scrolled-to-bottom content clears it.
+ * Collapses to nothing when no page portals in.
+ */
+function MobileQueryFooter() {
+  const barRef = useRef<HTMLDivElement>(null)
+  const [lift, setLift] = useState(0)
+
+  useEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => setLift(el.offsetHeight))
+    observer.observe(el)
+    setLift(el.offsetHeight)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--thumb-dock-lift', `${lift}px`)
+    return () => document.documentElement.style.setProperty('--thumb-dock-lift', '0px')
+  }, [lift])
+
+  return (
+    <>
+      <div
+        ref={barRef}
+        className={cn(
+          'lg:hidden fixed inset-x-0 bottom-0 z-30',
+          lift > 0 && 'bg-card border-t border-border/50 px-2 py-1.5',
+        )}
+      >
+        <MobileQuerySlotTarget className="flex min-w-0" />
+      </div>
+      <div className="lg:hidden" aria-hidden="true" style={{ height: lift }} />
+    </>
   )
 }

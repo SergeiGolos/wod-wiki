@@ -60,6 +60,21 @@ const receiverRedirectPlugin: Plugin = {
     },
 };
 
+/**
+ * Read the seed manifest version stamped by scripts/generate-seed.ts (which
+ * runs before vite in both dev and build). 0 when missing — the runtime then
+ * always consults the manifest instead of trusting the skip-fetch fast path.
+ */
+function seedManifestVersion(): number {
+    try {
+        const raw = fs.readFileSync(resolve(import.meta.dirname, 'public/seed/manifest.json'), 'utf8');
+        const parsed = JSON.parse(raw) as { version?: unknown };
+        return typeof parsed.version === 'number' ? parsed.version : 0;
+    } catch {
+        return 0;
+    }
+}
+
 export default defineConfig({
     root: import.meta.dirname,
     envDir: projectRoot,
@@ -69,6 +84,11 @@ export default defineConfig({
         // (tagged version on main/prod, X.Y.Z-pr.N on PR previews); local dev
         // and library builds fall back to package.json.
         __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || pkg.version),
+        // Seed version stamp (docs/prototypes/seed-data-unification.md § Version
+        // check): read from the manifest the seed compiler just wrote (generate
+        // runs before vite in both dev and build). 0 when missing — the runtime
+        // then always consults the manifest instead of trusting the fast path.
+        __SEED_VERSION__: JSON.stringify(seedManifestVersion()),
     },
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
