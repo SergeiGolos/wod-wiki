@@ -13,6 +13,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import type { ComponentType } from 'react'
+import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMeACoffee'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
@@ -30,7 +31,12 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
     scrollToSection: () => {},
   }
 
-  const items = tree.filter((item): item is NavItem => item.icon != null && item.id !== 'settings')
+  // buy-me-a-coffee rides the tree for the mobile drawer but renders as a
+  // dedicated bottom icon here, not in the primary loop.
+  const items = tree.filter(
+    (item): item is NavItem =>
+      item.icon != null && item.id !== 'settings' && item.id !== 'buy-me-a-coffee',
+  )
   const isSettingsActive = location.pathname.startsWith('/settings')
 
   return (
@@ -84,6 +90,17 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
       >
         <MagnifyingGlassIcon className="size-5" />
       </button>
+      {/* Buy Me a Coffee — under search, above Settings; external link. */}
+      <a
+        href={BUY_ME_A_COFFEE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Buy Me a Coffee"
+        aria-label="Buy Me a Coffee"
+        className="grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+      >
+        <BuyMeACoffeeIcon className="size-5" />
+      </a>
 
       <button
         type="button"

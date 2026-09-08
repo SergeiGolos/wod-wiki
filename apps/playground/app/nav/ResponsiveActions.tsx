@@ -239,7 +239,7 @@ function ResponsiveActionsDock({
       {/* Overflow sheet — mounts its contents lazily, only while open, so
           page controls are never double-mounted. Page rows stack first at
           ≥44px touch targets; the global Page options rows (secondary nav,
-          On this page, download, coffee) follow under a rule as stacked
+          On this page, download) follow under a rule as stacked
           buttons. Cast lives in the navbar, never here. */}
       {sheetOpen && showOverflow && (
         <>

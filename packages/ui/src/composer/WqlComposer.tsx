@@ -81,6 +81,10 @@ export interface WqlComposerProps {
   onSubmit?: (wql: string) => void;
   /** Render the diagnostics strip (badge, AST summary, stage counts). Default true. */
   showDiagnostics?: boolean;
+  /** Where the diagnostics/action strip renders. 'top' presents it as a header
+   *  row above the composer box (command-palette style); 'bottom' (default)
+   *  keeps it beneath the box. */
+  diagnosticsPosition?: 'top' | 'bottom';
   /**
    * Executor for live stage counts in the diagnostics strip.
    */
@@ -120,6 +124,7 @@ export function WqlComposer({
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
   diagnosticsActions,
+  diagnosticsPosition = 'bottom',
   hiddenClauseTypes,
   autoFocus = false,
   placeholder = 'Type search term and press Enter...',
@@ -529,8 +534,31 @@ export function WqlComposer({
     }
   };
 
+  const diagnosticsBlock = showDiagnostics ? (
+    <WqlDiagnosticsStrip
+      diagnostics={diagnostics}
+      offendingLabel={offendingLabel}
+      stages={stages}
+      hideSummary={diagnosticsPosition === 'top'}
+      actions={
+        <>
+          <AddCalcDropdown clauses={pills} onAdd={addCalc} />
+          <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
+          {diagnosticsActions}
+        </>
+      }
+    />
+  ) : (
+    <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
+      <AddCalcDropdown clauses={pills} onAdd={addCalc} />
+      <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
+      {diagnosticsActions}
+    </div>
+  );
+
   return (
     <div className="space-y-1">
+      {diagnosticsPosition === 'top' && diagnosticsBlock}
       <div
         onClick={() => inputRef.current?.focus()}
         className={cn(
@@ -647,26 +675,7 @@ export function WqlComposer({
         </div>
       )}
 
-      {showDiagnostics ? (
-        <WqlDiagnosticsStrip
-          diagnostics={diagnostics}
-          offendingLabel={offendingLabel}
-          stages={stages}
-          actions={
-            <>
-              <AddCalcDropdown clauses={pills} onAdd={addCalc} />
-              <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
-              {diagnosticsActions}
-            </>
-          }
-        />
-      ) : (
-        <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
-          <AddCalcDropdown clauses={pills} onAdd={addCalc} />
-          <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
-          {diagnosticsActions}
-        </div>
-      )}
+      {diagnosticsPosition !== 'top' && diagnosticsBlock}
     </div>
   );
 }

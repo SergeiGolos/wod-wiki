@@ -30,6 +30,7 @@ import { EffortsNavPanel } from './panels/EffortsNavPanel'
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
 import type { CanvasRoute } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
+import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMeACoffee'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
@@ -281,6 +282,16 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
       panel: EffortsNavPanel,
+    },
+    // Support link — external action (new tab); rendered in the mobile drawer
+    // above Settings (icon + label) and as a rail icon button on desktop
+    // (AppRail excludes it from the L1 loop).
+    {
+      id: 'buy-me-a-coffee',
+      label: 'Buy Me a Coffee',
+      level: 1,
+      icon: BuyMeACoffeeIcon,
+      action: { type: 'external', href: BUY_ME_A_COFFEE_URL },
     },
     {
       id: 'settings',

@@ -22,7 +22,7 @@ import {
   ArrowDownTrayIcon,
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
-import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../../components/atoms/BuyMeACoffee'
+
 import { useNav } from '../../nav/NavContext'
 import { useResolvedMenu } from '../../nav/MenuList'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
@@ -173,15 +173,6 @@ export function usePageOptionsEntries(
       },
     })
   }
-
-  entries.push({
-    kind: 'row',
-    id: 'buy-me-a-coffee',
-    label: 'Buy Me a Coffee',
-    icon: <BuyMeACoffeeIcon className="size-5" />,
-    nav: false,
-    onSelect: () => window.open(BUY_ME_A_COFFEE_URL, '_blank', 'noopener,noreferrer'),
-  })
 
   return entries
 }

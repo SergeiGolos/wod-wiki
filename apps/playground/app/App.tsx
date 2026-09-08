@@ -350,7 +350,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           {/* Cast stays in the header at every breakpoint (navbar here on
               mobile, PageActions bar in desktop page headers). The Page
               options ⋮ lives in the thumb dock instead — its functions
-              (secondary nav, On this page, download, coffee) surface as
+              (secondary nav, On this page, download) surface as
               stacked buttons in the dock sheet via the global fallback
               registration below. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -363,7 +363,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       onSearch={openSearchPalette}
     >
       {/* Global Page options for the mobile thumb dock — stacked function
-          rows (secondary nav, On this page, download, coffee) under every
+          rows (secondary nav, On this page, download) under every
           page's own sheet rows. */}
       <ResponsiveActions fallback label="Page options">
         <PageOptionsSheetRows currentWorkout={currentWorkout} />

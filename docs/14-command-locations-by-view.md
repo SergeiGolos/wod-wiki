@@ -22,7 +22,7 @@ breakpoint:
 | Page **primary** action | Inline in the header (first control) | Thumb-dock **FAB** (floating, bottom corner) |
 | Page **children** actions | Inline in the header after the primary | Dock **⋮ overflow sheet** (lazy-mounted, ≥44px rows) |
 | Cast | Header (via the page's `PageActions` bar) | **App navbar**, right side |
-| Page options ⋮ — secondary nav, *On this page*, Download Markdown, Buy Me a Coffee | Header ⋮ dropdown (nav sections hidden ≥2xl, where the secondary rail owns them) | **Thumb dock**: the ⋮ FAB sits just above the search FAB; tapping it stacks its functions as buttons in the sheet, under the page's own rows (global `fallback` registration, `app/App.tsx`) |
+| Page options ⋮ — secondary nav, *On this page*, Download Markdown | Header ⋮ dropdown (nav sections hidden ≥2xl, where the secondary rail owns them) | **Thumb dock**: the ⋮ FAB sits just above the search FAB; tapping it stacks its functions as buttons in the sheet, under the page's own rows (global `fallback` registration, `app/App.tsx`) |
 | Search | Header input / icon-rail button; `Ctrl/Cmd+K`, `+/`, `+P` (`app/App.tsx:161-172`) | Dedicated **search FAB** in the dock |
 | WQL stream query bar | Header `queryBar` slot — full chips bar + inline composer | **Thumb footer** — full-width **button row** at the very bottom (search icon + source pill + query; `MobileQueryFooter`, `src/templates/SidebarLayout.tsx`); tap opens the same WQL palette, and the dock stack rises one row above it |
 
@@ -43,7 +43,7 @@ whole cluster lifts above the stream pages' thumb footer via
 |---|---|
 | Header | Desktop sticky page header, right of the title |
 | Dock FAB | Mobile floating primary button |
-| Dock ⋮ sheet | Mobile "More actions" overflow: the page's own rows first, then the global Page options rows (secondary nav, On this page, Download, Buy Me a Coffee) under a rule |
+| Dock ⋮ sheet | Mobile "More actions" overflow: the page's own rows first, then the global Page options rows (secondary nav, On this page, Download) under a rule |
 | Navbar cast | Mobile top-right header control — Cast only; the Page options ⋮ moved down into the dock |
 | Thumb footer | Mobile fixed bottom **button row** hosting the WQL composer on stream pages; the dock stacks one row above it |
 | Body (unchanged) | Same placement at both breakpoints |
@@ -58,15 +58,25 @@ Source: `src/templates/SidebarLayout.tsx`, `app/nav/NavSidebar.tsx`,
 |---|---|---|
 | Global search palette | Icon-rail search button (`AppRail.tsx:79-83`) + keyboard shortcuts | Search FAB in the thumb dock |
 | L1 nav (Home / Library / Dashboards / Efforts) | 56px left icon rail | Hamburger in the sticky navbar → drawer (L1 list is drawer-only, `NavSidebar.tsx`) |
+| Buy Me a Coffee | Icon-rail button pinned at the bottom — under search, above Settings; opens the support page in a new tab (`AppRail.tsx`) | Drawer row (icon + label) above Settings — L1 tree entry with an `external` action (`appNavTree.ts`) |
 | L2 context sidebar | 240px second column | Inside the drawer, under the L1 list |
 | Page TOC / secondary nav | Right rail, ≥2xl only; below 2xl it folds into the header ⋮ menu | Dock ⋮ sheet → stacked secondary sections + *On this page* rows |
-| Cast + Page options (Download Markdown, Buy Me a Coffee) | Header controls via `PageActions` (`app/pages/shared/PageToolbar.tsx`) | Cast: App navbar. Page options: dock ⋮ → stacked rows; Download is omitted when the route has no resolved document |
+| Cast + Page options (Download Markdown) | Header controls via `PageActions` (`app/pages/shared/PageToolbar.tsx`) | Cast: App navbar. Page options: dock ⋮ → stacked rows; Download is omitted when the route has no resolved document |
 | Stream query bar | Header queryBar slot | Thumb footer button row (full width, bottom; tap opens the WQL palette) |
 | Content clearance | — | `max-lg:pb-48` keeps content clear of the stacked dock; the footer adds its own flow spacer |
 
 Routes that bypass the shell entirely (no rail / navbar / dock):
 `/run/:runtimeId`, `/load`, `/load/journal(/:date)`, `/settings/library/calcs`,
 `/proto/calc-authoring`, `*` (404).
+
+WQL palette internals (identical at both breakpoints): a single **header row
+above the composer box** carries the valid/invalid badge and the live
+"N matched" stage count, with the action buttons appended at its end: Add
+calc / + Filter, **Apply query**, and (mobile only) Cancel. The AST summary
+chips (target/scope/time) are suppressed here — the pills in the box below
+already show that state (`WqlDiagnosticsStrip` `hideSummary`, driven by the
+composer's `diagnosticsPosition="top"`; other composer hosts keep the full
+strip below the box). The results list renders under the composer.
 
 ## 3. Route index
 
@@ -159,7 +169,7 @@ Shared command map:
 | **New** (effort) — `/efforts` only | Header, next to View (`:390-400`) | Dock FAB (second) |
 | WQL query bar (type chips + query) | Header queryBar slot — the full chips bar + inline composer (`:408-415`) | Thumb footer — full-width button row (compact composer, `:417-428` portal into `MobileQueryFooter`); tap opens the same WQL palette dialog (`StreamQueryBar.tsx`) |
 | Cast | Header (PageActions bar, `app/App.tsx`) | App navbar |
-| Page options ⋮ (Download Markdown, Buy Me a Coffee) | Header dropdown | Dock ⋮ → stacked rows in the sheet |
+| Page options ⋮ (Download Markdown) | Header dropdown | Dock ⋮ → stacked rows in the sheet |
 | Search input | **None** — the query bar is the search entry (`showSearch={view.page !== 'library'}` → false for all stream routes) | Dock search FAB |
 | Row actions: Open / Add to today / Run / Compare | Hover-revealed stack at the row end (`app/views/library/LibraryRow.tsx:183-201`); row click also opens (`:102-106`) | Row tap = Open; the hover-revealed stack does not show on touch |
 | Filter typeahead + inline editor (composer) | Typing a filter key proposes **Add filter**; Tab/tap adds the pill (or selects an existing one) and its value list opens **inline under the composer** — ↑↓ navigate options, Enter sets/toggles values (multi filters stay in the list with check marks), Backspace pops the last value, Tab/Esc releases the pill back to free typing (`packages/ui/src/composer/filterTypeahead.ts`, `clauseItems.ts`, `InlineClauseEditor.tsx`) | Same, in the palette composer opened from the thumb footer row — the palette list renders the values under the input (no popover, focus stays in the input) |

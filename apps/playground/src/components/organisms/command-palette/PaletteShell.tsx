@@ -185,31 +185,34 @@ export const PaletteShell: React.FC = () => {
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}
+        diagnosticsPosition="top"
+        diagnosticsActions={
+          <>
+            {/* Cancel is the mobile close affordance (no Escape key on touch);
+                hidden on sm+ where Esc/overlay close. */}
+            <button
+              type="button"
+              onClick={_dismiss}
+              data-testid="palette-cancel"
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors sm:hidden dark:border-zinc-700"
+            >
+              Cancel
+            </button>
+            {wqlConfig.onApply && (
+              <button
+                type="button"
+                onClick={applyQuery}
+                data-testid="palette-apply-query"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Apply query
+              </button>
+            )}
+          </>
+        }
         onSubmit={wqlConfig.onApply ? applyQuery : undefined}
         autoFocus
       />
-      {/* Action row: Cancel is the mobile close affordance (no Escape key on
-          touch); it collapses to zero height on sm+ where Esc/overlay close. */}
-      <div className={`flex items-center justify-end gap-2 ${wqlConfig.onApply ? 'pt-1.5' : ''}`}>
-        <button
-          type="button"
-          onClick={_dismiss}
-          data-testid="palette-cancel"
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors sm:hidden dark:border-zinc-700"
-        >
-          Cancel
-        </button>
-        {wqlConfig.onApply && (
-          <button
-            type="button"
-            onClick={applyQuery}
-            data-testid="palette-apply-query"
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Apply query
-          </button>
-        )}
-      </div>
     </div>
   ) : undefined;
 

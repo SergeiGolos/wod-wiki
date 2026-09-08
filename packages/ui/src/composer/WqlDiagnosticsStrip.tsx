@@ -9,6 +9,9 @@ export interface WqlDiagnosticsStripProps {
   diagnostics: WqlDiagnostics;
   offendingLabel?: string;
   stages?: WqlStageCounts;
+  /** Hide the AST summary chips (target/scope/time or agg/metric/by…) —
+   *  header contexts where the pills right below already show that state. */
+  hideSummary?: boolean;
   actions?: ReactNode;
   className?: string;
 }
@@ -27,6 +30,7 @@ export function WqlDiagnosticsStrip({
   diagnostics,
   offendingLabel,
   stages,
+  hideSummary = false,
   actions,
   className,
 }: WqlDiagnosticsStripProps) {
@@ -61,7 +65,7 @@ export function WqlDiagnosticsStrip({
           )}
         </div>
 
-        {valid && isFindQuery(ast) && (
+        {!hideSummary && valid && isFindQuery(ast) && (
           <div className="flex flex-wrap items-center gap-x-3 text-[11px] opacity-80 border-l border-border/50 pl-3">
             {(() => {
               const summary = summarizeFind(ast);
@@ -83,7 +87,7 @@ export function WqlDiagnosticsStrip({
           </div>
         )}
 
-        {valid && isAggregateQuery(ast) && (
+        {!hideSummary && valid && isAggregateQuery(ast) && (
           <div className="flex flex-wrap items-center gap-x-3 text-[11px] opacity-80 border-l border-border/50 pl-3">
             {(() => {
               const summary = summarizeAggregate(ast);

@@ -196,3 +196,40 @@ describe('appNavTree - Settings navigation', () => {
     expect(screen.getByText('System')).toBeDefined()
   })
 })
+
+describe('appNavTree - Buy Me a Coffee', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('sits directly above Settings with an external support-link action', () => {
+    const tree = buildAppNavTree(() => {})
+    const coffee = tree.find(item => item.id === 'buy-me-a-coffee')
+
+    expect(coffee).toBeDefined()
+    expect(coffee?.label).toBe('Buy Me a Coffee')
+    expect(coffee?.action).toEqual({
+      type: 'external',
+      href: 'https://www.buymeacoffee.com/sergeigolos',
+    })
+    // Drawer order: the coffee row renders just above Settings.
+    expect(tree.findIndex(item => item.id === 'buy-me-a-coffee')).toBe(
+      tree.findIndex(item => item.id === 'settings') - 1,
+    )
+  })
+
+  it('renders the labeled coffee row in the NavSidebar drawer above Settings', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <NavProvider tree={appNavTree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+
+    const coffee = screen.getByText('Buy Me a Coffee')
+    expect(coffee).toBeDefined()
+    // Icon + label: the row's clickable item carries the coffee SVG.
+    expect(coffee.closest('[data-slot]')?.querySelector('svg')).not.toBeNull()
+  })
+})
