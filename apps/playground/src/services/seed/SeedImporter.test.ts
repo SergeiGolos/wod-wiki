@@ -286,3 +286,36 @@ describe('SeedImporter', () => {
     expect((await storage.getSeedMeta())!.schema).toBe(SEED_SCHEMA);
   });
 });
+
+describe('SeedImporter manual re-sync (forceAll)', () => {
+  it('re-applies an unchanged manifest when forced, preserving user rows', async () => {
+    const v1 = makeSource({ canvas: [row('markdown/canvas/a.md')] }, 1000);
+    const storage = new InMemorySeedStorage();
+    await importAll(storage, v1.source);
+
+    // Simulate a user edit over the seed row.
+    const noteA = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md')!;
+    await storage.applyChunk({
+      notes: [{ ...noteA, title: 'My A', seedOrigin: 'user' }],
+      segments: [],
+      efforts: [],
+      blocks: [],
+      deleteNoteIds: [],
+      deleteEffortSlugs: [],
+      deleteBlockIds: [],
+      meta: (await storage.getSeedMeta())!,
+    });
+
+    // Same manifest content, same version — force re-applies anyway.
+    const counting = new CountingSeedSource(v1.source);
+    const result = await new SeedImporter(storage, counting).applyAll({ forceAll: true });
+
+    expect(result.status).toBe('imported');
+    expect(result.appliedChunks).toBe(1);
+    expect(result.skippedUserOwned).toBe(1);
+    // The user-owned row survived untouched.
+    const after = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md');
+    expect(after?.title).toBe('My A');
+    expect(after?.seedOrigin).toBe('user');
+  });
+});

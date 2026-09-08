@@ -118,12 +118,13 @@ export class SeedImporter {
     private readonly now: () => number = Date.now,
   ) {}
 
-  async applyAll(): Promise<SeedImportResult> {
+  async applyAll(opts: { forceAll?: boolean } = {}): Promise<SeedImportResult> {
     const manifest = await this.source.fetchManifest();
     const meta: SeedMetaRecord = (await this.storage.getSeedMeta()) ?? emptySeedMeta();
-    // A stored checkpoint from a different seed schema is re-applied in full —
-    // ownership rules still gate every row, so user work survives.
-    const forceAll = meta.schema !== SEED_SCHEMA;
+    // A stored checkpoint from a different seed schema — or a manual
+    // Settings re-sync — is re-applied in full: ownership rules still gate
+    // every row, so user work survives.
+    const forceAll = opts.forceAll === true || meta.schema !== SEED_SCHEMA;
     const plan: ManifestChunk[] = forceAll
       ? manifest.chunks
       : manifest.chunks.filter((c) => meta.chunks[c.id]?.sha256 !== c.sha256);

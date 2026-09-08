@@ -48,6 +48,26 @@ describe('runSeedSync', () => {
     expect(counting.fetchManifestCalls).toBe(0);
   });
 
+  it('force re-sync bypasses the fast path and re-imports an unchanged seed', async () => {
+    const counting = new CountingSeedSource(source(1000));
+    const storage = new InMemorySeedStorage();
+    await storage.putSeedMeta(stored({ seedVersion: 1000 }));
+    const outcome = await runSeedSync({
+      source: counting,
+      storage,
+      embeddedVersion: 1000,
+      isEnabled: () => true,
+      force: true,
+    });
+    expect(outcome).toBe('imported');
+    expect(counting.fetchManifestCalls).toBe(2) // orchestrator check + importer fetch;
+    expect(counting.fetchChunkCalls).toEqual(['chunks/canvas.json']);
+    // The claim is released and the checkpoint still says current.
+    const meta = await storage.getSeedMeta();
+    expect(meta?.claim).toBeNull();
+    expect(meta?.seedVersion).toBe(1000);
+  });
+
   it('reports busy while another tab holds a fresh claim', async () => {
     const storage = new InMemorySeedStorage();
     await storage.putSeedMeta(stored({ claim: { owner: 'other-tab', at: Date.now() } }));

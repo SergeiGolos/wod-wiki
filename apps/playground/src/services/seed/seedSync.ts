@@ -5,6 +5,8 @@
  * claim release → cross-tab broadcast.
  *
  * Default-on; set localStorage['wodwiki.seedImport.enabled'] = '0' to opt out.
+ * Settings → System can force a manual re-sync (`force: true`) and read the
+ * local/remote version pair via `readSeedStatus`.
  */
 import { emptySeedMeta, SEED_BROADCAST_CHANNEL, type SeedMetaRecord } from '@/types/seed';
 import { SeedImporter } from './SeedImporter';
@@ -42,6 +44,12 @@ export interface SeedSyncDeps {
   broadcast?: (message: unknown) => void;
   /** Flag override for tests; defaults to the localStorage flag. */
   isEnabled?: () => boolean;
+  /**
+   * Manual re-sync (Settings → System): skip the stored===embedded fast path
+   * and the version-equality check so every chunk re-applies (ownership
+   * rules still gate every row).
+   */
+  force?: boolean;
 }
 
 function defaultBroadcast(message: unknown): void {
@@ -79,11 +87,11 @@ async function runSeedSyncInner(deps: SeedSyncDeps): Promise<SeedSyncOutcome> {
     const stored = await storage.getSeedMeta();
 
     // Skip-fetch fast path: this bundle's own seed is already stored.
-    if (storedSeedIsCurrent(stored, embeddedVersion)) return 'current';
+    if (!deps.force && storedSeedIsCurrent(stored, embeddedVersion)) return 'current';
     if (freshClaimIsOther(stored, owner, now())) return 'busy';
 
     const manifest = await source.fetchManifest();
-    const decision = decideSeedImport(stored?.seedVersion, manifest.version);
+    const decision = deps.force ? 'import' : decideSeedImport(stored?.seedVersion, manifest.version);
     if (decision === 'server-stale') return 'server-stale';
     if (decision === 'current') return 'current';
 
@@ -91,7 +99,7 @@ async function runSeedSyncInner(deps: SeedSyncDeps): Promise<SeedSyncOutcome> {
     const claimed: SeedMetaRecord = { ...(stored ?? emptySeedMeta()), claim: { owner, at: now() } };
     await storage.putSeedMeta(claimed);
     try {
-      const result = await new SeedImporter(storage, source, now).applyAll();
+      const result = await new SeedImporter(storage, source, now).applyAll({ forceAll: deps.force === true });
       if (result.status === 'imported') {
         broadcast({ kind: 'seed-imported', version: manifest.version });
         // BroadcastChannel does not echo to the importing context — refresh
@@ -111,4 +119,40 @@ async function runSeedSyncInner(deps: SeedSyncDeps): Promise<SeedSyncOutcome> {
     console.warn('[seedSync] seed sync failed', err);
     return 'error';
   }
+}
+
+// ── Status (Settings → System) ─────────────────────────────────────────────
+
+export interface SeedVersionInfo {
+  version: number;
+  schema: number;
+  builtAt: string;
+}
+
+export interface SeedStatus {
+  /** The import checkpoint in Storage — null before the first import. */
+  stored: (SeedVersionInfo & { importedAt: number }) | null;
+  /** The published manifest — null when unreachable (offline). */
+  remote: SeedVersionInfo | null;
+  remoteError: string | null;
+}
+
+/** Local + remote seed versions for the Settings status card. */
+export async function readSeedStatus(): Promise<SeedStatus> {
+  const stored = await new IndexedDBSeedImportStorage().getSeedMeta();
+  let remote: SeedStatus['remote'] = null;
+  let remoteError: string | null = null;
+  try {
+    const manifest = await new HttpSeedSource().fetchManifest();
+    remote = { version: manifest.version, schema: manifest.schema, builtAt: manifest.builtAt };
+  } catch (err) {
+    remoteError = err instanceof Error ? err.message : String(err);
+  }
+  return {
+    stored: stored
+      ? { version: stored.seedVersion, schema: stored.schema, builtAt: stored.builtAt, importedAt: stored.importedAt }
+      : null,
+    remote,
+    remoteError,
+  };
 }
