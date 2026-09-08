@@ -134,6 +134,9 @@ Storage layer satisfies. Persistence adapters compose raw **Storage**
 calls into domain operations (latest-version lookup, cascade delete,
 analytics write) — they do not embed engine specifics.
 _Avoid_: data layer, store (overloaded).
+**Seed**:
+The immutable, timestamped compilation of the bundled content corpora (Catalogs, Canvas pages, syntax guides, Efforts, Dashboard Notes, the page template) into versioned artifacts a static host serves and the app imports into Storage (`wodwiki-db`; import seam — `docs/prototypes/seed-data-unification.md`, phases 2+). The Seed is the only path bundled content takes into Storage. The compiler (`scripts/generate-seed.ts`, run by the playground build) emits `public/seed/`: a manifest + content-hashed chunks of `{ path, content }` rows. Seed provenance (`'seed' | 'user'`) decides whether the Seed Import may overwrite or delete a row — user edits always win.
+_Avoid_: bundle, corpus dump, static index (the generated `static-block-index.json` predecessor).
 ### Analytics
 **Canonical Metric Key**:
 The join dimension for cross-workout analysis — the one key two workouts must share for a metric to be compared across them. A defined family/aggregate vocabulary (`reps`, `distance`, `resistance`, `elapsed`, `power`, `pace`, `totalVolume`, `totalDistance`, `tis`, `<effortSlug>.<family>`, `calc.<target>`), allocated in `docs/analytics-data-shapes-and-composition.md` §5. One resolver maps each metric to its canonical key; display derives a human label from it. **Not** the raw `MetricType` and **not** a display string — `repetitions` is retired as a key.

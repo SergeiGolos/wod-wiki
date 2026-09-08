@@ -5,8 +5,8 @@
   "type": "module",
   "description": "The wod.wiki web application — workout journal, canvas editor, review surfaces, and Chromecast receiver built on the Whiteboard Language packages.",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && bun ../../scripts/generate-static-shells.ts",
+    "dev": "bun ../../scripts/generate-seed.ts && vite",
+    "build": "bun ../../scripts/generate-seed.ts && vite build && bun ../../scripts/generate-static-shells.ts",
     "preview": "vite preview",
     "test": "bun tests/run-isolated.ts ./src ./app --preload ./tests/unit-setup.ts",
     "test:markdown": "bun test tests/wods/all-wods.test.ts tests/canvas/syntax-source-markdown.test.ts --preload ./tests/setup.ts",

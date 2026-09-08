@@ -61,10 +61,10 @@ export function PageActions({
   const [isResetting, setIsResetting] = useState(false)
   const inActionsProvider = useInResponsiveActionsProvider()
   const isMobile = useIsMobile()
-  // Inside the app shell on phones, the ResponsiveActions dock owns the
-  // generic controls (search FAB + global cast/actions fallback merged into
-  // the page's overflow sheet) — rendering them here too would duplicate
-  // mounted controls. Standalone (stories/tests) and desktop keep the bar.
+  // Inside the app shell on phones the dock owns search (FAB) and the app
+  // navbar owns cast + page options — rendering them here too would
+  // duplicate mounted controls. Standalone (stories/tests) and desktop keep
+  // the bar.
   const dockOwnsGeneric = inActionsProvider && isMobile
 
   const handleCreateNew = async () => {
@@ -87,6 +87,12 @@ export function PageActions({
       setIsResetting(false)
     }
   }
+
+  // Playground mode contributes its New | Reset group even on phones (the
+  // dock sheet hosts it); every other mode is pure generic controls, which
+  // the shell owns on mobile — render nothing so the page registers no
+  // empty overflow group.
+  if (dockOwnsGeneric && mode !== 'playground') return null
 
   return (
     <div className="flex items-center gap-3">

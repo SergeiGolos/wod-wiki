@@ -5,7 +5,6 @@ import { Navbar } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
-import { ResponsiveActions } from './nav/ResponsiveActions'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
 import type { PageKind } from './lib/routeView'
@@ -312,7 +311,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
         actions={view.shell.actionsMode
-          ? <ResponsiveActions label="Page actions"><PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} /></ResponsiveActions>
+          ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
           : undefined}
       >
         {inner}
@@ -344,18 +343,22 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             )}
             {canvasTitleAccessory}
           </nav>
-          {/* The query stays in the header; page actions relocate to the thumb dock. */}
+          {/* Query portals into the navbar; cast + page options (L3 index)
+              stay in the header at every breakpoint — the thumb dock carries
+              only page-specific actions. This navbar is mobile-only
+              (lg:hidden in SidebarLayout); desktop page headers host the same
+              controls via their PageActions bar. */}
           <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />
+          <div className="flex shrink-0 items-center gap-1">
+            <CastButtonRpc />
+            <ActionsMenu currentWorkout={currentWorkout} />
+          </div>
         </Navbar>
       }
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
       secondary={secondarySpec}
       onSearch={openSearchPalette}
     >
-      <ResponsiveActions fallback label="Page actions">
-        <CastButtonRpc />
-        <ActionsMenu currentWorkout={currentWorkout} />
-      </ResponsiveActions>
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {renderShell(renderInner[view.page]())}

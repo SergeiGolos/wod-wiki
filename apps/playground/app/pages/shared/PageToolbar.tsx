@@ -97,9 +97,9 @@ export function ActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Page options" className="text-muted-foreground max-lg:w-full max-lg:justify-start max-lg:gap-2">
+        <Button variant="ghost" size="icon" aria-label="Page options" className="text-muted-foreground">
           <EllipsisVerticalIcon className="size-5" />
-          <span className="lg:sr-only">Page options</span>
+          <span className="sr-only">Page options</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
@@ -185,10 +185,15 @@ export function ActionsMenu({
             <DropdownMenuSeparator />
           </div>
         )}
-        <DropdownMenuItem onClick={handleDownload} className="gap-2">
-          <ArrowDownTrayIcon className="size-4" />
-          <span className="flex-1">Download Markdown</span>
-        </DropdownMenuItem>
+        {/* The header menu exports the route-resolved document. Pages whose
+            content loads in-page (playground/journal editors) resolve to an
+            empty string here — omit the item rather than download a stub. */}
+        {currentWorkout.content !== '' && (
+          <DropdownMenuItem onClick={handleDownload} className="gap-2">
+            <ArrowDownTrayIcon className="size-4" />
+            <span className="flex-1">Download Markdown</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleBuyMeACoffee} className="gap-2">
           <BuyMeACoffeeIcon className="size-5" />
           <span className="flex-1">Buy Me a Coffee</span>
