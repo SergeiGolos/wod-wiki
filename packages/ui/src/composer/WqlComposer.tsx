@@ -31,6 +31,7 @@ import {
   type ClauseType,
   type QueryClause,
   CLAUSE_META,
+  CLEAR_ONLY_TYPES,
   allowedFilterTypesForSource,
   getClauseMeta,
   sourcePlane,
@@ -152,6 +153,14 @@ export function WqlComposer({
   const [typeaheadDismissed, setTypeaheadDismissed] = useState(false);
   // Highlighted option row while a pill's value editor is open.
   const [editorHighlight, setEditorHighlight] = useState(0);
+  // Highlighted row inside the filter typeahead. `typeaheadNavigated` flips
+  // true once the user arrows within the list — then Enter accepts the
+  // highlighted filter instead of committing the typed text.
+  const [typeaheadHighlight, setTypeaheadHighlight] = useState(0);
+  const [typeaheadNavigated, setTypeaheadNavigated] = useState(false);
+  // Tab / Shift+Tab(Alt+Tab) focus ring across pills and their remove
+  // buttons. null = no nav selection (plain input mode).
+  const [navTarget, setNavTarget] = useState<{ idx: number; part: 'pill' | 'remove' } | null>(null);
 
   // Mirror the controlled query prop so the live-search effect can emit the
   // original string when no free text is pending. That avoids re-serializing
@@ -331,6 +340,56 @@ export function WqlComposer({
       });
     return matchFilterTypeahead(freeText, candidates);
   }, [freeText, pills, hiddenTypes, typeaheadDismissed, rawEscape]);
+  const typeaheadHL = Math.min(typeaheadHighlight, Math.max(0, typeaheadMatches.length - 1));
+
+  /** Structural pills (source/time — auto-seeded onto every query) clear
+   *  their value instead of being removed. */
+  const removeOrClear = (idx: number) => {
+    const pill = pills[idx];
+    if (pill && CLEAR_ONLY_TYPES.has(pill.type)) {
+      updatePill(idx, { value: '' });
+    } else {
+      removePill(idx);
+    }
+    setNavTarget(null);
+  };
+
+  // Tab-ring order across the visible pills: each pill exposes its body
+  // (Enter opens the inline editor) then its remove/clear target.
+  const navItems = useMemo(() => {
+    const items: { idx: number; part: 'pill' | 'remove' }[] = [];
+    pills.forEach((pill, idx) => {
+      if (hiddenTypes.has(pill.type)) return;
+      items.push({ idx, part: 'pill' }, { idx, part: 'remove' });
+    });
+    return items;
+  }, [pills, hiddenTypes]);
+
+  const stepNav = (dir: 1 | -1) => {
+    if (navItems.length === 0) return;
+    setNavTarget((cur) => {
+      if (!cur) return dir === 1 ? navItems[0]! : navItems[navItems.length - 1]!;
+      const pos = navItems.findIndex((it) => it.idx === cur.idx && it.part === cur.part);
+      if (pos === -1) return dir === 1 ? navItems[0]! : navItems[navItems.length - 1]!;
+      const nextPos = pos + dir;
+      return nextPos < 0 || nextPos >= navItems.length ? null : navItems[nextPos]!;
+    });
+  };
+
+  const activateNavTarget = () => {
+    if (!navTarget) return;
+    if (navTarget.part === 'pill') {
+      if (!pills[navTarget.idx]) { setNavTarget(null); return; }
+      // Apply the selection: open the pill's inline editor for changes.
+      setActiveSlotIdx(navTarget.idx);
+      setFreeText('');
+      setEditorHighlight(0);
+      setNavTarget(null);
+      inputRef.current?.focus();
+      return;
+    }
+    removeOrClear(navTarget.idx);
+  };
 
   const acceptTypeahead = (match: (typeof typeaheadMatches)[number]) => {
     if (match.present && match.pillIdx !== undefined) {
@@ -354,6 +413,8 @@ export function WqlComposer({
     }
     setFreeText('');
     setEditorHighlight(0);
+    setTypeaheadHighlight(0);
+    setTypeaheadNavigated(false);
     inputRef.current?.focus();
   };
 
@@ -451,6 +512,10 @@ export function WqlComposer({
       updatePill(activeSlotIdx, { value: next.join('|') });
     } else {
       updatePill(activeSlotIdx, { value });
+      // The option-filter text was consumed by the choice — reset it so it
+      // can't linger in the input and later commit as a text filter.
+      setFreeText('');
+      setEditorHighlight(0);
     }
   };
 
@@ -488,7 +553,24 @@ export function WqlComposer({
         commitEditorValue(editorItems.selectedValues[editorItems.selectedValues.length - 1]!);
         return;
       }
-      if (e.key === 'Tab' || e.key === 'Escape') {
+      if (e.key === 'Tab') {
+        // Release the editor and continue the focus ring from this pill.
+        e.preventDefault();
+        e.stopPropagation();
+        const from = activeSlotIdx;
+        setActiveSlotIdx(null);
+        setFreeText('');
+        setEditorHighlight(0);
+        // Jump between pill bodies (or back to free text at either end) —
+        // never to the just-edited pill's remove button.
+        const pillIdxs = navItems.filter((it) => it.part === 'pill').map((it) => it.idx);
+        const pos = pillIdxs.indexOf(from ?? -1);
+        const dir = e.shiftKey || e.altKey ? -1 : 1;
+        const nextPos = pos + dir;
+        setNavTarget(nextPos < 0 || nextPos >= pillIdxs.length ? null : { idx: pillIdxs[nextPos]!, part: 'pill' });
+        return;
+      }
+      if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         setActiveSlotIdx(null);
@@ -498,16 +580,57 @@ export function WqlComposer({
       }
       return;
     }
+    if (typeaheadMatches.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      // The typeahead is the topmost composer surface — arrows steer it and
+      // never leak to a host results list (#834).
+      e.preventDefault();
+      e.stopPropagation();
+      setTypeaheadNavigated(true);
+      setTypeaheadHighlight((h) =>
+        e.key === 'ArrowDown'
+          ? Math.min(h + 1, typeaheadMatches.length - 1)
+          : Math.max(h - 1, 0),
+      );
+      return;
+    }
     if (e.key === 'Tab' && typeaheadMatches.length > 0) {
       e.preventDefault();
       e.stopPropagation();
-      acceptTypeahead(typeaheadMatches[0]!);
+      acceptTypeahead(typeaheadMatches[typeaheadHL]!);
+      return;
+    }
+    if (e.key === 'Enter' && typeaheadNavigated && typeaheadMatches.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      acceptTypeahead(typeaheadMatches[typeaheadHL]!);
       return;
     }
     if (e.key === 'Escape' && typeaheadMatches.length > 0) {
       e.preventDefault();
       e.stopPropagation();
       setTypeaheadDismissed(true);
+      setTypeaheadHighlight(0);
+      setTypeaheadNavigated(false);
+      return;
+    }
+    if (navTarget && e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setNavTarget(null);
+      return;
+    }
+    if (navTarget && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      activateNavTarget();
+      return;
+    }
+    if (e.key === 'Tab') {
+      // No typeahead, no editor — Tab walks the pill focus ring
+      // (Shift+Tab / Alt+Tab walk it backwards).
+      e.preventDefault();
+      e.stopPropagation();
+      stepNav(e.shiftKey || e.altKey ? -1 : 1);
       return;
     }
     if (e.key !== 'Enter') return;
@@ -540,6 +663,7 @@ export function WqlComposer({
       offendingLabel={offendingLabel}
       stages={stages}
       hideSummary={diagnosticsPosition === 'top'}
+      variant={diagnosticsPosition === 'top' ? 'header' : 'card'}
       actions={
         <>
           <AddCalcDropdown clauses={pills} onAdd={addCalc} />
@@ -562,8 +686,15 @@ export function WqlComposer({
       <div
         onClick={() => inputRef.current?.focus()}
         className={cn(
-          'flex flex-wrap items-center gap-1.5 min-h-[46px] rounded-xl border border-border bg-muted/20 px-3 py-1.5 text-xs transition-all cursor-text shadow-xs',
-          activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+          'flex flex-wrap items-center gap-1.5 min-h-[46px] px-3 py-1.5 text-xs transition-all cursor-text',
+          // Header mode: the box reads as a plain textarea inside the host
+          // panel — no bubble, no active ring (the header carries the state).
+          diagnosticsPosition === 'top'
+            ? 'rounded-none border border-transparent bg-transparent'
+            : cn(
+                'rounded-xl border border-border bg-muted/20 shadow-xs',
+                activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+              ),
           className,
         )}
         data-testid="wql-composer"
@@ -576,16 +707,19 @@ export function WqlComposer({
               key={pill.id}
               clause={pill}
               isActive={activeSlotIdx === idx}
+              navActive={navTarget?.idx === idx && navTarget.part === 'pill'}
+              removeNavActive={navTarget?.idx === idx && navTarget.part === 'remove'}
               invalid={diagnostics.offendingClauseId === pill.id}
               invalidReason={diagnostics.offendingClauseId === pill.id ? diagnostics.error : undefined}
               onClick={() => {
                 setActiveSlotIdx(activeSlotIdx === idx ? null : idx);
                 setFreeText('');
                 setEditorHighlight(0);
+                setNavTarget(null);
                 inputRef.current?.focus();
               }}
               onChange={(patch) => updatePill(idx, patch)}
-              onRemove={() => removePill(idx)}
+              onRemove={() => removeOrClear(idx)}
               compact
             />
           ),
@@ -599,6 +733,9 @@ export function WqlComposer({
           onChange={(e) => {
             setFreeText(e.target.value);
             setTypeaheadDismissed(false);
+            setTypeaheadHighlight(0);
+            setTypeaheadNavigated(false);
+            setNavTarget(null);
             if (editing) setEditorHighlight(0);
           }}
           onKeyDown={handleKeyDown}
@@ -641,7 +778,7 @@ export function WqlComposer({
               onClick={() => acceptTypeahead(m)}
               className={cn(
                 'flex w-full items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left transition-colors hover:bg-muted',
-                i === 0 && 'bg-muted/60',
+                i === typeaheadHL && 'bg-muted/60',
               )}
             >
               <span aria-hidden>{m.icon}</span>
@@ -649,9 +786,9 @@ export function WqlComposer({
               <span className="truncate text-muted-foreground">
                 {m.present ? `edit — ${m.hint}` : m.hint}
               </span>
-              {i === 0 && (
+              {i === typeaheadHL && (
                 <kbd className="ml-auto rounded border border-border bg-muted/60 px-1 text-[10px] text-muted-foreground">
-                  Tab ↹
+                  {typeaheadNavigated ? 'Enter ↵' : 'Tab ↹'}
                 </kbd>
               )}
             </button>
@@ -659,7 +796,7 @@ export function WqlComposer({
         </div>
       )}
 
-      {pending && !editing && (
+      {pending && !editing && !(typeaheadNavigated && typeaheadMatches.length > 0) && (
         <div
           className={cn(
             'px-1.5 text-[11px] font-mono',

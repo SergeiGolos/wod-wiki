@@ -167,6 +167,10 @@ export interface ClauseMeta {
   required?: boolean;
 }
 
+/** Structural pills seeded onto every query (queryAst seeding) — they clear
+ *  back to an empty value instead of being removed. */
+export const CLEAR_ONLY_TYPES: ReadonlySet<ClauseType> = new Set(['source', 'time']);
+
 export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   source:    { label: 'Source',     inputType: 'select',   placeholder: 'journal, notes, metrics…', placeholderText: 'source: [plane]',      icon: '🌐', description: 'What to search (notes/blocks) or aggregate (metrics)' },
   text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              placeholderText: 'text: [query]',           icon: '🔍', description: 'Raw text substring search', prefix: 'text:' },

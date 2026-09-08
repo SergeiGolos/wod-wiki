@@ -9,6 +9,7 @@ import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
+  CLEAR_ONLY_TYPES,
   getClauseMeta,
   sourcePlane,
   allowedFilterTypesForSource,
@@ -18,6 +19,12 @@ import { MULTI_VALUE_TYPES, STATIC_OPTIONS } from './clauseVocab';
 export interface TokenSlotPillProps {
   clause: QueryClause;
   isActive?: boolean;
+  /** The composer's Tab focus ring is on the pill body — highlight + expand
+   *  the label like the editing state. */
+  navActive?: boolean;
+  /** The Tab focus ring is on the remove button — highlight it red; Enter
+   *  will remove the filter (or clear it when required). */
+  removeNavActive?: boolean;
   invalid?: boolean;
   invalidReason?: string;
   onClick?: () => void;
@@ -30,6 +37,8 @@ export interface TokenSlotPillProps {
 export function TokenSlotPill({
   clause,
   isActive,
+  navActive = false,
+  removeNavActive = false,
   invalid = false,
   invalidReason,
   onClick,
@@ -68,7 +77,9 @@ export function TokenSlotPill({
         ref={pillRef}
         data-testid={`token-slot-${clause.type}`}
         role="button"
-        tabIndex={0}
+        // Not in the native tab order — the composer input owns Tab/Shift+Tab
+      // and drives the pill focus ring itself.
+      tabIndex={-1}
         onClick={() => {
           onClick?.();
           // Custom slots keep their popover editor; built-ins edit inline
@@ -81,7 +92,7 @@ export function TokenSlotPill({
           'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono transition-colors cursor-pointer select-none border',
           invalid
             ? 'bg-destructive/10 text-destructive border-destructive/40 hover:bg-destructive/20'
-            : isActive
+            : isActive || navActive
               ? 'bg-primary text-primary-foreground border-primary font-medium shadow-sm'
               : hasValue
                 ? 'bg-muted/80 text-foreground border-border hover:bg-muted'
@@ -90,11 +101,16 @@ export function TokenSlotPill({
         )}
       >
         <span className="text-[10px] opacity-70">{meta.icon}</span>
-        <span className="font-semibold text-[11px] opacity-90">{meta.label}:</span>
+        {/* Label prefix only while the pill is engaged (editing or Tab-ring
+            focus on it or its remove button) — at rest the value alone
+            ("notes") reads cleaner than "Source: notes". */}
+        {(isActive || navActive || removeNavActive) && (
+          <span className="font-semibold text-[11px] opacity-90">{meta.label}:</span>
+        )}
         <span data-testid={`token-slot-value-${clause.type}`} className={cn('truncate max-w-44', !hasValue && 'italic opacity-60')}>
           {hasValue ? clause.value : placeholderOverride || meta.placeholder}
         </span>
-        {onRemove && !meta.required && (
+        {onRemove && (
           <button
             type="button"
             data-testid={`token-slot-remove-${clause.type}`}
@@ -102,8 +118,13 @@ export function TokenSlotPill({
               e.stopPropagation();
               onRemove();
             }}
-            className="ml-1 p-0.5 rounded-full hover:bg-black/10 text-inherit opacity-70 hover:opacity-100"
-            title={`Remove ${meta.label}`}
+            className={cn(
+              'ml-1 p-0.5 rounded-full transition-all',
+              removeNavActive
+                ? 'bg-destructive text-destructive-foreground opacity-100 ring-2 ring-destructive/40'
+                : 'hover:bg-black/10 text-inherit opacity-70 hover:opacity-100',
+            )}
+            title={CLEAR_ONLY_TYPES.has(clause.type) ? `Clear ${meta.label}` : `Remove ${meta.label}`}
           >
             <X className="w-3 h-3" />
           </button>

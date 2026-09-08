@@ -69,14 +69,17 @@ Routes that bypass the shell entirely (no rail / navbar / dock):
 `/run/:runtimeId`, `/load`, `/load/journal(/:date)`, `/settings/library/calcs`,
 `/proto/calc-authoring`, `*` (404).
 
-WQL palette internals (identical at both breakpoints): a single **header row
-above the composer box** carries the valid/invalid badge and the live
+WQL palette internals (identical at both breakpoints): a flat **header
+section above the composer** carries the valid/invalid badge and the live
 "N matched" stage count, with the action buttons appended at its end: Add
-calc / + Filter, **Apply query**, and (mobile only) Cancel. The AST summary
-chips (target/scope/time) are suppressed here — the pills in the box below
-already show that state (`WqlDiagnosticsStrip` `hideSummary`, driven by the
-composer's `diagnosticsPosition="top"`; other composer hosts keep the full
-strip below the box). The results list renders under the composer.
+calc / + Filter, **Apply query**, and (mobile only) Cancel — separated from
+the composer by a primary-tinted accent line, no bubble chrome. The composer
+box itself renders borderless/square (plain textarea) in this mode. The AST
+summary chips (target/scope/time) are suppressed — the pills in the composer
+already show that state (`WqlDiagnosticsStrip` `variant="header"` +
+`hideSummary`, driven by the composer's `diagnosticsPosition="top"`; other
+composer hosts keep the rounded card strip below a rounded box). The results
+list renders under the composer.
 
 ## 3. Route index
 
@@ -172,7 +175,8 @@ Shared command map:
 | Page options ⋮ (Download Markdown) | Header dropdown | Dock ⋮ → stacked rows in the sheet |
 | Search input | **None** — the query bar is the search entry (`showSearch={view.page !== 'library'}` → false for all stream routes) | Dock search FAB |
 | Row actions: Open / Add to today / Run / Compare | Hover-revealed stack at the row end (`app/views/library/LibraryRow.tsx:183-201`); row click also opens (`:102-106`) | Row tap = Open; the hover-revealed stack does not show on touch |
-| Filter typeahead + inline editor (composer) | Typing a filter key proposes **Add filter**; Tab/tap adds the pill (or selects an existing one) and its value list opens **inline under the composer** — ↑↓ navigate options, Enter sets/toggles values (multi filters stay in the list with check marks), Backspace pops the last value, Tab/Esc releases the pill back to free typing (`packages/ui/src/composer/filterTypeahead.ts`, `clauseItems.ts`, `InlineClauseEditor.tsx`) | Same, in the palette composer opened from the thumb footer row — the palette list renders the values under the input (no popover, focus stays in the input) |
+| Filter typeahead + inline editor (composer) | Typing a filter key proposes **Add filter** rows; ↑↓ move the selection (clamped, never leaks to the results list), Tab accepts the highlighted one — after arrows, Enter accepts it too. Accept adds the pill (or selects an existing one) and its value list opens **inline under the composer** — ↑↓ navigate options, Enter sets/toggles values (multi filters stay in the list with check marks), Backspace pops the last value, Tab/Esc releases the pill back to free typing (`packages/ui/src/composer/filterTypeahead.ts`, `clauseItems.ts`, `InlineClauseEditor.tsx`) | Same, in the palette composer opened from the thumb footer row — the palette list renders the values under the input (no popover, focus stays in the input); on touch, tap the proposal row |
+| Pill focus ring (composer) | With no typeahead/editor open, **Tab** walks a focus ring across each pill's body then its ✕ (Shift/Alt+Tab backwards); a ringed pill shows its expanded label text, a ringed ✕ turns red. Enter on a pill opens its inline editor; Enter on ✕ removes the filter — source/time are structural and **clear** instead. Tab from an open editor jumps to the **next pill's body** (or free text at the end) — never the just-edited pill's ✕. Option text typed while editing is consumed by the committed value and dropped when the editor closes, so it can't leak in as a text filter (`WqlComposer.tsx` nav ring, `TokenSlotPill` `navActive`/`removeNavActive`) | Same keys in the palette composer; on touch, tap the pill / ✕ directly |
 | Feed-card actions: Open / Run / Playground | Inline pills in the card, ≥44px targets (`app/views/stream/StreamFeed.tsx:16-19,205-224`) | Same — never relocated |
 | Empty-state remedy buttons | Body (`QueriableStreamView.tsx:344-358`) | Same |
 | View settings dialog (layout rows/feed/cards, group-by, visible fields, reset) | Modal (`:586-597`) | Same modal |

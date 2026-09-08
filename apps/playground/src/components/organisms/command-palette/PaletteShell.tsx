@@ -87,7 +87,8 @@ export const PaletteShell: React.FC = () => {
   // Mobile (<lg): the palette floats near the viewport top and its height is
   // capped to the visual viewport so the soft keyboard never covers results.
   // Tracked live (on open + viewport resize/scroll — both fire when the
-  // keyboard opens). Desktop keeps the 20% drop and no cap.
+  // keyboard opens). Desktop drops 10% and caps at 80vh so long result lists
+  // scroll in place instead of running past the bottom of the viewport.
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   useEffect(() => {
     if (!isOpen) return;
@@ -221,7 +222,7 @@ export const PaletteShell: React.FC = () => {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
-          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} outline-none shadow-2xl top-[2px] lg:top-[20%] max-lg:max-h-[var(--palette-max-h)]`}
+          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} outline-none shadow-2xl top-[2px] lg:top-[10%] max-lg:max-h-[var(--palette-max-h)] lg:max-h-[80vh]`}
           style={{
             // 160px floor so the input row never collapses on short landscape
             // viewports.

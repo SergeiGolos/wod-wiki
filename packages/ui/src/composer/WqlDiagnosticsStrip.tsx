@@ -12,6 +12,9 @@ export interface WqlDiagnosticsStripProps {
   /** Hide the AST summary chips (target/scope/time or agg/metric/by…) —
    *  header contexts where the pills right below already show that state. */
   hideSummary?: boolean;
+  /** 'card' (default) renders the rounded, bordered bubble. 'header' renders
+   *  a flat header section separated from the composer by an accent line. */
+  variant?: 'card' | 'header';
   actions?: ReactNode;
   className?: string;
 }
@@ -31,19 +34,28 @@ export function WqlDiagnosticsStrip({
   offendingLabel,
   stages,
   hideSummary = false,
+  variant = 'card',
   actions,
   className,
 }: WqlDiagnosticsStripProps) {
   const { valid, ast, error } = diagnostics;
+  const header = variant === 'header';
 
   return (
     <div
       data-testid="wql-diagnostics-strip"
       className={cn(
-        'flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors',
-        valid
-          ? 'bg-muted/30 border-border text-muted-foreground'
-          : 'bg-destructive/5 border-destructive/30 text-destructive',
+        'flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-3 py-1.5 text-xs font-mono transition-colors',
+        header
+          ? valid
+            ? 'border-b border-primary/30 text-muted-foreground'
+            : 'border-b border-destructive/50 bg-destructive/5 text-destructive'
+          : cn(
+              'rounded-lg border',
+              valid
+                ? 'bg-muted/30 border-border text-muted-foreground'
+                : 'bg-destructive/5 border-destructive/30 text-destructive',
+            ),
         className,
       )}
     >
