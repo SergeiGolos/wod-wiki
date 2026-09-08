@@ -36,7 +36,7 @@ import {
 } from './lib/routes'
 import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
-import { canvasRoutes } from './canvas/canvasRoutes'
+import { useCanvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
@@ -87,11 +87,11 @@ const LIBRARY_SECONDARY: MenuSpec = [
 ]
 
 
-// `workoutFiles` (raw glob) and `WorkoutItem` (typed item) live in `lib/workoutIndex`.
-// `workoutFiles` is passed through to `MarkdownCanvasPage` as `wodFiles`; the typed
-// `workoutItems` array is passed to leaves that filter/search it. Both are kept as
-// props to leaf components — see `MarkdownCanvasPage.test.tsx` for the contract.
-import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
+// `useWorkoutItems` (typed list) and the seeded file map (`wodFiles`) both
+// derive from the seed-content snapshot; they are passed to leaves as props —
+// see `MarkdownCanvasPage.test.tsx` for the contract.
+import { useWorkoutItems, EMPTY_WOD_FILES, type WorkoutItem } from './lib/workoutIndex'
+import { useSeedContent } from '@/services/content/seedContent'
 export type { WorkoutItem }
 
 /** Redirect /analytics/explorer → /dashboard, preserving the shareable ?q=
@@ -106,7 +106,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
   const { theme } = useTheme()
 
+  const seedFiles = useSeedContent()
+  const wodFiles = seedFiles ?? EMPTY_WOD_FILES
   const workoutItems = useWorkoutItems()
+  const canvasRouteList = useCanvasRoutes()
 
   // Route classification + view derivation live in the pure `routeView` module;
   // `useRouteView` is its React adapter. `handleSelectWorkout` is the shared
@@ -143,7 +146,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       wql: { initialQuery: searchPaletteQuery(), execute: paletteExecute },
       sources: [
         wqlSearchSource(),
-        withWqlText(canvasRouteSource(canvasRoutes)),
+        withWqlText(canvasRouteSource(canvasRouteList)),
         withWqlText(constructSource()),
       ],
     }).then(result => {
@@ -225,13 +228,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     canvas: () =>
       view.canvasPage!.route === '/' ? (
         <HomeView
-          wodFiles={workoutFiles as Record<string, string>}
+          wodFiles={wodFiles}
           theme={actualTheme}
         />
       ) : view.canvasPage!.scroll ? (
         <ScrollCanvasPage
           page={view.canvasPage!}
-          wodFiles={workoutFiles as Record<string, string>}
+          wodFiles={wodFiles}
           theme={actualTheme}
           workoutItems={workoutItems}
           onSelect={handleSelectWorkout}
@@ -240,7 +243,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       ) : (
         <MarkdownCanvasPage
           page={view.canvasPage!}
-          wodFiles={workoutFiles as Record<string, string>}
+          wodFiles={wodFiles}
           theme={actualTheme}
           workoutItems={workoutItems}
           onSelect={handleSelectWorkout}
@@ -405,21 +408,29 @@ import { NuqsAdapter } from 'nuqs/adapters/react-router'
 import { useZipProcessor } from './hooks/useZipProcessor'
 import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
 import { runSeedSync } from '@/services/seed/seedSync'
+import { initSeedContentBroadcast } from '@/services/content/seedContent'
 
 function GlobalState() {
   useZipProcessor()
   useJournalZipProcessor()
-  // Seed import (phase 2, ships dark — docs/prototypes/seed-data-unification.md):
-  // no-op unless localStorage['wodwiki.seedImport.enabled'] === '1'.
+  // Seed import (docs/prototypes/seed-data-unification.md): default-on;
+  // set localStorage['wodwiki.seedImport.enabled'] = '0' to opt out. The
+  // seed broadcast refreshes every seed-content consumer (routes, nav,
   useEffect(() => { void runSeedSync() }, [])
   return null
 }
 
+
 export function App() {
   // Stable ref so AppContent can inject its openSearchPalette callback after mount.
-  // The nav tree is built once; the search item calls the ref's current value.
   const searchHandlerRef = useRef<() => void>(() => {})
-  const navTree = useMemo(() => buildAppNavTree(() => searchHandlerRef.current()), [])
+  // Canvas routes hydrate from the seeded corpus; the nav tree and the
+  // dynamic <Route> table re-derive when the seed lands or refreshes.
+  const canvasRouteList = useCanvasRoutes()
+  const navTree = useMemo(
+    () => buildAppNavTree(() => searchHandlerRef.current(), canvasRouteList),
+    [canvasRouteList],
+  )
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
@@ -477,9 +488,6 @@ export function App() {
                   <Route path="/note/:noteId/review/:sectionId" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review/:sectionId/:resultId" element={<ReviewRedirect />} />
                   <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
-                  {canvasRoutes.map(({ route }) => (
-                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  ))}
                   <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   {/* The dashboard namespace (/dashboard = WQL explorer, /dashboard/:slug = a
@@ -488,8 +496,9 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.dashboardView} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to="/dashboard" replace />} />
                   <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<ExplorerRedirect />} />
-                  <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<Navigate to="/dashboard" replace />} />
-                  <Route path="*" element={<NotFoundPage />} />
+                  {canvasRouteList.map(({ route }) => (
+                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  ))}
                 </Routes>
                 <DocumentTitleSync />
               </NavProvider>

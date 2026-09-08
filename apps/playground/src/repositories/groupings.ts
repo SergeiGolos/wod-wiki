@@ -1,49 +1,43 @@
 /**
- * Script Groupings — deep loader for bundled markdown directories.
+ * Groupings — pure builder over a seeded-content file map
+ * (docs/prototypes/seed-data-unification.md: item shape + ordering).
  *
- * A Grouping is a bundled markdown directory of workout items under one slug:
- *   - a **Collection** is a Grouping of named items
- *     (markdown/collections/{slug}/{file}.md)
- *   - a **Feed** is a Grouping whose items carry dates
- *     (markdown/feeds/{slug}/YYYY-MM-DD/{file}.md)
- *
- * Each grouping directory may contain a README.md whose front matter
- * `category` list becomes the grouping's categories.
- *
- * This module owns file discovery and display-name derivation; the public
- * adapters (`script-collections.ts`, `script-feeds.ts`) own item shape and
- * sort order. Uses Vite's import.meta.glob — resolved at build time.
+ * A grouping is one subdirectory of `markdown/collections/` or
+ * `markdown/feeds/`: its README (front-matter categories + prose) plus its
+ * dated (feeds) or plain (collections) items. The map keys follow the
+ * canonical `markdown/<root>/…` form that `seedContent` serves.
  */
-
 import { parseFrontmatterCategories } from '@/lib/frontmatter';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface GroupingItem {
-  /** Filename without extension, e.g. "fran" or "monday-strength" */
+  /** Filename without extension, e.g. "fran" */
   id: string;
   /** Display name derived from filename */
   name: string;
   /** Raw markdown content */
   content: string;
-  /** Full glob path key */
+  /** Canonical markdown path key, e.g. "markdown/collections/crossfit-girls/fran.md" */
   path: string;
-  /** Publication date key YYYY-MM-DD (feeds only; parent directory name) */
+  /** Date key (feeds only): YYYY-MM-DD parent directory */
   date?: string;
 }
 
 export interface Grouping {
-  /** Directory name, e.g. "crossfit-girls" or "crossfit-programming" */
+  /** Directory name, e.g. "crossfit-girls" */
   id: string;
-  /** Display name, e.g. "Crossfit Girls" */
+  /** Display name derived from the directory name */
   name: string;
   /** The content of README.md if it exists */
   readme?: string;
   /** Category slugs parsed from the README front matter `category` field */
   categories: string[];
-  /** Items in glob order — adapters own sort order */
+  /** Items in this grouping (unsorted — adapters own sort order) */
   items: GroupingItem[];
 }
+
+export type GroupingRoot = 'collections' | 'feeds';
 
 // ── Display-name helpers ───────────────────────────────────────────────────
 
@@ -77,24 +71,10 @@ export function fileToDisplayName(filename: string): string {
 // ── Builder ────────────────────────────────────────────────────────────────
 
 /**
- * Raw glob per root. Kept inside a function so importing this module has no
- * side effects (unit tests run under bun, which lacks Vite's glob transform);
- * Vite still resolves the literal patterns at build time.
+ * Build the groupings for one root from a seeded-content file map. Pure —
+ * the same map always yields the same groupings.
  */
-function globRoot(root: 'collections' | 'feeds'): Record<string, string> {
-  if (root === 'collections') {
-    return import.meta.glob(
-      ['../../../../markdown/collections/**/*.md', '../../../../markdown/collections/*.md'],
-      { query: '?raw', eager: true, import: 'default' },
-    ) as Record<string, string>;
-  }
-  return import.meta.glob(
-    ['../../../../markdown/feeds/**/*.md'],
-    { query: '?raw', eager: true, import: 'default' },
-  ) as Record<string, string>;
-}
-
-function buildGroupings(root: 'collections' | 'feeds'): Grouping[] {
+export function buildGroupings(root: GroupingRoot, files: Record<string, string>): Grouping[] {
   const groupMap = new Map<string, Grouping>();
 
   const ensureGrouping = (id: string): Grouping => {
@@ -106,7 +86,7 @@ function buildGroupings(root: 'collections' | 'feeds'): Grouping[] {
     return grouping;
   };
 
-  for (const [path, content] of Object.entries(globRoot(root))) {
+  for (const [path, content] of Object.entries(files)) {
     if (root === 'collections') {
       // One level deep: markdown/collections/{dir}/{file}.md
       const match = path.match(/\/markdown\/collections\/([^/]+)\/([^/]+\.md)$/);
@@ -154,21 +134,4 @@ function buildGroupings(root: 'collections' | 'feeds'): Grouping[] {
 
   return Array.from(groupMap.values())
     .filter(({ items, readme }) => items.length > 0 || readme !== undefined);
-}
-
-// ── Cache ──────────────────────────────────────────────────────────────────
-
-const _cache = new Map<'collections' | 'feeds', Grouping[]>();
-
-/**
- * Get all groupings for a markdown root. Results are memoised per root
- * (build-time data never changes).
- */
-export function getGroupings(root: 'collections' | 'feeds'): Grouping[] {
-  let groupings = _cache.get(root);
-  if (!groupings) {
-    groupings = buildGroupings(root);
-    _cache.set(root, groupings);
-  }
-  return groupings;
 }

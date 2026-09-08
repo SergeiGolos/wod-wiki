@@ -4,17 +4,18 @@
  * multi-tab claim → manifest fetch → version decision → SeedImporter →
  * claim release → cross-tab broadcast.
  *
- * Phase 3: the import runs by DEFAULT (reads flip to IndexedDB corpus by
- * corpus); set localStorage['wodwiki.seedImport.enabled'] = '0' to opt out.
+ * Default-on; set localStorage['wodwiki.seedImport.enabled'] = '0' to opt out.
  */
-import { emptySeedMeta, type SeedMetaRecord } from '@/types/seed';
+import { emptySeedMeta, SEED_BROADCAST_CHANNEL, type SeedMetaRecord } from '@/types/seed';
 import { SeedImporter } from './SeedImporter';
 import { HttpSeedSource } from './HttpSeedSource';
 import { IndexedDBSeedImportStorage, type SeedImportStorage } from './SeedImportStorage';
 import type { ISeedSource } from './ISeedSource';
 import { decideSeedImport, EMBEDDED_SEED_VERSION, storedSeedIsCurrent } from './seedVersion';
+import { invalidateSeedContent } from '@/services/content/seedContent';
+import { hydrateAppEffortRegistry, getAppEffortRegistry } from '@/services/effortRegistry';
 
-export const SEED_BROADCAST_CHANNEL = 'wodwiki.seed';
+export { SEED_BROADCAST_CHANNEL } from '@/types/seed';
 export const SEED_IMPORT_FLAG = 'wodwiki.seedImport.enabled';
 
 /** A claim older than this is assumed abandoned (crashed tab). */
@@ -93,6 +94,11 @@ async function runSeedSyncInner(deps: SeedSyncDeps): Promise<SeedSyncOutcome> {
       const result = await new SeedImporter(storage, source, now).applyAll();
       if (result.status === 'imported') {
         broadcast({ kind: 'seed-imported', version: manifest.version });
+        // BroadcastChannel does not echo to the importing context — refresh
+        // this tab's content caches and the effort registry directly.
+        invalidateSeedContent();
+        const registry = getAppEffortRegistry();
+        if (registry.isInitialized()) await hydrateAppEffortRegistry(registry);
       }
     } finally {
       const after = await storage.getSeedMeta();

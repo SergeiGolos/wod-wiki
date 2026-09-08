@@ -7,7 +7,8 @@
 
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getScriptFeed } from '@/repositories/script-feeds';
+import { buildScriptFeeds } from '@/repositories/script-feeds';
+import { useSeedContent } from '@/services/content/seedContent';
 import { playgroundContent } from '../services/playgroundContent';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from '../views/queriable-list/JournalDateScroll';
@@ -27,7 +28,11 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
   const { dateParam } = useFeedsQueryState();
   const focusedDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
 
-  const feed = useMemo(() => getScriptFeed(feedSlug), [feedSlug]);
+  const files = useSeedContent();
+  const feed = useMemo(
+    () => (files ? buildScriptFeeds(files).find((f) => f.id === feedSlug) : undefined),
+    [files, feedSlug],
+  );
 
   // ── Load journal entries for this feed's dates ────────────────────────────
 

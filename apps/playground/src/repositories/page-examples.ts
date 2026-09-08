@@ -1,6 +1,6 @@
 /**
- * Page Examples — Loads markdown files from markdown/canvas/ to provide
- * editable example content for the home page, getting-started, and syntax pages.
+ * Page Examples — tab examples and home snippets from the seeded corpus
+ * (markdown/canvas/**, via the seed-content seam).
  *
  * Frontmatter format:
  *   ---
@@ -11,16 +11,11 @@
  *   ---
  *   <markdown content shown in the editor>
  *
- * Uses Vite's import.meta.glob — resolved at build time.
+ * The old Vite import.meta.glob is gone — content loads from IndexedDB.
  */
 
 import { parseFrontmatter } from '@/lib/frontmatter';
-
-const exampleModules = import.meta.glob('../../../../markdown/canvas/**/*.md', {
-    query: '?raw',
-    eager: true,
-    import: 'default',
-});
+import { ensureSeedContent } from '@/services/content/seedContent';
 
 export interface PageTabExample {
     title: string;
@@ -36,15 +31,16 @@ export interface PageTabExample {
  * @param page    Subdirectory name under markdown/canvas/, e.g. 'getting-started' or 'syntax'
  * @param section Value of the `section` frontmatter field, e.g. 'statement'
  */
-export function getTabExamples(page: string, section: string): PageTabExample[] {
+export async function getTabExamples(page: string, section: string): Promise<PageTabExample[]> {
+    const files = await ensureSeedContent();
     const results: PageTabExample[] = [];
 
-    for (const [path, content] of Object.entries(exampleModules)) {
-        // Path: ../../markdown/canvas/{page}/{file}.md
-        const match = path.match(/\/markdown\/canvas\/([^/]+)\/[^/]+\.md$/);
+    for (const [path, content] of Object.entries(files)) {
+        // Path: markdown/canvas/{page}/{file}.md
+        const match = path.match(/^markdown\/canvas\/([^/]+)\/[^/]+\.md$/);
         if (!match || match[1] !== page) continue;
 
-        const { meta, body } = parseFrontmatter(content as string);
+        const { meta, body } = parseFrontmatter(content);
         if (meta.section !== section) continue;
 
         results.push({
@@ -63,11 +59,10 @@ export function getTabExamples(page: string, section: string): PageTabExample[] 
  * Return the raw markdown content of a single named file from markdown/canvas/home/.
  * Used for wod script examples on the home page parallax.
  */
-export function getHomeExample(name: string): string {
-    const key = Object.keys(exampleModules).find(k =>
-        k.endsWith(`/markdown/canvas/home/${name}.md`)
-    );
+export async function getHomeExample(name: string): Promise<string> {
+    const files = await ensureSeedContent();
+    const key = Object.keys(files).find((k) => k === `markdown/canvas/home/${name}.md`);
     if (!key) return '';
-    const { body } = parseFrontmatter(exampleModules[key] as string);
+    const { body } = parseFrontmatter(files[key]);
     return body.trim();
 }

@@ -4,7 +4,7 @@ import { Moon, Sun, Sparkles, PanelTop, LayoutGrid } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { Switch } from '@/components/atoms/primitives/switch'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
-import { canvasRoutes } from '../canvas/canvasRoutes'
+import { useCanvasRoutes } from '../canvas/canvasRoutes'
 import { canvasRouteSource } from '../services/paletteDataSources'
 import {
   wqlSearchSource,
@@ -17,7 +17,8 @@ import { createPlaygroundPage } from '../services/createPlaygroundPage'
 import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/molecules/AttentionWidget'
 import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/molecules/CodeExampleWidget'
 import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/molecules/SyntaxGroupWidget'
-import { syntaxGuideReference } from '@/content/syntaxGuideReference'
+import { buildSyntaxGuideReference } from '@/content/syntaxGuideReference'
+import { useSeedContent } from '@/services/content/seedContent'
 import { playgroundPath } from '../lib/routes'
 import { LandingTemplate } from '../templates/LandingTemplate'
 
@@ -48,55 +49,71 @@ const ATTENTION_CONFIG: AttentionWidgetConfig = {
   ],
 }
 
-const classicAmrapLines = syntaxGuideReference.classicAmrap.workout.split('\n')
-
-const CODE_EXAMPLE_CONFIG: CodeExampleWidgetConfig = {
-  lines: [
-    {
-      code: classicAmrapLines[0] ?? '20:00 AMRAP',
-      annotation: 'Classic AMRAP from the guide — fixed time window with unbounded rounds.',
-    },
-    { code: classicAmrapLines[1] ?? '  5 Pullups', annotation: 'Start each round with five pullups.' },
-    { code: classicAmrapLines[2] ?? '  10 Pushups', annotation: 'Then move into ten pushups.' },
-    {
-      code: classicAmrapLines[3] ?? '  15 Air Squats',
-      annotation: 'Finish the round with fifteen air squats before looping.',
-    },
-  ],
-  cta: 'Run this example',
-}
-
-const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = [
-  {
-    category: 'Structure',
-    icon: '🔁',
-    title: syntaxGuideReference.simpleRounds.title,
-    description: syntaxGuideReference.simpleRounds.subtitle,
-    example: syntaxGuideReference.simpleRounds.workout,
-    docsPath: syntaxGuideReference.simpleRounds.docsPath,
-  },
-  {
-    category: 'Timing',
-    icon: '⏱️',
-    title: syntaxGuideReference.timersAndRest.title,
-    description: syntaxGuideReference.timersAndRest.subtitle,
-    example: syntaxGuideReference.timersAndRest.workout,
-    docsPath: syntaxGuideReference.timersAndRest.docsPath,
-  },
-  {
-    category: 'Structure',
-    icon: '🏋️',
-    title: 'Rep Schemes',
-    description: syntaxGuideReference.repSchemes.subtitle,
-    example: syntaxGuideReference.repSchemes.workout,
-    docsPath: syntaxGuideReference.repSchemes.docsPath,
-  },
-]
-
 export function PlaygroundLandingPage() {
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
   const workoutSectionRef = useRef<HTMLElement | null>(null)
+  const files = useSeedContent()
+
+  // Guide snippets derive from the seeded corpus; placeholders cover the
+  // pre-seed window and malformed pages.
+  const guideReference = useMemo(() => (files ? buildSyntaxGuideReference(files) : null), [files])
+
+  const classicAmrapLines = useMemo(
+    () => (guideReference?.classicAmrap?.workout ?? '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats').split('\n'),
+    [guideReference],
+  )
+
+  const CODE_EXAMPLE_CONFIG: CodeExampleWidgetConfig = useMemo(
+    () => ({
+      lines: [
+        {
+          code: classicAmrapLines[0] ?? '20:00 AMRAP',
+          annotation: 'Classic AMRAP from the guide — fixed time window with unbounded rounds.',
+        },
+        { code: classicAmrapLines[1] ?? '  5 Pullups', annotation: 'Start each round with five pullups.' },
+        { code: classicAmrapLines[2] ?? '  10 Pushups', annotation: 'Then move into ten pushups.' },
+        {
+          code: classicAmrapLines[3] ?? '  15 Air Squats',
+          annotation: 'Finish the round with fifteen air squats before looping.',
+        },
+      ],
+      cta: 'Run this example',
+    }),
+    [classicAmrapLines],
+  )
+
+  const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = useMemo(() => {
+    const simpleRounds = guideReference?.simpleRounds
+    const timersAndRest = guideReference?.timersAndRest
+    const repSchemes = guideReference?.repSchemes
+    return [
+      {
+        category: 'Structure',
+        icon: '🔁',
+        title: simpleRounds?.title ?? 'Simple Rounds',
+        description: simpleRounds?.subtitle ?? 'Rounds repeated for time or reps.',
+        example: simpleRounds?.workout ?? '3 rounds\n  10 Air Squats',
+        docsPath: simpleRounds?.docsPath ?? '/guide/syntax/structure?h=simple-rounds',
+      },
+      {
+        category: 'Timing',
+        icon: '⏱️',
+        title: timersAndRest?.title ?? 'Timers And Rest',
+        description: timersAndRest?.subtitle ?? 'Timed windows with rest periods.',
+        example: timersAndRest?.workout ?? '10:00\n  5 Burpees\n  rest 1:00',
+        docsPath: timersAndRest?.docsPath ?? '/guide/syntax/protocols?h=timers-and-rest',
+      },
+      {
+        category: 'Structure',
+        icon: '🏋️',
+        title: 'Rep Schemes',
+        description: repSchemes?.subtitle ?? 'Rep counts per movement.',
+        example: repSchemes?.workout ?? '21-15-9\n  Thrusters',
+        docsPath: repSchemes?.docsPath ?? '/guide/syntax/structure?h=rep-schemes',
+      },
+    ]
+  }, [guideReference])
 
   const isDarkMode = useMemo(() => {
     if (theme === 'dark') return true
@@ -104,19 +121,21 @@ export function PlaygroundLandingPage() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   }, [theme])
 
+
   // Same global Search Palette as Cmd+K in App (WQL mode, issue #834).
+  const canvasRouteList = useCanvasRoutes()
   const openSearch = useCallback(async () => {
     const result = await usePaletteStore.getState().open({
       wql: { initialQuery: searchPaletteQuery(), execute: paletteExecute },
       sources: [
         wqlSearchSource(),
-        withWqlText(canvasRouteSource(canvasRoutes)),
+        withWqlText(canvasRouteSource(canvasRouteList)),
       ],
     })
 
     if (result.dismissed) return
     navigatePaletteResult(result.item, navigate)
-  }, [navigate])
+  }, [navigate, canvasRouteList])
 
   const handleAttentionAction = useCallback(
     (action: AttentionActionType) => {

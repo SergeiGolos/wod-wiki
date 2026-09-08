@@ -37,7 +37,8 @@ export async function loadWorkbenchDisplayEntry(
     }
   }
 
-  const fallbackContent = getScriptContent(routeId);
+  // Fallback: the seeded corpus template for this route (IndexedDB-backed).
+  const fallbackContent = await getScriptContent(routeId);
   return fallbackContent ? createTemplateEntry(routeId, fallbackContent) : null;
 }
 

@@ -1913,6 +1913,30 @@ export class IndexedDBService {
     async getAllBlockIndex(): Promise<BlockIndexRow[]> {
         return (await this.dbPromise).getAll('block_index');
     }
+
+    /**
+     * Seed corpus raw content — one entry per seed-origin note, its slug
+     * (`markdown/<corpus>/…` path) joined with the latest segment's markdown.
+     * One read-only transaction; the corpus read behind every flipped
+     * content loader (docs/prototypes/seed-data-unification.md § Module 3).
+     */
+    async getSeedContent(): Promise<Array<{ path: string; raw: string }>> {
+        const db = await this.dbPromise;
+        const tx = db.transaction(['notes', 'segments'], 'readonly');
+        const notes = (await tx.objectStore('notes').getAll()) as Note[];
+        const idx = tx.objectStore('segments').index('by-note');
+        const out: Array<{ path: string; raw: string }> = [];
+        for (const note of notes) {
+            if (note.seedOrigin !== 'seed' || !note.slug) continue;
+            const rows = (await idx.getAll(note.id)) as NoteSegment[];
+            let latest: NoteSegment | undefined;
+            for (const segment of rows) {
+                if (!latest || segment.version > latest.version) latest = segment;
+            }
+            if (latest?.rawContent) out.push({ path: note.slug, raw: latest.rawContent });
+        }
+        return out;
+    }
 }
 
 export const indexedDBService = new IndexedDBService();

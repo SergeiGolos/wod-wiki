@@ -1,6 +1,6 @@
 # Seed-Based Data Unification
 
-**Status:** Phase 1 (seed compiler) landed. Phase 2 (seed import seam) landed — default-on, opt out via `localStorage['wodwiki.seedImport.enabled'] = '0'`. Phase 3 **in progress**: efforts corpus flipped (effort rows materialized from the efforts chunk, registry hydrated from IndexedDB, `getBundledEfforts`/`getEffortMarkdown` glob deleted); remaining flips: syntax → dashboards → collections/feeds (+ Query Service `block_index`) → canvas → workoutIndex/page-examples.
+**Status:** Landed. Phase 1 (seed compiler) + Phase 2 (seed import seam, default-on — opt out via `localStorage['wodwiki.seedImport.enabled'] = '0'`) + Phase 3 (all read surfaces flipped corpus by corpus: efforts → syntax → dashboards → collections/feeds → canvas → workoutIndex/page-examples, and the corpus `block_index` folded into the seed) + Phase 4 (cleanup: glob loaders, `staticBlockIndex` JSON generation, and the `effort-markdown` bundled tier deleted; Storybook needs no changes — it never imported the loaders). Lang's `data/bundled-efforts` static fallback remains by design: it backs the analytics engine's effort lookup (`createAnalyticsEngineForBlock`), not a content-loading path.
 **Date:** 2026-09-07
 **Related:** `docs/05-architecture.md` (stale repo layout), `CONTEXT.md` § Persistence & storage, § Identity & result recording
 

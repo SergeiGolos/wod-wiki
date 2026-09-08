@@ -1,14 +1,13 @@
-import basicEmomGuide from '../../../../markdown/canvas/syntax/basic-emom.md?raw'
-import classicAmrapGuide from '../../../../markdown/canvas/syntax/classic-amrap.md?raw'
-import complexNestedProtocolsGuide from '../../../../markdown/canvas/syntax/complex-nested-protocols.md?raw'
-import coreRulesGuide from '../../../../markdown/canvas/syntax/core-rules.md?raw'
-import groups1Guide from '../../../../markdown/canvas/syntax/groups-1.md?raw'
-import groups2Guide from '../../../../markdown/canvas/syntax/groups-2.md?raw'
-import measurementsGuide from '../../../../markdown/canvas/syntax/measurements.md?raw'
-import mixedSectionsGuide from '../../../../markdown/canvas/syntax/mixed-sections.md?raw'
-import protocols4Guide from '../../../../markdown/canvas/syntax/protocols-4.md?raw'
-import timerModifiersGuide from '../../../../markdown/canvas/syntax/timer-modifiers.md?raw'
-import timersRestGuide from '../../../../markdown/canvas/syntax/timers-rest.md?raw'
+/**
+ * syntaxGuideReference — pure derivation of the landing-page guide snippets
+ * from the seeded corpus (docs/prototypes/seed-data-unification.md § Module 3).
+ *
+ * The guide examples live in canvas syntax pages (markdown/canvas/syntax/…);
+ * the old `?raw` imports are gone — the raw markdown comes from the
+ * seed-content snapshot. A missing page yields `undefined` for its reference
+ * (the landing page falls back to placeholder copy).
+ */
+import type { SeedContentFiles } from '@/services/content/seedContent'
 
 export interface SyntaxGuideReference {
   title: string
@@ -52,16 +51,40 @@ function createReference(markdown: string, docsPath: string): SyntaxGuideReferen
   }
 }
 
-export const syntaxGuideReference = {
-  coreRules: createReference(coreRulesGuide, '/guide/syntax/basics'),
-  measurements: createReference(measurementsGuide, '/guide/syntax/basics?h=measurements'),
-  timerModifiers: createReference(timerModifiersGuide, '/guide/syntax/basics?h=timer-modifiers'),
-  simpleRounds: createReference(groups1Guide, '/guide/syntax/structure?h=simple-rounds'),
-  repSchemes: createReference(groups2Guide, '/guide/syntax/structure?h=rep-schemes'),
-  timersAndRest: createReference(timersRestGuide, '/guide/syntax/protocols?h=timers-and-rest'),
-  classicAmrap: createReference(classicAmrapGuide, '/guide/syntax/protocols?h=classic-amrap'),
-  basicEmom: createReference(basicEmomGuide, '/guide/syntax/protocols?h=basic-emom'),
-  standardTabata: createReference(protocols4Guide, '/guide/syntax/protocols?h=standard-tabata'),
-  mixedSections: createReference(mixedSectionsGuide, '/guide/syntax/structure?h=mixed-sections'),
-  complexNestedProtocols: createReference(complexNestedProtocolsGuide, '/guide/syntax/complex?h=nested-protocols'),
-} as const
+/** Map of reference key → the canvas syntax page it derives from. */
+const REFERENCE_SOURCES: Record<string, { path: string; docsPath: string }> = {
+  coreRules: { path: 'markdown/canvas/syntax/core-rules.md', docsPath: '/guide/syntax/basics' },
+  measurements: { path: 'markdown/canvas/syntax/measurements.md', docsPath: '/guide/syntax/basics?h=measurements' },
+  timerModifiers: { path: 'markdown/canvas/syntax/timer-modifiers.md', docsPath: '/guide/syntax/basics?h=timer-modifiers' },
+  simpleRounds: { path: 'markdown/canvas/syntax/groups-1.md', docsPath: '/guide/syntax/structure?h=simple-rounds' },
+  repSchemes: { path: 'markdown/canvas/syntax/groups-2.md', docsPath: '/guide/syntax/structure?h=rep-schemes' },
+  timersAndRest: { path: 'markdown/canvas/syntax/timers-rest.md', docsPath: '/guide/syntax/protocols?h=timers-and-rest' },
+  classicAmrap: { path: 'markdown/canvas/syntax/classic-amrap.md', docsPath: '/guide/syntax/protocols?h=classic-amrap' },
+  basicEmom: { path: 'markdown/canvas/syntax/basic-emom.md', docsPath: '/guide/syntax/protocols?h=basic-emom' },
+  standardTabata: { path: 'markdown/canvas/syntax/protocols-4.md', docsPath: '/guide/syntax/protocols?h=standard-tabata' },
+  mixedSections: { path: 'markdown/canvas/syntax/mixed-sections.md', docsPath: '/guide/syntax/structure?h=mixed-sections' },
+  complexNestedProtocols: { path: 'markdown/canvas/syntax/complex-nested-protocols.md', docsPath: '/guide/syntax/complex?h=nested-protocols' },
+}
+
+/**
+ * Derive the guide references from the seeded corpus. Keys whose page is
+ * missing (or malformed) are absent — consumers must fall back.
+ */
+export function buildSyntaxGuideReference(
+  files: SeedContentFiles,
+): Record<keyof typeof REFERENCE_SOURCES, SyntaxGuideReference | undefined> {
+  const out: Record<string, SyntaxGuideReference | undefined> = {}
+  for (const [key, { path, docsPath }] of Object.entries(REFERENCE_SOURCES)) {
+    const markdown = files[path]
+    if (!markdown) {
+      out[key] = undefined
+      continue
+    }
+    try {
+      out[key] = createReference(markdown, docsPath)
+    } catch {
+      out[key] = undefined
+    }
+  }
+  return out
+}

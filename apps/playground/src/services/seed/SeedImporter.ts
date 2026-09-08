@@ -14,17 +14,21 @@
  * the queryable domain projection the registry resolves against. Effort slug
  * convention: filename stem == frontmatter slug (enforced corpus-wide).
  *
+ * `block-index.<n>` chunks (v3) materialize precomputed `BlockIndexRow[]`
+ * rows into the `block_index` store — the derived corpus plane the Query
+ * Service reads. Rows are marked `isStatic` by the compiler; only those rows
+ * are ever overwritten or deleted.
+ *
  * The storage port commits one chunk (upserts + deletions + checkpoint) in a
  * single transaction — see SeedImportStorage.
  */
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
-import { EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA } from '@/types/seed';
+import { EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { Note, NoteSegment } from '@/types/storage';
+import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
-import type { ISeedSource } from './ISeedSource';
+import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
-import { SEED_SEGMENT_ID } from '@/types/seed';
 
 /** Fixed RFC-4122 namespace for deterministic seed note ids (UUIDv5 of the source path). */
 const SEED_NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
@@ -83,7 +87,7 @@ async function rowToRecords(
       seedChunkId: chunkId,
     },
     segment: {
-      id: SEED_SEGMENT_ID,
+      id: seedSegmentId(id),
       version: 1,
       noteId: id,
       position: 0,
@@ -104,6 +108,7 @@ export interface SeedImportResult {
   deleted: number;
   totalNotes: number;
   totalEfforts: number;
+  totalBlocks: number;
 }
 
 export class SeedImporter {
@@ -131,6 +136,7 @@ export class SeedImporter {
         deleted: 0,
         totalNotes: 0,
         totalEfforts: 0,
+        totalBlocks: 0,
       };
     }
 
@@ -138,9 +144,43 @@ export class SeedImporter {
     let deleted = 0;
     let totalNotes = 0;
     let totalEfforts = 0;
+    let totalBlocks = 0;
 
     for (const chunk of plan) {
-      const rows = await this.source.fetchChunk(chunk.path);
+      const payload = await this.source.fetchChunk(chunk.path);
+
+      // ── Block-index chunks: precomputed rows straight into `block_index` ──
+      if ((chunk.kind ?? 'notes') === 'block-index') {
+        const rows = assertBlockRows(payload);
+        const written = rows.filter((row) => row.isStatic === true);
+        const priorIds = meta.chunks[chunk.id]?.blockIds ?? [];
+        const writtenIds = new Set(written.map((row) => row.id));
+        // Derived corpus rows are the importer's to replace; a stale id is
+        // only deletable when Storage still marks it static.
+        const gone: string[] = [];
+        for (const id of priorIds) {
+          if (writtenIds.has(id)) continue;
+          gone.push(id);
+        }
+        deleted += gone.length;
+        totalBlocks += written.length;
+        meta.chunks[chunk.id] = { sha256: chunk.sha256, blockIds: rows.map((row) => row.id) };
+        meta.importedAt = this.now();
+        await this.storage.applyChunk({
+          notes: [],
+          segments: [],
+          efforts: [],
+          blocks: written,
+          deleteNoteIds: [],
+          deleteEffortSlugs: [],
+          deleteBlockIds: gone,
+          meta,
+        });
+        continue;
+      }
+
+      // ── Notes chunks: markdown rows → notes + segments (+ efforts) ──
+      const rows = assertRows(payload);
       const built = await Promise.all(rows.map((r) => rowToRecords(r, chunk.id, manifest.version)));
 
       const notes: Note[] = [];
@@ -209,20 +249,57 @@ export class SeedImporter {
         notes,
         segments,
         efforts,
+        blocks: [],
         deleteNoteIds: gone,
         deleteEffortSlugs,
+        deleteBlockIds: [],
         meta,
       });
       totalNotes += notes.length;
       totalEfforts += efforts.length;
     }
 
+    // ── Vanished chunks: membership the manifest no longer declares ──
+    // Same ownership gates as vanished rows; keeps corpus shrinkage honest.
+    const manifestIds = new Set(manifest.chunks.map((c) => c.id));
+    for (const [chunkId, checkpoint] of Object.entries(meta.chunks)) {
+      if (manifestIds.has(chunkId)) continue;
+      if (checkpoint.blockIds?.length) {
+        const gone = checkpoint.blockIds;
+        deleted += gone.length;
+        meta.chunks[chunkId] = { sha256: checkpoint.sha256, blockIds: [] };
+        await this.storage.applyChunk({
+          notes: [], segments: [], efforts: [], blocks: [],
+          deleteNoteIds: [], deleteEffortSlugs: [],
+          deleteBlockIds: gone.filter((id) => !id.startsWith('static:')),
+          meta,
+        });
+      }
+      if (checkpoint.noteIds?.length) {
+        const gone: string[] = [];
+        for (const id of checkpoint.noteIds) {
+          const existing = await this.storage.getNote(id);
+          if (existing && existing.seedOrigin !== 'seed') continue;
+          gone.push(id);
+        }
+        deleted += gone.length;
+        meta.chunks[chunkId] = { sha256: checkpoint.sha256, noteIds: [] };
+        await this.storage.applyChunk({
+          notes: [], segments: [], efforts: [], blocks: [],
+          deleteNoteIds: gone,
+          deleteEffortSlugs: [],
+          deleteBlockIds: [],
+          meta,
+        });
+      }
+    }
+
     meta.schema = SEED_SCHEMA;
     meta.seedVersion = manifest.version;
     meta.builtAt = manifest.builtAt;
     meta.importedAt = this.now();
-    await this.storage.applyChunk({ notes: [], segments: [], efforts: [], deleteNoteIds: [], deleteEffortSlugs: [], meta });
+    await this.storage.applyChunk({ notes: [], segments: [], efforts: [], blocks: [], deleteNoteIds: [], deleteEffortSlugs: [], deleteBlockIds: [], meta });
 
-    return { status: 'imported', appliedChunks: plan.length, skippedUserOwned, deleted, totalNotes, totalEfforts };
+    return { status: 'imported', appliedChunks: plan.length, skippedUserOwned, deleted, totalNotes, totalEfforts, totalBlocks };
   }
 }

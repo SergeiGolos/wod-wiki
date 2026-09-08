@@ -4,8 +4,8 @@
  * `cache: 'no-cache'` so a fresh deploy is seen immediately; chunks are
  * content-hashed filenames and cache aggressively.
  */
-import type { SeedManifest, SeedRow } from '@/types/seed';
-import { assertManifest, assertRows, SeedSourceError, type ISeedSource } from './ISeedSource';
+import type { SeedManifest } from '@/types/seed';
+import { assertManifest, SeedSourceError, type ISeedSource, type SeedChunkPayload } from './ISeedSource';
 
 export class HttpSeedSource implements ISeedSource {
   constructor(
@@ -21,11 +21,13 @@ export class HttpSeedSource implements ISeedSource {
     return assertManifest(await res.json());
   }
 
-  async fetchChunk(path: string): Promise<SeedRow[]> {
+  async fetchChunk(path: string): Promise<SeedChunkPayload> {
     const res = await this.fetchImpl(`${this.baseUrl}${path}`);
     if (!res.ok) {
       throw new SeedSourceError(`seed chunk fetch failed: HTTP ${res.status} for ${path}`, res.status);
     }
-    return assertRows(await res.json());
+    // Row-shape validation happens in the importer, which knows the chunk
+    // kind from the manifest; the transport layer stays kind-agnostic.
+    return (await res.json()) as SeedChunkPayload;
   }
 }

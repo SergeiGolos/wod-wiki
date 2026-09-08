@@ -79,7 +79,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
                 label: 'Workouts',
                 search: async (query: string) => {
                     const low = query.toLowerCase();
-                    const wodIds = getAllScriptIds();
+                    const wodIds = await getAllScriptIds();
                     const items = [
                         { id: 'nav-notes',  label: 'My Notebook',  sublabel: 'History & journal', category: 'Navigation', payload: { route: '/' } },
                         { id: 'nav-home',   label: 'Playground',   sublabel: 'Editor & workouts', category: 'Navigation', payload: { route: '/playground' } },

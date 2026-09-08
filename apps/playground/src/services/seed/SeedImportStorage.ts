@@ -9,20 +9,24 @@
  */
 import type { SeedMetaRecord } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { Note, NoteSegment } from '@/types/storage';
+import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { SEED_META_KEY } from '@/types/seed';
+import { SEED_META_KEY, seedSegmentId } from '@/types/seed';
 
 export interface SeedChunkWrite {
   notes: Note[];
   segments: NoteSegment[];
   /** Effort records materialized from the efforts chunk (seed v2). */
   efforts: IEffort[];
+  /** Precomputed block-index rows materialized by `block-index.<n>` chunks (seed v3). */
+  blocks: BlockIndexRow[];
   /** Seed-origin note ids removed from the corpus. Never includes
    *  user-owned rows — the importer filters before calling. */
   deleteNoteIds: string[];
   /** Seed-origin effort slugs removed from the corpus. */
   deleteEffortSlugs: string[];
+  /** Seed-origin block-index row ids removed from the corpus. */
+  deleteBlockIds: string[];
   /** Checkpoint state to persist in the same transaction. */
   meta: SeedMetaRecord;
 }
@@ -60,17 +64,20 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
     const db = await indexedDBService.getDB();
-    const tx = db.transaction(['notes', 'segments', 'efforts', 'meta'], 'readwrite');
+    const tx = db.transaction(['notes', 'segments', 'efforts', 'block_index', 'meta'], 'readwrite');
     const notes = tx.objectStore('notes');
     for (const note of write.notes) notes.put(note);
     for (const id of write.deleteNoteIds) notes.delete(id);
     const segments = tx.objectStore('segments');
     for (const segment of write.segments) segments.put(segment);
-    // Seed notes own exactly one segment at [noteId, 1] — precise delete.
-    for (const id of write.deleteNoteIds) segments.delete([id, 1]);
+    // Seed notes own exactly one segment at [seed:<noteId>, 1] — precise delete.
+    for (const id of write.deleteNoteIds) segments.delete([seedSegmentId(id), 1]);
     const efforts = tx.objectStore('efforts');
     for (const effort of write.efforts) efforts.put(effort);
     for (const slug of write.deleteEffortSlugs) efforts.delete(slug);
+    const blocks = tx.objectStore('block_index');
+    for (const row of write.blocks) blocks.put(row);
+    for (const id of write.deleteBlockIds) blocks.delete(id);
     await tx.objectStore('meta').put(write.meta);
     await tx.done;
   }
@@ -81,6 +88,7 @@ export class InMemorySeedStorage implements SeedImportStorage {
   private readonly notes = new Map<string, Note>();
   private readonly segments = new Map<string, NoteSegment>();
   private readonly effortsBySlug = new Map<string, IEffort>();
+  private readonly blockRows = new Map<string, BlockIndexRow>();
   private meta?: SeedMetaRecord;
   applyCount = 0;
 
@@ -105,11 +113,13 @@ export class InMemorySeedStorage implements SeedImportStorage {
     for (const note of write.notes) this.notes.set(note.id, structuredClone(note));
     for (const segment of write.segments) this.segments.set(segment.noteId, structuredClone(segment));
     for (const effort of write.efforts) this.effortsBySlug.set(effort.slug, structuredClone(effort));
+    for (const row of write.blocks) this.blockRows.set(row.id, structuredClone(row));
     for (const id of write.deleteNoteIds) {
       this.notes.delete(id);
       this.segments.delete(id);
     }
     for (const slug of write.deleteEffortSlugs) this.effortsBySlug.delete(slug);
+    for (const id of write.deleteBlockIds) this.blockRows.delete(id);
     this.meta = structuredClone(write.meta);
   }
 
@@ -124,5 +134,9 @@ export class InMemorySeedStorage implements SeedImportStorage {
 
   allEfforts(): IEffort[] {
     return [...this.effortsBySlug.values()];
+  }
+
+  allBlocks(): BlockIndexRow[] {
+    return [...this.blockRows.values()];
   }
 }

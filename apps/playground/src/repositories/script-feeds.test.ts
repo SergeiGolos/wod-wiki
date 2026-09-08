@@ -16,7 +16,7 @@ import { describe, expect, it } from 'bun:test';
  */
 
 import { parseFrontmatterCategories } from '@/lib/frontmatter';
-import { toDisplayName, fileToDisplayName } from './script-groupings';
+import { toDisplayName, fileToDisplayName } from './groupings';
 import { getFeedDateKeys, type ScriptFeed } from './script-feeds';
 
 describe('parseFrontmatterCategories', () => {

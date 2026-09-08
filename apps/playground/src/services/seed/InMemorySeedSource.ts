@@ -3,19 +3,19 @@
  * from plain objects; no network, no storage.
  */
 import type { SeedManifest, SeedRow } from '@/types/seed';
-import type { ISeedSource } from './ISeedSource';
+import type { ISeedSource, SeedChunkPayload } from './ISeedSource';
 
 export class InMemorySeedSource implements ISeedSource {
   constructor(
     private readonly manifest: SeedManifest,
-    private readonly chunks: Record<string, SeedRow[]>,
+    private readonly chunks: Record<string, SeedChunkPayload>,
   ) {}
 
   fetchManifest(): Promise<SeedManifest> {
     return Promise.resolve(this.manifest);
   }
 
-  fetchChunk(path: string): Promise<SeedRow[]> {
+  fetchChunk(path: string): Promise<SeedChunkPayload> {
     return Promise.resolve(this.chunks[path] ?? []);
   }
 }
@@ -32,7 +32,7 @@ export class CountingSeedSource implements ISeedSource {
     return this.inner.fetchManifest();
   }
 
-  fetchChunk(path: string): Promise<SeedRow[]> {
+  fetchChunk(path: string): Promise<SeedChunkPayload> {
     this.fetchChunkCalls.push(path);
     return this.inner.fetchChunk(path);
   }

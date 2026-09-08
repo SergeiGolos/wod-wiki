@@ -15,6 +15,9 @@ export interface SeedRow {
   content: string;
 }
 
+/** Chunk payload kinds. `'block-index'` chunks carry precomputed BlockIndexRow[]. */
+export type ChunkKind = 'notes' | 'block-index';
+
 /** One chunk entry in the seed manifest. */
 export interface ManifestChunk {
   id: string;
@@ -29,6 +32,8 @@ export interface ManifestChunk {
   bytes: number;
   /** Row count. */
   count: number;
+  /** Row payload kind — defaults to `'notes'` (raw markdown rows). */
+  kind?: ChunkKind;
 }
 
 /** `seed/manifest.json` — the only file a boot version check must fetch. */
@@ -50,19 +55,33 @@ export interface SeedMetaRecord {
   seedVersion: number;
   builtAt: string;
   importedAt: number;
-  /** Per-chunk checkpoint: last applied sha + the note ids the chunk owns. */
-  chunks: Record<string, { sha256: string; noteIds: string[] }>;
+  /**
+   * Per-chunk checkpoint: last applied sha + the row ids the chunk owns.
+   * `noteIds` for notes chunks, `blockIds` for block-index chunks.
+   */
+  chunks: Record<string, { sha256: string; noteIds?: string[]; blockIds?: string[] }>;
   /** Multi-tab single-writer claim; stale after CLAIM_TTL_MS. */
   claim?: { owner: string; at: number } | null;
 }
 
-/** v2 — the efforts chunk additionally materializes IEffort records. */
-export const SEED_SCHEMA = 2;
+/** v4 — per-note seed segment ids (`seed:<noteId>`); forces one re-apply. */
+export const SEED_SCHEMA = 4;
+/** The `meta`-store key holding the import checkpoint record. */
 export const SEED_META_KEY = 'seed';
-/** Every seed note owns exactly one immutable segment at this position id. */
-export const SEED_SEGMENT_ID = 'seed';
+/**
+ * Every seed note owns exactly one immutable segment; its id is
+ * `seed:<noteId>` — unique per note (the segments store keys by
+ * [segmentId, version], so a shared literal id would collapse rows).
+ */
+export function seedSegmentId(noteId: string): string {
+  return `seed:${noteId}`;
+}
+/** Cross-tab notification channel: a fresh seed has landed in Storage. */
+export const SEED_BROADCAST_CHANNEL = 'wodwiki.seed';
 /** Efforts corpus chunk — materializes IEffort records alongside its notes. */
 export const EFFORTS_CHUNK_ID = 'efforts';
+/** Prefix of the split block-index chunks (`block-index.<n>`). */
+export const BLOCK_INDEX_CHUNK_PREFIX = 'block-index.';
 
 /** Empty checkpoint — pre-first-import state. */
 export function emptySeedMeta(): SeedMetaRecord {

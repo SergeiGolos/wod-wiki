@@ -5,14 +5,23 @@
  *   - staticTagIndexFromBlocks: tag → noteIds from frontmatter rows — the
  *     mapping `staticNoteStore.getNoteIdsForTag` answers `tags:` clauses with.
  */
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import type { BlockIndexRow } from '@/types/storage';
+
+// The corpus plane reads the shared `block_index` store — mock the service
+// before importing the module under test.
+const blockRows: BlockIndexRow[] = [];
+mock.module('@/services/db/IndexedDBService', () => ({
+  indexedDBService: {
+    getAllBlockIndex: async () => blockRows,
+    getAllTags: async () => [],
+  },
+}));
 import {
   feedDateToCreatedAt,
   staticTagIndexFromBlocks,
   staticNotesFromBlocks,
   staticNoteStore,
-  staticBlockStore,
 } from './staticBlockIndex';
 
 function blockRow(partial: Partial<BlockIndexRow>): BlockIndexRow {
@@ -114,13 +123,19 @@ describe('staticNotesFromBlocks', () => {
   });
 });
 
-describe('static stores', () => {
-  it('loads static notes and blocks from generated static corpus', async () => {
+describe('static stores (IndexedDB-backed)', () => {
+  it('derives corpus projections from isStatic rows only — user rows are excluded', async () => {
+    blockRows.length = 0;
+    blockRows.push(
+      blockRow({ id: 'user-row', noteId: 'user-note', segmentId: 'u1', isStatic: undefined, sourceId: undefined }),
+      blockRow({ noteId: 'crossfit-girls/fran', sourceId: 'collection:crossfit-girls/fran' }),
+      blockRow({ noteId: 'feeds/dan-john/2026-01-12/day-01', sourceId: 'feed:feeds/dan-john/2026-01-12/day-01' }),
+    );
     const notes = await staticNoteStore.getAllNotes();
-    const blocks = await staticBlockStore.getAllBlocks();
-    expect(notes.length).toBeGreaterThan(0);
-    expect(blocks.length).toBeGreaterThan(0);
-    expect(notes.some(n => n.sourceId?.startsWith('collection:'))).toBe(true);
-    expect(notes.some(n => n.sourceId?.startsWith('feed:'))).toBe(true);
+    expect(notes.map((n) => n.id)).toEqual([
+      'crossfit-girls/fran',
+      'feeds/dan-john/2026-01-12/day-01',
+    ]);
+    expect(notes.every((n) => n.sourceId?.startsWith('collection:') || n.sourceId?.startsWith('feed:'))).toBe(true);
   });
 });

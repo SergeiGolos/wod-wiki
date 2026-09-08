@@ -79,8 +79,10 @@ export interface EffortQueryStore {
 export interface QueryServiceStores {
   eventStore?: UnifiedEventStore;
   noteStore?: NoteQueryStore;
+  /** Serves every block row — user journal and seeded corpus alike (the
+   *  seed importer materializes corpus rows into the same store). */
   blockStore?: BlockQueryStore;
   effortStore?: EffortQueryStore;
+  /** Derived corpus-note projections (catalog/tag planes). */
   staticNoteStore?: NoteQueryStore;
-  staticBlockStore?: BlockQueryStore;
 }

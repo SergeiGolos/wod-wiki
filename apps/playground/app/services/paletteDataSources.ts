@@ -180,10 +180,8 @@ export function collectionListSource(): PaletteDataSource {
     id: 'collection-list',
     label: 'Collections',
     search: async (query) => {
-      // Dynamic import keeps import.meta.glob out of the module-load critical path
-      // so test environments don't choke on it.
       const { getScriptCollections } = await import('@/repositories/script-collections');
-      const collections = getScriptCollections();
+      const collections = await getScriptCollections();
       const low = query.toLowerCase();
       return collections
         .filter(c => !low || c.name.toLowerCase().includes(low) || c.id.toLowerCase().includes(low))

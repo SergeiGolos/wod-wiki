@@ -11,7 +11,7 @@
  *   - Run Now        → adopts to today's journal + navigates to start timer
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v7 as uuidv7 } from 'uuid';
 import { EditorView } from '@codemirror/view';
@@ -20,7 +20,8 @@ import { JournalPageShell } from '@/panels/page-shells';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { EditorDialog } from '@bitcobblers/wod-wiki-ui';
-import { getScriptFeedItem, getScriptFeed } from '@/repositories/script-feeds';
+import { buildScriptFeeds } from '@/repositories/script-feeds';
+import { useSeedContent } from '@/services/content/seedContent';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
@@ -54,8 +55,14 @@ export function FeedItemPage({
 }: FeedItemPageProps) {
   const navigate = useNavigate();
 
-  const item = getScriptFeedItem(feedSlug, feedDate, feedItem);
-  const feed = getScriptFeed(feedSlug);
+  const files = useSeedContent();
+  const { item, feed } = useMemo(() => {
+    if (!files) return { item: undefined, feed: undefined };
+    const feeds = buildScriptFeeds(files);
+    const feed = feeds.find((f) => f.id === feedSlug);
+    const item = feed?.items.find((i) => i.feedDate === feedDate && i.id === feedItem);
+    return { item, feed };
+  }, [files, feedSlug, feedDate, feedItem]);
   const playgroundCategory = `feed/${feedSlug}/${feedDate}`;
   // Store local edits under a deterministic key in playgroundContent.
   // The feed item's canonical content is the mdContent fallback.

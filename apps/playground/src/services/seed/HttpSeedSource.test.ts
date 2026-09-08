@@ -43,14 +43,13 @@ describe('HttpSeedSource', () => {
     await expect(source.fetchManifest()).rejects.toMatchObject({ name: 'SeedSourceError', status: 404 });
   });
 
-  it('rejects garbage manifests and malformed rows loudly', async () => {
+  it('validates manifests loudly; chunk payloads are kind-agnostic', async () => {
     const badManifest = new HttpSeedSource('/seed/', fetchJson({ hello: 1 }).impl);
     await expect(badManifest.fetchManifest()).rejects.toThrow(/shape validation/);
 
-    const badRows = new HttpSeedSource('/seed/', fetchJson([{ path: 1 }]).impl);
-    await expect(badRows.fetchChunk('chunks/x.json')).rejects.toThrow(/shape validation/);
-
-    const notArray = new HttpSeedSource('/seed/', fetchJson({}).impl);
-    await expect(notArray.fetchChunk('chunks/x.json')).rejects.toThrow(/not an array/);
+    // Row-shape validation happens in the importer, which knows the chunk
+    // kind from the manifest; the transport returns the parsed JSON as-is.
+    const oddButLegitimate = new HttpSeedSource('/seed/', fetchJson([{ path: 1 }]).impl);
+    await expect(oddButLegitimate.fetchChunk('chunks/x.json')).resolves.toEqual([{ path: 1 }]);
   });
 });

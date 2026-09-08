@@ -99,13 +99,20 @@ export interface NavItemRenderProps {
 
 // ─── NavItem — universal link/node interface ──────────────────────────────────
 
-export interface NavItem extends INavActivation {
+export interface NavItem extends Omit<INavActivation, 'icon'> {
   id: string
   label: string
   children?: NavItem[]
-  icon?: string | React.ReactNode
+  /** Sidebar depth (1 = L1, 2 = L2); L3 items carry 3 via NavItemL3. */
+  level?: number
+  /** Rendered as `<icon className…/>` by the nav views — a component ref (heroicons/lucide) or a string glyph. */
+  icon?: string | React.ComponentType<{ className?: string; 'data-slot'?: string }>
+  /** Route/location predicate re-evaluated on every navigation. */
+  isActive?: (loc: Location) => boolean
   badge?: string | number
   href?: string
+  /** Dynamic L2 panel (e.g. dashboards, efforts) rendered instead of static children. */
+  panel?: React.ComponentType<NavPanelProps>
   to?: string
   disabled?: boolean
   hidden?: boolean

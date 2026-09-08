@@ -13,6 +13,10 @@
  *                      dynamic panel to join this list (follow-up).
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
  *   Search has moved out of the L1 sidebar and into the top app-bar.
+ *
+ * The canvas-guide children derive from the seeded canvas routes passed by
+ * the caller (App.tsx hydrates them from IndexedDB); tests/storybook use the
+ * static `appNavTree` export, which carries no canvas children.
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
@@ -24,7 +28,7 @@ import { sourceOfQuery } from '../lib/wqlEdits'
 
 import { EffortsNavPanel } from './panels/EffortsNavPanel'
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
-import { canvasRoutes } from '../canvas/canvasRoutes'
+import type { CanvasRoute } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
@@ -43,19 +47,6 @@ const syntaxOrder: Record<string, number> = {
   '/guide/syntax/cheatsheet': 7,
 }
 
-const syntaxChildren: NavItem[] = canvasRoutes
-  .filter(r => !r.route.startsWith('/collections'))
-  .filter(r => r.page.frontmatter?.type === 'syntax')
-  .sort((a, b) => (syntaxOrder[a.route] ?? 99) - (syntaxOrder[b.route] ?? 99))
-  .map(r => ({
-    id: `syntax-${r.route}`,
-    label: r.page.sections[0]?.heading ?? 'Untitled',
-    level: 2 as const,
-    icon: CodeBracketIcon,
-    action: { type: 'route' as const, to: r.route },
-    isActive: (loc: Location) => loc.pathname === r.route,
-  }))
-
 // Sidebar order for the Behaviors guide pillar.
 const behaviorOrder: Record<string, number> = {
   '/guide/behaviors': 0,
@@ -64,18 +55,7 @@ const behaviorOrder: Record<string, number> = {
   '/guide/behaviors/capture': 3,
 }
 
-const behaviorsChildren: NavItem[] = canvasRoutes
-  .filter(r => !r.route.startsWith('/collections'))
-  .filter(r => r.page.frontmatter?.type === 'behavior')
-  .sort((a, b) => (behaviorOrder[a.route] ?? 99) - (behaviorOrder[b.route] ?? 99))
-  .map(r => ({
-    id: `behavior-${r.route}`,
-    label: r.page.sections[0]?.heading ?? 'Untitled',
-    level: 2 as const,
-    icon: BookOpen,
-    action: { type: 'route' as const, to: r.route },
-    isActive: (loc: Location) => loc.pathname === r.route,
-  }))
+// Sidebar order for the Analytics guide pillar.
 const analyticsGuideOrder: Record<string, number> = {
   '/guide/analytics': 0,
   '/guide/analytics/anatomy': 1,
@@ -85,47 +65,81 @@ const analyticsGuideOrder: Record<string, number> = {
   '/guide/analytics/cheatsheet': 5,
 }
 
-const analyticsGuideChildren: NavItem[] = canvasRoutes
-  .filter(r => !r.route.startsWith('/collections'))
-  .filter(r => r.page.frontmatter?.type === 'analytics')
-  .sort((a, b) => (analyticsGuideOrder[a.route] ?? 99) - (analyticsGuideOrder[b.route] ?? 99))
-  .map(r => ({
-    id: `analytics-guide-${r.route}`,
-    label: r.page.sections[0]?.heading ?? 'Untitled',
-    level: 2 as const,
-    icon: ChartBarIcon,
-    action: { type: 'route' as const, to: r.route },
-    isActive: (loc: Location) => loc.pathname === r.route,
-  }))
+function syntaxChildrenFrom(routes: CanvasRoute[]): NavItem[] {
+  return routes
+    .filter(r => !r.route.startsWith('/collections'))
+    .filter(r => r.page.frontmatter?.type === 'syntax')
+    .sort((a, b) => (syntaxOrder[a.route] ?? 99) - (syntaxOrder[b.route] ?? 99))
+    .map(r => ({
+      id: `syntax-${r.route}`,
+      label: r.page.sections[0]?.heading ?? 'Untitled',
+      level: 2 as const,
+      icon: CodeBracketIcon,
+      action: { type: 'route' as const, to: r.route },
+      isActive: (loc: Location) => loc.pathname === r.route,
+    }))
+}
 
-const homeChildren: NavItem[] = [
-  {
-    id: 'syntax-group',
-    label: 'Syntax',
-    level: 2,
-    icon: CodeBracketIcon,
-    action: { type: 'none' },
-    children: syntaxChildren,
-  },
-  {
-    id: 'behaviors-group',
-    label: 'Behaviors',
-    level: 2,
-    icon: BookOpen,
-    action: { type: 'route', to: '/guide/behaviors' },
-    isActive: (loc: Location) => loc.pathname.startsWith('/guide/behaviors'),
-    children: behaviorsChildren,
-  },
-  {
-    id: 'analytics-guide-group',
-    label: 'Analytics',
-    level: 2,
-    icon: ChartBarIcon,
-    action: { type: 'route', to: '/guide/analytics' },
-    isActive: (loc: Location) => loc.pathname.startsWith('/guide/analytics'),
-    children: analyticsGuideChildren,
-  },
-]
+function behaviorsChildrenFrom(routes: CanvasRoute[]): NavItem[] {
+  return routes
+    .filter(r => !r.route.startsWith('/collections'))
+    .filter(r => r.page.frontmatter?.type === 'behavior')
+    .sort((a, b) => (behaviorOrder[a.route] ?? 99) - (behaviorOrder[b.route] ?? 99))
+    .map(r => ({
+      id: `behavior-${r.route}`,
+      label: r.page.sections[0]?.heading ?? 'Untitled',
+      level: 2 as const,
+      icon: BookOpen,
+      action: { type: 'route' as const, to: r.route },
+      isActive: (loc: Location) => loc.pathname === r.route,
+    }))
+}
+
+function analyticsGuideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
+  return routes
+    .filter(r => !r.route.startsWith('/collections'))
+    .filter(r => r.page.frontmatter?.type === 'analytics')
+    .sort((a, b) => (analyticsGuideOrder[a.route] ?? 99) - (analyticsGuideOrder[b.route] ?? 99))
+    .map(r => ({
+      id: `analytics-guide-${r.route}`,
+      label: r.page.sections[0]?.heading ?? 'Untitled',
+      level: 2 as const,
+      icon: ChartBarIcon,
+      action: { type: 'route' as const, to: r.route },
+      isActive: (loc: Location) => loc.pathname === r.route,
+    }))
+}
+
+function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
+  return [
+    {
+      id: 'syntax-group',
+      label: 'Syntax',
+      level: 2,
+      icon: CodeBracketIcon,
+      action: { type: 'none' },
+      children: syntaxChildrenFrom(routes),
+    },
+    {
+      id: 'behaviors-group',
+      label: 'Behaviors',
+      level: 2,
+      icon: BookOpen,
+      action: { type: 'route', to: '/guide/behaviors' },
+      isActive: (loc: Location) => loc.pathname.startsWith('/guide/behaviors'),
+      children: behaviorsChildrenFrom(routes),
+    },
+    {
+      id: 'analytics-guide-group',
+      label: 'Analytics',
+      level: 2,
+      icon: ChartBarIcon,
+      action: { type: 'route', to: '/guide/analytics' },
+      isActive: (loc: Location) => loc.pathname.startsWith('/guide/analytics'),
+      children: analyticsGuideChildrenFrom(routes),
+    },
+  ]
+}
 
 // ─── L2 children for Library ──────────────────────────────────────────────────
 
@@ -201,8 +215,11 @@ const libraryChildren: NavItem[] = [
 /**
  * @param _openSearch - retained for the global keyboard shortcut (Ctrl+/)
  *   but Search is no longer an L1 sidebar item — it lives in the top app-bar.
+ * @param canvasRoutes - the seeded canvas route table (hydrated from
+ *   IndexedDB); the guide children derive from it.
  */
-export function buildAppNavTree(_openSearch: () => void): NavItem[] {
+export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRoute[] = []): NavItem[] {
+  const homeChildren = buildHomeChildren(canvasRoutes)
   return [
     {
       id: 'home',
@@ -296,5 +313,5 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
   ]
 }
 
-/** Static default tree (no search handler) — kept for tests / storybook. */
+/** Static default tree (no search handler, no canvas children) — kept for tests / storybook. */
 export const appNavTree: NavItem[] = buildAppNavTree(() => {})

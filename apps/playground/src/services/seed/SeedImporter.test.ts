@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { SeedManifest, SeedRow } from '@/types/seed';
-import { EFFORTS_CHUNK_ID, SEED_SEGMENT_ID } from '@/types/seed';
+import { EFFORTS_CHUNK_ID, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { effortToDocument } from '@/repositories/effort-markdown';
 import { CountingSeedSource, InMemorySeedSource } from './InMemorySeedSource';
@@ -88,7 +88,7 @@ describe('SeedImporter', () => {
 
     const segment = storage.allSegments().find((s) => s.noteId === fran!.id);
     expect(segment).toMatchObject({
-      id: SEED_SEGMENT_ID,
+      id: seedSegmentId(fran!.id),
       version: 1,
       rawContent: 'content of markdown/collections/girls/fran.md',
       dataType: 'markdown',
@@ -150,6 +150,8 @@ describe('SeedImporter', () => {
       efforts: [],
       deleteNoteIds: [],
       deleteEffortSlugs: [],
+      blocks: [],
+      deleteBlockIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 
@@ -231,6 +233,8 @@ describe('SeedImporter', () => {
       efforts: [{ id: 'effort-user-x', slug: 'air-squat', label: 'My Squat', aliases: [], baseAttributes: { met: 9 }, registrySource: 'user' }],
       deleteNoteIds: [],
       deleteEffortSlugs: [],
+      blocks: [],
+      deleteBlockIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 
@@ -254,6 +258,8 @@ describe('SeedImporter', () => {
       efforts: [{ id: 'effort-user-b', slug: 'burpee', label: 'My Burpee', aliases: [], baseAttributes: { met: 8 }, registrySource: 'user' }],
       deleteNoteIds: [],
       deleteEffortSlugs: [],
+      blocks: [],
+      deleteBlockIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 
@@ -277,6 +283,6 @@ describe('SeedImporter', () => {
     const { result, counting } = await importAll(storage, v1.source); // unchanged manifest
     expect(result.status).toBe('imported');
     expect(counting.fetchChunkCalls).toEqual(['chunks/canvas.json']);
-    expect((await storage.getSeedMeta())!.schema).toBe(2);
+    expect((await storage.getSeedMeta())!.schema).toBe(SEED_SCHEMA);
   });
 });

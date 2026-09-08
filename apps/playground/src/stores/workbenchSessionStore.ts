@@ -807,7 +807,7 @@ export function createWorkbenchSessionStore(
                 params.onLoaded?.(entry);
                 return entry;
               } else if (provider.mode === 'static') {
-                const wodContent = loadStaticWorkbenchContent(routeId);
+                const wodContent = await loadStaticWorkbenchContent(routeId);
                 if (wodContent) {
                   get().setContent(wodContent);
                   return null;

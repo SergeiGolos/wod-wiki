@@ -14,7 +14,7 @@
  */
 
 import { useMemo } from 'react'
-import { canvasRoutes, findCanvasPage } from '../canvas/canvasRoutes'
+import { useCanvasRoutes, useFindCanvasPage } from '../canvas/canvasRoutes'
 import { HomeTour } from '../tour/HomeTour'
 import type { WorkoutItem } from '../App'
 
@@ -26,7 +26,8 @@ export interface HomeViewProps {
 }
 
 export function HomeView({ wodFiles, theme }: HomeViewProps) {
-  const page = findCanvasPage('/')
+  const canvasRoutes = useCanvasRoutes()
+  const page = useFindCanvasPage('/')
 
   // Cross-page quest id → label, so chapter quest rows can show the real
   // labels declared on their owning guide pages.
@@ -36,7 +37,7 @@ export function HomeView({ wodFiles, theme }: HomeViewProps) {
       for (const q of p.quests) labels[q.id] = q.label
     }
     return labels
-  }, [])
+  }, [canvasRoutes])
 
   if (!page) {
     return (
