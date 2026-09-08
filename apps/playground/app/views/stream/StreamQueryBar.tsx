@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, Clock3, Command } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clock3, Command, Search } from 'lucide-react'
 import { parseQuery, type QueryWindow } from '@bitcobblers/wod-wiki-engine'
 import { SOURCE_OPTIONS, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
@@ -97,14 +97,17 @@ export function StreamQueryBar({
     <DropdownMenu open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
       <DropdownMenuTrigger
         data-testid="stream-query-type"
-        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-xs hover:border-border"
+        className={cn(
+          'flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-card shadow-xs hover:border-border',
+          compact ? 'px-3 py-1.5 text-xs' : 'px-2.5 py-1 text-[11px] font-semibold text-foreground',
+        )}
       >
         <span
           aria-hidden
           className="size-2 shrink-0 rounded-full"
           style={{ background: SOURCE_DOT[sourceValue] ?? 'var(--primary)' }}
         />
-        <span className="max-w-28 truncate">{SOURCE_LABEL[sourceValue] ?? sourceValue}</span>
+        <span className="max-w-32 truncate">{SOURCE_LABEL[sourceValue] ?? sourceValue}</span>
         <ChevronDown className="size-3 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()} className="min-w-44">
@@ -131,19 +134,34 @@ export function StreamQueryBar({
   )
 
   if (compact) {
+    // Mobile thumb-footer button row — the whole row is one tappable control
+    // (opens the WQL palette); the source pill stays a nested menu.
     return (
       <div
+        role="button"
+        tabIndex={0}
         data-testid="stream-query-bar"
         onClick={openEditor}
-        className={cn('flex min-w-0 flex-1 cursor-text items-center gap-1.5', className)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            openEditor()
+          }
+        }}
+        className={cn(
+          'flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border/70 bg-muted/40 px-3 text-left shadow-xs transition-colors hover:bg-muted/70',
+          className,
+        )}
       >
+        <Search className="size-4 shrink-0 text-muted-foreground" />
         {typeMenu}
         <span
           data-testid="stream-query-summary"
-          className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground"
+          className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
         >
           {query}
         </span>
+        <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
       </div>
     )
   }

@@ -136,11 +136,12 @@ export function SidebarLayout({
   )
 }
 /**
- * MobileQueryFooter — the fixed bottom bar of the mobile shell where pages
- * portal thumb-zone controls (stream routes: the WQL composer). Publishes
- * its height as `--thumb-dock-lift` so ResponsiveActionsDock stacks above
- * it, and renders a flow spacer so scrolled-to-bottom content clears it.
- * Collapses to nothing when no page portals in.
+ * MobileQueryFooter — the fixed bottom row of the mobile shell where pages
+ * portal thumb-zone controls (stream routes: the WQL composer as a
+ * full-width button row). Publishes its height as `--thumb-dock-lift` so
+ * ResponsiveActionsDock stacks a row above it, and renders a flow spacer
+ * so scrolled-to-bottom content clears it. Collapses to nothing when no
+ * page portals in.
  */
 function MobileQueryFooter() {
   const barRef = useRef<HTMLDivElement>(null)
@@ -166,10 +167,10 @@ function MobileQueryFooter() {
         ref={barRef}
         className={cn(
           'lg:hidden fixed inset-x-0 bottom-0 z-30',
-          lift > 0 && 'bg-card border-t border-border/50 px-2 py-1.5',
+          lift > 0 && 'bg-card border-t border-border/50 px-3 py-2',
         )}
       >
-        <MobileQuerySlotTarget className="flex min-w-0" />
+        <MobileQuerySlotTarget className="flex w-full min-w-0" />
       </div>
       <div className="lg:hidden" aria-hidden="true" style={{ height: lift }} />
     </>

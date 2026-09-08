@@ -24,7 +24,7 @@ breakpoint:
 | Cast | Header (via the page's `PageActions` bar) | **App navbar**, right side |
 | Page options ⋮ — secondary nav, *On this page*, Download Markdown, Buy Me a Coffee | Header ⋮ dropdown (nav sections hidden ≥2xl, where the secondary rail owns them) | **Thumb dock**: the ⋮ FAB sits just above the search FAB; tapping it stacks its functions as buttons in the sheet, under the page's own rows (global `fallback` registration, `app/App.tsx`) |
 | Search | Header input / icon-rail button; `Ctrl/Cmd+K`, `+/`, `+P` (`app/App.tsx:161-172`) | Dedicated **search FAB** in the dock |
-| WQL stream query bar | Header `queryBar` slot — full chips bar + inline composer | **Thumb footer** — fixed bottom bar hosting the compact composer (`MobileQueryFooter`, `src/templates/SidebarLayout.tsx`); tap opens the same WQL palette |
+| WQL stream query bar | Header `queryBar` slot — full chips bar + inline composer | **Thumb footer** — full-width **button row** at the very bottom (search icon + source pill + query; `MobileQueryFooter`, `src/templates/SidebarLayout.tsx`); tap opens the same WQL palette, and the dock stack rises one row above it |
 
 Dock mechanics (`ResponsiveActions.tsx`): corner set by *Settings →
 Appearance → Actions Button Position* (right by default, mirrored left;
@@ -45,7 +45,7 @@ whole cluster lifts above the stream pages' thumb footer via
 | Dock FAB | Mobile floating primary button |
 | Dock ⋮ sheet | Mobile "More actions" overflow: the page's own rows first, then the global Page options rows (secondary nav, On this page, Download, Buy Me a Coffee) under a rule |
 | Navbar cast | Mobile top-right header control — Cast only; the Page options ⋮ moved down into the dock |
-| Thumb footer | Mobile fixed bottom bar hosting the WQL composer on stream pages; the dock stacks above it |
+| Thumb footer | Mobile fixed bottom **button row** hosting the WQL composer on stream pages; the dock stacks one row above it |
 | Body (unchanged) | Same placement at both breakpoints |
 | Desktop-only / Mobile-only | Rendered at exactly one breakpoint |
 
@@ -61,7 +61,7 @@ Source: `src/templates/SidebarLayout.tsx`, `app/nav/NavSidebar.tsx`,
 | L2 context sidebar | 240px second column | Inside the drawer, under the L1 list |
 | Page TOC / secondary nav | Right rail, ≥2xl only; below 2xl it folds into the header ⋮ menu | Dock ⋮ sheet → stacked secondary sections + *On this page* rows |
 | Cast + Page options (Download Markdown, Buy Me a Coffee) | Header controls via `PageActions` (`app/pages/shared/PageToolbar.tsx`) | Cast: App navbar. Page options: dock ⋮ → stacked rows; Download is omitted when the route has no resolved document |
-| Stream query bar | Header queryBar slot | Thumb footer (fixed bottom bar; tap opens the WQL palette) |
+| Stream query bar | Header queryBar slot | Thumb footer button row (full width, bottom; tap opens the WQL palette) |
 | Content clearance | — | `max-lg:pb-48` keeps content clear of the stacked dock; the footer adds its own flow spacer |
 
 Routes that bypass the shell entirely (no rail / navbar / dock):
@@ -157,7 +157,7 @@ Shared command map:
 |---|---|---|
 | **View** settings (sliders button) | Header, first action (`QueriableStreamView.tsx:379-389`) | Dock FAB |
 | **New** (effort) — `/efforts` only | Header, next to View (`:390-400`) | Dock FAB (second) |
-| WQL query bar (type chips + query) | Header queryBar slot — the full chips bar + inline composer (`:408-415`) | Thumb footer — compact composer (`:417-428` portal into `MobileQueryFooter`); tap opens the same WQL palette dialog (`StreamQueryBar.tsx:18-19`) |
+| WQL query bar (type chips + query) | Header queryBar slot — the full chips bar + inline composer (`:408-415`) | Thumb footer — full-width button row (compact composer, `:417-428` portal into `MobileQueryFooter`); tap opens the same WQL palette dialog (`StreamQueryBar.tsx`) |
 | Cast | Header (PageActions bar, `app/App.tsx`) | App navbar |
 | Page options ⋮ (Download Markdown, Buy Me a Coffee) | Header dropdown | Dock ⋮ → stacked rows in the sheet |
 | Search input | **None** — the query bar is the search entry (`showSearch={view.page !== 'library'}` → false for all stream routes) | Dock search FAB |
