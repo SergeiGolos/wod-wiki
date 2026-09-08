@@ -145,3 +145,95 @@ describe('plane-specific filter and calc dropdowns', () => {
     expect(dropdown.textContent).not.toContain('Output Type');
   });
 });
+
+describe('filter typeahead', () => {
+  afterEach(cleanup);
+
+  it('proposes a filter when the typed text matches a key', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'has' } });
+    expect(screen.getByTestId('wql-filter-typeahead')).toBeDefined();
+    expect(screen.getByTestId('wql-filter-typeahead-has')).toBeDefined();
+  });
+
+  it('adds the filter on Tab and selects it for condition editing', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'has' } });
+    fireEvent.keyDown(input, { key: 'Tab' });
+    // The pill was added and is active (selected) with its editor open.
+    const pill = screen.getByTestId('token-slot-has');
+    expect(pill.className).toContain('bg-primary');
+    expect(pill.className).toContain('border-primary');
+    // The free text was consumed by the accept — no text-search fallback.
+    expect((input as HTMLInputElement).value).toBe('');
+    expect(screen.queryByTestId('wql-filter-typeahead')).toBeNull();
+  });
+
+  it('proposes editing when the matched filter is already on the query', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'so' } });
+    const row = screen.getByTestId('wql-filter-typeahead-source');
+    expect(row.textContent).toContain('edit');
+    fireEvent.click(row);
+    // The existing source pill is selected and its inline editor opens.
+    const source = screen.getByTestId('token-slot-source');
+    expect(source.className).toContain('bg-primary');
+    expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
+    expect(screen.queryByTestId('token-slot-has')).toBeNull();
+    expect((input as HTMLInputElement).value).toBe('');
+  });
+
+  it('edits the pill value inline: arrows move, Enter sets, Tab releases', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'so' } });
+    fireEvent.keyDown(input, { key: 'Tab' });
+    // Editor open with the source options; arrow down to 'collections'.
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByTestId('token-slot-value-source').textContent).toBe('collections');
+    // Editor stays open — the pill is highlighted until Tab.
+    expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
+    expect(screen.getByTestId('token-slot-source').className).toContain('bg-primary');
+    fireEvent.keyDown(input, { key: 'Tab' });
+    expect(screen.queryByTestId('wql-clause-editor')).toBeNull();
+    // Free typing again: a new key proposes a new filter.
+    fireEvent.change(input, { target: { value: 'ca' } });
+    expect(screen.getByTestId('wql-filter-typeahead-catalog')).toBeDefined();
+  });
+
+  it('multi-value filters toggle with Enter and pop with Backspace', () => {
+    render(<WqlComposer initialQuery="sum:totalVolume{}" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'inten' } });
+    fireEvent.keyDown(input, { key: 'Tab' });
+    expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
+    // Enter on the highlighted option (first = 'low') adds it; again removes.
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByTestId('token-slot-value-intensity').textContent).toBe('low');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByTestId('token-slot-value-intensity').textContent).not.toBe('low');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByTestId('token-slot-value-intensity').textContent).toBe('low');
+    fireEvent.keyDown(input, { key: 'Backspace' });
+    expect(screen.getByTestId('token-slot-value-intensity').textContent).not.toBe('low');
+  });
+  it('dismisses the proposal on Escape', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'has' } });
+    expect(screen.getByTestId('wql-filter-typeahead')).toBeDefined();
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByTestId('wql-filter-typeahead')).toBeNull();
+  });
+
+  it('proposes nothing once the text is query-shaped', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'find:note{so' } });
+    expect(screen.queryByTestId('wql-filter-typeahead')).toBeNull();
+  });
+});

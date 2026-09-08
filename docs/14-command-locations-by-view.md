@@ -162,6 +162,7 @@ Shared command map:
 | Page options ⋮ (Download Markdown, Buy Me a Coffee) | Header dropdown | Dock ⋮ → stacked rows in the sheet |
 | Search input | **None** — the query bar is the search entry (`showSearch={view.page !== 'library'}` → false for all stream routes) | Dock search FAB |
 | Row actions: Open / Add to today / Run / Compare | Hover-revealed stack at the row end (`app/views/library/LibraryRow.tsx:183-201`); row click also opens (`:102-106`) | Row tap = Open; the hover-revealed stack does not show on touch |
+| Filter typeahead + inline editor (composer) | Typing a filter key proposes **Add filter**; Tab/tap adds the pill (or selects an existing one) and its value list opens **inline under the composer** — ↑↓ navigate options, Enter sets/toggles values (multi filters stay in the list with check marks), Backspace pops the last value, Tab/Esc releases the pill back to free typing (`packages/ui/src/composer/filterTypeahead.ts`, `clauseItems.ts`, `InlineClauseEditor.tsx`) | Same, in the palette composer opened from the thumb footer row — the palette list renders the values under the input (no popover, focus stays in the input) |
 | Feed-card actions: Open / Run / Playground | Inline pills in the card, ≥44px targets (`app/views/stream/StreamFeed.tsx:16-19,205-224`) | Same — never relocated |
 | Empty-state remedy buttons | Body (`QueriableStreamView.tsx:344-358`) | Same |
 | View settings dialog (layout rows/feed/cards, group-by, visible fields, reset) | Modal (`:586-597`) | Same modal |

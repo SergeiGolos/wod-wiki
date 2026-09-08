@@ -12,15 +12,8 @@ import {
   getClauseMeta,
   sourcePlane,
   allowedFilterTypesForSource,
-  SOURCE_OPTIONS,
-  TIME_OPTIONS,
-  AGG_OPTIONS,
-  ROLLUP_OPTIONS,
-  GROUPBY_OPTIONS,
-  METRIC_OPTIONS,
-  UNIT_OPTIONS,
 } from './queryClauses';
-import { WQL_INTENSITY_TIERS } from '@bitcobblers/wod-wiki-wql';
+import { MULTI_VALUE_TYPES, STATIC_OPTIONS } from './clauseVocab';
 
 export interface TokenSlotPillProps {
   clause: QueryClause;
@@ -50,6 +43,7 @@ export function TokenSlotPill({
   const [open, setOpen] = useState(false);
   const pillRef = useRef<HTMLDivElement>(null);
 
+
   const hasValue = Boolean(clause.value && clause.value.trim());
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -77,7 +71,9 @@ export function TokenSlotPill({
         tabIndex={0}
         onClick={() => {
           onClick?.();
-          setOpen((o) => !o);
+          // Custom slots keep their popover editor; built-ins edit inline
+          // in the composer (the composer owns that surface).
+          if (customDef) setOpen((o) => !o);
         }}
         onKeyDown={handleKeyDown}
         title={invalid ? invalidReason : undefined}
@@ -114,7 +110,7 @@ export function TokenSlotPill({
         )}
       </div>
 
-      {open && onChange && (customDef ? (
+      {open && onChange && customDef && (
         <CustomSlotPopover
           clause={clause}
           anchor={pillRef.current}
@@ -126,43 +122,12 @@ export function TokenSlotPill({
             setOpen(false);
           }}
         />
-      ) : (
-        <ClausePopover
-          clause={clause}
-          anchor={pillRef.current}
-          onClose={() => setOpen(false)}
-          onChange={(patch) => {
-            onChange(patch);
-            setOpen(false);
-          }}
-        />
-      ))}
+      )}
     </div>
   );
 }
 
-export const MULTI_VALUE_TYPES: Record<string, true> = {
-  tag: true,
-  catalog: true,
-  effort: true,
-  discipline: true,
-  intensity: true,
-  origin: true,
-  type: true,
-  has: true,
-};
-
-const STATIC_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  source: SOURCE_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
-  time: TIME_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
-  agg: AGG_OPTIONS,
-  rollup: ROLLUP_OPTIONS,
-  groupby: GROUPBY_OPTIONS,
-  metric: METRIC_OPTIONS,
-  unit: UNIT_OPTIONS,
-  intensity: WQL_INTENSITY_TIERS.map((v) => ({ value: v, label: v })),
-  origin: ['builtin', 'user', 'canonical', 'custom'].map((v) => ({ value: v, label: v })),
-};
+export { MULTI_VALUE_TYPES } from './clauseVocab';
 
 function emptyStateMessage({
   loading,
@@ -288,8 +253,13 @@ export function ClausePopover({
   useEffect(() => {
     // Focus the filter input when present; otherwise the popover itself so
     // Up/Down + Enter keyboard selection works for target/scope/time slots.
-    if (inputRef.current) inputRef.current.focus();
-    else popoverRef.current?.focus();
+    // Focus on the next frame: the portal content mounts in this commit and
+    // a same-commit focus() races the render and silently no-ops.
+    const raf = requestAnimationFrame(() => {
+      if (inputRef.current) inputRef.current.focus();
+      else popoverRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   // Backdrop click
@@ -400,7 +370,7 @@ export function ClausePopover({
         <input
           ref={inputRef}
           type="text"
-          data-testid="wql-composer-input"
+          data-testid="wql-popover-input"
           value={val}
           onChange={(e) => {
             setVal(e.target.value);

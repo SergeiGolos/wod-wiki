@@ -218,7 +218,7 @@ export const PaletteShell: React.FC = () => {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
-          className={`fixed left-1/2 z-50 flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} -translate-x-1/2 outline-none shadow-2xl top-[2px] lg:top-[20%] max-lg:max-h-[var(--palette-max-h)]`}
+          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} outline-none shadow-2xl top-[2px] lg:top-[20%] max-lg:max-h-[var(--palette-max-h)]`}
           style={{
             // 160px floor so the input row never collapses on short landscape
             // viewports.

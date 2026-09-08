@@ -16,6 +16,9 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { Command } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { TokenSlotPill, AddFilterDropdown, AddCalcDropdown } from './QueryPalette';
+import { InlineClauseEditor } from './InlineClauseEditor';
+import { useClauseItems } from './clauseItems';
+import { composerRegistry } from './ComposerRegistry';
 import { diagnosePills, type WqlDiagnostics } from './diagnostics';
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
 import {
@@ -24,7 +27,15 @@ import {
   type WqlExecutor,
   type AnyParsedQuery,
 } from './useWqlStageCounts';
-import { type ClauseType, type QueryClause, getClauseMeta, sourcePlane } from './queryClauses';
+import {
+  type ClauseType,
+  type QueryClause,
+  CLAUSE_META,
+  allowedFilterTypesForSource,
+  getClauseMeta,
+  sourcePlane,
+} from './queryClauses';
+import { matchFilterTypeahead } from './filterTypeahead';
 import {
   pillsToAst,
   pillsToWql,
@@ -129,6 +140,14 @@ export function WqlComposer({
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [freeText, setFreeText] = useState('');
 
+  // Filter typeahead: typing a filter key proposes adding that filter — or,
+  // when a pill of the type is already on the query, editing it. Accept
+  // (Tab or tap) adds/activates the pill; the condition editor is the
+  // inline list under the composer box (InlineClauseEditor).
+  const [typeaheadDismissed, setTypeaheadDismissed] = useState(false);
+  // Highlighted option row while a pill's value editor is open.
+  const [editorHighlight, setEditorHighlight] = useState(0);
+
   // Mirror the controlled query prop so the live-search effect can emit the
   // original string when no free text is pending. That avoids re-serializing
   // visible pills and losing hidden clauses (e.g. source scope in LibraryPage)
@@ -223,6 +242,7 @@ export function WqlComposer({
     const next = pills.filter((_, i) => i !== idx);
     setPills(next);
     emitIfControlled(next);
+    if (activeSlotIdx !== null) setActiveSlotIdx(null);
   };
 
   /** In controlled mode the parent owns the query — push the edit out so the
@@ -273,6 +293,64 @@ export function WqlComposer({
     }
     return { kind: 'text', value: words[0]! };
   }, [freeText]);
+
+  const typeaheadMatches = useMemo(() => {
+    if (typeaheadDismissed || rawEscape || activeSlotIdx !== null) return [];
+    const sourceVal = pills.find((c) => c.type === 'source')?.value || 'notes';
+    const allowed = allowedFilterTypesForSource(sourceVal);
+    const pillIdxByType = new Map<string, number>();
+    pills.forEach((c, i) => {
+      if (!pillIdxByType.has(c.type)) pillIdxByType.set(c.type, i);
+    });
+    const candidates = (Object.keys(CLAUSE_META) as ClauseType[])
+      .filter((type) => {
+        if (CLAUSE_META[type].required) return false;
+        if (hiddenTypes.has(type)) return false;
+        // The plane selector is not in the filter allowlists (every query
+        // has one) — it still proposes, always as an EDIT of the existing
+        // source pill.
+        if (type === 'source') return true;
+        return allowed.has(type);
+      })
+      .map((type) => {
+        const meta = CLAUSE_META[type];
+        const pillIdx = pillIdxByType.get(type);
+        return {
+          type,
+          label: meta.label,
+          hint: meta.placeholder,
+          icon: meta.icon,
+          present: pillIdx !== undefined,
+          pillIdx,
+        };
+      });
+    return matchFilterTypeahead(freeText, candidates);
+  }, [freeText, pills, hiddenTypes, typeaheadDismissed, rawEscape]);
+
+  const acceptTypeahead = (match: (typeof typeaheadMatches)[number]) => {
+    if (match.present && match.pillIdx !== undefined) {
+      setActiveSlotIdx(match.pillIdx);
+    } else {
+      const meta = getClauseMeta(match.type);
+      const next: QueryClause[] = [
+        ...pills,
+        {
+          id: `c-${Date.now()}-${Math.random()}`,
+          type: match.type,
+          label: meta.label,
+          value: '',
+          inputType: meta.inputType,
+          placeholder: meta.placeholder,
+        },
+      ];
+      setPills(next);
+      emitIfControlled(next);
+      setActiveSlotIdx(next.length - 1);
+    }
+    setFreeText('');
+    setEditorHighlight(0);
+    inputRef.current?.focus();
+  };
 
   // Live-search emission (#1010): debounced merged query — committed pills
   // plus the pending free text serialized as a text pill, i.e. the string
@@ -349,7 +427,84 @@ export function WqlComposer({
     emitIfControlled(next);
   };
 
+  // Active pill's condition editor: built-in clauses edit inline under the
+  // composer box; custom slots keep their popover (the pill owns that).
+  const editingClause = activeSlotIdx !== null ? pills[activeSlotIdx] : undefined;
+  const editingCustom = editingClause ? Boolean(composerRegistry.getSlot(editingClause.type)) : false;
+  const editing = Boolean(editingClause) && !editingCustom;
+  const editorItems = useClauseItems(editingClause, freeText);
+
+  const commitEditorValue = (value: string) => {
+    if (activeSlotIdx === null) return;
+    const clause = pills[activeSlotIdx];
+    if (!clause) return;
+    if (editorItems.isMulti) {
+      const selected = editorItems.selectedValues;
+      const next = selected.includes(value)
+        ? selected.filter((v) => v !== value)
+        : [...selected, value];
+      updatePill(activeSlotIdx, { value: next.join('|') });
+    } else {
+      updatePill(activeSlotIdx, { value });
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Value editing owns the keyboard while a pill editor is open: ↑↓ move
+    // the option highlight, Enter sets/toggles, Backspace pops the last
+    // multi value, Tab/Escape release the pill back to free typing. Keys
+    // stop here so an embedding list (the palette's results, #834) does not
+    // also navigate.
+    if (editing) {
+      const max = Math.max(0, editorItems.filteredItems.length - 1);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditorHighlight((i) => Math.min(i + 1, max));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditorHighlight((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        const highlighted = editorItems.filteredItems[editorHighlight];
+        if (highlighted) commitEditorValue(highlighted.value);
+        else if (editorItems.canCommitTyped) commitEditorValue(editorItems.typedValue);
+        return;
+      }
+      if (e.key === 'Backspace' && editorItems.isMulti && freeText === '' && editorItems.selectedValues.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        commitEditorValue(editorItems.selectedValues[editorItems.selectedValues.length - 1]!);
+        return;
+      }
+      if (e.key === 'Tab' || e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setActiveSlotIdx(null);
+        setFreeText('');
+        setEditorHighlight(0);
+        return;
+      }
+      return;
+    }
+    if (e.key === 'Tab' && typeaheadMatches.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      acceptTypeahead(typeaheadMatches[0]!);
+      return;
+    }
+    if (e.key === 'Escape' && typeaheadMatches.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTypeaheadDismissed(true);
+      return;
+    }
     if (e.key !== 'Enter') return;
     if (freeText.trim()) {
       e.preventDefault();
@@ -395,7 +550,12 @@ export function WqlComposer({
               isActive={activeSlotIdx === idx}
               invalid={diagnostics.offendingClauseId === pill.id}
               invalidReason={diagnostics.offendingClauseId === pill.id ? diagnostics.error : undefined}
-              onClick={() => setActiveSlotIdx(idx)}
+              onClick={() => {
+                setActiveSlotIdx(activeSlotIdx === idx ? null : idx);
+                setFreeText('');
+                setEditorHighlight(0);
+                inputRef.current?.focus();
+              }}
               onChange={(patch) => updatePill(idx, patch)}
               onRemove={() => removePill(idx)}
               compact
@@ -407,8 +567,12 @@ export function WqlComposer({
           ref={inputRef}
           type="text"
           value={freeText}
-          placeholder={placeholder}
-          onChange={(e) => setFreeText(e.target.value)}
+          placeholder={editing && editingClause ? getClauseMeta(editingClause.type).placeholder : placeholder}
+          onChange={(e) => {
+            setFreeText(e.target.value);
+            setTypeaheadDismissed(false);
+            if (editing) setEditorHighlight(0);
+          }}
           onKeyDown={handleKeyDown}
           className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"
           data-testid="wql-composer-input"
@@ -417,7 +581,57 @@ export function WqlComposer({
         {customSlots}
       </div>
 
-      {pending && (
+      {editing && editingClause && (
+        <InlineClauseEditor
+          clause={editingClause}
+          filteredItems={editorItems.filteredItems}
+          selectedValues={editorItems.selectedValues}
+          isMulti={editorItems.isMulti}
+          typedValue={editorItems.typedValue}
+          canCommitTyped={editorItems.canCommitTyped}
+          emptyText={editorItems.emptyText}
+          highlightIdx={Math.min(editorHighlight, Math.max(0, editorItems.filteredItems.length - 1))}
+          onHighlight={setEditorHighlight}
+          onCommitValue={commitEditorValue}
+          onCommitTyped={commitEditorValue}
+        />
+      )}
+
+      {typeaheadMatches.length > 0 && (
+        <div
+          className="mx-0.5 rounded-xl border border-border bg-popover shadow-md p-1"
+          data-testid="wql-filter-typeahead"
+        >
+          <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Add filter
+          </div>
+          {typeaheadMatches.slice(0, 6).map((m, i) => (
+            <button
+              key={m.type}
+              type="button"
+              data-testid={`wql-filter-typeahead-${m.type}`}
+              onClick={() => acceptTypeahead(m)}
+              className={cn(
+                'flex w-full items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left transition-colors hover:bg-muted',
+                i === 0 && 'bg-muted/60',
+              )}
+            >
+              <span aria-hidden>{m.icon}</span>
+              <span className="font-mono font-semibold">{m.type}</span>
+              <span className="truncate text-muted-foreground">
+                {m.present ? `edit — ${m.hint}` : m.hint}
+              </span>
+              {i === 0 && (
+                <kbd className="ml-auto rounded border border-border bg-muted/60 px-1 text-[10px] text-muted-foreground">
+                  Tab ↹
+                </kbd>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {pending && !editing && (
         <div
           className={cn(
             'px-1.5 text-[11px] font-mono',
