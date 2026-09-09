@@ -186,3 +186,7 @@ pluto.forest-adhara.ts.net.key.bak
 # Engine monorepo additions
 .DS_Store
 tarballs/
+
+# Generated seed artifacts (bun scripts/generate-seed.ts, phase 1 of
+# docs/prototypes/seed-data-unification.md) — rebuilt on every dev/build.
+apps/playground/public/seed/

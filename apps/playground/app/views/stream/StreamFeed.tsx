@@ -21,6 +21,7 @@
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { StickyGroupHeader } from '@/panels/page-shells'
 import {
   CalendarIcon,
   FileTextIcon,
@@ -134,29 +135,30 @@ export interface StreamFeedProps {
   /** Stage a pending runtime for the entry and navigate (run readiness). */
   onRunEntry: (entry: Entry) => void
   /** Send a non-playground entry's content to the playground (intake persists
-   *  before navigation). Omitted → the action is not offered. */
+   *  before navigating). Omitted → the action is not offered. */
   onSendToPlayground?: (entry: Entry) => void
+  /** Viewport `top` for the sticky section header — the live bottom of the
+   *  page's sticky boundary (StickyPageHeader on desktop, navbar on mobile),
+   *  measured via useStickyBoundaryOffset in the caller. */
+  stickyOffset: number
 }
 
-export function StreamFeed({ groups, batch, onRunEntry, onSendToPlayground }: StreamFeedProps) {
+export function StreamFeed({ groups, batch, onRunEntry, onSendToPlayground, stickyOffset }: StreamFeedProps) {
   return (
     <div className="flex-1 divide-y divide-border/40" data-testid="stream-feed">
       {groups.map(group => (
         <section key={group.id} id={group.id} data-testid={`stream-feed-group-${group.key}`}>
-          <div className="flex items-center gap-2 px-6 py-2 bg-muted/30 border-b border-border/40">
-            <CalendarIcon className="size-3 text-muted-foreground" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {group.label}
-            </span>
-            {group.isToday && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+          <StickyGroupHeader
+            top={stickyOffset}
+            icon={<CalendarIcon className="size-3 shrink-0 text-muted-foreground" />}
+            label={group.label}
+            badge={group.isToday ? (
+              <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
                 Today
               </span>
-            )}
-            <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
-              {group.entries.length} {group.entries.length === 1 ? 'entry' : 'entries'}
-            </span>
-          </div>
+            ) : undefined}
+            meta={`${group.entries.length} ${group.entries.length === 1 ? 'entry' : 'entries'}`}
+          />
           <div className="divide-y divide-border/30">
             {group.entries.map(entry => {
               const Icon = KIND_ICON[entry.kind]

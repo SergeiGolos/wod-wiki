@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { useNavigate } from 'react-router-dom';
 import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
@@ -58,13 +59,36 @@ export const PaletteShell: React.FC = () => {
     requestRef.current = request;
     requestSeqRef.current += 1;
   }
+  const navigate = useNavigate();
+
+  // ── Back navigation closes the palette ──────────────────────────────────
+  // A sentinel history entry is pushed on open, so the Android back gesture
+  // and the desktop back button pop it (popstate) and dismiss the palette
+  // instead of leaving the page. Closing by any other path (Escape /
+  // overlay / Cancel / selection) consumes the sentinel — unless a later
+  // navigation (e.g. a selected result) already superseded it as the
+  // current entry.
+  useEffect(() => {
+    if (!isOpen) return;
+    navigate(window.location.pathname + window.location.search + window.location.hash, {
+      state: { ...(history.state?.usr ?? {}), paletteClose: true },
+    });
+    const onPopState = () => _dismiss();
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      if ((history.state?.usr as { paletteClose?: boolean } | null | undefined)?.paletteClose) {
+        navigate(-1);
+      }
+    };
+  }, [isOpen, _dismiss, navigate]);
 
   const wqlConfig = request?.wql;
-
   // Mobile (<lg): the palette floats near the viewport top and its height is
   // capped to the visual viewport so the soft keyboard never covers results.
   // Tracked live (on open + viewport resize/scroll — both fire when the
-  // keyboard opens). Desktop keeps the 20% drop and no cap.
+  // keyboard opens). Desktop drops 10% and caps at 80vh so long result lists
+  // scroll in place instead of running past the bottom of the viewport.
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   useEffect(() => {
     if (!isOpen) return;
@@ -162,21 +186,34 @@ export const PaletteShell: React.FC = () => {
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}
+        diagnosticsPosition="top"
+        diagnosticsActions={
+          <>
+            {/* Cancel is the mobile close affordance (no Escape key on touch);
+                hidden on sm+ where Esc/overlay close. */}
+            <button
+              type="button"
+              onClick={_dismiss}
+              data-testid="palette-cancel"
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors sm:hidden dark:border-zinc-700"
+            >
+              Cancel
+            </button>
+            {wqlConfig.onApply && (
+              <button
+                type="button"
+                onClick={applyQuery}
+                data-testid="palette-apply-query"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Apply query
+              </button>
+            )}
+          </>
+        }
         onSubmit={wqlConfig.onApply ? applyQuery : undefined}
         autoFocus
       />
-      {wqlConfig.onApply && (
-        <div className="flex items-center justify-end pt-1.5">
-          <button
-            type="button"
-            onClick={applyQuery}
-            data-testid="palette-apply-query"
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Apply query
-          </button>
-        </div>
-      )}
     </div>
   ) : undefined;
 
@@ -185,7 +222,7 @@ export const PaletteShell: React.FC = () => {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
-          className={`fixed left-1/2 z-50 flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} -translate-x-1/2 outline-none shadow-2xl top-[2px] lg:top-[20%] max-lg:max-h-[var(--palette-max-h)]`}
+          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} outline-none shadow-2xl top-[2px] lg:top-[10%] max-lg:max-h-[var(--palette-max-h)] lg:max-h-[80vh]`}
           style={{
             // 160px floor so the input row never collapses on short landscape
             // viewports.
@@ -209,6 +246,7 @@ export const PaletteShell: React.FC = () => {
             onSelect={handleSelect}
             isOpen={true}
             onClose={_dismiss}
+            mobileClose
             placeholder={request?.placeholder ?? 'Search…'}
             searchRow={searchRow}
             filterResults={!wqlConfig}

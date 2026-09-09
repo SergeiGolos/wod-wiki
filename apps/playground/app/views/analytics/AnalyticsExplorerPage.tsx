@@ -24,7 +24,7 @@ import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Pla
 import { queryService } from '@/services/queryService';
 import { parseQuery, serialize, isAggregateQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
-import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
+import { StickyPageHeader, StickyGroupHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
 import { groupEntriesByDate } from '../../lib/entryGrouping';
 import { formatDateHeader } from '../../lib/dateFormat';
@@ -88,18 +88,12 @@ function GroupedEntryList({ entries, stickyOffset }: { entries: Entry[]; stickyO
     <div className="-mx-4">
       {groupEntriesByDate(entries).map(([date, group]) => (
         <div key={date} className="flex flex-col">
-          <div
-            className="sticky z-[5] px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2"
-            style={{ top: stickyOffset }}
-          >
-            <CalendarIcon className="size-3 text-muted-foreground flex-shrink-0" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {date === '(undated)' ? 'Undated' : formatDateHeader(date)}
-            </span>
-            <span className="text-[10px] font-bold text-muted-foreground/60 tabular-nums" data-testid="library-group-count">
-              {group.length}
-            </span>
-          </div>
+          <StickyGroupHeader
+            top={stickyOffset}
+            icon={<CalendarIcon className="size-3 shrink-0 text-muted-foreground" />}
+            label={date === '(undated)' ? 'Undated' : formatDateHeader(date)}
+            meta={<span data-testid="library-group-count" className="font-bold tabular-nums">{group.length}</span>}
+          />
           <div className="flex flex-col gap-0 pb-1">
             {group.map(entry => (
               <LibraryRow

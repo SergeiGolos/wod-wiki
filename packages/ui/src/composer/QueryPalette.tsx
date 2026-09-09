@@ -9,22 +9,22 @@ import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
+  CLEAR_ONLY_TYPES,
   getClauseMeta,
   sourcePlane,
   allowedFilterTypesForSource,
-  SOURCE_OPTIONS,
-  TIME_OPTIONS,
-  AGG_OPTIONS,
-  ROLLUP_OPTIONS,
-  GROUPBY_OPTIONS,
-  METRIC_OPTIONS,
-  UNIT_OPTIONS,
 } from './queryClauses';
-import { WQL_INTENSITY_TIERS } from '@bitcobblers/wod-wiki-wql';
+import { MULTI_VALUE_TYPES, STATIC_OPTIONS } from './clauseVocab';
 
 export interface TokenSlotPillProps {
   clause: QueryClause;
   isActive?: boolean;
+  /** The composer's Tab focus ring is on the pill body — highlight + expand
+   *  the label like the editing state. */
+  navActive?: boolean;
+  /** The Tab focus ring is on the remove button — highlight it red; Enter
+   *  will remove the filter (or clear it when required). */
+  removeNavActive?: boolean;
   invalid?: boolean;
   invalidReason?: string;
   onClick?: () => void;
@@ -37,6 +37,8 @@ export interface TokenSlotPillProps {
 export function TokenSlotPill({
   clause,
   isActive,
+  navActive = false,
+  removeNavActive = false,
   invalid = false,
   invalidReason,
   onClick,
@@ -49,6 +51,7 @@ export function TokenSlotPill({
   const customDef = composerRegistry.getSlot(clause.type);
   const [open, setOpen] = useState(false);
   const pillRef = useRef<HTMLDivElement>(null);
+
 
   const hasValue = Boolean(clause.value && clause.value.trim());
 
@@ -74,10 +77,14 @@ export function TokenSlotPill({
         ref={pillRef}
         data-testid={`token-slot-${clause.type}`}
         role="button"
-        tabIndex={0}
+        // Not in the native tab order — the composer input owns Tab/Shift+Tab
+      // and drives the pill focus ring itself.
+      tabIndex={-1}
         onClick={() => {
           onClick?.();
-          setOpen((o) => !o);
+          // Custom slots keep their popover editor; built-ins edit inline
+          // in the composer (the composer owns that surface).
+          if (customDef) setOpen((o) => !o);
         }}
         onKeyDown={handleKeyDown}
         title={invalid ? invalidReason : undefined}
@@ -85,7 +92,7 @@ export function TokenSlotPill({
           'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono transition-colors cursor-pointer select-none border',
           invalid
             ? 'bg-destructive/10 text-destructive border-destructive/40 hover:bg-destructive/20'
-            : isActive
+            : isActive || navActive
               ? 'bg-primary text-primary-foreground border-primary font-medium shadow-sm'
               : hasValue
                 ? 'bg-muted/80 text-foreground border-border hover:bg-muted'
@@ -94,11 +101,16 @@ export function TokenSlotPill({
         )}
       >
         <span className="text-[10px] opacity-70">{meta.icon}</span>
-        <span className="font-semibold text-[11px] opacity-90">{meta.label}:</span>
+        {/* Label prefix only while the pill is engaged (editing or Tab-ring
+            focus on it or its remove button) — at rest the value alone
+            ("notes") reads cleaner than "Source: notes". */}
+        {(isActive || navActive || removeNavActive) && (
+          <span className="font-semibold text-[11px] opacity-90">{meta.label}:</span>
+        )}
         <span data-testid={`token-slot-value-${clause.type}`} className={cn('truncate max-w-44', !hasValue && 'italic opacity-60')}>
           {hasValue ? clause.value : placeholderOverride || meta.placeholder}
         </span>
-        {onRemove && !meta.required && (
+        {onRemove && (
           <button
             type="button"
             data-testid={`token-slot-remove-${clause.type}`}
@@ -106,15 +118,20 @@ export function TokenSlotPill({
               e.stopPropagation();
               onRemove();
             }}
-            className="ml-1 p-0.5 rounded-full hover:bg-black/10 text-inherit opacity-70 hover:opacity-100"
-            title={`Remove ${meta.label}`}
+            className={cn(
+              'ml-1 p-0.5 rounded-full transition-all',
+              removeNavActive
+                ? 'bg-destructive text-destructive-foreground opacity-100 ring-2 ring-destructive/40'
+                : 'hover:bg-black/10 text-inherit opacity-70 hover:opacity-100',
+            )}
+            title={CLEAR_ONLY_TYPES.has(clause.type) ? `Clear ${meta.label}` : `Remove ${meta.label}`}
           >
             <X className="w-3 h-3" />
           </button>
         )}
       </div>
 
-      {open && onChange && (customDef ? (
+      {open && onChange && customDef && (
         <CustomSlotPopover
           clause={clause}
           anchor={pillRef.current}
@@ -126,43 +143,12 @@ export function TokenSlotPill({
             setOpen(false);
           }}
         />
-      ) : (
-        <ClausePopover
-          clause={clause}
-          anchor={pillRef.current}
-          onClose={() => setOpen(false)}
-          onChange={(patch) => {
-            onChange(patch);
-            setOpen(false);
-          }}
-        />
-      ))}
+      )}
     </div>
   );
 }
 
-export const MULTI_VALUE_TYPES: Record<string, true> = {
-  tag: true,
-  catalog: true,
-  effort: true,
-  discipline: true,
-  intensity: true,
-  origin: true,
-  type: true,
-  has: true,
-};
-
-const STATIC_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  source: SOURCE_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
-  time: TIME_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
-  agg: AGG_OPTIONS,
-  rollup: ROLLUP_OPTIONS,
-  groupby: GROUPBY_OPTIONS,
-  metric: METRIC_OPTIONS,
-  unit: UNIT_OPTIONS,
-  intensity: WQL_INTENSITY_TIERS.map((v) => ({ value: v, label: v })),
-  origin: ['builtin', 'user', 'canonical', 'custom'].map((v) => ({ value: v, label: v })),
-};
+export { MULTI_VALUE_TYPES } from './clauseVocab';
 
 function emptyStateMessage({
   loading,
@@ -288,8 +274,13 @@ export function ClausePopover({
   useEffect(() => {
     // Focus the filter input when present; otherwise the popover itself so
     // Up/Down + Enter keyboard selection works for target/scope/time slots.
-    if (inputRef.current) inputRef.current.focus();
-    else popoverRef.current?.focus();
+    // Focus on the next frame: the portal content mounts in this commit and
+    // a same-commit focus() races the render and silently no-ops.
+    const raf = requestAnimationFrame(() => {
+      if (inputRef.current) inputRef.current.focus();
+      else popoverRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   // Backdrop click
@@ -400,7 +391,7 @@ export function ClausePopover({
         <input
           ref={inputRef}
           type="text"
-          data-testid="wql-composer-input"
+          data-testid="wql-popover-input"
           value={val}
           onChange={(e) => {
             setVal(e.target.value);

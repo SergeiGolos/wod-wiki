@@ -1,17 +1,29 @@
 import { CompositeEffortRegistry } from '@bitcobblers/wod-wiki-lang';
-import { getBundledEfforts } from '@/repositories/effort-markdown';
+import { indexedDBService } from './db/IndexedDBService';
 import { indexedDBEffortStorage } from './db/IndexedDBEffortStorage';
 
 /**
- * Creates a CompositeEffortRegistry configured for the Playground application:
- * 1. Bundled tier seeded from markdown/efforts/
- * 2. User tier persisted in IndexedDB
+ * The app effort registry — BOTH tiers live in IndexedDB (docs/prototypes/
+ * seed-data-unification.md):
+ *
+ *   - bundled tier: rows the Seed Import materialized from the efforts
+ *     chunk (`registrySource: 'bundled'`);
+ *   - user tier: clones/edits persisted through the storage adapter
+ *     (`registrySource: 'user'`, `-custom` slugs).
+ *
+ * Hydration is async because the store read is; construct synchronously,
+ * then `hydrateAppEffortRegistry` before declaring readiness.
  */
 export function createAppEffortRegistry(): CompositeEffortRegistry {
   return new CompositeEffortRegistry({
-    bundled: getBundledEfforts(),
     storage: indexedDBEffortStorage,
   });
+}
+
+/** Load both tiers from IndexedDB: seed rows feed the read-only tier. */
+export async function hydrateAppEffortRegistry(registry: CompositeEffortRegistry): Promise<void> {
+  const all = await indexedDBService.getAllEfforts();
+  await registry.loadBundled(all.filter((effort) => effort.registrySource === 'bundled'));
 }
 
 let appEffortRegistry: CompositeEffortRegistry | null = null;

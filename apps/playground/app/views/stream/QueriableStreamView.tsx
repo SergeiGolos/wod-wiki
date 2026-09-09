@@ -26,6 +26,7 @@ import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { createPortal } from 'react-dom'
 import {
   StickyPageHeader,
+  StickyGroupHeader,
   useStickyBoundaryOffset,
   useMobileQuerySlot,
 } from '@/panels/page-shells'
@@ -361,55 +362,58 @@ export function QueriableStreamView({
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
       {/* Desktop: single-line header — the query bar fills the row left
-          empty by the removed title.
-          Mobile: no page-level header at all (it would stack over the app
-          navbar and hide the menu trigger); the query bar portals up into
-          that navbar instead. */}
-      <div className="max-lg:hidden">
-        <StickyPageHeader
-          actions={
-            <ResponsiveActions
-              primary={
-                <div className="flex items-center gap-1.5">
+          empty by the removed title. The header itself is the sticky zone
+          (lg:sticky top-0) and MUST be a direct child of this full-height
+          column: a wrapper div would box the sticky element to its own
+          height and let it scroll away. max-lg:hidden therefore rides on
+          the header root via className.
+          Mobile: no page-level header at all; the query bar portals into
+          the app's mobile thumb footer (fixed bottom bar) instead — the
+          WQL composer lives in the thumb-control zone. */}
+      <StickyPageHeader
+        className="max-lg:hidden"
+        actions={
+          <ResponsiveActions
+            primary={
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                  title="View Settings"
+                  data-testid="stream-view-settings-trigger"
+                >
+                  <SlidersHorizontal className="size-3.5" />
+                  <span className="hidden sm:inline">View</span>
+                </Button>
+                {profile.route === '/efforts' && (
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                    title="View Settings"
-                    data-testid="stream-view-settings-trigger"
+                    onClick={() => navigate('/effort/new?mode=create')}
+                    className="h-8 px-2.5 text-xs gap-1.5"
+                    data-testid="efforts-catalog-create-btn"
                   >
-                    <SlidersHorizontal className="size-3.5" />
-                    <span className="hidden sm:inline">View</span>
+                    <Plus className="size-3.5" />
+                    <span>New</span>
                   </Button>
-                  {profile.route === '/efforts' && (
-                    <Button
-                      size="sm"
-                      onClick={() => navigate('/effort/new?mode=create')}
-                      className="h-8 px-2.5 text-xs gap-1.5"
-                      data-testid="efforts-catalog-create-btn"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>New</span>
-                    </Button>
-                  )}
-                </div>
-              }
-              label="Stream actions"
-            >
-              {actions}
-            </ResponsiveActions>
-          }
-          queryBar={
-            <StreamQueryBar
-              query={query}
-              onQueryChange={setQuery}
-              options={profile.typeOptions}
-              execute={execute}
-            />
-          }
-        />
-      </div>
+                )}
+              </div>
+            }
+            label="Stream actions"
+          >
+            {actions}
+          </ResponsiveActions>
+        }
+        queryBar={
+          <StreamQueryBar
+            query={query}
+            onQueryChange={setQuery}
+            options={profile.typeOptions}
+            execute={execute}
+          />
+        }
+      />
       {isMobile && mobileSlot && (
         createPortal(
           <StreamQueryBar
@@ -469,6 +473,7 @@ export function QueriableStreamView({
             entries={entries}
             level={profile.level}
             visibleFieldIds={settings.visibleFields}
+            stickyHeaderTop={stickyOffset}
             emptyMessage={profile.emptyMessage ?? 'No matching records found.'}
           />
         </div>
@@ -477,6 +482,7 @@ export function QueriableStreamView({
           <StreamFeed
             groups={visibleGroups}
             batch={entriesBatch}
+            stickyOffset={stickyOffset}
             onRunEntry={handleRunEntry}
             onSendToPlayground={handleSendToPlayground}
           />
@@ -537,25 +543,17 @@ export function QueriableStreamView({
 
                 return (
                   <div key={group.id} id={group.id} className="group/date" data-testid={`date-group-${group.key}`}>
-                    <div
-                      className="sticky z-10 px-6 py-2 bg-card/95 backdrop-blur border-y border-border/60 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                      style={{ top: `${stickyOffset}px` }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="size-3.5 text-muted-foreground" />
-                        <span className="text-xs font-bold text-foreground">
-                          {group.label}
+                    <StickyGroupHeader
+                      top={stickyOffset}
+                      icon={<CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />}
+                      label={group.label}
+                      badge={group.isToday ? (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                          Today
                         </span>
-                        {group.isToday && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                            Today
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {totalInGroup} {totalInGroup === 1 ? 'entry' : 'entries'}
-                      </span>
-                    </div>
+                      ) : undefined}
+                      meta={`${totalInGroup} ${totalInGroup === 1 ? 'entry' : 'entries'}`}
+                    />
                     <div className="divide-y divide-border/30">
                       {group.entries.map(entry => (
                         <LibraryRow

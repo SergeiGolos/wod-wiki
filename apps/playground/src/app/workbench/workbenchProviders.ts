@@ -21,6 +21,6 @@ export function resolveWorkbenchProvider(
   };
 }
 
-export function loadStaticWorkbenchContent(routeId: string): string | null {
-  return getScriptContent(routeId) ?? null;
+export async function loadStaticWorkbenchContent(routeId: string): Promise<string | null> {
+  return (await getScriptContent(routeId)) ?? null;
 }

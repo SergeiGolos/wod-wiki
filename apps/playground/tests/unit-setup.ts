@@ -71,82 +71,49 @@ if (typeof (globalThis as unknown as Record<string, unknown>).IntersectionObserv
 
 // ── IndexedDB polyfill ──────────────────────────────────────────────────────
 import 'fake-indexeddb/auto';
-// ── Pre-mock Vite-specific modules ──────────────────────────────────────────
-// These modules use `import.meta.glob` which is only available in Vite builds.
-// Registering stubs here prevents the "import.meta.glob is not a function"
-// error when these modules are loaded transitively via component imports.
-// Individual tests can override these stubs with their own vi.mock() calls.
-
-// The real adapter is import-safe (glob calls are deferred), so spread it to
-// keep pure helpers (getFeedDateKeys, getScriptFeedItem) exercising real code
-// while the glob-backed readers stay stubbed.
+// ── Seeded-corpus repository stubs ──────────────────────────────────────────
+// The repository adapters now read through the seed-content seam (IndexedDB).
+// The real modules are import-safe; spread them to keep the pure builders
+// exercising real code while the async corpus reads stay stubbed empty.
 const realScriptFeeds = await import('@/repositories/script-feeds');
 mock.module('@/repositories/script-feeds', () => ({
   ...realScriptFeeds,
-  getScriptFeeds: () => [],
-  getScriptFeed: (_slug: string) => null,
+  getScriptFeeds: async () => [],
+  getScriptFeed: async (_slug: string) => undefined,
+  getScriptFeedItem: async () => undefined,
 }));
 
+const realScriptCollections = await import('@/repositories/script-collections');
 mock.module('@/repositories/script-collections', () => ({
-  getScriptCollections: () => [],
-  getScriptCollection: (_slug: string) => null,
+  ...realScriptCollections,
+  getScriptCollections: async () => [],
+  getScriptCollection: async (_slug: string) => undefined,
 }));
 
 mock.module('@/repositories/script-loader', () => ({
-  getScriptContent: (_id: string) => undefined,
-  getAllScriptIds: () => [],
+  getScriptContent: async (_id: string) => undefined,
+  getAllScriptIds: async () => [],
 }));
 
 mock.module('@/repositories/page-examples', () => ({
-  getTabExamples: (_page: string, _section: string) => [],
-  getHomeExample: (_name: string) => '',
+  getTabExamples: async (_page: string, _section: string) => [],
+  getHomeExample: async (_name: string) => '',
 }));
-mock.module('../app/lib/dashboardCorpus', () => ({
-  DASHBOARD_SEEDS: [],
+mock.module('@/repositories/script-loader', () => ({
+  getScriptContent: async (_id: string) => undefined,
+  getAllScriptIds: async () => [],
 }));
 mock.module('../app/canvas/canvasRoutes', () => ({
-  canvasRoutes: [],
+  buildCanvasRoutes: () => [],
+  findCanvasPageIn: () => null,
+  useCanvasRoutes: () => [],
+  useFindCanvasPage: () => null,
   normalizePathname: (p: string) => p,
-  findCanvasPage: (p: string) => null,
 }));
 
-
-// The real module is import-safe (glob calls are deferred), so spread it to
-// keep the pure document-format functions (effortToDocument, documentToEffort,
-// parseEffortFile) exercising real code while the glob-backed readers stay
-// stubbed.
-const realEffortMarkdown = await import('@/repositories/effort-markdown');
-mock.module('@/repositories/effort-markdown', () => ({
-  ...realEffortMarkdown,
-  getBundledEfforts: () => [
-    {
-      id: 'effort-bundled-rowing',
-      slug: 'rowing',
-      label: 'Rowing',
-      aliases: ['row', 'rower', 'erg'],
-      baseAttributes: { met: 7.0, discipline: 'rowing', intensityTier: 'high' },
-      registrySource: 'bundled',
-    },
-    {
-      id: 'effort-bundled-burpee',
-      slug: 'burpee',
-      label: 'Burpee',
-      aliases: ['burpees'],
-      baseAttributes: { met: 10.0, discipline: 'bodyweight', intensityTier: 'high' },
-      registrySource: 'bundled',
-    },
-    {
-      id: 'effort-bundled-running-6mph',
-      slug: 'running-6-mph',
-      label: 'Running (6 mph)',
-      aliases: ['run', 'jogging', 'treadmill'],
-      baseAttributes: { met: 9.8, discipline: 'running', intensityTier: 'moderate' },
-      registrySource: 'bundled',
-    },
-  ],
-  getBundledEffortCount: () => 3,
-  getEffortMarkdown: (_slug: string) => null,
-}));
+// effort-markdown is glob-free since the efforts flip — the real module's
+// pure document-format functions (effortToDocument, documentToEffort,
+// parseEffortFile) are exercised everywhere.
 
 
 // Provide vi.mocked helper for compatibility across tests

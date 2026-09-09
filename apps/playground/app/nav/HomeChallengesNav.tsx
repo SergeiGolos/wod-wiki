@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePageQuests, type Quest } from '../hooks/usePageQuests';
-import { findCanvasPage } from '../canvas/canvasRoutes';
+import { useFindCanvasPage } from '../canvas/canvasRoutes';
 import { ChallengeCard } from '../components/molecules/ChallengeCard';
 
 /**
@@ -25,7 +25,7 @@ export const HOME_DEFAULT_QUESTS: Quest[] = [
 
 
 export function HomeChallengesNav() {
-  const page = findCanvasPage('/');
+  const page = useFindCanvasPage('/');
   const quests = useMemo(() => {
     const fromPage = page?.quests.filter((q) => q.id.startsWith('qs-')) ?? [];
     return fromPage.length > 0 ? fromPage : HOME_DEFAULT_QUESTS;

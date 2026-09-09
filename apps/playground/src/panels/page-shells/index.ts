@@ -20,6 +20,7 @@ export { ScopedRuntimeProvider, type ScopedRuntimeProviderProps } from './Scoped
 export { CanvasPage, type CanvasPageProps } from './CanvasPage';
 export { StickyPageHeader, type StickyPageHeaderProps } from './StickyPageHeader';
 export { measureStickyBoundary, useStickyBoundaryOffset, STICKY_BOUNDARY_SELECTOR } from './stickyBoundary';
+export { StickyGroupHeader, type StickyGroupHeaderProps } from './StickyGroupHeader';
 export {
   MobileQuerySlotProvider,
   MobileQuerySlotTarget,

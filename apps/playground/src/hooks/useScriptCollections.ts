@@ -1,11 +1,14 @@
 /**
  * useScriptCollections — React hook for accessing WOD collections
- * derived from markdown/collections/ subdirectories.
+ * derived from the seeded corpus (markdown/collections/), via the
+ * seed-content seam. Returns an empty list until the corpus lands; the
+ * list refreshes automatically when a new seed is imported.
  */
 import { useMemo, useCallback } from 'react';
 import { useQueryState } from 'nuqs';
-import { getScriptCollections, getScriptCollection } from '@/repositories/script-collections';
+import { buildScriptCollections } from '@/repositories/script-collections';
 import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
+import { useSeedContent } from '@/services/content/seedContent';
 
 export type { ScriptCollection, ScriptCollectionItem };
 
@@ -23,7 +26,11 @@ export interface UseScriptCollectionsReturn {
 }
 
 export function useScriptCollections(): UseScriptCollectionsReturn {
-    const collections = useMemo(() => getScriptCollections(), []);
+    const files = useSeedContent();
+    const collections = useMemo(
+        () => (files ? buildScriptCollections(files) : []),
+        [files],
+    );
     const [activeCollectionId, setActiveCollectionId] = useQueryState('col', {
         defaultValue: '',
         clearOnDefault: true,
@@ -31,8 +38,8 @@ export function useScriptCollections(): UseScriptCollectionsReturn {
 
     const activeCollection = useMemo(() => {
         if (!activeCollectionId) return null;
-        return getScriptCollection(activeCollectionId) ?? null;
-    }, [activeCollectionId]);
+        return collections.find(c => c.id === activeCollectionId) ?? null;
+    }, [collections, activeCollectionId]);
 
     const activeCollectionItems = useMemo(() => {
         return activeCollection?.items ?? [];

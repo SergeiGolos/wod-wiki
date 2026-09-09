@@ -1,33 +1,43 @@
 /**
- * Loads markdown content from the project's markdown directory.
- * Uses Vite's import.meta.glob feature.
+ * script-loader — view-source content over the seeded corpus
+ * (docs/prototypes/seed-data-unification.md § Module 3).
+ *
+ * Resolves a script id (e.g. `crossfit-girls/fran` or `syntax/basics`) to
+ * the raw markdown of the corresponding collections/canvas page. Reads go
+ * through the seed-content seam (IndexedDB-backed); the old build-time glob
+ * is gone.
  */
-const markdownModules = import.meta.glob('../../../../markdown/**/*.md', { query: '?raw', eager: true, import: 'default' });
+import { ensureSeedContent } from '@/services/content/seedContent';
 
-export function getScriptContent(id: string): string | undefined {
-    // Try exact matches in both collections and canvas
-    const paths = [
-        `../../markdown/collections/${id}.md`,
-        `../../markdown/canvas/${id}.md`
-    ];
-    
-    for (const path of paths) {
-        if (markdownModules[path]) {
-            return markdownModules[path] as string;
-        }
-    }
-
-    // Try case-insensitive match by searching for the suffix /id.md
-    const suffix = `/${id}.md`.toLowerCase();
-    const entry = Object.entries(markdownModules).find(([p]) => p.toLowerCase().endsWith(suffix));
-
-    return entry ? (entry[1] as string) : undefined;
+/** All seeded collections/canvas script ids (path under the corpus, no extension). */
+export async function getAllScriptIds(): Promise<string[]> {
+  const files = await ensureSeedContent();
+  return Object.keys(files)
+    .map((path) => {
+      const match = path.match(/^markdown\/(?:collections|canvas)\/(.+)\.md$/);
+      return match ? match[1] : path;
+    })
+    .filter((id) => id.startsWith('/') === false);
 }
 
-export function getAllScriptIds(): string[] {
-    return Object.keys(markdownModules).map(path => {
-        // Match: ../../markdown/{collections|canvas}/(slug).md
-        const match = path.match(/\/markdown\/(?:collections|canvas)\/(.+)\.md$/);
-        return match ? match[1] : path;
-    });
+/** Resolve a script id to its raw markdown, exact path first, then suffix match. */
+export async function getScriptContent(id: string): Promise<string | undefined> {
+  const files = await ensureSeedContent();
+  // Try exact matches in both collections and canvas
+  const paths = [
+    `markdown/collections/${id}.md`,
+    `markdown/canvas/${id}.md`,
+  ];
+
+  for (const path of paths) {
+    if (files[path]) {
+      return files[path];
+    }
+  }
+
+  // Try case-insensitive match by searching for the suffix /id.md
+  const suffix = `/${id}.md`.toLowerCase();
+  const entry = Object.entries(files).find(([p]) => p.toLowerCase().endsWith(suffix));
+
+  return entry ? entry[1] : undefined;
 }

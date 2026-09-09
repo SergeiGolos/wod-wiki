@@ -24,7 +24,7 @@ import {
 import type { IEffort } from '@bitcobblers/wod-wiki-wql';
 import { getAppEffortRegistry } from '@/services/effortRegistry';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { staticNoteStore, staticBlockStore } from '@/services/content/staticBlockIndex';
+import { staticNoteStore } from '@/services/content/staticBlockIndex';
 
 /** Unified event store over IndexedDB — the `events` object store (V16). */
 export const indexedDbEventStore: UnifiedEventStore = {
@@ -74,7 +74,6 @@ export function createQueryService(): QueryService {
     indexedDbBlockStore,
     new RegistryEffortStore(),
     staticNoteStore,
-    staticBlockStore,
   );
 }
 

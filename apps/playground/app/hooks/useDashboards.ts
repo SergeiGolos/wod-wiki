@@ -4,16 +4,18 @@
  * A dashboard at /dashboard/:slug resolves to one of two sources:
  *  - vault: an editable note with `dashboard: true` frontmatter and a
  *    matching `slug:` — edits write back through journalNotes.update.
- *  - prebuilt: a read-only seed from markdown/dashboards/ (dashboardCorpus);
- *    a "Clone to vault" action turns it into an editable vault note.
+ *  - prebuilt: a read-only seed from the seeded corpus
+ *    (markdown/dashboards/**, via the seed-content seam); a "Clone to
+ *    vault" action turns it into an editable vault note.
  *
  * `useDashboardCatalog` merges both into the L2 nav list (vault dashboards
  * first, then prebuilts; a vault clone shadows its prebuilt by slug).
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { notePersistence } from '@/services/persistence'
 import { parseFrontmatter } from '@/lib/frontmatter'
-import { DASHBOARD_SEEDS } from '../lib/dashboardCorpus'
+import { buildDashboardSeeds } from '../lib/dashboardSeeds'
+import { useSeedContent } from '@/services/content/seedContent'
 
 export interface DashboardSource {
   slug: string
@@ -59,6 +61,8 @@ export function useDashboardSource(
   source: DashboardSource | null
   loading: boolean
 } {
+  const files = useSeedContent()
+  const seeds = useMemo(() => (files ? buildDashboardSeeds(files) : []), [files])
   const [source, setSource] = useState<DashboardSource | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -78,7 +82,7 @@ export function useDashboardSource(
         if (vault) {
           setSource({ slug, title: vault.title, rawContent: vault.rawContent, editable: true, noteId: vault.noteId })
         } else {
-          const seed = DASHBOARD_SEEDS.find((s) => s.slug === slug)
+          const seed = seeds.find((s) => s.slug === slug)
           setSource(seed ? { slug: seed.slug, title: seed.title, rawContent: seed.rawContent, editable: false } : null)
         }
       })
@@ -92,7 +96,8 @@ export function useDashboardSource(
       cancelled = true
     }
     // refreshKey forces re-resolution after a clone or an edit write-back.
-  }, [slug, refreshKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, refreshKey, seeds])
 
   return { source, loading }
 }
@@ -100,6 +105,8 @@ export function useDashboardSource(
 
 /** Every addressable dashboard — vault clones first, then unread prebuilts. */
 export function useDashboardCatalog(): { items: DashboardListItem[]; loading: boolean } {
+  const files = useSeedContent()
+  const seeds = useMemo(() => (files ? buildDashboardSeeds(files) : []), [files])
   const [items, setItems] = useState<DashboardListItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -113,7 +120,7 @@ export function useDashboardCatalog(): { items: DashboardListItem[]; loading: bo
         const vaultSlugs = new Set(vault.map((d) => d.slug))
         const merged: DashboardListItem[] = [
           ...vault.map((d) => ({ slug: d.slug, title: d.title, editable: true })),
-          ...DASHBOARD_SEEDS.filter((s) => !vaultSlugs.has(s.slug)).map((s) => ({
+          ...seeds.filter((s) => !vaultSlugs.has(s.slug)).map((s) => ({
             slug: s.slug,
             title: s.title,
             editable: false,
@@ -122,7 +129,7 @@ export function useDashboardCatalog(): { items: DashboardListItem[]; loading: bo
         if (!cancelled) setItems(merged)
       })
       .catch(() => {
-        if (!cancelled) setItems(DASHBOARD_SEEDS.map((s) => ({ slug: s.slug, title: s.title, editable: false })))
+        if (!cancelled) setItems(seeds.map((s) => ({ slug: s.slug, title: s.title, editable: false })))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -130,7 +137,7 @@ export function useDashboardCatalog(): { items: DashboardListItem[]; loading: bo
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [seeds])
 
   return { items, loading }
 }

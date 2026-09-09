@@ -43,6 +43,28 @@ afterEach(() => {
     },
   ]
 
+  it('sticks the column-header row under the page sticky boundary', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <PropertyTable entries={sampleEntries} level="effort" stickyHeaderTop={61} />
+      </MemoryRouter>,
+    )
+    const thead = container.querySelector('thead') as HTMLElement
+    expect(thead.className).toContain('sticky')
+    expect(thead.style.top).toBe('61px')
+  })
+
+  it('keeps the header non-sticky without stickyHeaderTop', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <PropertyTable entries={sampleEntries} level="effort" />
+      </MemoryRouter>,
+    )
+    const thead = container.querySelector('thead') as HTMLElement
+    expect(thead.className).not.toContain('sticky')
+    expect(thead.style.top).toBe('')
+  })
+
   it('renders table headers for all default visible fields for effort level', () => {
     render(
       <MemoryRouter>

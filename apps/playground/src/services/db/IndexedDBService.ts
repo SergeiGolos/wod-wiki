@@ -210,8 +210,15 @@ export interface WodWikiDB extends DBSchema {
             'by-type': string;       // V14 — dataType; filter by block kind
         };
     };
+    /** V19 — key-value checkpoint records (seed import; open for future
+     *  import/GC state). Values are opaque at the schema level; readers cast. */
+    meta: {
+        key: string;
+        value: unknown;
+        indexes: {};
+    };
 }
-const DB_VERSION = 18; // V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
+const DB_VERSION = 19; // V19 — meta kv store (seed import checkpoint); V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -1007,6 +1014,11 @@ export class IndexedDBService {
                     store.createIndex('by-note', 'noteId');
                     store.createIndex('by-content', 'blockContentId');
                     store.createIndex('by-type', 'dataType');
+                }
+
+                // ---- Meta (V19 — kv checkpoints: seed import state) ----
+                if (!db.objectStoreNames.contains('meta')) {
+                    db.createObjectStore('meta', { keyPath: 'key' });
                 }
 
                 // ---- Page / Tags / NoteTags (V10 — additive) ----
@@ -1900,6 +1912,30 @@ export class IndexedDBService {
     /** Load all block_index rows (for naive in-memory find:block queries). */
     async getAllBlockIndex(): Promise<BlockIndexRow[]> {
         return (await this.dbPromise).getAll('block_index');
+    }
+
+    /**
+     * Seed corpus raw content — one entry per seed-origin note, its slug
+     * (`markdown/<corpus>/…` path) joined with the latest segment's markdown.
+     * One read-only transaction; the corpus read behind every flipped
+     * content loader (docs/prototypes/seed-data-unification.md § Module 3).
+     */
+    async getSeedContent(): Promise<Array<{ path: string; raw: string }>> {
+        const db = await this.dbPromise;
+        const tx = db.transaction(['notes', 'segments'], 'readonly');
+        const notes = (await tx.objectStore('notes').getAll()) as Note[];
+        const idx = tx.objectStore('segments').index('by-note');
+        const out: Array<{ path: string; raw: string }> = [];
+        for (const note of notes) {
+            if (note.seedOrigin !== 'seed' || !note.slug) continue;
+            const rows = (await idx.getAll(note.id)) as NoteSegment[];
+            let latest: NoteSegment | undefined;
+            for (const segment of rows) {
+                if (!latest || segment.version > latest.version) latest = segment;
+            }
+            if (latest?.rawContent) out.push({ path: note.slug, raw: latest.rawContent });
+        }
+        return out;
     }
 }
 

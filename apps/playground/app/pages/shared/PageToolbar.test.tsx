@@ -69,7 +69,7 @@ describe('ActionsMenu', () => {
     expect(scrollToSection).not.toHaveBeenCalled();
   });
 
-  it('renders leftover actions: Download Markdown and Buy Me a Coffee', () => {
+  it('renders leftover actions: Download Markdown (Buy Me a Coffee moved to the nav tree)', () => {
     const onDownload = mock(() => {});
     render(
       <MemoryRouter>
@@ -94,7 +94,7 @@ describe('ActionsMenu', () => {
     });
 
     expect(screen.getByText('Download Markdown')).toBeDefined();
-    expect(screen.getByText('Buy Me a Coffee')).toBeDefined();
+    expect(screen.queryByText('Buy Me a Coffee')).toBeNull();
 
     act(() => {
       screen.getByText('Download Markdown').click();

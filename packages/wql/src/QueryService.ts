@@ -452,7 +452,6 @@ export class QueryService {
   private readonly blockStore: BlockQueryStore;
   private readonly effortStore: EffortQueryStore;
   private readonly staticNoteStore?: NoteQueryStore;
-  private readonly staticBlockStore?: BlockQueryStore;
 
   constructor(
     storesOrEventStore?: QueryServiceStores | UnifiedEventStore,
@@ -460,7 +459,6 @@ export class QueryService {
     blockStore?: BlockQueryStore,
     effortStore?: EffortQueryStore,
     staticNoteStore?: NoteQueryStore,
-    staticBlockStore?: BlockQueryStore,
   ) {
     if (
       storesOrEventStore &&
@@ -469,8 +467,7 @@ export class QueryService {
         'noteStore' in storesOrEventStore ||
         'blockStore' in storesOrEventStore ||
         'effortStore' in storesOrEventStore ||
-        'staticNoteStore' in storesOrEventStore ||
-        'staticBlockStore' in storesOrEventStore)
+        'staticNoteStore' in storesOrEventStore)
     ) {
       const stores = storesOrEventStore as QueryServiceStores;
       this.store = stores.eventStore ?? defaultEventStore;
@@ -478,14 +475,12 @@ export class QueryService {
       this.blockStore = stores.blockStore ?? defaultBlockStore;
       this.effortStore = stores.effortStore ?? defaultEffortStore;
       this.staticNoteStore = stores.staticNoteStore;
-      this.staticBlockStore = stores.staticBlockStore;
     } else {
       this.store = (storesOrEventStore as UnifiedEventStore | undefined) ?? defaultEventStore;
       this.noteStore = noteStore ?? defaultNoteStore;
       this.blockStore = blockStore ?? defaultBlockStore;
       this.effortStore = effortStore ?? defaultEffortStore;
       this.staticNoteStore = staticNoteStore;
-      this.staticBlockStore = staticBlockStore;
     }
   }
 
@@ -801,10 +796,8 @@ export class QueryService {
    */
   async runFindBlock(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     let blocks: BlockIndexRow[] = [];
+    // One store: the seed importer materializes corpus rows next to user rows.
     blocks = blocks.concat(await this.blockStore.getAllBlocks());
-    if (this.staticBlockStore) {
-      blocks = blocks.concat(await this.staticBlockStore.getAllBlocks());
-    }
     blocks = applySourceFilter(blocks, parsed.filters);
     const selectedCount = blocks.length;
     const ctx = runContext(options);
@@ -1288,11 +1281,9 @@ export class QueryService {
       .filter((f) => f.metricKey === metricKey);
   }
 
-  /** All content blocks across the journal + static corpus. */
+  /** All content blocks — journal and seeded corpus in one store. */
   private async allContentBlocks(): Promise<BlockIndexRow[]> {
-    const blocks = await this.blockStore.getAllBlocks();
-    const staticBlocks = this.staticBlockStore ? await this.staticBlockStore.getAllBlocks() : [];
-    return blocks.concat(staticBlocks);
+    return this.blockStore.getAllBlocks();
   }
 
   /** Map each note id to the wod blockContentIds it owns. */

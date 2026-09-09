@@ -97,6 +97,8 @@ export function ViewSettingsDialog({
               { id: 'month', label: 'Month' },
               { id: 'year', label: 'Year' },
               { id: 'discipline', label: 'Discipline' },
+              { id: 'tag', label: 'Tags' },
+              { id: 'source', label: 'Source' },
             ].map(opt => {
               const currentGroup = (activeGroupBy || settings.groupBy || (level === 'effort' ? 'discipline' : 'date')).toLowerCase()
               const isSelected = currentGroup === opt.id

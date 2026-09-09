@@ -50,6 +50,16 @@ export interface Note {
      *  or markdown/feeds, with the `feeds/` wrapper stripped). Synthesised by
      *  QueryService.staticNotesFromBlocks; undefined for journal notes. */
     catalog?: string;
+
+    // ── Seed provenance (docs/prototypes/seed-data-unification.md) ──
+    /** Set on rows the Seed Import owns. Absent ≡ user-owned: the importer
+     *  only ever overwrites or deletes rows with seedOrigin === 'seed'. The
+     *  edit path flips this to 'user' on first user change (phase 3). */
+    seedOrigin?: 'seed' | 'user';
+    /** manifest.version of the last seed write (seed rows only). */
+    seedVersion?: number;
+    /** The seed chunk this row came from (seed rows only). */
+    seedChunkId?: string;
 }
 
 // ---------------------------------------------------------------------------

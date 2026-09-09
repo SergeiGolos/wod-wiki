@@ -23,6 +23,10 @@ export interface PropertyTableProps {
   onRowClick?: (entry: Entry) => void
   emptyMessage?: string
   className?: string
+  /** Viewport `top` for the sticky column-header row — the page sticky
+   *  boundary's live bottom (useStickyBoundaryOffset). Omitted → the
+   *  header scrolls with the table. */
+  stickyHeaderTop?: number
 }
 
 export function PropertyTable({
@@ -32,6 +36,7 @@ export function PropertyTable({
   onRowClick,
   emptyMessage = 'No entries to display',
   className = '',
+  stickyHeaderTop,
 }: PropertyTableProps) {
   const navigate = useNavigate()
 
@@ -72,12 +77,15 @@ export function PropertyTable({
 
   return (
     <div
-      className={`w-full overflow-x-auto border-y border-border bg-card/50 ${className}`}
+      className={`w-full border-y border-border bg-card/50 ${stickyHeaderTop !== undefined ? 'overflow-x-clip' : 'overflow-x-auto'} ${className}`}
       data-testid="property-table"
     >
       <table className="w-full text-left border-collapse text-xs">
-        <thead>
-          <tr className="border-b border-border bg-muted/30">
+        <thead
+          className={stickyHeaderTop !== undefined ? 'sticky z-10' : undefined}
+          style={stickyHeaderTop !== undefined ? { top: `${stickyHeaderTop}px` } : undefined}
+        >
+          <tr className="border-b border-border">
             {activeFields.map(field => {
               const alignClass =
                 field.align === 'right'
@@ -89,7 +97,7 @@ export function PropertyTable({
                 <th
                   key={field.id}
                   scope="col"
-                  className={`px-4 py-3 font-semibold uppercase tracking-wider text-[11px] text-muted-foreground whitespace-nowrap ${alignClass}`}
+                  className={`px-4 py-3 font-semibold uppercase tracking-wider text-[11px] text-muted-foreground whitespace-nowrap border-b border-border ${stickyHeaderTop !== undefined ? 'bg-muted/95 backdrop-blur-sm' : 'bg-muted/30'} ${alignClass}`}
                   data-testid={`property-table-header-${field.id}`}
                 >
                   {field.label}

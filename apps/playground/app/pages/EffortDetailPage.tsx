@@ -39,7 +39,6 @@ import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { EditorDialog } from '@bitcobblers/wod-wiki-ui';
 import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
-import { indexedDBService } from '@/services/db/IndexedDBService';
 import { ResponsiveActions } from '../nav/ResponsiveActions';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
@@ -154,7 +153,6 @@ export function EffortDetailPage() {
 
     try {
       await registry.upsert(parsed);
-      await indexedDBService.saveEffort(parsed);
       await refresh();
       navigate(`/effort/${parsed.slug}`, { replace: true });
     } catch (err) {

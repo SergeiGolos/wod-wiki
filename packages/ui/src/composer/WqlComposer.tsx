@@ -16,6 +16,9 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { Command } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { TokenSlotPill, AddFilterDropdown, AddCalcDropdown } from './QueryPalette';
+import { InlineClauseEditor } from './InlineClauseEditor';
+import { useClauseItems } from './clauseItems';
+import { composerRegistry } from './ComposerRegistry';
 import { diagnosePills, type WqlDiagnostics } from './diagnostics';
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
 import {
@@ -24,7 +27,16 @@ import {
   type WqlExecutor,
   type AnyParsedQuery,
 } from './useWqlStageCounts';
-import { type ClauseType, type QueryClause, getClauseMeta, sourcePlane } from './queryClauses';
+import {
+  type ClauseType,
+  type QueryClause,
+  CLAUSE_META,
+  CLEAR_ONLY_TYPES,
+  allowedFilterTypesForSource,
+  getClauseMeta,
+  sourcePlane,
+} from './queryClauses';
+import { matchFilterTypeahead } from './filterTypeahead';
 import {
   pillsToAst,
   pillsToWql,
@@ -70,6 +82,10 @@ export interface WqlComposerProps {
   onSubmit?: (wql: string) => void;
   /** Render the diagnostics strip (badge, AST summary, stage counts). Default true. */
   showDiagnostics?: boolean;
+  /** Where the diagnostics/action strip renders. 'top' presents it as a header
+   *  row above the composer box (command-palette style); 'bottom' (default)
+   *  keeps it beneath the box. */
+  diagnosticsPosition?: 'top' | 'bottom';
   /**
    * Executor for live stage counts in the diagnostics strip.
    */
@@ -109,6 +125,7 @@ export function WqlComposer({
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
   diagnosticsActions,
+  diagnosticsPosition = 'bottom',
   hiddenClauseTypes,
   autoFocus = false,
   placeholder = 'Type search term and press Enter...',
@@ -128,6 +145,22 @@ export function WqlComposer({
 
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [freeText, setFreeText] = useState('');
+
+  // Filter typeahead: typing a filter key proposes adding that filter — or,
+  // when a pill of the type is already on the query, editing it. Accept
+  // (Tab or tap) adds/activates the pill; the condition editor is the
+  // inline list under the composer box (InlineClauseEditor).
+  const [typeaheadDismissed, setTypeaheadDismissed] = useState(false);
+  // Highlighted option row while a pill's value editor is open.
+  const [editorHighlight, setEditorHighlight] = useState(0);
+  // Highlighted row inside the filter typeahead. `typeaheadNavigated` flips
+  // true once the user arrows within the list — then Enter accepts the
+  // highlighted filter instead of committing the typed text.
+  const [typeaheadHighlight, setTypeaheadHighlight] = useState(0);
+  const [typeaheadNavigated, setTypeaheadNavigated] = useState(false);
+  // Tab / Shift+Tab(Alt+Tab) focus ring across pills and their remove
+  // buttons. null = no nav selection (plain input mode).
+  const [navTarget, setNavTarget] = useState<{ idx: number; part: 'pill' | 'remove' } | null>(null);
 
   // Mirror the controlled query prop so the live-search effect can emit the
   // original string when no free text is pending. That avoids re-serializing
@@ -223,6 +256,7 @@ export function WqlComposer({
     const next = pills.filter((_, i) => i !== idx);
     setPills(next);
     emitIfControlled(next);
+    if (activeSlotIdx !== null) setActiveSlotIdx(null);
   };
 
   /** In controlled mode the parent owns the query — push the edit out so the
@@ -273,6 +307,116 @@ export function WqlComposer({
     }
     return { kind: 'text', value: words[0]! };
   }, [freeText]);
+
+  const typeaheadMatches = useMemo(() => {
+    if (typeaheadDismissed || rawEscape || activeSlotIdx !== null) return [];
+    const sourceVal = pills.find((c) => c.type === 'source')?.value || 'notes';
+    const allowed = allowedFilterTypesForSource(sourceVal);
+    const pillIdxByType = new Map<string, number>();
+    pills.forEach((c, i) => {
+      if (!pillIdxByType.has(c.type)) pillIdxByType.set(c.type, i);
+    });
+    const candidates = (Object.keys(CLAUSE_META) as ClauseType[])
+      .filter((type) => {
+        if (CLAUSE_META[type].required) return false;
+        if (hiddenTypes.has(type)) return false;
+        // The plane selector is not in the filter allowlists (every query
+        // has one) — it still proposes, always as an EDIT of the existing
+        // source pill.
+        if (type === 'source') return true;
+        return allowed.has(type);
+      })
+      .map((type) => {
+        const meta = CLAUSE_META[type];
+        const pillIdx = pillIdxByType.get(type);
+        return {
+          type,
+          label: meta.label,
+          hint: meta.placeholder,
+          icon: meta.icon,
+          present: pillIdx !== undefined,
+          pillIdx,
+        };
+      });
+    return matchFilterTypeahead(freeText, candidates);
+  }, [freeText, pills, hiddenTypes, typeaheadDismissed, rawEscape]);
+  const typeaheadHL = Math.min(typeaheadHighlight, Math.max(0, typeaheadMatches.length - 1));
+
+  /** Structural pills (source/time — auto-seeded onto every query) clear
+   *  their value instead of being removed. */
+  const removeOrClear = (idx: number) => {
+    const pill = pills[idx];
+    if (pill && CLEAR_ONLY_TYPES.has(pill.type)) {
+      updatePill(idx, { value: '' });
+    } else {
+      removePill(idx);
+    }
+    setNavTarget(null);
+  };
+
+  // Tab-ring order across the visible pills: each pill exposes its body
+  // (Enter opens the inline editor) then its remove/clear target.
+  const navItems = useMemo(() => {
+    const items: { idx: number; part: 'pill' | 'remove' }[] = [];
+    pills.forEach((pill, idx) => {
+      if (hiddenTypes.has(pill.type)) return;
+      items.push({ idx, part: 'pill' }, { idx, part: 'remove' });
+    });
+    return items;
+  }, [pills, hiddenTypes]);
+
+  const stepNav = (dir: 1 | -1) => {
+    if (navItems.length === 0) return;
+    setNavTarget((cur) => {
+      if (!cur) return dir === 1 ? navItems[0]! : navItems[navItems.length - 1]!;
+      const pos = navItems.findIndex((it) => it.idx === cur.idx && it.part === cur.part);
+      if (pos === -1) return dir === 1 ? navItems[0]! : navItems[navItems.length - 1]!;
+      const nextPos = pos + dir;
+      return nextPos < 0 || nextPos >= navItems.length ? null : navItems[nextPos]!;
+    });
+  };
+
+  const activateNavTarget = () => {
+    if (!navTarget) return;
+    if (navTarget.part === 'pill') {
+      if (!pills[navTarget.idx]) { setNavTarget(null); return; }
+      // Apply the selection: open the pill's inline editor for changes.
+      setActiveSlotIdx(navTarget.idx);
+      setFreeText('');
+      setEditorHighlight(0);
+      setNavTarget(null);
+      inputRef.current?.focus();
+      return;
+    }
+    removeOrClear(navTarget.idx);
+  };
+
+  const acceptTypeahead = (match: (typeof typeaheadMatches)[number]) => {
+    if (match.present && match.pillIdx !== undefined) {
+      setActiveSlotIdx(match.pillIdx);
+    } else {
+      const meta = getClauseMeta(match.type);
+      const next: QueryClause[] = [
+        ...pills,
+        {
+          id: `c-${Date.now()}-${Math.random()}`,
+          type: match.type,
+          label: meta.label,
+          value: '',
+          inputType: meta.inputType,
+          placeholder: meta.placeholder,
+        },
+      ];
+      setPills(next);
+      emitIfControlled(next);
+      setActiveSlotIdx(next.length - 1);
+    }
+    setFreeText('');
+    setEditorHighlight(0);
+    setTypeaheadHighlight(0);
+    setTypeaheadNavigated(false);
+    inputRef.current?.focus();
+  };
 
   // Live-search emission (#1010): debounced merged query — committed pills
   // plus the pending free text serialized as a text pill, i.e. the string
@@ -349,7 +493,146 @@ export function WqlComposer({
     emitIfControlled(next);
   };
 
+  // Active pill's condition editor: built-in clauses edit inline under the
+  // composer box; custom slots keep their popover (the pill owns that).
+  const editingClause = activeSlotIdx !== null ? pills[activeSlotIdx] : undefined;
+  const editingCustom = editingClause ? Boolean(composerRegistry.getSlot(editingClause.type)) : false;
+  const editing = Boolean(editingClause) && !editingCustom;
+  const editorItems = useClauseItems(editingClause, freeText);
+
+  const commitEditorValue = (value: string) => {
+    if (activeSlotIdx === null) return;
+    const clause = pills[activeSlotIdx];
+    if (!clause) return;
+    if (editorItems.isMulti) {
+      const selected = editorItems.selectedValues;
+      const next = selected.includes(value)
+        ? selected.filter((v) => v !== value)
+        : [...selected, value];
+      updatePill(activeSlotIdx, { value: next.join('|') });
+    } else {
+      updatePill(activeSlotIdx, { value });
+      // The option-filter text was consumed by the choice — reset it so it
+      // can't linger in the input and later commit as a text filter.
+      setFreeText('');
+      setEditorHighlight(0);
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Value editing owns the keyboard while a pill editor is open: ↑↓ move
+    // the option highlight, Enter sets/toggles, Backspace pops the last
+    // multi value, Tab/Escape release the pill back to free typing. Keys
+    // stop here so an embedding list (the palette's results, #834) does not
+    // also navigate.
+    if (editing) {
+      const max = Math.max(0, editorItems.filteredItems.length - 1);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditorHighlight((i) => Math.min(i + 1, max));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditorHighlight((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        const highlighted = editorItems.filteredItems[editorHighlight];
+        if (highlighted) commitEditorValue(highlighted.value);
+        else if (editorItems.canCommitTyped) commitEditorValue(editorItems.typedValue);
+        return;
+      }
+      if (e.key === 'Backspace' && editorItems.isMulti && freeText === '' && editorItems.selectedValues.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        commitEditorValue(editorItems.selectedValues[editorItems.selectedValues.length - 1]!);
+        return;
+      }
+      if (e.key === 'Tab') {
+        // Release the editor and continue the focus ring from this pill.
+        e.preventDefault();
+        e.stopPropagation();
+        const from = activeSlotIdx;
+        setActiveSlotIdx(null);
+        setFreeText('');
+        setEditorHighlight(0);
+        // Jump between pill bodies (or back to free text at either end) —
+        // never to the just-edited pill's remove button.
+        const pillIdxs = navItems.filter((it) => it.part === 'pill').map((it) => it.idx);
+        const pos = pillIdxs.indexOf(from ?? -1);
+        const dir = e.shiftKey || e.altKey ? -1 : 1;
+        const nextPos = pos + dir;
+        setNavTarget(nextPos < 0 || nextPos >= pillIdxs.length ? null : { idx: pillIdxs[nextPos]!, part: 'pill' });
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setActiveSlotIdx(null);
+        setFreeText('');
+        setEditorHighlight(0);
+        return;
+      }
+      return;
+    }
+    if (typeaheadMatches.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      // The typeahead is the topmost composer surface — arrows steer it and
+      // never leak to a host results list (#834).
+      e.preventDefault();
+      e.stopPropagation();
+      setTypeaheadNavigated(true);
+      setTypeaheadHighlight((h) =>
+        e.key === 'ArrowDown'
+          ? Math.min(h + 1, typeaheadMatches.length - 1)
+          : Math.max(h - 1, 0),
+      );
+      return;
+    }
+    if (e.key === 'Tab' && typeaheadMatches.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      acceptTypeahead(typeaheadMatches[typeaheadHL]!);
+      return;
+    }
+    if (e.key === 'Enter' && typeaheadNavigated && typeaheadMatches.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      acceptTypeahead(typeaheadMatches[typeaheadHL]!);
+      return;
+    }
+    if (e.key === 'Escape' && typeaheadMatches.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTypeaheadDismissed(true);
+      setTypeaheadHighlight(0);
+      setTypeaheadNavigated(false);
+      return;
+    }
+    if (navTarget && e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setNavTarget(null);
+      return;
+    }
+    if (navTarget && e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      activateNavTarget();
+      return;
+    }
+    if (e.key === 'Tab') {
+      // No typeahead, no editor — Tab walks the pill focus ring
+      // (Shift+Tab / Alt+Tab walk it backwards).
+      e.preventDefault();
+      e.stopPropagation();
+      stepNav(e.shiftKey || e.altKey ? -1 : 1);
+      return;
+    }
     if (e.key !== 'Enter') return;
     if (freeText.trim()) {
       e.preventDefault();
@@ -374,13 +657,44 @@ export function WqlComposer({
     }
   };
 
+  const diagnosticsBlock = showDiagnostics ? (
+    <WqlDiagnosticsStrip
+      diagnostics={diagnostics}
+      offendingLabel={offendingLabel}
+      stages={stages}
+      hideSummary={diagnosticsPosition === 'top'}
+      variant={diagnosticsPosition === 'top' ? 'header' : 'card'}
+      actions={
+        <>
+          <AddCalcDropdown clauses={pills} onAdd={addCalc} />
+          <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
+          {diagnosticsActions}
+        </>
+      }
+    />
+  ) : (
+    <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
+      <AddCalcDropdown clauses={pills} onAdd={addCalc} />
+      <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
+      {diagnosticsActions}
+    </div>
+  );
+
   return (
     <div className="space-y-1">
+      {diagnosticsPosition === 'top' && diagnosticsBlock}
       <div
         onClick={() => inputRef.current?.focus()}
         className={cn(
-          'flex flex-wrap items-center gap-1.5 min-h-[46px] rounded-xl border border-border bg-muted/20 px-3 py-1.5 text-xs transition-all cursor-text shadow-xs',
-          activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+          'flex flex-wrap items-center gap-1.5 min-h-[46px] px-3 py-1.5 text-xs transition-all cursor-text',
+          // Header mode: the box reads as a plain textarea inside the host
+          // panel — no bubble, no active ring (the header carries the state).
+          diagnosticsPosition === 'top'
+            ? 'rounded-none border border-transparent bg-transparent'
+            : cn(
+                'rounded-xl border border-border bg-muted/20 shadow-xs',
+                activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+              ),
           className,
         )}
         data-testid="wql-composer"
@@ -393,11 +707,19 @@ export function WqlComposer({
               key={pill.id}
               clause={pill}
               isActive={activeSlotIdx === idx}
+              navActive={navTarget?.idx === idx && navTarget.part === 'pill'}
+              removeNavActive={navTarget?.idx === idx && navTarget.part === 'remove'}
               invalid={diagnostics.offendingClauseId === pill.id}
               invalidReason={diagnostics.offendingClauseId === pill.id ? diagnostics.error : undefined}
-              onClick={() => setActiveSlotIdx(idx)}
+              onClick={() => {
+                setActiveSlotIdx(activeSlotIdx === idx ? null : idx);
+                setFreeText('');
+                setEditorHighlight(0);
+                setNavTarget(null);
+                inputRef.current?.focus();
+              }}
               onChange={(patch) => updatePill(idx, patch)}
-              onRemove={() => removePill(idx)}
+              onRemove={() => removeOrClear(idx)}
               compact
             />
           ),
@@ -407,8 +729,15 @@ export function WqlComposer({
           ref={inputRef}
           type="text"
           value={freeText}
-          placeholder={placeholder}
-          onChange={(e) => setFreeText(e.target.value)}
+          placeholder={editing && editingClause ? getClauseMeta(editingClause.type).placeholder : placeholder}
+          onChange={(e) => {
+            setFreeText(e.target.value);
+            setTypeaheadDismissed(false);
+            setTypeaheadHighlight(0);
+            setTypeaheadNavigated(false);
+            setNavTarget(null);
+            if (editing) setEditorHighlight(0);
+          }}
           onKeyDown={handleKeyDown}
           className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"
           data-testid="wql-composer-input"
@@ -417,7 +746,57 @@ export function WqlComposer({
         {customSlots}
       </div>
 
-      {pending && (
+      {editing && editingClause && (
+        <InlineClauseEditor
+          clause={editingClause}
+          filteredItems={editorItems.filteredItems}
+          selectedValues={editorItems.selectedValues}
+          isMulti={editorItems.isMulti}
+          typedValue={editorItems.typedValue}
+          canCommitTyped={editorItems.canCommitTyped}
+          emptyText={editorItems.emptyText}
+          highlightIdx={Math.min(editorHighlight, Math.max(0, editorItems.filteredItems.length - 1))}
+          onHighlight={setEditorHighlight}
+          onCommitValue={commitEditorValue}
+          onCommitTyped={commitEditorValue}
+        />
+      )}
+
+      {typeaheadMatches.length > 0 && (
+        <div
+          className="mx-0.5 rounded-xl border border-border bg-popover shadow-md p-1"
+          data-testid="wql-filter-typeahead"
+        >
+          <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Add filter
+          </div>
+          {typeaheadMatches.slice(0, 6).map((m, i) => (
+            <button
+              key={m.type}
+              type="button"
+              data-testid={`wql-filter-typeahead-${m.type}`}
+              onClick={() => acceptTypeahead(m)}
+              className={cn(
+                'flex w-full items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left transition-colors hover:bg-muted',
+                i === typeaheadHL && 'bg-muted/60',
+              )}
+            >
+              <span aria-hidden>{m.icon}</span>
+              <span className="font-mono font-semibold">{m.type}</span>
+              <span className="truncate text-muted-foreground">
+                {m.present ? `edit — ${m.hint}` : m.hint}
+              </span>
+              {i === typeaheadHL && (
+                <kbd className="ml-auto rounded border border-border bg-muted/60 px-1 text-[10px] text-muted-foreground">
+                  {typeaheadNavigated ? 'Enter ↵' : 'Tab ↹'}
+                </kbd>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {pending && !editing && !(typeaheadNavigated && typeaheadMatches.length > 0) && (
         <div
           className={cn(
             'px-1.5 text-[11px] font-mono',
@@ -433,26 +812,7 @@ export function WqlComposer({
         </div>
       )}
 
-      {showDiagnostics ? (
-        <WqlDiagnosticsStrip
-          diagnostics={diagnostics}
-          offendingLabel={offendingLabel}
-          stages={stages}
-          actions={
-            <>
-              <AddCalcDropdown clauses={pills} onAdd={addCalc} />
-              <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
-              {diagnosticsActions}
-            </>
-          }
-        />
-      ) : (
-        <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
-          <AddCalcDropdown clauses={pills} onAdd={addCalc} />
-          <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
-          {diagnosticsActions}
-        </div>
-      )}
+      {diagnosticsPosition !== 'top' && diagnosticsBlock}
     </div>
   );
 }

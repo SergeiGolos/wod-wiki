@@ -1,12 +1,15 @@
 /**
- * WOD Collections — public adapter over the script-groupings loader.
+ * WOD Collections — public adapter over the seeded corpus
+ * (docs/prototypes/seed-data-unification.md § Module 3).
  *
  * A collection is a Grouping of named items from markdown/collections/.
  * Items are sorted by name ascending; collections are sorted by name
- * ascending. Results are memoised after first call (build-time data).
+ * ascending. Reads go through the seed-content seam (IndexedDB-backed);
+ * results are memoized per corpus snapshot and refresh when a new seed lands.
  */
 
-import { getGroupings } from './script-groupings';
+import { ensureSeedContent, type SeedContentFiles } from '@/services/content/seedContent';
+import { buildGroupings, type Grouping } from './groupings';
 
 export interface ScriptCollectionItem {
     /** Filename without extension, e.g. "fran" */
@@ -15,7 +18,7 @@ export interface ScriptCollectionItem {
     name: string;
     /** Raw markdown content */
     content: string;
-    /** Full glob path key */
+    /** Canonical markdown path key */
     path: string;
 }
 
@@ -34,18 +37,10 @@ export interface ScriptCollection {
     categories: string[];
 }
 
-/** Cached result */
-let _collections: ScriptCollection[] | null = null;
-
-/**
- * Get all WOD collections derived from markdown/collections/ subdirectories.
- * Results are cached after first call.
- */
-export function getScriptCollections(): ScriptCollection[] {
-    if (_collections) return _collections;
-
-    _collections = getGroupings('collections')
-        .map(grouping => ({
+/** Pure derivation over a corpus snapshot — the hook-level entry point. */
+export function buildScriptCollections(files: SeedContentFiles): ScriptCollection[] {
+    return buildGroupings('collections', files)
+        .map((grouping: Grouping) => ({
             id: grouping.id,
             name: grouping.name,
             count: grouping.items.length,
@@ -56,13 +51,27 @@ export function getScriptCollections(): ScriptCollection[] {
             categories: grouping.categories,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
+}
 
-    return _collections;
+let cacheFor: SeedContentFiles | null = null;
+let cached: ScriptCollection[] = [];
+
+/**
+ * Get all WOD collections from the seeded corpus. Memoized per corpus
+ * snapshot; resolves after the seed content is loaded.
+ */
+export async function getScriptCollections(): Promise<ScriptCollection[]> {
+    const files = await ensureSeedContent();
+    if (cacheFor !== files) {
+        cacheFor = files;
+        cached = buildScriptCollections(files);
+    }
+    return cached;
 }
 
 /**
  * Get a single collection by ID.
  */
-export function getScriptCollection(id: string): ScriptCollection | undefined {
-    return getScriptCollections().find(c => c.id === id);
+export async function getScriptCollection(id: string): Promise<ScriptCollection | undefined> {
+    return (await getScriptCollections()).find(c => c.id === id);
 }

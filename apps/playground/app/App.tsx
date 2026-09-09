@@ -5,9 +5,9 @@ import { Navbar } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
-import { ResponsiveActions } from './nav/ResponsiveActions'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
+import { ResponsiveActions } from './nav/ResponsiveActions'
 import type { PageKind } from './lib/routeView'
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
@@ -36,7 +36,7 @@ import {
 } from './lib/routes'
 import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
-import { canvasRoutes } from './canvas/canvasRoutes'
+import { useCanvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
@@ -46,7 +46,7 @@ import { HomeView } from './views/HomeView'
 import { QueriableStreamView } from './views/stream/QueriableStreamView'
 import { resolveStreamProfile } from './views/stream/streamProfile'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
-import { CanvasPage, MobileQuerySlotTarget } from '@/panels/page-shells'
+import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
@@ -67,7 +67,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { DashboardViewPage } from './views/dashboards/DashboardViewPage'
 import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
-import { ActionsMenu } from './pages/shared/PageToolbar'
+import { PageOptionsSheetRows } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 import type { MenuSpec } from './nav/menuModel'
@@ -87,11 +87,11 @@ const LIBRARY_SECONDARY: MenuSpec = [
 ]
 
 
-// `workoutFiles` (raw glob) and `WorkoutItem` (typed item) live in `lib/workoutIndex`.
-// `workoutFiles` is passed through to `MarkdownCanvasPage` as `wodFiles`; the typed
-// `workoutItems` array is passed to leaves that filter/search it. Both are kept as
-// props to leaf components — see `MarkdownCanvasPage.test.tsx` for the contract.
-import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
+// `useWorkoutItems` (typed list) and the seeded file map (`wodFiles`) both
+// derive from the seed-content snapshot; they are passed to leaves as props —
+// see `MarkdownCanvasPage.test.tsx` for the contract.
+import { useWorkoutItems, EMPTY_WOD_FILES, type WorkoutItem } from './lib/workoutIndex'
+import { useSeedContent } from '@/services/content/seedContent'
 export type { WorkoutItem }
 
 /** Redirect /analytics/explorer → /dashboard, preserving the shareable ?q=
@@ -106,7 +106,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
   const { theme } = useTheme()
 
+  const seedFiles = useSeedContent()
+  const wodFiles = seedFiles ?? EMPTY_WOD_FILES
   const workoutItems = useWorkoutItems()
+  const canvasRouteList = useCanvasRoutes()
 
   // Route classification + view derivation live in the pure `routeView` module;
   // `useRouteView` is its React adapter. `handleSelectWorkout` is the shared
@@ -143,7 +146,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       wql: { initialQuery: searchPaletteQuery(), execute: paletteExecute },
       sources: [
         wqlSearchSource(),
-        withWqlText(canvasRouteSource(canvasRoutes)),
+        withWqlText(canvasRouteSource(canvasRouteList)),
         withWqlText(constructSource()),
       ],
     }).then(result => {
@@ -225,13 +228,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     canvas: () =>
       view.canvasPage!.route === '/' ? (
         <HomeView
-          wodFiles={workoutFiles as Record<string, string>}
+          wodFiles={wodFiles}
           theme={actualTheme}
         />
       ) : view.canvasPage!.scroll ? (
         <ScrollCanvasPage
           page={view.canvasPage!}
-          wodFiles={workoutFiles as Record<string, string>}
+          wodFiles={wodFiles}
           theme={actualTheme}
           workoutItems={workoutItems}
           onSelect={handleSelectWorkout}
@@ -240,7 +243,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       ) : (
         <MarkdownCanvasPage
           page={view.canvasPage!}
-          wodFiles={workoutFiles as Record<string, string>}
+          wodFiles={wodFiles}
           theme={actualTheme}
           workoutItems={workoutItems}
           onSelect={handleSelectWorkout}
@@ -312,7 +315,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
         actions={view.shell.actionsMode
-          ? <ResponsiveActions label="Page actions"><PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} /></ResponsiveActions>
+          ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
           : undefined}
       >
         {inner}
@@ -344,17 +347,26 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             )}
             {canvasTitleAccessory}
           </nav>
-          {/* The query stays in the header; page actions relocate to the thumb dock. */}
-          <MobileQuerySlotTarget className="min-w-0 flex-1 lg:hidden" />
+          {/* Cast stays in the header at every breakpoint (navbar here on
+              mobile, PageActions bar in desktop page headers). The Page
+              options ⋮ lives in the thumb dock instead — its functions
+              (secondary nav, On this page, download) surface as
+              stacked buttons in the dock sheet via the global fallback
+              registration below. */}
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <CastButtonRpc />
+          </div>
         </Navbar>
       }
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
       secondary={secondarySpec}
       onSearch={openSearchPalette}
     >
-      <ResponsiveActions fallback label="Page actions">
-        <CastButtonRpc />
-        <ActionsMenu currentWorkout={currentWorkout} />
+      {/* Global Page options for the mobile thumb dock — stacked function
+          rows (secondary nav, On this page, download) under every
+          page's own sheet rows. */}
+      <ResponsiveActions fallback label="Page options">
+        <PageOptionsSheetRows currentWorkout={currentWorkout} />
       </ResponsiveActions>
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
@@ -395,18 +407,30 @@ function ScrollToTop() {
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
 import { useZipProcessor } from './hooks/useZipProcessor'
 import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
+import { runSeedSync } from '@/services/seed/seedSync'
+import { initSeedContentBroadcast } from '@/services/content/seedContent'
 
 function GlobalState() {
   useZipProcessor()
   useJournalZipProcessor()
+  // Seed import (docs/prototypes/seed-data-unification.md): default-on;
+  // set localStorage['wodwiki.seedImport.enabled'] = '0' to opt out. The
+  // seed broadcast refreshes every seed-content consumer (routes, nav,
+  useEffect(() => { void runSeedSync() }, [])
   return null
 }
 
+
 export function App() {
   // Stable ref so AppContent can inject its openSearchPalette callback after mount.
-  // The nav tree is built once; the search item calls the ref's current value.
   const searchHandlerRef = useRef<() => void>(() => {})
-  const navTree = useMemo(() => buildAppNavTree(() => searchHandlerRef.current()), [])
+  // Canvas routes hydrate from the seeded corpus; the nav tree and the
+  // dynamic <Route> table re-derive when the seed lands or refreshes.
+  const canvasRouteList = useCanvasRoutes()
+  const navTree = useMemo(
+    () => buildAppNavTree(() => searchHandlerRef.current(), canvasRouteList),
+    [canvasRouteList],
+  )
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
@@ -464,9 +488,6 @@ export function App() {
                   <Route path="/note/:noteId/review/:sectionId" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review/:sectionId/:resultId" element={<ReviewRedirect />} />
                   <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
-                  {canvasRoutes.map(({ route }) => (
-                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  ))}
                   <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   {/* The dashboard namespace (/dashboard = WQL explorer, /dashboard/:slug = a
@@ -475,8 +496,9 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.dashboardView} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to="/dashboard" replace />} />
                   <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<ExplorerRedirect />} />
-                  <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<Navigate to="/dashboard" replace />} />
-                  <Route path="*" element={<NotFoundPage />} />
+                  {canvasRouteList.map(({ route }) => (
+                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  ))}
                 </Routes>
                 <DocumentTitleSync />
               </NavProvider>

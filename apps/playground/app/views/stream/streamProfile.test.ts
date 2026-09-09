@@ -14,14 +14,14 @@ import {
 describe('streamProfile presets', () => {
   it('defines the Journal stream profile', () => {
     expect(JOURNAL_STREAM_PROFILE.route).toBe('/journal')
-    expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe('find:note{source:journal} last 2w')
+    expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe('find:note{source:journal} last 4w')
     expect(JOURNAL_STREAM_PROFILE.level).toBe('note')
     expect(JOURNAL_STREAM_PROFILE.typeOptions).toEqual(['journal'])
   })
 
   it('defines the Collections stream profile', () => {
     expect(COLLECTIONS_STREAM_PROFILE.route).toBe('/collections')
-    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections}')
+    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} by {tag}')
     expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
     expect(COLLECTIONS_STREAM_PROFILE.typeOptions).toEqual(['collections'])
   })

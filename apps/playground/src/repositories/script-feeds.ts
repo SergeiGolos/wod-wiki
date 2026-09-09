@@ -1,13 +1,16 @@
 /**
- * WOD Feeds — public adapter over the script-groupings loader.
+ * WOD Feeds — public adapter over the seeded corpus
+ * (docs/prototypes/seed-data-unification.md § Module 3).
  *
  * A feed is a Grouping whose items carry dates, from
  * markdown/feeds/{feed-slug}/YYYY-MM-DD/{file}.md. Items are sorted by date
  * descending (most recent first); feeds are sorted by name ascending.
- * Results are memoised after first call (build-time data).
+ * Reads go through the seed-content seam (IndexedDB-backed); results are
+ * memoized per corpus snapshot and refresh when a new seed lands.
  */
 
-import { getGroupings } from './script-groupings';
+import { ensureSeedContent, type SeedContentFiles } from '@/services/content/seedContent';
+import { buildGroupings, type Grouping } from './groupings';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,7 +23,7 @@ export interface ScriptFeedItem {
   content: string;
   /** Publication date key: YYYY-MM-DD (parent directory name) */
   feedDate: string;
-  /** Full glob path key */
+  /** Canonical markdown path key */
   path: string;
 }
 
@@ -39,18 +42,10 @@ export interface ScriptFeed {
 
 // ── Public API ─────────────────────────────────────────────────────────────
 
-/** Cached result */
-let _feeds: ScriptFeed[] | null = null;
-
-/**
- * Get all WOD feeds derived from markdown/feeds/ subdirectories.
- * Results are memoised after first call (build-time data never changes).
- */
-export function getScriptFeeds(): ScriptFeed[] {
-  if (_feeds) return _feeds;
-
-  _feeds = getGroupings('feeds')
-    .map(grouping => ({
+/** Pure derivation over a corpus snapshot — the hook-level entry point. */
+export function buildScriptFeeds(files: SeedContentFiles): ScriptFeed[] {
+  return buildGroupings('feeds', files)
+    .map((grouping: Grouping) => ({
       id: grouping.id,
       name: grouping.name,
       readme: grouping.readme,
@@ -67,22 +62,36 @@ export function getScriptFeeds(): ScriptFeed[] {
         .sort((a, b) => b.feedDate.localeCompare(a.feedDate)),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
 
-  return _feeds;
+let cacheFor: SeedContentFiles | null = null;
+let cached: ScriptFeed[] = [];
+
+/**
+ * Get all WOD feeds from the seeded corpus. Memoized per corpus snapshot;
+ * resolves after the seed content is loaded.
+ */
+export async function getScriptFeeds(): Promise<ScriptFeed[]> {
+  const files = await ensureSeedContent();
+  if (cacheFor !== files) {
+    cacheFor = files;
+    cached = buildScriptFeeds(files);
+  }
+  return cached;
 }
 
 /** Get a single feed by ID. */
-export function getScriptFeed(id: string): ScriptFeed | undefined {
-  return getScriptFeeds().find(f => f.id === id);
+export async function getScriptFeed(id: string): Promise<ScriptFeed | undefined> {
+  return (await getScriptFeeds()).find(f => f.id === id);
 }
 
 /** Get a specific item within a feed by date + item id. */
-export function getScriptFeedItem(
+export async function getScriptFeedItem(
   feedId: string,
   feedDate: string,
   itemId: string,
-): ScriptFeedItem | undefined {
-  return getScriptFeed(feedId)?.items.find(
+): Promise<ScriptFeedItem | undefined> {
+  return (await getScriptFeed(feedId))?.items.find(
     i => i.feedDate === feedDate && i.id === itemId,
   );
 }
