@@ -177,11 +177,14 @@ describe('PaletteShell WQL mode', () => {
 
     await screen.findByText('Fran')
 
-    // Open the source pill's popover and pick the next option via keyboard.
+    // Open the source pill's inline editor and pick the next option via
+    // keyboard — the composer input routes ↑/↓/Enter to the editor while it
+    // is open (#834: keys never leak to the results list).
     fireEvent.click(screen.getByTestId('token-slot-source'))
-    const popover = await screen.findByTestId('clause-popover-source')
-    fireEvent.keyDown(popover, { key: 'ArrowDown' })
-    fireEvent.keyDown(popover, { key: 'Enter' })
+    const editor = await screen.findByTestId('wql-clause-editor')
+    expect(editor.getAttribute('data-clause-type')).toBe('source')
+    fireEvent.keyDown(screen.getByTestId('wql-composer-input'), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByTestId('wql-composer-input'), { key: 'Enter' })
 
     // The clause changed (journal → collections) and re-searched…
     await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{source:collections}'))
