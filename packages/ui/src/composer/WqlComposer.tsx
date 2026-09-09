@@ -346,7 +346,7 @@ export function WqlComposer({
    *  their value instead of being removed. */
   const removeOrClear = (idx: number) => {
     const pill = pills[idx];
-    if (pill && CLEAR_ONLY_TYPES.has(pill.type)) {
+    if (pill && CLEAR_ONLY_TYPES[pill.type]) {
       updatePill(idx, { value: '' });
     } else {
       removePill(idx);

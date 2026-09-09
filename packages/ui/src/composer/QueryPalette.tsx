@@ -124,7 +124,7 @@ export function TokenSlotPill({
                 ? 'bg-destructive text-destructive-foreground opacity-100 ring-2 ring-destructive/40'
                 : 'hover:bg-black/10 text-inherit opacity-70 hover:opacity-100',
             )}
-            title={CLEAR_ONLY_TYPES.has(clause.type) ? `Clear ${meta.label}` : `Remove ${meta.label}`}
+            title={CLEAR_ONLY_TYPES[clause.type] ? `Clear ${meta.label}` : `Remove ${meta.label}`}
           >
             <X className="w-3 h-3" />
           </button>
