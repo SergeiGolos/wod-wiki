@@ -87,11 +87,11 @@ function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; 
 }
 
 /** Match a single row against one source filter value. The `journal` kind matches
- *  rows with no sourceId prefix; the `collection` / `feed` kinds match rows whose
- *  sourceId starts with the kind. A `kind:id` literal matches the exact id.
- *  `playground` matches the playground intake's sourceId convention and, on the
- *  note plane, legacy rows typed 'playground' (playground pages saved before the
- *  sourceId convention existed — their sourceId is absent). */
+ *  rows with no sourceId prefix; the `collection` / `feed` / `guide` kinds match
+ *  rows whose sourceId starts with the kind. A `kind:id` literal matches the
+ *  exact id. `playground` matches the playground intake's sourceId convention
+ *  and, on the note plane, legacy rows typed 'playground' (playground pages
+ *  saved before the sourceId convention existed — their sourceId is absent). */
 function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; type?: string }, kind: string): boolean {
   const sourceId = item.sourceId;
   if (kind === 'all') return true;
@@ -112,6 +112,9 @@ function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; 
   }
   if (kind === 'feed' || kind === 'feeds') {
     return !!sourceId && sourceId.startsWith('feed:');
+  }
+  if (kind === 'guide' || kind === 'guides') {
+    return !!sourceId && sourceId.startsWith('guides:');
   }
   if (kind === 'playground') {
     return sourceId === 'playground' || item.type === 'playground';

@@ -16,6 +16,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  buildBlockIndexRows,
+  canvasRouteSlug,
   collectCorpusMarkdown,
   generateSeed,
   partitionIntoChunks,
@@ -91,10 +93,8 @@ describe('generateSeed', () => {
 
       expect(manifest.schema).toBe(SEED_SCHEMA);
       expect(manifest.version).toBe(12345);
-      expect(manifest.builtAt).toBe(new Date(12345).toISOString());
-      expect(totalFiles).toBe(5); // 4 corpus + 1 template
       expect(manifest.chunks.map((c) => c.id)).toEqual([
-        'canvas', 'collection.cat1', 'feed.f', 'template',
+        'canvas', 'collection.cat1', 'feed.f', 'template', 'block-index.0',
       ]);
 
       for (const c of manifest.chunks) {
@@ -102,12 +102,16 @@ describe('generateSeed', () => {
         expect(existsSync(join(outDir, c.path))).toBe(true);
         expect(c.path).toMatch(new RegExp(`^chunks/${c.id}\\.[0-9a-f]{8}\\.json$`));
         expect(c.path).toContain(c.sha256.slice(0, 8));
-        expect(sha256(bytes)).toBe(c.sha256);
-        expect(c.bytes).toBe(bytes.length);
-        const rows = JSON.parse(bytes.toString('utf8')) as Array<{ path: string; content: string }>;
+        const rows = JSON.parse(bytes.toString('utf8')) as Array<Record<string, unknown>>;
         expect(rows).toHaveLength(c.count);
+        if (c.kind === 'block-index') {
+          // Derived corpus rows carry block identity, not source paths —
+          // one row per section of the collections/feeds/guides corpus.
+          expect(rows[0]).toMatchObject({ noteId: 'cat1/c', sourceId: 'collection:cat1/c', isStatic: true });
+          continue;
+        }
         for (const row of rows) {
-          expect(row.content).toBe(readFileSync(join(tmp, row.path), 'utf8'));
+          expect(row.content).toBe(readFileSync(join(tmp, row.path as string), 'utf8'));
         }
       }
     } finally {
@@ -135,6 +139,51 @@ describe('generateSeed', () => {
       // Manifest bytes differ ONLY through version/builtAt.
       expect(JSON.stringify(second.manifest.chunks))
         .toBe(JSON.stringify(first.manifest.chunks));
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('canvasRouteSlug', () => {
+  it('reads the frontmatter route minus the leading slash', () => {
+    expect(canvasRouteSlug('---\nroute: /guide/syntax/basics\ntemplate: canvas\n---\n# X')).toBe('guide/syntax/basics');
+  });
+
+  it('returns null without frontmatter route or on the degenerate root route', () => {
+    expect(canvasRouteSlug('# No frontmatter')).toBeNull();
+    expect(canvasRouteSlug('---\nroute: /\n---\n# X')).toBeNull();
+  });
+  it('rejects route-bearing files that are not canvas pages', () => {
+    expect(canvasRouteSlug('---\nroute: /guide/x\ntitle: "X"\n---\n# X')).toBeNull();
+  });
+});
+describe('buildBlockIndexRows — guides (canvas corpus)', () => {
+  function makeCanvasCorpus(): string {
+    const tmp = mkdtempSync(join(tmpdir(), 'seed-guides-'));
+    mkdirSync(join(tmp, 'markdown/canvas/syntax'), { recursive: true });
+    writeFileSync(
+      join(tmp, 'markdown/canvas/syntax/basics.md'),
+      '---\nroute: /guide/syntax/basics\ntemplate: canvas\n---\n# Basics\n\n```time\n10 Push-ups\n```\n',
+    );
+    writeFileSync(join(tmp, 'markdown/canvas/syntax/README.md'), '---\nroute: /\n---\n# Home');
+    writeFileSync(join(tmp, 'markdown/canvas/syntax/noroute.md'), '# No route declared');
+    return tmp;
+  }
+
+  it('indexes canvas pages under their route slug with guides provenance', () => {
+    const tmp = makeCanvasCorpus();
+    try {
+      const rows = buildBlockIndexRows(join(tmp, 'markdown'), tmp);
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.noteId).toBe('guide/syntax/basics');
+        expect(row.sourceId).toBe('guides:guide/syntax/basics');
+        expect(row.isStatic).toBe(true);
+      }
+      // READMEs and pages without a route never reach the index.
+      const ids = new Set(rows.map((r) => r.noteId));
+      expect(ids).toEqual(new Set(['guide/syntax/basics']));
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

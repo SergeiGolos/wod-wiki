@@ -26,6 +26,11 @@ export function entryOpenHref(entry: Entry): string {
   const href = (() => {
     switch (entry.kind) {
       case 'note':
+        // Guide (canvas) entries deep-link to their canvas route — the
+        // block-index noteId is the declared route minus the leading slash.
+        if (entry.sourceCatalog === 'guides') {
+          return `/${entry.sourceItem}`
+        }
         // Playground entries open in the playground editor; journal notes use
         // the journal-date (YYYY-MM-DD), falling back to sourceItem.
         if (entry.sourceCatalog === 'playground') {

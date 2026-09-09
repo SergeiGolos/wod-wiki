@@ -66,6 +66,19 @@ describe('toEntry — playground entries', () => {
   })
 })
 
+describe('toEntry — guide entries', () => {
+  it('classifies a canvas-corpus note (guides: sourceId) as a guide Note carrying the route path', () => {
+    const entry = toEntry(makeNote({
+      id: 'guide/syntax/basics',
+      sourceId: 'guides:guide/syntax/basics',
+    }))
+    expect(entry.kind).toBe<EntryKind>('note')
+    expect(entry.sourceCatalog).toBe('guides')
+    expect(entry.sourceItem).toBe('guide/syntax/basics')
+    expect(entry.date).toBeNull()
+  })
+})
+
 describe('toEntry — kind discrimination', () => {
   it('classifies a journal note (no sourceId) as Note', () => {
     const entry = toEntry(makeNote())

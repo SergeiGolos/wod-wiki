@@ -23,7 +23,7 @@
  * single transaction — see SeedImportStorage.
  */
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
-import { EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
+import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
@@ -118,7 +118,14 @@ export class SeedImporter {
     private readonly now: () => number = Date.now,
   ) {}
 
-  async applyAll(opts: { forceAll?: boolean } = {}): Promise<SeedImportResult> {
+  /**
+   * `onFirstPaintApplied` fires once the first-paint chunk (canvas — the
+   * home page + every canvas route) is committed, before the rest of the
+   * library is applied: content consumers refresh for first paint while
+   * the remaining chunks stream in behind it. Never fires when the plan
+   * has no pending canvas chunk (already applied / resuming).
+   */
+  async applyAll(opts: { forceAll?: boolean; onFirstPaintApplied?: () => void } = {}): Promise<SeedImportResult> {
     const manifest = await this.source.fetchManifest();
     const meta: SeedMetaRecord = (await this.storage.getSeedMeta()) ?? emptySeedMeta();
     // A stored checkpoint from a different seed schema — or a manual
@@ -128,6 +135,14 @@ export class SeedImporter {
     const plan: ManifestChunk[] = forceAll
       ? manifest.chunks
       : manifest.chunks.filter((c) => meta.chunks[c.id]?.sha256 !== c.sha256);
+
+    // First paint first: the canvas chunk is one small fetch carrying the
+    // home page and every canvas route; the multi-megabyte collection/
+    // feed/block-index tail is what must never gate first paint
+    // (seed-data-unification.md § Version check, first-ever run).
+    const firstPaint = plan.filter((c) => c.id === CANVAS_CHUNK_ID);
+    const orderedPlan = [...firstPaint, ...plan.filter((c) => c.id !== CANVAS_CHUNK_ID)];
+    let firstPaintLeft = firstPaint.length;
 
     if (plan.length === 0 && meta.seedVersion === manifest.version && !forceAll) {
       return {
@@ -147,7 +162,7 @@ export class SeedImporter {
     let totalEfforts = 0;
     let totalBlocks = 0;
 
-    for (const chunk of plan) {
+    for (const chunk of orderedPlan) {
       const payload = await this.source.fetchChunk(chunk.path);
 
       // ── Block-index chunks: precomputed rows straight into `block_index` ──
@@ -258,6 +273,12 @@ export class SeedImporter {
       });
       totalNotes += notes.length;
       totalEfforts += efforts.length;
+      // The canvas chunk is a notes chunk (compiler chunkIdFor), so the
+      // first-paint check lives on this committed path; block-index
+      // chunks (the `continue` path) are never first-paint.
+      if (firstPaintLeft > 0 && --firstPaintLeft === 0) {
+        opts.onFirstPaintApplied?.();
+      }
     }
 
     // ── Vanished chunks: membership the manifest no longer declares ──

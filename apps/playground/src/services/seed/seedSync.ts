@@ -1,7 +1,9 @@
 /**
  * seedSync — the boot orchestrator (docs/prototypes/seed-data-unification.md
  * § Version check). Ties together: flag gate → skip-fetch fast path →
- * multi-tab claim → manifest fetch → version decision → SeedImporter →
+ * multi-tab claim → manifest fetch → version decision → SeedImporter
+ * (canvas chunk first, refreshing content consumers for first paint;
+ * the rest of the library keeps importing in the background) →
  * claim release → cross-tab broadcast.
  *
  * Default-on; set localStorage['wodwiki.seedImport.enabled'] = '0' to opt out.
@@ -99,7 +101,13 @@ async function runSeedSyncInner(deps: SeedSyncDeps): Promise<SeedSyncOutcome> {
     const claimed: SeedMetaRecord = { ...(stored ?? emptySeedMeta()), claim: { owner, at: now() } };
     await storage.putSeedMeta(claimed);
     try {
-      const result = await new SeedImporter(storage, source, now).applyAll({ forceAll: deps.force === true });
+      const result = await new SeedImporter(storage, source, now).applyAll({
+        forceAll: deps.force === true,
+        // First paint: as soon as the canvas chunk (home page + canvas
+        // routes) is committed, refresh content consumers — the home page
+        // renders while the rest of the library is still importing.
+        onFirstPaintApplied: invalidateSeedContent,
+      });
       if (result.status === 'imported') {
         broadcast({ kind: 'seed-imported', version: manifest.version });
         // BroadcastChannel does not echo to the importing context — refresh

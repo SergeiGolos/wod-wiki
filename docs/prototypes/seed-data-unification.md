@@ -108,7 +108,7 @@ Three versions are known: `embedded` (build-injected `__SEED_VERSION__` define),
 3. Else fetch `seed/manifest.json` (`cache: 'no-cache'`).
    - `remote > stored` → import changed chunks in the background → post `BroadcastChannel('wodwiki.seed')` → open views refresh from Storage.
    - `remote < stored` (rollback / odd CDN state) → log, keep stored data.
-4. First-ever run (no `stored`): import the bootstrap chunk before rendering content routes (loading state on the route), remaining chunks in background.
+4. First-ever run (no `stored`): the `canvas` chunk — the home page plus every canvas route — is applied first and content consumers refresh immediately (`SeedImporter.onFirstPaintApplied` → `invalidateSeedContent()`), so first paint never waits for the library; the remaining chunks stream in behind it in the background.
 
 Import coordination across tabs: claim via the `meta` record (single writer), notify via `BroadcastChannel('wodwiki.seed')` — same shapes as the existing `wodwiki.analytics` invalidation bus and the IDB upgrade yield logic in `IndexedDBService`.
 

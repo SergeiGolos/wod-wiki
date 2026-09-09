@@ -93,7 +93,7 @@ export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 /** Canonical source filter values (C2): scope folded into the source: filter key.
  *  `playground` scopes to persisted playground entries (sourceId 'playground',
  *  playground-intake convention) — excluded from `journal`/`collections`/`feeds`. */
-export const WQL_SOURCE_VALUES = ['journal', 'collections', 'feeds', 'playground', 'all'] as const;
+export const WQL_SOURCE_VALUES = ['journal', 'collections', 'feeds', 'guides', 'playground', 'all'] as const;
 export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
 
 

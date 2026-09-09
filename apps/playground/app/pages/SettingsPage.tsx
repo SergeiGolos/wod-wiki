@@ -4,9 +4,9 @@
  * Dedicated settings surface for Wod Wiki, replacing the header "…" dropdown
  * configuration options.
  *
- * Subroutes:
- *   - /settings/appearance (default): Interface theme (System / Light / Dark)
- *     and date language formatting (Auto / English / 中文 / Español / Deutsch / Français).
+ *   - /settings/appearance (default): Interface theme (System / Light / Dark),
+ *     startup page (Home / Journal), and date language formatting
+ *     (Auto / English / 中文 / Español / Deutsch / Français).
  *   - /settings/system: Audio feedback (sound effects & test chime), developer
  *     debug mode toggle, and "Reset & Clear Cache" danger zone.
  */
@@ -17,6 +17,8 @@ import {
   Sun,
   Moon,
   Laptop,
+  Home,
+  BookOpen,
   Globe,
   Volume2,
   VolumeX,
@@ -40,6 +42,7 @@ import { useAudio } from '@/contexts/AudioContext'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useFabAlignment, FAB_ALIGNMENT_OPTIONS } from '../lib/fabAlignment'
 import { useDateLocale, DATE_LOCALE_OPTIONS, getDateLocale } from '../lib/dateLocale'
+import { useStartPage, START_PAGE_OPTIONS } from '../lib/startPage'
 import { readSeedStatus, runSeedSync, type SeedStatus } from '@/services/seed/seedSync'
 import { toast } from '@/hooks/use-toast'
 import { resetUserData } from '../services/resetUserData'
@@ -119,6 +122,8 @@ function AppearanceSection() {
   const [dateLocale, setDateLocale] = useDateLocale()
   const [fabAlignment, setFabAlignment] = useFabAlignment()
   const fabAlignmentIcons = { right: PanelRight, left: PanelLeft } as const
+  const [startPage, setStartPage] = useStartPage()
+  const startPageIcons = { home: Home, journal: BookOpen } as const
 
   const today = useMemo(() => new Date(), [])
 
@@ -334,6 +339,76 @@ function AppearanceSection() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     {option.id === 'right' && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                        Default
+                      </span>
+                    )}
+                    <div
+                      className={cn(
+                        'size-4 rounded-full border flex items-center justify-center transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-muted-foreground/40',
+                      )}
+                    >
+                      {isSelected && <Check className="size-2.5 stroke-[3]" />}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="font-semibold text-foreground text-sm">{option.label}</div>
+                <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  {option.description}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* 4. Startup Page */}
+      <section className="space-y-4 pt-4 border-t border-border/50">
+        <div>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <Home className="size-4 text-primary" />
+            Startup Page
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Choose which page Wod Wiki opens on. The other page stays reachable
+            from the navigation either way.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {START_PAGE_OPTIONS.map(option => {
+            const isSelected = startPage === option.id
+            const Icon = startPageIcons[option.id]
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                data-testid={`start-page-${option.id}`}
+                aria-pressed={isSelected}
+                onClick={() => setStartPage(option.id)}
+                className={cn(
+                  'relative flex flex-col items-start p-4 rounded-xl border text-left transition-all',
+                  isSelected
+                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5 text-foreground shadow-xs'
+                    : 'border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                )}
+              >
+                <div className="w-full flex items-center justify-between mb-3">
+                  <div
+                    className={cn(
+                      'p-2 rounded-lg',
+                      isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+                    )}
+                  >
+                    <Icon className="size-5" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {option.id === 'home' && (
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                         Default
                       </span>

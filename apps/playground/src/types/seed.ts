@@ -80,6 +80,8 @@ export function seedSegmentId(noteId: string): string {
 export const SEED_BROADCAST_CHANNEL = 'wodwiki.seed';
 /** Efforts corpus chunk — materializes IEffort records alongside its notes. */
 export const EFFORTS_CHUNK_ID = 'efforts';
+/** Canvas corpus chunk — the home page + every canvas route; applied first so first paint never waits for the library. */
+export const CANVAS_CHUNK_ID = 'canvas';
 /** Prefix of the split block-index chunks (`block-index.<n>`). */
 export const BLOCK_INDEX_CHUNK_PREFIX = 'block-index.';
 

@@ -336,6 +336,7 @@ navbar breadcrumb is the identity. All controls are body content:
 | Interface theme (System / Light / Dark) | Body card grid | Body (unchanged; single column below `sm`) |
 | Date & calendar language | Body card grid | Body (unchanged) |
 | **Actions Button Position** (dock corner right/left) | Body card — the setting only affects the mobile dock | Body card |
+| **Startup Page** (Home / Journal — the page the app opens on; Journal also redirects the session's first `/` landing and sends the `?z=` home share to the loaded `/playground/<name>` page) | Body card grid | Body card |
 | Workout sound effects + test chime | Body switch/button | Body (unchanged) |
 | Debug mode toggle | Body switch | Body (unchanged) |
 | Reset & clear cache (+ confirm modal) | Danger zone | Body (unchanged) |

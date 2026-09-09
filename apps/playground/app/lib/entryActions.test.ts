@@ -31,6 +31,17 @@ describe('entryOpenHref', () => {
     }))).toBe('/playground/fran-experiment')
   })
 
+  it('routes a guide Note to its canvas route deep-link', () => {
+    expect(entryOpenHref(makeEntry({
+      id: 'guide/syntax/basics',
+      kind: 'note',
+      sourceCatalog: 'guides',
+      sourceItem: 'guide/syntax/basics',
+      sourceId: 'guides:guide/syntax/basics',
+      date: null,
+    }))).toBe('/guide/syntax/basics')
+  })
+
   it('routes a Note to the journal deep-link', () => {
     expect(entryOpenHref(makeEntry({
       id: 'journal-2026-07-15',

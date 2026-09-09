@@ -153,10 +153,10 @@ export function partitionIntoChunks(paths: string[]): ChunkGroup[] {
 // ── Block index derivation ────────────────────────────────────────────────
 
 /**
- * Port of the retired scripts/generate-static-block-index.ts: precompute the
- * collections/feeds corpus into BlockIndexRow[] at build time so the runtime
- * importer can populate the `block_index` store directly. Row identity
- * (`static:<noteId>:<sectionId>:1`) matches what analytics joins expect.
+ * precompute the collections/feeds/guides (canvas) corpus into BlockIndexRow[]
+ * at build time so the runtime importer can populate the `block_index` store
+ * directly. Row identity (`static:<noteId>:<sectionId>:1`) matches what
+ * analytics joins expect.
  */
 function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDataType {
   switch (section.type) {
@@ -192,6 +192,22 @@ export function feedDateToCreatedAt(dateKey: string): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return 0;
   const ts = Date.parse(`${dateKey}T00:00:00Z`);
   return Number.isNaN(ts) ? 0 : ts;
+}
+
+/**
+ * Frontmatter `route:` of a canvas page, minus the leading slash; null when
+ * absent, degenerate ('/'), or the file is not a canvas page (`template:
+ * canvas` required — section fragments and snippets carry `title:`/`section:`
+ * frontmatter instead and must never become Library entries). Mirrors the
+ * runtime's route resolution (parseCanvasMarkdown: frontmatter wins), so a
+ * guide's block-index noteId doubles as its deep-link path.
+ */
+export function canvasRouteSlug(content: string): string | null {
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
+  if (fm?.[1] && !/^template:\s*canvas\s*$/m.test(fm[1])) return null;
+  const route = fm?.[1]?.match(/^route:\s*(\S+)\s*$/m)?.[1];
+  if (!route) return null;
+  return route.replace(/^\//, '') || null;
 }
 
 /** Rows per block-index chunk (~4k rows keeps fetch + transaction sizes sane). */
@@ -270,6 +286,44 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
         createdAt: feedDateToCreatedAt(dateKey),
         isStatic: true,
         sourceId: `feed:${noteId}`,
+      });
+    }
+  }
+
+  // Guides: canvas/{dir}/{file}.md — the syntax/guide corpus. Indexed pages
+  // are exactly the routable ones (`template: canvas` + a non-degenerate
+  // frontmatter `route:`); noteId is that route minus the leading slash, so a
+  // Library row deep-links straight to the canvas page. READMEs and routeless
+  // fragments fail the same test (home/README's route is '/', with no path
+  // identity) — no special-casing needed.
+  const canvasGlob = new Glob('canvas/**/*.md');
+  for (const file of canvasGlob.scanSync({ cwd: markdownDir, onlyFiles: true })) {
+    const rel = `markdown/${file}`;
+    const content = readFileSync(join(corpusRoot, rel), 'utf8');
+    const noteId = canvasRouteSlug(content);
+    if (!noteId) continue;
+
+
+    const fileNameExt = file.split('/').pop() ?? file;
+    const noteTitle = fileToDisplayName(fileNameExt);
+    const createdAt = getFileCreatedAt(rel);
+    const sections = parseDocumentSections(content);
+    let position = 0;
+    for (const section of sections) {
+      const blockContentId = section.scriptBlock?.contentId ?? undefined;
+      index.push({
+        id: `static:${noteId}:${section.id}:1`,
+        noteId,
+        segmentId: section.id,
+        segmentVersion: 1,
+        position: position++,
+        dataType: toSegmentDataType(section),
+        blockContentId,
+        rawContent: section.displayContent,
+        noteTitle,
+        createdAt,
+        isStatic: true,
+        sourceId: `guides:${noteId}`,
       });
     }
   }

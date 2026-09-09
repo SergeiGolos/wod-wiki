@@ -131,6 +131,33 @@ describe('SettingsPage', () => {
       })
       expect(localStorage.getItem('wodwiki:dateLocale')).toBeNull()
     })
+
+    it('offers Startup Page options with Home default, and persists a Journal pick', () => {
+      renderSettings('/settings/appearance')
+
+      // Home is the default (unset preference) and renders selected.
+      expect(screen.getByText('Startup Page')).toBeDefined()
+      expect(screen.getByTestId('start-page-home').getAttribute('aria-pressed')).toBe('true')
+      expect(screen.getByTestId('start-page-journal').getAttribute('aria-pressed')).toBe('false')
+
+      act(() => {
+        screen.getByTestId('start-page-journal').click()
+      })
+      expect(localStorage.getItem('wodwiki:startPage')).toBe('journal')
+
+      // Re-render to observe state update
+      cleanup()
+      renderSettings('/settings/appearance')
+
+      expect(screen.getByTestId('start-page-journal').getAttribute('aria-pressed')).toBe('true')
+      expect(screen.getByTestId('start-page-home').getAttribute('aria-pressed')).toBe('false')
+
+      // Switching back to Home clears the stored override
+      act(() => {
+        screen.getByTestId('start-page-home').click()
+      })
+      expect(localStorage.getItem('wodwiki:startPage')).toBeNull()
+    })
   })
 
   describe('System Subroute', () => {

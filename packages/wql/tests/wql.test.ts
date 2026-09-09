@@ -551,7 +551,7 @@ describe('de-overload in with compat normalizer (C2)', () => {
   it('rejects unknown source: filter values with clear error', () => {
     const parsed = _parseQuery('find:note{source:invalid_scope}');
     expect(parsed.error).toContain('Unknown source "invalid_scope"');
-    expect(parsed.error).toContain('Try: journal, collections, feeds, playground, all');
+    expect(parsed.error).toContain('Try: journal, collections, feeds, guides, playground, all');
   });
 
   it('rejects unknown legacy in <scope> values with clear error', () => {

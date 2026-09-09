@@ -168,6 +168,21 @@ export function toEntry(note: Note): Entry {
     }
   }
 
+  // Guide (canvas-corpus) note: sourceId `guides:<route-without-slash>` —
+  // sourceItem IS the deep-link path (see entryOpenHref).
+  if (note.sourceId?.startsWith('guides:')) {
+    return {
+      id,
+      kind: 'note',
+      sourceCatalog: 'guides',
+      sourceItem: id,
+      sourceId: note.sourceId,
+      title,
+      date: null,
+      createdAt: note.createdAt,
+    }
+  }
+
   // Journal note
   return {
     id,

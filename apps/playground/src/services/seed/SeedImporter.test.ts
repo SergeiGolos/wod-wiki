@@ -6,11 +6,11 @@
 import { describe, expect, it } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { SeedManifest, SeedRow } from '@/types/seed';
-import { EFFORTS_CHUNK_ID, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
+import { EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { effortToDocument } from '@/repositories/effort-markdown';
 import { CountingSeedSource, InMemorySeedSource } from './InMemorySeedSource';
-import { InMemorySeedStorage } from './SeedImportStorage';
+import { InMemorySeedStorage, type SeedChunkWrite } from './SeedImportStorage';
 import { seedNoteId, SeedImporter } from './SeedImporter';
 
 const shaOf = (rows: SeedRow[]): string =>
@@ -317,5 +317,88 @@ describe('SeedImporter manual re-sync (forceAll)', () => {
     const after = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md');
     expect(after?.title).toBe('My A');
     expect(after?.seedOrigin).toBe('user');
+  });
+});
+
+/** Records the checkpoint chunk ids in apply order — first-paint timing is observable through it. */
+class RecordingStorage extends InMemorySeedStorage {
+  appliedChunkIds: string[][] = [];
+  override async applyChunk(write: SeedChunkWrite): Promise<void> {
+    await super.applyChunk(write);
+    this.appliedChunkIds.push(Object.keys(write.meta.chunks));
+  }
+}
+
+describe('SeedImporter first-paint ordering', () => {
+  it('applies the canvas chunk first and fires onFirstPaintApplied before the library tail', async () => {
+    const canvasRows = [row('markdown/canvas/home/README.md'), row('markdown/canvas/guide/basics.md')];
+    const aRows = [row('markdown/collections/a/fran.md')];
+    const bRows = [row('markdown/collections/b/annie.md')];
+    // The canvas chunk is listed LAST — apply order must not inherit
+    // manifest order (or alphabetical luck).
+    const manifest: SeedManifest = {
+      schema: SEED_SCHEMA,
+      version: 1000,
+      builtAt: new Date(1000).toISOString(),
+      chunks: [
+        { id: 'collection.a', path: 'chunks/collection.a.json', sha256: shaOf(aRows), bytes: 1, count: aRows.length },
+        { id: 'collection.b', path: 'chunks/collection.b.json', sha256: shaOf(bRows), bytes: 1, count: bRows.length },
+        { id: 'canvas', path: 'chunks/canvas.json', sha256: shaOf(canvasRows), bytes: 1, count: canvasRows.length },
+      ],
+    };
+    const paths = {
+      'chunks/collection.a.json': aRows,
+      'chunks/collection.b.json': bRows,
+      'chunks/canvas.json': canvasRows,
+    };
+    const counting = new CountingSeedSource(new InMemorySeedSource(manifest, paths));
+    const storage = new RecordingStorage();
+    let firstPaintRuns = 0;
+    let fetchCallsAtFirstPaint: string[] = [];
+    const result = await new SeedImporter(storage, counting).applyAll({
+      onFirstPaintApplied: () => {
+        firstPaintRuns += 1;
+        fetchCallsAtFirstPaint = [...counting.fetchChunkCalls];
+      },
+    });
+
+    expect(result.status).toBe('imported');
+    // Exactly once, at the moment only the canvas chunk has been
+    // fetched — the collection chunks are still pending.
+    expect(firstPaintRuns).toBe(1);
+    expect(fetchCallsAtFirstPaint).toEqual(['chunks/canvas.json']);
+    // First commit carries only the canvas checkpoint (the final
+    // checkpoint-stamp write below is meta-only and carries no rows).
+    expect(storage.appliedChunkIds[0]).toEqual(['canvas']);
+    // First-paint rows are readable, and the background tail completes.
+    const homeId = await seedNoteId('markdown/canvas/home/README.md');
+    expect(storage.allNotes().some((n) => n.id === homeId)).toBe(true);
+    expect(counting.fetchChunkCalls).toHaveLength(3);
+  });
+
+  it('does not fire onFirstPaintApplied when the canvas chunk is already applied (resume)', async () => {
+    const canvasRows = [row('markdown/canvas/home/README.md')];
+    const aRows = [row('markdown/collections/a/fran.md')];
+    const manifest: SeedManifest = {
+      schema: SEED_SCHEMA,
+      version: 1000,
+      builtAt: new Date(1000).toISOString(),
+      chunks: [
+        { id: 'collection.a', path: 'chunks/collection.a.json', sha256: shaOf(aRows), bytes: 1, count: aRows.length },
+        { id: 'canvas', path: 'chunks/canvas.json', sha256: shaOf(canvasRows), bytes: 1, count: canvasRows.length },
+      ],
+    };
+    const paths = {
+      'chunks/collection.a.json': aRows,
+      'chunks/canvas.json': canvasRows,
+    };
+    const storage = new InMemorySeedStorage();
+    await storage.putSeedMeta({ ...emptySeedMeta(), seedVersion: 1000, chunks: { canvas: { sha256: shaOf(canvasRows) } } });
+    const counting = new CountingSeedSource(new InMemorySeedSource(manifest, paths));
+    let firstPaintRuns = 0;
+    await new SeedImporter(storage, counting).applyAll({ onFirstPaintApplied: () => { firstPaintRuns += 1; } });
+
+    expect(firstPaintRuns).toBe(0);
+    expect(counting.fetchChunkCalls).toEqual(['chunks/collection.a.json']);
   });
 });

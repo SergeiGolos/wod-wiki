@@ -28,6 +28,7 @@ const NOTES: Note[] = [
   makeNote('jrnl-1', undefined),
   makeNote('coll-1', 'collection:crossfit-girls'),
   makeNote('feed-1', 'feed:crossfit-programming/2026-01-12'),
+  makeNote('guide-1', 'guides:guide/syntax/basics'),
   { ...makeNote('pg-1', 'playground'), type: 'playground' },
   { ...makeNote('pg-legacy', undefined), id: 'pg-legacy', type: 'playground' },
 ];
@@ -36,6 +37,7 @@ const BLOCKS: BlockIndexRow[] = [
   makeBlock('jrnl-1', undefined),
   makeBlock('coll-1', 'collection:crossfit-girls'),
   makeBlock('feed-1', 'feed:crossfit-programming/2026-01-12'),
+  makeBlock('guide-1', 'guides:guide/syntax/basics'),
   makeBlock('pg-1', 'playground'),
   makeBlock('pg-legacy', undefined),
 ];
@@ -66,23 +68,32 @@ describe('source: filter — runFind (Note[])', () => {
     const result = await service.runFind(parseQuery('find:note{source:feed} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['feed-1']);
   });
-
   it('drops feed notes when !source:feed is set', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:note{!source:feed} in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+  });
+  it('keeps only guide notes when source:guides is set', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:note{source:guides} in all') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual(['guide-1']);
+  });
+
+  it('parse-validates source:guides as a known source value', () => {
+    const parsed = parseQuery('find:note{source:guides}');
+    expect(parsed.error).toBeUndefined();
   });
 
   it('default (no source filter) returns all notes across journal and static stores', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:note') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('source:all returns all notes across journal and static stores', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:note{source:all}') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('keeps only playground entries when source:playground is set (sourceId convention and legacy type)', async () => {
@@ -119,7 +130,7 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
   it('drops feed blocks when !source:feed is set', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:block{!source:feed} in all') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('supports exact catalog-prefixed sourceId matching', async () => {
@@ -131,7 +142,7 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
   it('default (no source filter) returns all blocks across journal and static stores', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:block') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('keeps only playground blocks (denormalized sourceId) when source:playground is set', async () => {

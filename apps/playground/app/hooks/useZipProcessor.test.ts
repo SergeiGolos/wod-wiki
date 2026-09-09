@@ -3,7 +3,9 @@
  *
  *  - `?z=` (+ optional `by`) is the home-hero share contract: decode, persist
  *    to the home-shared localStorage store AND to the persisted home
- *    playground entry (intake `ensurePlaygroundEntry`), redirect to `/`.
+ *    playground entry (intake `ensurePlaygroundEntry`), then land per the
+ *    startup-page setting — home (default) on `/`, journal on the loaded
+ *    entry's /playground/<name> page.
  *  - `?zip=` stays the playground-page flow: import via the intake module's
  *    `createPlaygroundPage`, redirect to the new playground page.
  *  - Neither flow auto-runs the workout; decode/storage failures surface a
@@ -49,6 +51,11 @@ mock.module('../lib/routes', () => ({
   ROUTE_PATTERNS: { home: '/' },
 }))
 
+let startPage: 'home' | 'journal' = 'home'
+mock.module('../lib/startPage', () => ({
+  getStartPage: () => startPage,
+}))
+
 import { useZipProcessor } from './useZipProcessor'
 
 const SHARED_KEY = 'wodwiki.homeShared.v1'
@@ -58,12 +65,12 @@ describe('useZipProcessor', () => {
     mockNavigate = mock(() => {})
     mockPathname = '/load'
     params = {}
+    startPage = 'home'
     ensureEntryMock.mockClear()
     createPageMock.mockClear()
     toastMock.mockClear()
     ensureEntryMock.mockImplementation(() => Promise.resolve({ noteId: 'uuid-home', routeId: 'playground/home' }))
     createPageMock.mockImplementation(() => Promise.resolve('2026-09-05-10-00-00-000'))
-    window.localStorage.clear()
   })
 
   afterEach(() => {
@@ -82,6 +89,26 @@ describe('useZipProcessor', () => {
     expect(toastMock).not.toHaveBeenCalled()
   })
 
+  it('lands the ?z= home-hero share on home under the default startup setting', async () => {
+    params = { z: 'abc' }
+    renderHook(() => useZipProcessor())
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(ensureEntryMock).toHaveBeenCalledTimes(1)
+    expect(ensureEntryMock.mock.calls[0][1]).toEqual({ reuseKey: 'home', title: 'Home playground' })
+    expect(window.localStorage.getItem(SHARED_KEY)).toContain('decoded:abc')
+    expect(toastMock).not.toHaveBeenCalled()
+  })
+  it('sends the ?z= home-hero share to the loaded playground page under the journal startup setting', async () => {
+    startPage = 'journal'
+    params = { z: 'abc', by: 'Tester' }
+    renderHook(() => useZipProcessor())
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/playground/home', { replace: true }))
+    expect(ensureEntryMock).toHaveBeenCalled()
+    expect(window.localStorage.getItem(SHARED_KEY)).not.toBeNull()
+    expect(toastMock).not.toHaveBeenCalled()
+  })
   it.each(['z', 'zip'])('rejects an undecodable %s share without persisting an entry', async (parameter) => {
     params = { [parameter]: 'bad' }
     renderHook(() => useZipProcessor())

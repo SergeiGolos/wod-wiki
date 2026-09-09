@@ -42,6 +42,7 @@ import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
+import { StartPageGate } from './lib/startPage'
 import { HomeView } from './views/HomeView'
 import { QueriableStreamView } from './views/stream/QueriableStreamView'
 import { resolveStreamProfile } from './views/stream/streamProfile'
@@ -497,7 +498,17 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to="/dashboard" replace />} />
                   <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<ExplorerRedirect />} />
                   {canvasRouteList.map(({ route }) => (
-                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route
+                      key={route}
+                      path={route}
+                      element={route === ROUTE_PATTERNS.home ? (
+                        <StartPageGate>
+                          <AppContent searchHandlerRef={searchHandlerRef} />
+                        </StartPageGate>
+                      ) : (
+                        <AppContent searchHandlerRef={searchHandlerRef} />
+                      )}
+                    />
                   ))}
                 </Routes>
                 <DocumentTitleSync />
