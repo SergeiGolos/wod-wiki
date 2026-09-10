@@ -1,5 +1,9 @@
 # Whiteboard Language Syntax Reference
 
+> **Partially superseded:** [`15-whiteboard-language-and-wql-reference.md`](./15-whiteboard-language-and-wql-reference.md)
+> is the parser-verified, complete reference. Notably, `pood` is **not** a registered unit and
+> `185/125 lb` parses as a fraction, not a choice group — see that document's §A9.
+
 A `time` block (or any recognized fence tag) is a sequence of **statements**. Each statement is one line of `[lap] fragment fragment …`, and indentation creates parent/child hierarchy.
 
 ## Basic statement

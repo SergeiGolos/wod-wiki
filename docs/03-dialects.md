@@ -1,5 +1,10 @@
 # Dialects
 
+> **Partially superseded:** [`15-whiteboard-language-and-wql-reference.md`](./15-whiteboard-language-and-wql-reference.md)
+> documents the dialect stack as implemented. In the application, only `time` and `log` are fence
+> **tags**; `climb`, `cardio`, `yoga`, `habits` are dialect ids selected by the `:sport` suffix —
+> see that document's §A6.
+
 A **Block Dialect** is the fence tag that selects a parser/compiler override for a block. The universal defaults (base grammar, base dialect stack, default analytics) always run underneath; a dialect only overrides where it explicitly differs.
 
 ## Recognized fence tags

@@ -25,6 +25,8 @@ This folder contains the living documentation for the WOD Wiki application and t
 | [`12-on-this-page-navigation.md`](./12-on-this-page-navigation.md) | App | On-this-page navigation, section/workout headers, and stream group sync |
 | [`13-datadog-analytics-engine-review-and-roadmap.md`](./13-datadog-analytics-engine-review-and-roadmap.md) | Engine / App | Datadog-style analytics engine review, empirical probe findings, and roadmap |
 | [`14-command-locations-by-view.md`](./14-command-locations-by-view.md) | App | Where every command lives per route — desktop page header vs mobile (navbar cast, stacked thumb dock whose ⋮ opens Page options as stacked rows, full-width WQL button row in the thumb footer), with view-by-view command tables |
+| [`15-whiteboard-language-and-wql-reference.md`](./15-whiteboard-language-and-wql-reference.md) | End users / Engine | Complete syntax reference for both languages: every Whiteboard fragment, dialect and protocol keyword, and every WQL family, clause, pipe and document construct — verified against the parsers |
+| [`16-language-complexity-review-and-simplification.md`](./16-language-complexity-review-and-simplification.md) | Engine / Product | Complexity grades (0–20 scale) for every construct in both languages, the measured compiler/analytics preservation contract, and a phased simplification proposal (P0–P7, W1–W7) |
 
 > These docs are drafts. If the code and a doc disagree, the code wins until the doc is updated.
 
