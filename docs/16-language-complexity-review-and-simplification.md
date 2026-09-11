@@ -1,7 +1,15 @@
 # Language Complexity Review & Simplification Proposal
 
-**Status**: REVIEW + PROPOSAL. Nothing here is implemented. Everything is measured against the
-current parsers/compiler in this repo.
+**Status**: HISTORICAL REVIEW + PROPOSAL. No implementation is claimed. Measurements and
+equivalence claims below describe the original review and have not been revalidated as current.
+
+**Superseding designs:** [Correctness fixes](./17-language-correctness-fixes-design.md),
+[behavior-preserving cleanup](./18-language-behavior-preserving-cleanup-design.md), and
+[language redesign](./19-language-redesign-design.md) replace the recommendations in their
+respective categories. In particular, compiled Metric values alone do not establish runtime
+equivalence; content discovery differs from recorded-result retrieval, and calendar buckets
+differ from fixed-duration rollups. Treat the original risk estimates and projected reductions
+below as proposals, not acceptance evidence.
 
 **Scope**: the two authored languages — the **Whiteboard Language** (`time`/`log` fences) and
 **WQL** — graded on a complexity scale, plus a staged simplification that keeps the parser and

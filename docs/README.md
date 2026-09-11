@@ -26,7 +26,10 @@ This folder contains the living documentation for the WOD Wiki application and t
 | [`13-datadog-analytics-engine-review-and-roadmap.md`](./13-datadog-analytics-engine-review-and-roadmap.md) | Engine / App | Datadog-style analytics engine review, empirical probe findings, and roadmap |
 | [`14-command-locations-by-view.md`](./14-command-locations-by-view.md) | App | Where every command lives per route — desktop page header vs mobile (navbar cast, stacked thumb dock whose ⋮ opens Page options as stacked rows, full-width WQL button row in the thumb footer), with view-by-view command tables |
 | [`15-whiteboard-language-and-wql-reference.md`](./15-whiteboard-language-and-wql-reference.md) | End users / Engine | Complete syntax reference for both languages: every Whiteboard fragment, dialect and protocol keyword, and every WQL family, clause, pipe and document construct — verified against the parsers |
-| [`16-language-complexity-review-and-simplification.md`](./16-language-complexity-review-and-simplification.md) | Engine / Product | Complexity grades (0–20 scale) for every construct in both languages, the measured compiler/analytics preservation contract, and a phased simplification proposal (P0–P7, W1–W7) |
+| [`16-language-complexity-review-and-simplification.md`](./16-language-complexity-review-and-simplification.md) | Engine / Product | Historical complexity inventory and simplification proposal; recommendations superseded by the three category designs below |
+| [`17-language-correctness-fixes-design.md`](./17-language-correctness-fixes-design.md) | Engine / App | Proposed fixes for Statement identity, protocol precedence, diagnostics, and invalid examples; regression and runtime acceptance contracts |
+| [`18-language-behavior-preserving-cleanup-design.md`](./18-language-behavior-preserving-cleanup-design.md) | Engine / App | Proposed removal of redundant implementation, gated by parser, runtime, persistence, and analytics equivalence |
+| [`19-language-redesign-design.md`](./19-language-redesign-design.md) | Engine / Product | Proposed language contracts for query populations, time semantics, parameters, metadata scope, and explicit breaking migrations |
 
 > These docs are drafts. If the code and a doc disagree, the code wins until the doc is updated.
 
