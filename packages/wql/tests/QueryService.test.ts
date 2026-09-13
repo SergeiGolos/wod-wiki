@@ -15,6 +15,7 @@ interface SummaryExtra {
   effortSlug?: string;
   discipline?: string;
   intensityTier?: string;
+  grade?: string;
   blockContentId?: string;
 }
 
@@ -26,7 +27,7 @@ function fact(
   extra: SummaryExtra = {},
 ): UnifiedEventRecord {
   seq += 1;
-  const { unit, effortSlug, discipline, intensityTier, ...identity } = extra;
+  const { unit, effortSlug, discipline, intensityTier, grade, ...identity } = extra;
   return {
     id: `r${seq}:summary:${metricKey}`,
     resultId: `r${seq}`,
@@ -49,6 +50,7 @@ function fact(
         ...(effortSlug ? { effortSlug } : {}),
         ...(discipline ? { effortDiscipline: discipline } : {}),
         ...(intensityTier ? { effortIntensityTier: intensityTier } : {}),
+        ...(grade ? { grade } : {}),
       },
     }],
   };
@@ -245,6 +247,26 @@ describe('QueryService', () => {
     // Ticket 16: the missing group resolves to the structural UNASSIGNED
     // sentinel (label 'unassigned'), never a literal '(none)'.
     expect(byRound.series[0].label).toBe('unassigned');
+  });
+
+  it('GROUPs and FILTERs calc.sends by the climb grade tag', async () => {
+    // The dashboard grade pyramid contract: climb-sends summaries persist a
+    // grade tag (calc engine + seeds) and WQL resolves it as a dimension.
+    const sends = [
+      fact('calc.sends', 1, day0 + HOUR, { grade: 'V1' }),
+      fact('calc.sends', 1, day0 + 2 * HOUR, { grade: 'V2' }),
+      fact('calc.sends', 1, day0 + 3 * HOUR, { grade: 'V2' }),
+      fact('calc.sends', 1, day0 + 4 * HOUR, { grade: 'V5' }),
+    ];
+    const service = new QueryService(makeStore(sends).store);
+
+    const byGrade = await service.runQuery('count:calc.sends{} by {grade}');
+    expect(byGrade.series.map(s => s.label).sort()).toEqual(['V1', 'V2', 'V5']);
+    expect(byGrade.series.find(s => s.label === 'V2')!.points[0].value).toBe(2);
+    expect(byGrade.stages.groups).toBe(3);
+
+    const v2 = await service.runQuery('count:calc.sends{grade:V2}');
+    expect(v2.scalar).toBe(2);
   });
 
   it('exposes stage telemetry and scalar for single-point results', async () => {

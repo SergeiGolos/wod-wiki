@@ -32,8 +32,8 @@ Math applied to data buckets:
 * **Calculated Metrics:** `calc.acwr` (acute:chronic workload ratio), `calc.monotony`, `calc.strain`.
 
 ### 3. Dimensions (`dimension`) & Rollups (`period`)
-* **Time Dimensions:** `day`, `week`, `month`, `year` paired with rollups like `.rollup(1w)` or `.rollup(4w)`.
-* **Metadata Dimensions:** `effort`, `discipline`, `intensity`.
+* **Time Dimensions:** `day`, `week` paired with rollups like `.rollup(1w)` or `.rollup(4w)`.
+* **Metadata Dimensions:** `effort`, `discipline`, `intensity`; `session` groups per recorded workout.
 
 ## Content Queries {sticky}
 
@@ -47,6 +47,7 @@ find:<target>{<filters>,source:<scope>} last <n>w
 ### 1. Targets (`target`)
 * `find:note`: Returns full markdown notes (journal Notes, Catalog Sessions, Catalog Posts).
 * `find:block`: Returns addressable subsets of notes (`wod` blocks, `dashboard` blocks, headings).
+* `find:effort`: Returns effort registry entries, filterable by `text`, `discipline`, `intensity`, and `origin`.
 
 ### 2. Sources (`source:` filter)
 * `source:journal`: User's personal journal notes in IndexedDB.

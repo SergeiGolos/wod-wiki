@@ -308,6 +308,7 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
     case 'intensity': return row.intensityTier;
+    case 'grade': return row.grade;
     case 'note': return row.noteId;
     case 'page': return row.pageId;
     case 'origin': return row.origin;
