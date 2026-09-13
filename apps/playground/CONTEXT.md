@@ -35,7 +35,7 @@ Domain vocabulary that applies repo-wide lives in the root
 | Workbench session | `playground/src/state/workbenchSessionStore.ts` | The coherent editing-session state. Exercisable without React. |
 | Sticky page header | `src/panels/page-shells/StickyPageHeader.tsx` | The standard page header for every playground page: sticky title bar + actions + subheader slot, **desktop (lg+) only** — below lg the zone is `max-lg:hidden` and the SidebarLayout navbar is the single mobile header. Mobile identity reaches the navbar via the App breadcrumb (route-derived workout name); mobile-critical actions (note Edit toggle, stream query bar) portal into the navbar's MobileQuerySlot target. Stacked sticky children position via `measureStickyBoundary` / `useStickyBoundaryOffset` (`src/panels/page-shells/stickyBoundary.ts`) — never hardcode `top` values. |
 | Composer query state | `playground/src/hooks/useComposerQueryState.ts` | URL ↔ WqlComposer clause round-trip through `q` (back/forward restores the composer; salvage parser keeps invalid states editable). Stream profiles supply their landing defaults + legacy-param migration. |
-| Effort find plane | `src/services/analytics/query/QueryService.ts` (`runFindEffort`) | `find:effort{…} in all` queries the effort registry through the `EffortQueryStore` seam (default: CompositeEffortRegistry). Filter vocab: effort/discipline/intensity/origin/text. |
+| Effort find plane | `src/services/analytics/query/QueryService.ts` (`runFindEffort`) | `find:effort{…}` queries the effort registry through the `EffortQueryStore` seam (default: CompositeEffortRegistry). Filter vocab: effort/discipline/intensity/origin/text. |
 
 ## Conventions
 

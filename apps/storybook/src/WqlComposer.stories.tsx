@@ -295,11 +295,11 @@ export const HostLibraryPage: Story = {
 /**
  * HostEffortsCatalog — apps/playground/app/pages/EffortsCatalogPage.tsx
  * (`/efforts`): same shape as the library but on the effort plane —
- * `find:effort{…} in all`, with text/discipline/intensity/origin filters
+ * `find:effort{…}`, with text/discipline/intensity/origin filters
  * applied engine-side (QueryService.runFindEffort vocabulary).
  */
 const EffortsHarness: React.FC = () => {
-  const [wql, setWql] = useState('find:effort in all');
+  const [wql, setWql] = useState('find:effort');
 
   return (
     <div className="max-w-3xl space-y-2">
