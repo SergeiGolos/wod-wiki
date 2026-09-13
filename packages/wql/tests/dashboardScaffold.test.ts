@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildDashboardScaffold } from '../src/dashboard/scaffold';
+import { parseQuery } from '../src/wql';
+import { defaultTokenValues, substituteTokens } from '../src/dashboard/model';
 import { parseFrontmatter } from '../src/dashboard/frontmatter';
 import { parseDashboardNote } from '../src/dashboard/parser';
 import { buildDashboardDocument } from '../src/dashboard/model';
@@ -36,5 +38,17 @@ describe('buildDashboardScaffold', () => {
     expect(doc.widgets[0].title).toBeDefined();
     expect(doc.widgets[0]!.body).toContain('$');
     expect(doc.tokens.some((t) => doc.widgets[0]!.body.includes(`$${t.name}`))).toBe(true);
+  });
+
+  it('emits a body that parses after token substitution', () => {
+    const raw = buildDashboardScaffold();
+    const { meta, sections } = parseDashboardNote(raw);
+    const doc = buildDashboardDocument(sections, meta);
+    expect(doc.widgets.length).toBeGreaterThan(0);
+    const values = defaultTokenValues(doc.tokens);
+    for (const widget of doc.widgets) {
+      const { query } = substituteTokens(widget.body, values);
+      expect(parseQuery(query).error).toBeUndefined();
+    }
   });
 });

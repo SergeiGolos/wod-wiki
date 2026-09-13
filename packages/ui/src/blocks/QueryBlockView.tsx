@@ -59,8 +59,22 @@ export function QueryBlockView({
   const { query: effectiveQuery, missing } = useMemo(() => {
     const raw = extracted.length > 0 ? extracted[0].query : query;
     const subQuery = substituteTokens(raw, tokenValues ?? {});
-    return { query: subQuery.query, missing: subQuery.missing };
-  }, [extracted, query, tokenValues]);
+    // Fence-tag attributes (`goal=$token`) resolve against the same values;
+    // a missing token blocks the widget rather than rendering a NaN target.
+    const missingSet = new Set(subQuery.missing);
+    for (const value of Object.values(attributes ?? {})) {
+      for (const m of substituteTokens(value, tokenValues ?? {}).missing) missingSet.add(m);
+    }
+    return { query: subQuery.query, missing: [...missingSet] };
+  }, [extracted, query, tokenValues, attributes]);
+
+  const resolvedAttributes = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(attributes ?? {})) {
+      out[key] = substituteTokens(value, tokenValues ?? {}).query;
+    }
+    return out;
+  }, [attributes, tokenValues]);
 
   const parsed = useMemo(() => parseQuery(effectiveQuery), [effectiveQuery]);
   const unknownType =
@@ -209,11 +223,10 @@ export function QueryBlockView({
             result={result}
             metric={parsed.metric}
             widgetType={widgetType}
-            attributes={attributes}
+            attributes={resolvedAttributes}
           />
         </QueryBlockShell>
       )}
-
       {canEdit && (
         <WqlQueryInspectorModal
           isOpen={isModalOpen}

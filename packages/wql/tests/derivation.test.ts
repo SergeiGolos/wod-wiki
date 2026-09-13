@@ -103,6 +103,43 @@ describe('toEventRows — logs → event rows, 1:1 per statement (ticket 002)', 
   });
 });
 
+describe('projectEventToFacts — grade dim promotion', () => {
+  it('promotes a grade-typed metric to every projected fact row', () => {
+    const rows = toEventRows(
+      [
+        statement({
+          metrics: [
+            { type: 'label', value: 'Send' },
+            { type: 'rep', value: 1 },
+            { type: 'grade', value: 'V8' },
+          ],
+        } as StoredOutputStatement),
+      ],
+      IDENTITY,
+    );
+    const facts = projectEventToFacts(rows[0]!);
+    expect(facts.length).toBeGreaterThan(0);
+    expect(facts.every((f) => f.grade === 'V8')).toBe(true);
+  });
+
+  it('keeps metadata-stamped grades ahead of the grade metric fallback', () => {
+    const rows = toEventRows(
+      [
+        statement({
+          metrics: [
+            { type: 'label', value: 'Send' },
+            { type: 'volume', value: 1, metadata: { grade: 'V5' } },
+            { type: 'grade', value: 'V8' },
+          ],
+        } as StoredOutputStatement),
+      ],
+      IDENTITY,
+    );
+    const facts = projectEventToFacts(rows[0]!);
+    expect(facts.find((f) => f.metricKey !== 'grade')!.grade).toBe('V5');
+  });
+});
+
 describe('toSummaryEventRows — analytics outputs → deterministic summary rows (tickets 002/004)', () => {
   it('emits one keep-last summary row per metricKey+groupTags with a deterministic id', () => {
     const logs: StoredOutputStatement[] = [

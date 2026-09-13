@@ -114,7 +114,17 @@ export function DashboardView({
     () =>
       document.widgets.map((widget) => {
         const { query, missing } = substituteTokens(widget.body, values);
-        return { widget, query, missing };
+        // Fence-tag attributes carry presentation params (`goal=$token`) —
+        // they ride the same token values as the body, and a missing token
+        // blocks the widget instead of rendering a NaN target.
+        const attributes: Record<string, string> = {};
+        const allMissing = new Set(missing);
+        for (const [key, value] of Object.entries(widget.attributes)) {
+          const sub = substituteTokens(value, values);
+          attributes[key] = sub.query;
+          for (const m of sub.missing) allMissing.add(m);
+        }
+        return { widget, query, missing: [...allMissing], attributes };
       }),
     [document.widgets, values],
   );
@@ -200,7 +210,7 @@ export function DashboardView({
       {loading && <div className="text-sm text-muted-foreground mb-3">Loading widgets…</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {resolved.map(({ widget, query }, index) => {
+        {resolved.map(({ widget, query, attributes }, index) => {
           const run = runs[widget.key];
           const canArrange = editMode && (onEditWidget || onDuplicateWidget || onRemoveWidget || onMoveWidget || onResizeWidget);
           return (
@@ -280,7 +290,7 @@ export function DashboardView({
                   result={run?.result}
                   label={widget.title}
                   unit={preferredUnit}
-                  attributes={widget.attributes}
+                  attributes={attributes}
                 />
               )}
             </WidgetFrame>

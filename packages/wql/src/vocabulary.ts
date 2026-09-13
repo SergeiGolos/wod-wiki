@@ -31,7 +31,7 @@ export type WqlComparisonOp = (typeof WQL_COMPARISON_OPS)[number];
 
 /** Tag keys the Query Service reads off a fact row (QueryService.factTagValue). */
 export const WQL_TAG_KEYS = [
-  'effort', 'discipline', 'intensity', 'note', 'page', 'origin',
+  'effort', 'discipline', 'intensity', 'grade', 'note', 'page', 'origin',
   'grain', 'metric', 'block', 'result', 'tags',
 ] as const;
 export type WqlTagKey = (typeof WQL_TAG_KEYS)[number];

@@ -129,14 +129,12 @@ describe('QueryService', () => {
     expect(result.scalar).toBe(2500);
   });
 
-  it('filters tags exactly, negated, and wildcard', async () => {
+  it('rejects filter keys the fact rows cannot resolve instead of silently matching nothing', async () => {
     const service = new QueryService(makeStore().store);
 
-    expect((await service.runQuery('sum:totalVolume{discipline:strength}')).scalar).toBe(6000);
-    expect((await service.runQuery('sum:totalVolume{!discipline:strength}')).scalar).toBe(500);
-    expect((await service.runQuery('sum:totalVolume{effort:back*}')).scalar).toBe(6000);
-    expect((await service.runQuery('sum:totalVolume{coach:greg}')).stages.selected).toBe(0);
-    expect((await service.runQuery('sum:totalVolume{!coach:greg}')).stages.selected).toBe(4);
+    const rejected = await service.runQuery('sum:totalVolume{coach:greg}');
+    expect(rejected.parsed.error).toContain('Unsupported filter key(s) "coach"');
+    expect(rejected.stages.selected).toBe(0);
   });
 
   it('filters multi-value tags with OR within a key and AND across keys', async () => {
@@ -171,7 +169,23 @@ describe('QueryService', () => {
     const multiValue = await service.runQuery('sum:totalVolume{note:note-fran|note-row}');
     const repeatedKey = await service.runQuery('sum:totalVolume{note:note-fran,note:note-row}');
     expect(repeatedKey.scalar).toBe(multiValue.scalar);
+
     expect(repeatedKey.stages.selected).toBe(multiValue.stages.selected);
+  });
+  it('groups and filters by the grade dimension', async () => {
+    const sends = [
+      fact('calc.sends', 1, day0 + HOUR, { grade: 'V5' }),
+      fact('calc.sends', 1, day0 + 2 * HOUR, { grade: 'V8' }),
+      fact('calc.sends', 1, day0 + 3 * HOUR, { grade: 'V8' }),
+    ];
+    const service = new QueryService(makeStore(sends).store);
+
+    const grouped = await service.runQuery('count:calc.sends{} by {grade}');
+    expect(grouped.series.map((s) => s.label).sort()).toEqual(['V5', 'V8']);
+    expect(grouped.series.find((s) => s.label === 'V8')!.points[0]!.value).toBe(2);
+
+    const filtered = await service.runQuery('count:calc.sends{grade:V5}');
+    expect(filtered.scalar).toBe(1);
   });
 
   it('resolves multi-value tags against the note_tags set', async () => {

@@ -33,7 +33,7 @@ Math applied to data buckets:
 
 ### 3. Dimensions (`dimension`) & Rollups (`period`)
 * **Time Dimensions:** `day`, `week` paired with rollups like `.rollup(1w)` or `.rollup(4w)`.
-* **Metadata Dimensions:** `effort`, `discipline`, `intensity`; `session` groups per recorded workout.
+* **Metadata Dimensions:** `effort`, `discipline`, `intensity`, `grade`; `session` groups per recorded workout.
 
 ## Content Queries {sticky}
 

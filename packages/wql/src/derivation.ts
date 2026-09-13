@@ -379,6 +379,11 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   const effortSlug = metadataString(metrics[0]?.metadata, 'effortSlug')
     ?? record.effortSlug
     ?? (effortMetric && typeof effortMetric.value === 'string' ? effortMetric.value : undefined);
+  // A grade-typed metric (user-authored `grade: V8` or catalog-stamped)
+  // names the observation's climb grade — the dim/filter twin of effortSlug.
+  const gradeMetric = metrics.find(m => m.type === MetricType.Grade || m.type === 'grade');
+  const rowGrade = metadataString(metrics[0]?.metadata, 'grade')
+    ?? (gradeMetric && typeof gradeMetric.value === 'string' ? gradeMetric.value : undefined);
 
   const facts: AnalyticsDataPoint[] = [];
   metrics.forEach((m) => {
@@ -431,7 +436,7 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
-      grade: metadataString(m.metadata, 'grade'),
+      grade: metadataString(m.metadata, 'grade') ?? rowGrade,
       timestamp: factTimestamp,
       createdAt: record.timestamp,
     });

@@ -19,7 +19,7 @@ One page, every WQL construct. Copy the query pattern, plug in your metrics, and
 | `avg` | Average | `avg:tis{}` |
 | `min` | Minimum | `min:elapsed{}` |
 | `max` | Maximum | `max:totalDistance{}` |
-| `count` | Count of sessions | `count:totalReps{}` |
+| `count` | Count of recorded points | `count:totalReps{}` |
 | `last` | Most recent value | `last:sessionLoad{}` |
 | `delta` | Change over window | `delta:sessionLoad{}` |
 
@@ -52,6 +52,8 @@ One page, every WQL construct. Copy the query pattern, plug in your metrics, and
 |---|---|---|
 | `effort` | Movement slug | `effort:back-squat` |
 | `discipline` | Domain modality | `discipline:strength` |
+| `intensity` | Intensity tier | `intensity:high` |
+| `grade` | Climb grade from a grade-typed metric | `count:calc.sends{grade:V8}` |
 | `text` | Substring match | `text:burpee` |
 | `source` | Content source ID | `source:collection:crossfit-girls` |
 | `type` | Block type | `type:wod` or `type:dashboard` |

@@ -87,6 +87,63 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
     });
   });
 
+  it('substitutes token values into widget fence-tag attributes', async () => {
+    const runQueryMock = vi.fn(async (query: string) => mockQueryResult(query, 42));
+    const mockExecutor: QueryExecutor = {
+      runQuery: runQueryMock,
+      runFind: vi.fn(async () => ({}) as unknown as FindQueryResult),
+      runRows: vi.fn(async () => ({}) as unknown as RowsQueryResult),
+    };
+
+    const doc: DashboardDocument = buildDashboardDocument(
+      [
+        {
+          type: 'query',
+          content: 'max:calc.e1rm{}',
+          widgetType: 'goal-rings',
+          attributes: { goal: '$goal' },
+        },
+      ],
+      {
+        'dashboard.goal': ['150'],
+      },
+    );
+
+    render(<DashboardView document={doc} executor={mockExecutor} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Goal: 150 reps')).toBeDefined();
+    });
+  });
+
+  it('blocks a widget whose attribute references an unknown token', async () => {
+    const runQueryMock = vi.fn(async (query: string) => mockQueryResult(query, 42));
+    const mockExecutor: QueryExecutor = {
+      runQuery: runQueryMock,
+      runFind: vi.fn(async () => ({}) as unknown as FindQueryResult),
+      runRows: vi.fn(async () => ({}) as unknown as RowsQueryResult),
+    };
+
+    const doc: DashboardDocument = buildDashboardDocument(
+      [
+        {
+          type: 'query',
+          content: 'max:calc.e1rm{}',
+          widgetType: 'goal-rings',
+          attributes: { goal: '$missing' },
+        },
+      ],
+      {},
+    );
+
+    render(<DashboardView document={doc} executor={mockExecutor} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('unknown token: $missing')).toBeDefined();
+    });
+    expect(runQueryMock).not.toHaveBeenCalled();
+  });
+
   it('edit mode surfaces the arrangement affordances and reports widget actions to the host', async () => {
     const onEditWidget = vi.fn();
     const onRemoveWidget = vi.fn();

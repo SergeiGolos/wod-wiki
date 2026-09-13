@@ -713,6 +713,13 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   base.metric = text.slice(metricNode.from, metricNode.to);
 
   base.filters = extractFilters(query, text);
+  // Aggregates read fact rows — only tag keys the QueryService can resolve
+  // are legal here. Anything else would silently filter to zero rows.
+  const unsupportedKeys = base.filters.map(f => f.key).filter(k => !(WQL_TAG_KEYS as readonly string[]).includes(k));
+  if (unsupportedKeys.length > 0) {
+    base.error = `Unsupported filter key(s) ${unsupportedKeys.map(k => `"${k}"`).join(', ')} on an aggregate. Supported: ${WQL_TAG_KEYS.join(', ')}`;
+    return base;
+  }
   const grainError = retiredGrainRollup(base.filters);
   if (grainError) { base.error = grainError; return base; }
   if (whereText) {
@@ -809,6 +816,22 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   if (sourceError) { result.error = sourceError; return result; }
   const findGrainError = retiredGrainRollup(result.filters);
   if (findGrainError) { result.error = findGrainError; return result; }
+  // find:effort reads the effort registry — no time dimension, no source
+  // scoping. Accepted-but-ignored clauses surface as advisories so a query
+  // never silently returns a different population than its text implies.
+  if (result.target === 'effort') {
+    if (win.window) {
+      advisories.push("find:effort ignores the window — efforts have no time dimension; drop 'last <n><d|w>'.");
+    }
+    const supported = ['effort', 'discipline', 'intensity', 'origin', 'text'];
+    const ignored = result.filters.map(f => f.key).filter(k => !supported.includes(k));
+    if (ignored.length > 0) {
+      advisories.push(`find:effort ignores ${ignored.map(k => `'${k}:'`).join(', ')} filters — supported: ${supported.join(', ')}.`);
+    }
+    if (advisories.length > 0) {
+      result.advisories = [...(result.advisories ?? []), ...advisories];
+    }
+  }
 
   if (whereText) {
     const join = parseJoinClause(whereText);
