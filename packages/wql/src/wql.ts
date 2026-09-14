@@ -17,6 +17,8 @@ import type { SyntaxNode } from '@lezer/common';
 import * as terms from './grammar/wql.parser.terms';
 import {
   WQL_AGGREGATORS,
+  WQL_CONTENT_ONLY_KEYS,
+  WQL_EFFORT_FILTER_KEYS,
   WQL_FIND_TARGETS,
   WQL_ROWS_SCOPE_KEYS,
   WQL_ROWS_TARGETS,
@@ -62,7 +64,7 @@ export interface MetricPredicate {
 
 /**
  * Content half of a cross-store join — the find predicate attached to an
- * analytics query via `where`. Example: `find:note{tags:competition} in journal`.
+ * analytics query via `where`. Example: `find:note{tags:competition,source:journal}`.
  * Restricts the metric computation to the blockContentIds owned by matching
  * content; the metric is recomputed from raw logs for those blocks only.
  */
@@ -713,6 +715,15 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   base.metric = text.slice(metricNode.from, metricNode.to);
 
   base.filters = extractFilters(query, text);
+  // Content-plane keys on an aggregate are a category error — a fact row
+  // has no note text or source. Every other non-structural key is a
+  // candidate custom dimension resolved at runtime (factTagValue falls
+  // back to row.dimensions), so it is NOT rejected here.
+  const contentKeys = base.filters.map(f => f.key).filter(k => (WQL_CONTENT_ONLY_KEYS as readonly string[]).includes(k));
+  if (contentKeys.length > 0) {
+    base.error = `Content filter key(s) ${contentKeys.map(k => `"${k}"`).join(', ')} cannot narrow an aggregate — facts carry effort/dimension data, not note text. Aggregate dims: ${WQL_TAG_KEYS.join(', ')}, plus any custom dimension.`;
+    return base;
+  }
   const grainError = retiredGrainRollup(base.filters);
   if (grainError) { base.error = grainError; return base; }
   if (whereText) {
@@ -809,6 +820,21 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   if (sourceError) { result.error = sourceError; return result; }
   const findGrainError = retiredGrainRollup(result.filters);
   if (findGrainError) { result.error = findGrainError; return result; }
+  // find:effort reads the effort registry — no time dimension, no source
+  // scoping. Accepted-but-ignored clauses surface as advisories so a query
+  // never silently returns a different population than its text implies.
+  if (result.target === 'effort') {
+    if (win.window) {
+      advisories.push("find:effort ignores the window — efforts have no time dimension; drop 'last <n><d|w>'.");
+    }
+    const ignored = result.filters.map(f => f.key).filter(k => !(WQL_EFFORT_FILTER_KEYS as readonly string[]).includes(k));
+    if (ignored.length > 0) {
+      advisories.push(`find:effort ignores ${ignored.map(k => `'${k}:'`).join(', ')} filters — supported: ${WQL_EFFORT_FILTER_KEYS.join(', ')}.`);
+    }
+    if (advisories.length > 0) {
+      result.advisories = [...(result.advisories ?? []), ...advisories];
+    }
+  }
 
   if (whereText) {
     const join = parseJoinClause(whereText);

@@ -16,14 +16,15 @@ dashboard: true
 dashboard.active: true
 title: ${title}
 slug: ${dashboardSlug(title)}
-dashboard.metric: [totalVolume, totalReps]
+dashboard.metric:
+  - totalVolume
 ---
 
 ## Weekly Trend
 How does $metric trend week over week?
 
 \`\`\`query:timeseries
-sum:$metric{} rollup:1w
+sum:\$metric{} by {week}.rollup(1w)
 \`\`\`
 `;
 }

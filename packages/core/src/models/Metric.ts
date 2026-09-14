@@ -161,6 +161,10 @@ export enum MetricType {
   Custom = 'custom',
   Volume = 'volume',
   Intensity = 'intensity',
+
+  /** Climb grade label carried by an observation (e.g. `V8`, `5.12a`) —
+   *  user-authored grade metrics promote to the analytics `grade` dim. */
+  Grade = 'grade',
   Load = 'load',
   Work = 'work',
 

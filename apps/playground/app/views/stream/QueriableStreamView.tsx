@@ -414,6 +414,18 @@ export function QueriableStreamView({
           />
         }
       />
+
+      {/* ponytail: the nudge is a passive hint — upgrade to an inline source
+          picker when the "Empty-option nudge UX" ticket lands. An empty
+          typeOptions list is a deliberate Route WQL Config state. */}
+      {profile.typeOptions.length === 0 && (
+        <p
+          data-testid="route-wql-empty-options"
+          className="px-4 pt-3 text-xs text-muted-foreground sm:px-6 lg:px-8"
+        >
+          No source options are set for this route — pick a source by editing the query.
+        </p>
+      )}
       {isMobile && mobileSlot && (
         createPortal(
           <StreamQueryBar

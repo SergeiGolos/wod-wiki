@@ -54,8 +54,8 @@ describe('ticket 19 — QueryDocumentRunner', () => {
         return { series: [] };
       },
     });
-    await probe.run('sum:totalVolume{goal:$goal}', { tokens: { goal: '200' } });
-    expect(seen).toBe('sum:totalVolume{goal:200}');
+    await probe.run('sum:totalVolume{effort:$effort}', { tokens: { effort: '200' } });
+    expect(seen).toBe('sum:totalVolume{effort:200}');
   });
 
   it('one captured execution context threads every window resolution', async () => {

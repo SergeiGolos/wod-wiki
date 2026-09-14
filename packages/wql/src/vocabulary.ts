@@ -31,10 +31,19 @@ export type WqlComparisonOp = (typeof WQL_COMPARISON_OPS)[number];
 
 /** Tag keys the Query Service reads off a fact row (QueryService.factTagValue). */
 export const WQL_TAG_KEYS = [
-  'effort', 'discipline', 'intensity', 'note', 'page', 'origin',
+  'effort', 'discipline', 'intensity', 'grade', 'note', 'page', 'origin',
   'grain', 'metric', 'block', 'result', 'tags',
 ] as const;
 export type WqlTagKey = (typeof WQL_TAG_KEYS)[number];
+
+/** Content-plane keys — meaningful only on find:/rows:. On an aggregate
+ *  they are a category error (a fact row has no note text or source);
+ *  every other non-structural key is a candidate custom dimension. */
+export const WQL_CONTENT_ONLY_KEYS = ['type', 'text', 'has', 'source', 'catalog'] as const;
+
+/** Filter keys the effort registry can resolve (runFindEffort) — anything
+ *  else on find:effort is ignored and reported as an advisory. */
+export const WQL_EFFORT_FILTER_KEYS = ['effort', 'discipline', 'intensity', 'origin', 'text'] as const;
 
 /** Virtual dimensions — time buckets and stream positions, not fact fields. */
 export const WQL_VIRTUAL_DIMS = ['day', 'week', 'session', 'round'] as const;

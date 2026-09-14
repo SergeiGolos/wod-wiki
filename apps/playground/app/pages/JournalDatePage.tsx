@@ -221,7 +221,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       <JournalPageShell
           title={journalDate}
           subtitle={`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
-          actions={<ResponsiveActions primary={editToggle} />}
+          actions={<ResponsiveActions navbar={editToggle} />}
           editor={
         <div className="flex flex-col gap-8 px-4 py-6 sm:px-6">
           {notes.length === 0 ? (

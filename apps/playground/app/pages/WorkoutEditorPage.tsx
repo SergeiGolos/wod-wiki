@@ -177,7 +177,7 @@ export function WorkoutEditorPage({
     </Button>
   )
   const headerActions = (
-    <ResponsiveActions primary={editToggle}>
+    <ResponsiveActions navbar={editToggle}>
       <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
     </ResponsiveActions>
   )

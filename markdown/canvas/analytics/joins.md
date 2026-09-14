@@ -15,7 +15,7 @@ A cross-store query finds notes or blocks based on numeric thresholds computed b
 
 **Example Query:**
 ```wql
-find:note{tags:pr} where sum:totalVolume{} > 5000 in journal last 8w
+find:note{tags:pr,source:journal} last 8w where sum:totalVolume{} > 5000
 ```
 
 This query:
@@ -25,7 +25,7 @@ This query:
 
 ## Block Content Id Join Mechanics {sticky}
 
-When you run a workout block in a note, the runtime assigns a deterministic **Block Content Id** (FNV-1a hash of the block's text).
+When you run a workout block in a note, the runtime assigns a deterministic **Block Content Id** (a content hash of the block's text).
 
 * **Log Authority:** Raw `WorkoutResult` logs remain the single source of truth.
 * **Block Stability:** Reordering or editing lines outside a `wod` block does not break its join history because the Block Content Id stays identical.

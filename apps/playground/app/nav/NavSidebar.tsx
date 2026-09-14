@@ -136,20 +136,22 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
   const renderL2 = () => {
     if (!activeL1) return null
 
-    // Custom panel (Journal, Collections, Search)
+    // Custom panel (Journal, Collections, Search) — desktop only; the mobile
+    // drawer renders it indented under the active L1 item instead.
     if (activeL1.panel) {
       const Panel = activeL1.panel
       return (
-        <div className="border-b border-border/40 pb-2 mb-2">
+        <div className="hidden lg:block border-b border-border/40 pb-2 mb-2">
           <Panel item={activeL1} navState={navState} dispatch={dispatch} />
         </div>
       )
     }
 
-    // Children list (Home docs/syntax)
+    // Children list (Home docs/syntax) — desktop only; the mobile drawer
+    // renders these indented under the active L1 item instead.
     if (activeL1.children && activeL1.children.length > 0) {
       return (
-        <div className="border-b border-border/40 pb-2 mb-2">
+        <div className="hidden lg:block border-b border-border/40 pb-2 mb-2">
           <L2ChildrenList items={activeL1.children} />
         </div>
       )
@@ -161,7 +163,9 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
   return (
     <Sidebar>
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
-      <SidebarHeader>
+      {/* max-lg: the drawer carries L1 + the inlined L2 panel here; let it
+          scroll so a tall panel can't push lower L1 items off-screen. */}
+      <SidebarHeader className="max-lg:min-h-0 max-lg:overflow-y-auto">
         {/* Logo + L1 items — mobile drawer only; the desktop icon rail owns L1 */}
         <div className="lg:hidden">
           <div className="flex items-center px-2 py-4">
@@ -180,18 +184,44 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
           <SidebarSection>
             {tree.map(item => {
               const active = isItemActive(item, navState, location)
+              const isActiveL1 = item.id === activeL1?.id
+              const showInlineChildren = isActiveL1 && !!item.children?.length
+              const InlinePanel = isActiveL1 ? item.panel : undefined
               return (
-                <SidebarItem
-                  key={item.id}
-                  onClick={() => handleAction(item)}
-                  current={active}
-                >
-                  {item.icon && <item.icon data-slot="icon" />}
-                  <SidebarLabel className="font-semibold tracking-tight">
-                    {item.label}
-                  </SidebarLabel>
-                  {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
-                </SidebarItem>
+                <div key={item.id}>
+                  <SidebarItem
+                    onClick={() => {
+                      // Mobile: L1 sections with sub-items expand in place —
+                      // pick a child on the next tap; no navigation, drawer
+                      // stays open. Home is the exception: its landing route
+                      // is the tap target.
+                      if (item.id !== 'home' && (item.children?.length || item.panel)) {
+                        dispatch({ type: 'SET_ACTIVE_L1', id: item.id })
+                        return
+                      }
+                      handleAction(item)
+                    }}
+                    current={active}
+                  >
+                    {item.icon && <item.icon data-slot="icon" />}
+                    <SidebarLabel className="font-semibold tracking-tight">
+                      {item.label}
+                    </SidebarLabel>
+                    {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
+                  </SidebarItem>
+                  {/* Mobile: L2 links/panel indent under the selected L1
+                      instead of forming their own subsection below. */}
+                  {showInlineChildren && (
+                    <div className="ml-4 border-l border-border/40 pl-2">
+                      <L2ChildrenList items={item.children!} />
+                    </div>
+                  )}
+                  {InlinePanel && (
+                    <div className="ml-4 border-l border-border/40 pl-2">
+                      <InlinePanel item={item} navState={navState} dispatch={dispatch} />
+                    </div>
+                  )}
+                </div>
               )
             })}
           </SidebarSection>
@@ -200,7 +230,9 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
         {/* Context heading — names the active section above its L2 panel.
             Mobile drawer: sits under the L1 selector section (Home | Library
             | Dashboards | Efforts); desktop: tops the context sidebar. */}
-        <div className="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        <div className={`px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground${
+          activeL1?.children?.length || activeL1?.panel ? ' hidden lg:block' : ''
+        }`}>
           {activeL1?.label ?? 'Wod Wiki'}
         </div>
       </SidebarHeader>

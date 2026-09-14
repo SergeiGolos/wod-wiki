@@ -1,5 +1,6 @@
 import { describe, it, expect, mock, afterEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { writeRouteWqlConfig, clearRouteWqlConfig } from '../../lib/routeWqlConfig'
 import { ViewSettingsDialog } from './ViewSettingsDialog'
 import type { ViewSettings } from '../../lib/viewSettingsStorage'
 
@@ -136,6 +137,51 @@ describe('ViewSettingsDialog component', () => {
     fireEvent.click(resetButton)
 
     expect(handleReset).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers the system Group-By list when the route has no WQL config', () => {
+    render(
+      <ViewSettingsDialog
+        open={true}
+        onOpenChange={mock()}
+        route="/efforts"
+        level="effort"
+        settings={defaultSettings}
+        onLayoutChange={mock()}
+        onGroupByChange={mock()}
+        onToggleField={mock()}
+        onReset={mock()}
+      />,
+    )
+
+    expect(screen.getByTestId('view-settings-group-date')).toBeDefined()
+    expect(screen.getByTestId('view-settings-group-discipline')).toBeDefined()
+    expect(screen.getByTestId('view-settings-group-source')).toBeDefined()
+  })
+
+  it('renders the configured Group-By options instead of the system list', () => {
+    writeRouteWqlConfig('/efforts', { groupByOptions: ['week', 'effort'] })
+    try {
+      render(
+        <ViewSettingsDialog
+          open={true}
+          onOpenChange={mock()}
+          route="/efforts"
+          level="effort"
+          settings={defaultSettings}
+          onLayoutChange={mock()}
+          onGroupByChange={mock()}
+          onToggleField={mock()}
+          onReset={mock()}
+        />,
+      )
+
+      expect(screen.getByTestId('view-settings-group-week')).toBeDefined()
+      expect(screen.getByTestId('view-settings-group-effort')).toBeDefined()
+      expect(screen.queryByTestId('view-settings-group-discipline')).toBeNull()
+    } finally {
+      clearRouteWqlConfig('/efforts')
+    }
   })
 
   it('calls onOpenChange(false) when close button is clicked', () => {

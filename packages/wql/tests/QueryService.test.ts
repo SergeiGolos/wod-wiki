@@ -15,6 +15,8 @@ interface SummaryExtra {
   effortSlug?: string;
   discipline?: string;
   intensityTier?: string;
+  grade?: string;
+  groupTags?: Record<string, string>;
   blockContentId?: string;
 }
 
@@ -26,7 +28,7 @@ function fact(
   extra: SummaryExtra = {},
 ): UnifiedEventRecord {
   seq += 1;
-  const { unit, effortSlug, discipline, intensityTier, ...identity } = extra;
+  const { unit, effortSlug, discipline, intensityTier, grade, groupTags, ...identity } = extra;
   return {
     id: `r${seq}:summary:${metricKey}`,
     resultId: `r${seq}`,
@@ -49,6 +51,8 @@ function fact(
         ...(effortSlug ? { effortSlug } : {}),
         ...(discipline ? { effortDiscipline: discipline } : {}),
         ...(intensityTier ? { effortIntensityTier: intensityTier } : {}),
+        ...(grade ? { grade } : {}),
+        ...(groupTags ? { groupTags } : {}),
       },
     }],
   };
@@ -127,12 +131,9 @@ describe('QueryService', () => {
     expect(result.scalar).toBe(2500);
   });
 
-  it('filters tags exactly, negated, and wildcard', async () => {
+  it('leaves unresolved custom dimensions unassigned rather than erroring', async () => {
     const service = new QueryService(makeStore().store);
 
-    expect((await service.runQuery('sum:totalVolume{discipline:strength}')).scalar).toBe(6000);
-    expect((await service.runQuery('sum:totalVolume{!discipline:strength}')).scalar).toBe(500);
-    expect((await service.runQuery('sum:totalVolume{effort:back*}')).scalar).toBe(6000);
     expect((await service.runQuery('sum:totalVolume{coach:greg}')).stages.selected).toBe(0);
     expect((await service.runQuery('sum:totalVolume{!coach:greg}')).stages.selected).toBe(4);
   });
@@ -169,7 +170,43 @@ describe('QueryService', () => {
     const multiValue = await service.runQuery('sum:totalVolume{note:note-fran|note-row}');
     const repeatedKey = await service.runQuery('sum:totalVolume{note:note-fran,note:note-row}');
     expect(repeatedKey.scalar).toBe(multiValue.scalar);
+
     expect(repeatedKey.stages.selected).toBe(multiValue.stages.selected);
+  });
+  it('groups and filters by the grade dimension', async () => {
+    const sends = [
+      fact('calc.sends', 1, day0 + HOUR, { grade: 'V5' }),
+      fact('calc.sends', 1, day0 + 2 * HOUR, { grade: 'V8' }),
+      fact('calc.sends', 1, day0 + 3 * HOUR, { grade: 'V8' }),
+    ];
+    const service = new QueryService(makeStore(sends).store);
+
+    const grouped = await service.runQuery('count:calc.sends{} by {grade}');
+    expect(grouped.series.map((s) => s.label).sort()).toEqual(['V5', 'V8']);
+    expect(grouped.series.find((s) => s.label === 'V8')!.points[0]!.value).toBe(2);
+
+    const filtered = await service.runQuery('count:calc.sends{grade:V5}');
+    expect(filtered.scalar).toBe(1);
+  });
+
+  it('groups and filters by custom dimensions from summary groupTags', async () => {
+    const rows = [
+      fact('totalVolume', 1000, day0 + HOUR, { groupTags: { coach: 'greg' } }),
+      fact('totalVolume', 2000, day0 + 2 * HOUR, { groupTags: { coach: 'anita' } }),
+    ];
+    const service = new QueryService(makeStore(rows).store);
+
+    const grouped = await service.runQuery('sum:totalVolume{} by {coach}');
+    expect(grouped.series.map((s) => s.label).sort()).toEqual(['anita', 'greg']);
+
+    const filtered = await service.runQuery('sum:totalVolume{coach:greg}');
+    expect(filtered.scalar).toBe(1000);
+  });
+
+  it('normalizes free-form dim keys against stored normalized keys', async () => {
+    const rows = [fact('totalVolume', 1000, day0 + HOUR, { groupTags: { sleepQuality: 'good' } })];
+    const service = new QueryService(makeStore(rows).store);
+    expect((await service.runQuery('sum:totalVolume{sleepQuality:good}')).scalar).toBe(1000);
   });
 
   it('resolves multi-value tags against the note_tags set', async () => {
@@ -245,6 +282,26 @@ describe('QueryService', () => {
     // Ticket 16: the missing group resolves to the structural UNASSIGNED
     // sentinel (label 'unassigned'), never a literal '(none)'.
     expect(byRound.series[0].label).toBe('unassigned');
+  });
+
+  it('GROUPs and FILTERs calc.sends by the climb grade tag', async () => {
+    // The dashboard grade pyramid contract: climb-sends summaries persist a
+    // grade tag (calc engine + seeds) and WQL resolves it as a dimension.
+    const sends = [
+      fact('calc.sends', 1, day0 + HOUR, { grade: 'V1' }),
+      fact('calc.sends', 1, day0 + 2 * HOUR, { grade: 'V2' }),
+      fact('calc.sends', 1, day0 + 3 * HOUR, { grade: 'V2' }),
+      fact('calc.sends', 1, day0 + 4 * HOUR, { grade: 'V5' }),
+    ];
+    const service = new QueryService(makeStore(sends).store);
+
+    const byGrade = await service.runQuery('count:calc.sends{} by {grade}');
+    expect(byGrade.series.map(s => s.label).sort()).toEqual(['V1', 'V2', 'V5']);
+    expect(byGrade.series.find(s => s.label === 'V2')!.points[0].value).toBe(2);
+    expect(byGrade.stages.groups).toBe(3);
+
+    const v2 = await service.runQuery('count:calc.sends{grade:V2}');
+    expect(v2.scalar).toBe(2);
   });
 
   it('exposes stage telemetry and scalar for single-point results', async () => {

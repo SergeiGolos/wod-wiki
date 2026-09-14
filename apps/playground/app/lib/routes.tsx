@@ -56,6 +56,7 @@ export const ROUTE_PATTERNS = {
   settings: '/settings',
   settingsAppearance: '/settings/appearance',
   settingsSystem: '/settings/system',
+  settingsQueries: '/settings/queries',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -236,7 +237,7 @@ export function parseEffortRouteOptions(searchParams: URLSearchParams): {
 }
 
 /** /settings or /settings/:section */
-export function settingsPath(section?: 'appearance' | 'system'): string {
+export function settingsPath(section?: 'appearance' | 'system' | 'queries'): string {
   return section ? `/settings/${section}` : '/settings/appearance';
 }
 // ---------------------------------------------------------------------------

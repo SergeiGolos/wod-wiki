@@ -20,6 +20,7 @@
  */
 
 import type { AnalyticsDataPoint, Note, BlockIndexRow, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import { normalizeFieldComponent } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,
@@ -308,6 +309,7 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
     case 'intensity': return row.intensityTier;
+    case 'grade': return row.grade;
     case 'note': return row.noteId;
     case 'page': return row.pageId;
     case 'origin': return row.origin;
@@ -316,7 +318,15 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
     case 'block': return row.blockContentId;
     case 'result': return row.resultId;
     case 'tags': return noteTags.get(row.noteId) ?? [];
-    default: return undefined;
+    default: {
+      // Custom dimensions: user-authored property metrics and grouped
+      // partitions live in row.dimensions under normalized (camelCase)
+      // keys — `{coach:greg}` and `by {coach}` resolve here. Facts without
+      // the dim group/filter as unassigned.
+      const dims = row.dimensions;
+      if (!dims) return undefined;
+      return dims[key] ?? dims[normalizeFieldComponent(key)];
+    }
   }
 }
 

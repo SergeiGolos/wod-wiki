@@ -17,7 +17,7 @@ the surface they're about to touch.
 | Context | Path | Scope |
 |---|---|---|
 | Library / runtime | [`src/CONTEXT.md`](./src/CONTEXT.md) | Parsing, compilation, runtime stack, behaviors, metrics, dialect stack, grammar — anything in `src/` (the public React component library). |
-| Playground app | [`playground/CONTEXT.md`](./playground/CONTEXT.md) | Routes, persistence, cast backends, journal / results UI, workbench, result recording — anything in `playground/`. |
+| Playground app | [`apps/playground/CONTEXT.md`](./apps/playground/CONTEXT.md) | Routes, persistence, cast backends, journal / results UI, workbench, result recording — anything in `apps/playground/`. |
 
 ## Decisions
 

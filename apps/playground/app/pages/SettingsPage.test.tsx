@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { SettingsPage } from './SettingsPage'
+import { writeRouteWqlConfig, readRouteWqlConfig, clearRouteWqlConfig } from '../lib/routeWqlConfig'
 
 // Mock contexts
 let currentTheme = 'system'
@@ -235,5 +236,84 @@ describe('SettingsPage', () => {
 
       expect(screen.getByText('Interface Theme')).toBeDefined()
     })
+  })
+})
+
+describe('SettingsPage — Query Defaults tab', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    cleanup()
+    localStorage.clear()
+  })
+
+  it('renders the tab and one card per configurable surface', () => {
+    renderSettings('/settings/queries')
+
+    expect(screen.getByTestId('settings-tab-queries')).toBeDefined()
+    expect(screen.getByTestId('query-defaults-section')).toBeDefined()
+    for (const id of ['/library', '/journal', '/collections', '/feeds', '/efforts', '/results', '/results/segments', '/palette']) {
+      expect(screen.getByTestId(`query-defaults-card-${id}`)).toBeDefined()
+    }
+  })
+
+  it('saves a landing default query override into routeWqlConfig storage', () => {
+    renderSettings('/settings/queries')
+
+    fireEvent.change(screen.getByTestId('query-defaults-wql-/journal'), {
+      target: { value: 'find:note{source:journal} last 52w' },
+    })
+    fireEvent.click(screen.getByTestId('query-defaults-save-/journal'))
+    expect(screen.queryByTestId('query-defaults-wql-error-/journal')).toBeNull()
+    expect(readRouteWqlConfig('/journal').defaultWql).toBe('find:note{source:journal} last 52w')
+    // Saved state is no longer dirty — save disables.
+    expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('blocks saving an unparseable default query', () => {
+    renderSettings('/settings/queries')
+
+    fireEvent.change(screen.getByTestId('query-defaults-wql-/journal'), {
+      target: { value: 'find:note{' },
+    })
+    expect(screen.getByTestId('query-defaults-wql-error-/journal')).toBeDefined()
+    expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('reset discards the stored override and returns to the system default', () => {
+    writeRouteWqlConfig('/journal', { defaultWql: 'find:note last 6w' })
+    renderSettings('/settings/queries')
+
+    fireEvent.click(screen.getByTestId('query-defaults-reset-/journal'))
+
+    expect(readRouteWqlConfig('/journal')).toEqual({})
+    expect((screen.getByTestId('query-defaults-wql-/journal') as HTMLTextAreaElement).value).toBe('')
+  })
+
+  it('persists custom source options, including the emptied nudge state', () => {
+    writeRouteWqlConfig('/library', { typeOptions: ['notes', 'journal'] })
+    renderSettings('/settings/queries')
+
+    fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-notes'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-journal'))
+    expect(screen.getByTestId('query-defaults-type-empty-/library')).toBeDefined()
+    fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
+
+    expect(readRouteWqlConfig('/library').typeOptions).toEqual([])
+  })
+
+  it('adds a source option via the list editor and persists it', () => {
+    renderSettings('/settings/queries')
+
+    fireEvent.click(screen.getByTestId('query-defaults-type-custom-/library'))
+    fireEvent.change(screen.getByTestId('query-defaults-type-/library-input'), {
+      target: { value: 'feeds' },
+    })
+    fireEvent.click(screen.getByTestId('query-defaults-type-/library-add'))
+    fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
+
+    expect(readRouteWqlConfig('/library').typeOptions).toEqual(['feeds'])
   })
 })

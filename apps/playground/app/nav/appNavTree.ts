@@ -5,13 +5,12 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Library, Dashboards, Efforts
+ *   L1: Home, Library, Dashboards
  *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
- *   L2 of Library:     Explore (/library), Feeds (/feeds), Collections (/collections), Journal (/journal)
+ *   L2 of Library:     Journal, Collections, Feeds, Playground, Efforts, Results
  *   L2 of Dashboards:  Explorer (/dashboard) + the prebuilt dashboard seeds
  *                      (/dashboard/:slug); vault-created dashboards need a
  *                      dynamic panel to join this list (follow-up).
- *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  *
  * The canvas-guide children derive from the seeded canvas routes passed by
@@ -20,13 +19,12 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Compass, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 import { sourceOfQuery } from '../lib/wqlEdits'
 
-import { EffortsNavPanel } from './panels/EffortsNavPanel'
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
 import type { CanvasRoute } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
@@ -142,7 +140,7 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   ]
 }
 
-// ─── L2 children for Library ──────────────────────────────────────────────────
+// ─── L2 children for Explore ──────────────────────────────────────────────────
 
 /** Canonical playground library view — the WQL-encoded library stream query
  *  (no dedicated route; the stream profile resolves /library + ?q=).
@@ -158,25 +156,16 @@ function isLibraryPlaygroundActive(loc: Location): boolean {
   return sourceOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
 }
 
-const libraryChildren: NavItem[] = [
+const exploreChildren: NavItem[] = [
   {
-    id: 'library-explore',
-    label: 'Explore',
+    id: 'library-collections',
+    label: 'Collections',
     level: 2,
-    icon: Compass,
-    action: { type: 'route', to: ROUTE_PATTERNS.library },
+    icon: Folder,
+    action: { type: 'route', to: ROUTE_PATTERNS.collections },
     isActive: (loc: Location) =>
-      (loc.pathname === ROUTE_PATTERNS.library ||
-        loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) &&
-      !isLibraryPlaygroundActive(loc),
-  },
-  {
-    id: 'library-playground',
-    label: 'Playground',
-    level: 2,
-    icon: FlaskConical,
-    action: { type: 'route', to: PLAYGROUND_LIBRARY_HREF },
-    isActive: isLibraryPlaygroundActive,
+      loc.pathname === '/collections' ||
+      loc.pathname.startsWith('/collections/'),
   },
   {
     id: 'library-feeds',
@@ -191,24 +180,28 @@ const libraryChildren: NavItem[] = [
       loc.pathname.startsWith('/feed/'),
   },
   {
-    id: 'library-collections',
-    label: 'Collections',
+    id: 'library-playground',
+    label: 'Playground',
     level: 2,
-    icon: Folder,
-    action: { type: 'route', to: ROUTE_PATTERNS.collections },
-    isActive: (loc: Location) =>
-      loc.pathname === '/collections' ||
-      loc.pathname.startsWith('/collections/'),
+    icon: FlaskConical,
+    action: { type: 'route', to: PLAYGROUND_LIBRARY_HREF },
+    isActive: isLibraryPlaygroundActive,
   },
   {
-    id: 'library-journal',
-    label: 'Journal',
+    id: 'library-efforts',
+    label: 'Efforts',
     level: 2,
-    icon: Calendar,
-    action: { type: 'route', to: ROUTE_PATTERNS.journal },
-    isActive: (loc: Location) =>
-      loc.pathname === '/journal' ||
-      loc.pathname.startsWith('/journal/'),
+    icon: Dumbbell,
+    action: { type: 'route', to: ROUTE_PATTERNS.efforts },
+    isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
+  },
+  {
+    id: 'library-results',
+    label: 'Results',
+    level: 2,
+    icon: ClipboardList,
+    action: { type: 'route', to: ROUTE_PATTERNS.results },
+    isActive: (loc: Location) => loc.pathname.startsWith('/results'),
   },
 ]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
@@ -243,23 +236,34 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
     },
 
     {
-      id: 'library',
-      label: 'Library',
+      id: 'journal',
+      label: 'Journal',
+      level: 1,
+      icon: Calendar,
+      action: { type: 'route', to: ROUTE_PATTERNS.journal },
+      isActive: (loc: Location) =>
+        loc.pathname === '/journal' ||
+        loc.pathname.startsWith('/journal/'),
+    },
+
+    {
+      id: 'explore',
+      label: 'Explore',
       level: 1,
       icon: BookOpen,
-      action: { type: 'route', to: ROUTE_PATTERNS.library },
       isActive: (loc: Location) =>
         loc.pathname === ROUTE_PATTERNS.library ||
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
         loc.pathname === '/playground' ||
         loc.pathname.startsWith('/playground/') ||
-        // Journal entries, collections, and feeds are library stream profiles
-        // (see streamProfile) — they live under the Library L1.
-        loc.pathname.startsWith('/journal') ||
+        // Collections, feeds, efforts, and results are library stream
+        // profiles (see streamProfile) — they live under Explore.
         loc.pathname.startsWith('/collections') ||
         loc.pathname.startsWith('/feeds') ||
-        loc.pathname.startsWith('/feed'),
-      children: libraryChildren,
+        loc.pathname.startsWith('/feed') ||
+        loc.pathname.startsWith('/effort') ||
+        loc.pathname.startsWith('/results'),
+      children: exploreChildren,
     },
 
     {
@@ -273,25 +277,6 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       // dashboard action) is dynamic — vault dashboards are runtime data —
       // so it lives in the panel, not static children.
       panel: DashboardsNavPanel,
-    },
-    {
-      id: 'efforts',
-      label: 'Efforts',
-      level: 1,
-      icon: Dumbbell,
-      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
-      isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
-      panel: EffortsNavPanel,
-    },
-    // Support link — external action (new tab); rendered in the mobile drawer
-    // above Settings (icon + label) and as a rail icon button on desktop
-    // (AppRail excludes it from the L1 loop).
-    {
-      id: 'buy-me-a-coffee',
-      label: 'Buy Me a Coffee',
-      level: 1,
-      icon: BuyMeACoffeeIcon,
-      action: { type: 'external', href: BUY_ME_A_COFFEE_URL },
     },
     {
       id: 'settings',
@@ -319,7 +304,25 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
           action: { type: 'route', to: ROUTE_PATTERNS.settingsSystem },
           isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsSystem,
         },
+        {
+          id: 'settings-queries',
+          label: 'Query Defaults',
+          level: 2,
+          icon: ListFilter,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsQueries },
+          isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsQueries,
+        },
       ],
+    },
+    // Support link — external action (new tab); rendered in the mobile drawer
+    // below Settings (icon + label) and as a rail icon button on desktop
+    // (AppRail excludes it from the L1 loop).
+    {
+      id: 'buy-me-a-coffee',
+      label: 'Buy Me a Coffee',
+      level: 1,
+      icon: BuyMeACoffeeIcon,
+      action: { type: 'external', href: BUY_ME_A_COFFEE_URL },
     },
   ]
 }

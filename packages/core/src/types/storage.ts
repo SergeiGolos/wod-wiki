@@ -155,6 +155,10 @@ export interface AnalyticsDataPoint {
   discipline?: string;
   intensityTier?: string;
   grade?: string;
+  /** User-authored categorical dims (custom property metrics and grouped
+   *  partitions) — normalized key → value, resolved by factTagValue after
+   *  the structural switch so `by {coach}` / `{coach:greg}` work. */
+  dimensions?: Record<string, string>;
   segmentId: string;
   segmentVersion: number;
   resultId: string;
