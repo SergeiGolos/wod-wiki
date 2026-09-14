@@ -11,3 +11,9 @@ When a configured option has no value, what exactly does the user see and what r
 - What query runs while unpicked: the default query minus that clause (confirmed direction), and the nudge clears the moment a value is chosen.
 - Can the user dismiss the nudge for the session, or does it persist until a value is picked?
 - Does "empty" also apply to the source dropdown (no source selected → no `source:` clause) and Group-By (falls back to the existing effort/date precedence chain)?
+
+## Comments
+
+First pass (shipped): the nudge exists at the **list level** — an emptied custom source list renders a passive hint on the route landing (`route-wql-empty-options`) and never blocks.
+
+Open for this ticket (sharpened by spec review): the **per-option empty value** is currently inexpressible — sanitizers drop blank entries and the editor refuses blank input — so "an option with no value" cannot be configured. Decide whether that state is needed, and what the pill-level nudge looks like (where it renders, when it clears, dismissal).

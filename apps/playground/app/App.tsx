@@ -46,6 +46,7 @@ import { StartPageGate } from './lib/startPage'
 import { HomeView } from './views/HomeView'
 import { QueriableStreamView } from './views/stream/QueriableStreamView'
 import { resolveStreamProfile } from './views/stream/streamProfile'
+import { applyRouteWqlConfig } from './lib/routeWqlConfig'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -270,7 +271,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       />
     ),
     library: () => {
-      const profile = resolveStreamProfile(location.pathname)
+      const profile = applyRouteWqlConfig(resolveStreamProfile(location.pathname))
       return (
         <QueriableStreamView
           key={profile.route}
@@ -454,6 +455,7 @@ export function App() {
                   <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />
                   <Route path="/settings/appearance" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/settings/system" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.settingsQueries} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/settings/library/calcs" element={<div className="p-6"><CalcAuthoringPanel /></div>} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
                   <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />

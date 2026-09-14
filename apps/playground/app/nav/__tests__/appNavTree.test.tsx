@@ -153,7 +153,7 @@ describe('appNavTree - Settings navigation', () => {
     cleanup()
   })
 
-  it('defines L1 settings item with L2 children for Appearance and System', () => {
+  it('defines L1 settings item with L2 children for Appearance, System, and Query Defaults', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')
 
@@ -162,9 +162,9 @@ describe('appNavTree - Settings navigation', () => {
     expect(settings?.level).toBe(1)
     expect(settings?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
     expect(settings?.children).toBeDefined()
-    expect(settings?.children?.length).toBe(2)
+    expect(settings?.children?.length).toBe(3)
 
-    const [appearance, system] = settings!.children!
+    const [appearance, system, queries] = settings!.children!
 
     expect(appearance.id).toBe('settings-appearance')
     expect(appearance.label).toBe('Appearance')
@@ -173,6 +173,10 @@ describe('appNavTree - Settings navigation', () => {
     expect(system.id).toBe('settings-system')
     expect(system.label).toBe('System')
     expect(system.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsSystem })
+
+    expect(queries.id).toBe('settings-queries')
+    expect(queries.label).toBe('Query Defaults')
+    expect(queries.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsQueries })
   })
 
   it('activates settings L1 for /settings, /settings/appearance, and /settings/system', () => {
@@ -188,7 +192,7 @@ describe('appNavTree - Settings navigation', () => {
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')!
-    const [appearance, system] = settings.children!
+    const [appearance, system, queries] = settings.children!
 
     expect(appearance.isActive!(mockLocation('/settings'))).toBe(true)
     expect(appearance.isActive!(mockLocation('/settings/appearance'))).toBe(true)
@@ -196,6 +200,9 @@ describe('appNavTree - Settings navigation', () => {
 
     expect(system.isActive!(mockLocation('/settings/system'))).toBe(true)
     expect(system.isActive!(mockLocation('/settings/appearance'))).toBe(false)
+
+    expect(queries.isActive!(mockLocation('/settings/queries'))).toBe(true)
+    expect(queries.isActive!(mockLocation('/settings/appearance'))).toBe(false)
   })
 
   it('renders L2 menu items in NavSidebar when on /settings/appearance', () => {

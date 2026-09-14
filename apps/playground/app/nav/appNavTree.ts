@@ -19,7 +19,7 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -315,6 +315,14 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
           icon: Sliders,
           action: { type: 'route', to: ROUTE_PATTERNS.settingsSystem },
           isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsSystem,
+        },
+        {
+          id: 'settings-queries',
+          label: 'Query Defaults',
+          level: 2,
+          icon: ListFilter,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsQueries },
+          isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsQueries,
         },
       ],
     },
