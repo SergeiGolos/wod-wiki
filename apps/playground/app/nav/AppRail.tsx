@@ -21,7 +21,7 @@ import { isItemActive } from './NavSidebar'
 import type { NavItem, NavActionDeps } from './navTypes'
 
 export function AppRail({ onSearch }: { onSearch: () => void }) {
-  const { tree, navState } = useNav()
+  const { tree, navState, dispatch } = useNav()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -59,7 +59,15 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
             <button
               key={item.id}
               type="button"
-              onClick={() => executeNavAction(item.action, deps)}
+              onClick={() => {
+                // Group L1s (children, no page) select in place — the
+                // context sidebar shows their children; nothing navigates.
+                if (item.id !== 'home' && (item.children?.length || item.panel)) {
+                  dispatch({ type: 'SET_ACTIVE_L1', id: item.id })
+                  return
+                }
+                executeNavAction(item.action, deps)
+              }}
               title={item.label}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}

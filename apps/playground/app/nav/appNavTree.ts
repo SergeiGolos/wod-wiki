@@ -140,7 +140,7 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   ]
 }
 
-// ─── L2 children for Library ──────────────────────────────────────────────────
+// ─── L2 children for Explore ──────────────────────────────────────────────────
 
 /** Canonical playground library view — the WQL-encoded library stream query
  *  (no dedicated route; the stream profile resolves /library + ?q=).
@@ -156,17 +156,7 @@ function isLibraryPlaygroundActive(loc: Location): boolean {
   return sourceOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
 }
 
-const libraryChildren: NavItem[] = [
-  {
-    id: 'library-journal',
-    label: 'Journal',
-    level: 2,
-    icon: Calendar,
-    action: { type: 'route', to: ROUTE_PATTERNS.journal },
-    isActive: (loc: Location) =>
-      loc.pathname === '/journal' ||
-      loc.pathname.startsWith('/journal/'),
-  },
+const exploreChildren: NavItem[] = [
   {
     id: 'library-collections',
     label: 'Collections',
@@ -246,26 +236,36 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
     },
 
     {
-      id: 'library',
-      label: 'Library',
+      id: 'journal',
+      label: 'Journal',
+      level: 1,
+      icon: Calendar,
+      action: { type: 'route', to: ROUTE_PATTERNS.journal },
+      isActive: (loc: Location) =>
+        loc.pathname === '/journal' ||
+        loc.pathname.startsWith('/journal/'),
+    },
+
+    {
+      id: 'explore',
+      label: 'Explore',
       level: 1,
       icon: BookOpen,
-      action: { type: 'route', to: ROUTE_PATTERNS.library },
+      // Group node — no page of its own. /library (the unified stream)
+      // stays reachable by URL and lights Explore, but is not in the nav.
       isActive: (loc: Location) =>
         loc.pathname === ROUTE_PATTERNS.library ||
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
         loc.pathname === '/playground' ||
         loc.pathname.startsWith('/playground/') ||
-        // Journal entries, collections, feeds, efforts, and results are
-        // library stream profiles (see streamProfile) — they live under the
-        // Library L1.
-        loc.pathname.startsWith('/journal') ||
+        // Collections, feeds, efforts, and results are library stream
+        // profiles (see streamProfile) — they live under Explore.
         loc.pathname.startsWith('/collections') ||
         loc.pathname.startsWith('/feeds') ||
         loc.pathname.startsWith('/feed') ||
         loc.pathname.startsWith('/effort') ||
         loc.pathname.startsWith('/results'),
-      children: libraryChildren,
+      children: exploreChildren,
     },
 
     {

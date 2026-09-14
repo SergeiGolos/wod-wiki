@@ -22,22 +22,19 @@ describe('appNavTree - Library navigation', () => {
     cleanup()
   })
 
-  it('defines L1 library item with L2 children ordered Journal, Collections, Feeds, Playground, Efforts, Results', () => {
+  it('defines L1 explore group without a page, with L2 children ordered Collections, Feeds, Playground, Efforts, Results', () => {
     const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')
+    const explore = tree.find(item => item.id === 'explore')
 
-    expect(library).toBeDefined()
-    expect(library?.label).toBe('Library')
-    expect(library?.level).toBe(1)
-    expect(library?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.library })
-    expect(library?.children).toBeDefined()
-    expect(library?.children?.length).toBe(6)
+    expect(explore).toBeDefined()
+    expect(explore?.label).toBe('Explore')
+    expect(explore?.level).toBe(1)
+    // Group node — no page of its own; tapping expands instead.
+    expect(explore?.action).toBeUndefined()
+    expect(explore?.children).toBeDefined()
+    expect(explore?.children?.length).toBe(5)
 
-    const [journal, collections, feeds, playground, efforts, results] = library!.children!
-
-    expect(journal.id).toBe('library-journal')
-    expect(journal.label).toBe('Journal')
-    expect(journal.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
+    const [collections, feeds, playground, efforts, results] = explore!.children!
 
     expect(collections.id).toBe('library-collections')
     expect(collections.label).toBe('Collections')
@@ -63,22 +60,30 @@ describe('appNavTree - Library navigation', () => {
     expect(results.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.results })
   })
 
-  it('activates library L1 for /library, /journal, /collections, /feeds, /feed, /effort, and /results', () => {
+  it('activates journal L1 for /journal routes', () => {
     const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')!
+    const journal = tree.find(item => item.id === 'journal')!
 
-    expect(library.isActive!(mockLocation('/library'))).toBe(true)
-    expect(library.isActive!(mockLocation('/journal'))).toBe(true)
-    expect(library.isActive!(mockLocation('/collections'))).toBe(true)
-    expect(library.isActive!(mockLocation('/feeds'))).toBe(true)
-    expect(library.isActive!(mockLocation('/feed'))).toBe(true)
-    expect(library.isActive!(mockLocation('/efforts'))).toBe(true)
-    expect(library.isActive!(mockLocation('/effort/push-up'))).toBe(true)
-    expect(library.isActive!(mockLocation('/results'))).toBe(true)
-    expect(library.isActive!(mockLocation('/results/res-42'))).toBe(true)
-    expect(library.isActive!(mockLocation('/playground/example'))).toBe(true)
+    expect(journal.isActive!(mockLocation('/journal'))).toBe(true)
+    expect(journal.isActive!(mockLocation('/journal/2026-09-14'))).toBe(true)
+  })
+
+  it('activates explore L1 for /library, /collections, /feeds, /feed, /effort, and /results', () => {
+    const tree = buildAppNavTree(() => {})
+    const explore = tree.find(item => item.id === 'explore')!
+
+    expect(explore.isActive!(mockLocation('/library'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/journal'))).toBe(false)
+    expect(explore.isActive!(mockLocation('/collections'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/feeds'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/feed'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/efforts'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/effort/push-up'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/results'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/results/res-42'))).toBe(true)
+    expect(explore.isActive!(mockLocation('/playground/example'))).toBe(true)
     expect(tree.find(item => item.id === 'home')!.isActive!(mockLocation('/playground/example'))).toBe(false)
-    expect(library.isActive!(mockLocation('/dashboard'))).toBe(false)
+    expect(explore.isActive!(mockLocation('/dashboard'))).toBe(false)
   })
 
   it('activates appropriate L2 child based on route', () => {

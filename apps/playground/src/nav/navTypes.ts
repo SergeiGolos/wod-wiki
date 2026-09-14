@@ -84,7 +84,8 @@ export interface INavActivation {
   id: string
   label: string
   icon?: React.ComponentType<{ className?: string; 'data-slot'?: string }>
-  action: INavAction
+  /** Absent on group nodes — an L1 section with children but no page of its own. */
+  action?: INavAction
 }
 
 // ─── NavActionDeps — injected by each rendering surface ──────────────────────
@@ -101,6 +102,7 @@ export interface NavActionDeps {
  * executeNavAction — single dispatch function for all rendering surfaces.
  */
 export function executeNavAction(action: INavAction, deps: NavActionDeps): void {
+  if (!action) return
   switch (action.type) {
     case 'route':
       deps.navigate(action.to, { replace: !(action.pushHistory ?? true) })
