@@ -146,10 +146,11 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
       )
     }
 
-    // Children list (Home docs/syntax)
+    // Children list (Home docs/syntax) — desktop only; the mobile drawer
+    // renders these indented under the active L1 item instead.
     if (activeL1.children && activeL1.children.length > 0) {
       return (
-        <div className="border-b border-border/40 pb-2 mb-2">
+        <div className="hidden lg:block border-b border-border/40 pb-2 mb-2">
           <L2ChildrenList items={activeL1.children} />
         </div>
       )
@@ -180,18 +181,28 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
           <SidebarSection>
             {tree.map(item => {
               const active = isItemActive(item, navState, location)
+              const showInlineChildren =
+                item.id === activeL1?.id && !!item.children?.length
               return (
-                <SidebarItem
-                  key={item.id}
-                  onClick={() => handleAction(item)}
-                  current={active}
-                >
-                  {item.icon && <item.icon data-slot="icon" />}
-                  <SidebarLabel className="font-semibold tracking-tight">
-                    {item.label}
-                  </SidebarLabel>
-                  {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
-                </SidebarItem>
+                <div key={item.id}>
+                  <SidebarItem
+                    onClick={() => handleAction(item)}
+                    current={active}
+                  >
+                    {item.icon && <item.icon data-slot="icon" />}
+                    <SidebarLabel className="font-semibold tracking-tight">
+                      {item.label}
+                    </SidebarLabel>
+                    {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
+                  </SidebarItem>
+                  {/* Mobile: L2 links indent under the selected L1 instead of
+                      forming their own subsection below. */}
+                  {showInlineChildren && (
+                    <div className="ml-4 border-l border-border/40 pl-2">
+                      <L2ChildrenList items={item.children!} />
+                    </div>
+                  )}
+                </div>
               )
             })}
           </SidebarSection>
@@ -200,7 +211,9 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
         {/* Context heading — names the active section above its L2 panel.
             Mobile drawer: sits under the L1 selector section (Home | Library
             | Dashboards | Efforts); desktop: tops the context sidebar. */}
-        <div className="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        <div className={`px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground${
+          activeL1?.children?.length ? ' hidden lg:block' : ''
+        }`}>
           {activeL1?.label ?? 'Wod Wiki'}
         </div>
       </SidebarHeader>

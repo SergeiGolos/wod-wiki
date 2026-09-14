@@ -110,10 +110,10 @@ describe('appNavTree - Library navigation', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('Explore')).toBeDefined()
-    expect(screen.getByText('Feeds')).toBeDefined()
-    expect(screen.getByText('Collections')).toBeDefined()
-    expect(screen.getByText('Journal')).toBeDefined()
+    expect(screen.getAllByText('Explore').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
   })
 
   it('renders L2 menu items in NavSidebar when on /journal', () => {
@@ -125,10 +125,10 @@ describe('appNavTree - Library navigation', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('Explore')).toBeDefined()
-    expect(screen.getByText('Feeds')).toBeDefined()
-    expect(screen.getByText('Collections')).toBeDefined()
-    expect(screen.getByText('Journal')).toBeDefined()
+    expect(screen.getAllByText('Explore').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
   })
 })
 
@@ -192,8 +192,8 @@ describe('appNavTree - Settings navigation', () => {
     )
 
     expect(screen.getAllByText('Settings').length).toBeGreaterThan(0)
-    expect(screen.getByText('Appearance')).toBeDefined()
-    expect(screen.getByText('System')).toBeDefined()
+    expect(screen.getAllByText('Appearance')[0]).toBeDefined()
+    expect(screen.getAllByText('System')[0]).toBeDefined()
   })
 })
 

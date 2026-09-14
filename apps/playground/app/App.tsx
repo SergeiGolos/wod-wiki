@@ -7,7 +7,7 @@ import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
-import { ResponsiveActions } from './nav/ResponsiveActions'
+import { ResponsiveActions, NavbarActions } from './nav/ResponsiveActions'
 import type { PageKind } from './lib/routeView'
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
@@ -57,6 +57,7 @@ import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
 import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
+import QueryBlockComposerPrototypePage from './pages/QueryBlockComposerPrototypePage'
 
 import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAuthoringPanel'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
@@ -349,12 +350,14 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             {canvasTitleAccessory}
           </nav>
           {/* Cast stays in the header at every breakpoint (navbar here on
-              mobile, PageActions bar in desktop page headers). The Page
-              options ⋮ lives in the thumb dock instead — its functions
-              (secondary nav, On this page, download) surface as
-              stacked buttons in the dock sheet via the global fallback
-              registration below. */}
+              mobile, PageActions bar in desktop page headers). Page-pinned
+              actions (the note Edit toggle) stay up beside it via
+              NavbarActions. The Page options ⋮ lives in the thumb dock
+              instead — its functions (secondary nav, On this page, download)
+              surface as stacked buttons in the dock sheet via the global
+              fallback registration below. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            <NavbarActions />
             <CastButtonRpc />
           </div>
         </Navbar>
@@ -446,6 +449,7 @@ export function App() {
                 <ScrollToTop />
                 <Routes>
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
+                  <Route path="/proto/query-block-composer" element={<QueryBlockComposerPrototypePage />} />
 
                   <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />
                   <Route path="/settings/appearance" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
