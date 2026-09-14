@@ -17,8 +17,11 @@ Tag filters use key-value syntax inside curly braces `{}`.
 |---|---|---|
 | `{effort:thruster}` | Exact tag match | Filter facts or notes containing `thruster` effort |
 | `{!discipline:recovery}` | Negation | Exclude recovery sessions from results |
-| `{discipline:strength|gymnastics}` | OR filter | Match either `strength` OR `gymnastics` |
+| `{discipline:strength\|gymnastics}` | OR filter | Match either `strength` OR `gymnastics` |
 | `{text:fran}` | Substring match | Match content containing the phrase "fran" |
+| `{coach:greg}` | Custom property dim | Facts from statements carrying the property `coach: greg`; group with `by {coach}` |
+
+Custom dimensions: any property you author on a workout statement (`coach: greg`, `Sleep Quality: good`) becomes a queryable dimension on every fact that statement produces. Keys are camelCase-normalized — `Sleep Quality` answers to `sleepQuality`. Content-plane keys (`text:`, `source:`) are for `find:`/notes only; using them on an aggregate is a parse error.
 
 ## Content Source Filters {sticky}
 

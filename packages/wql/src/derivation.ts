@@ -5,6 +5,8 @@
 import {
   MetricType,
   fieldRefKey,
+  normalizeFieldPath,
+  valueKindOf,
   type AnalyticsDataPoint,
   type FieldRef,
   type ResultOrigin,
@@ -337,6 +339,9 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
     // (never a fabricated midnight instant); instant facts group under the
     // anchor instant's civil date in the execution timezone at query time.
     const temporal = record.metricTemporal?.[0];
+    // Partition identity (groupTags metadata) is a queryable dim set —
+    // `{coach:greg}` / `by {coach}` resolve through factTagValue's fallback.
+    const dims = readGroupTags(m.metadata);
     return [{
       id: `${record.id}:0`,
       noteId: record.noteId,
@@ -368,6 +373,7 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
       grade: metadataString(m.metadata, 'grade'),
+      ...(dims ? { dimensions: dims } : {}),
       timestamp: record.timestamp,
       createdAt: record.timestamp,
     }];
@@ -386,6 +392,21 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
     ?? (gradeMetric && typeof gradeMetric.value === 'string' ? gradeMetric.value : undefined);
 
   const facts: AnalyticsDataPoint[] = [];
+  // User-authored categorical dims: a property metric with a typed field
+  // identity and a non-numeric value (e.g. `coach: greg`) projects no fact
+  // of its own but names a dimension of every fact the statement emits —
+  // queryable as `{coach:greg}` / `by {coach}` after factTagValue's switch.
+  const dims: Record<string, string> = {};
+  for (const m of metrics) {
+    // Structural markers are display/compile-time plumbing, not user dims.
+    if (m.type === MetricType.Label || m.type === 'label' || m.type === MetricType.Hint || m.type === 'hint') continue;
+    const valueKind = valueKindOf(m.value);
+    if (valueKind !== 'string' && valueKind !== 'boolean') continue;
+    const ref = readFieldRef(m.metadata);
+    const dimKey = ref?.path ?? normalizeFieldPath(m.type ?? '');
+    if (dimKey) dims[dimKey] = String(m.value);
+  }
+  const rowDims = Object.keys(dims).length > 0 ? dims : undefined;
   metrics.forEach((m) => {
     if (m.type === MetricType.Label || m.type === 'label' || typeof m.value !== 'number') return;
     // Ticket 11 key resolution: explicitly-stamped canonicalKey first, then
@@ -437,6 +458,7 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
       grade: metadataString(m.metadata, 'grade') ?? rowGrade,
+      ...(rowDims ? { dimensions: rowDims } : {}),
       timestamp: factTimestamp,
       createdAt: record.timestamp,
     });

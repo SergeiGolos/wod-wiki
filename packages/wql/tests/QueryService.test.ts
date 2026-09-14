@@ -16,6 +16,7 @@ interface SummaryExtra {
   discipline?: string;
   intensityTier?: string;
   grade?: string;
+  groupTags?: Record<string, string>;
   blockContentId?: string;
 }
 
@@ -27,7 +28,7 @@ function fact(
   extra: SummaryExtra = {},
 ): UnifiedEventRecord {
   seq += 1;
-  const { unit, effortSlug, discipline, intensityTier, grade, ...identity } = extra;
+  const { unit, effortSlug, discipline, intensityTier, grade, groupTags, ...identity } = extra;
   return {
     id: `r${seq}:summary:${metricKey}`,
     resultId: `r${seq}`,
@@ -51,6 +52,7 @@ function fact(
         ...(discipline ? { effortDiscipline: discipline } : {}),
         ...(intensityTier ? { effortIntensityTier: intensityTier } : {}),
         ...(grade ? { grade } : {}),
+        ...(groupTags ? { groupTags } : {}),
       },
     }],
   };
@@ -129,12 +131,11 @@ describe('QueryService', () => {
     expect(result.scalar).toBe(2500);
   });
 
-  it('rejects filter keys the fact rows cannot resolve instead of silently matching nothing', async () => {
+  it('leaves unresolved custom dimensions unassigned rather than erroring', async () => {
     const service = new QueryService(makeStore().store);
 
-    const rejected = await service.runQuery('sum:totalVolume{coach:greg}');
-    expect(rejected.parsed.error).toContain('Unsupported filter key(s) "coach"');
-    expect(rejected.stages.selected).toBe(0);
+    expect((await service.runQuery('sum:totalVolume{coach:greg}')).stages.selected).toBe(0);
+    expect((await service.runQuery('sum:totalVolume{!coach:greg}')).stages.selected).toBe(4);
   });
 
   it('filters multi-value tags with OR within a key and AND across keys', async () => {
@@ -186,6 +187,26 @@ describe('QueryService', () => {
 
     const filtered = await service.runQuery('count:calc.sends{grade:V5}');
     expect(filtered.scalar).toBe(1);
+  });
+
+  it('groups and filters by custom dimensions from summary groupTags', async () => {
+    const rows = [
+      fact('totalVolume', 1000, day0 + HOUR, { groupTags: { coach: 'greg' } }),
+      fact('totalVolume', 2000, day0 + 2 * HOUR, { groupTags: { coach: 'anita' } }),
+    ];
+    const service = new QueryService(makeStore(rows).store);
+
+    const grouped = await service.runQuery('sum:totalVolume{} by {coach}');
+    expect(grouped.series.map((s) => s.label).sort()).toEqual(['anita', 'greg']);
+
+    const filtered = await service.runQuery('sum:totalVolume{coach:greg}');
+    expect(filtered.scalar).toBe(1000);
+  });
+
+  it('normalizes free-form dim keys against stored normalized keys', async () => {
+    const rows = [fact('totalVolume', 1000, day0 + HOUR, { groupTags: { sleepQuality: 'good' } })];
+    const service = new QueryService(makeStore(rows).store);
+    expect((await service.runQuery('sum:totalVolume{sleepQuality:good}')).scalar).toBe(1000);
   });
 
   it('resolves multi-value tags against the note_tags set', async () => {

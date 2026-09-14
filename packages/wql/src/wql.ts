@@ -17,6 +17,8 @@ import type { SyntaxNode } from '@lezer/common';
 import * as terms from './grammar/wql.parser.terms';
 import {
   WQL_AGGREGATORS,
+  WQL_CONTENT_ONLY_KEYS,
+  WQL_EFFORT_FILTER_KEYS,
   WQL_FIND_TARGETS,
   WQL_ROWS_SCOPE_KEYS,
   WQL_ROWS_TARGETS,
@@ -713,11 +715,13 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   base.metric = text.slice(metricNode.from, metricNode.to);
 
   base.filters = extractFilters(query, text);
-  // Aggregates read fact rows — only tag keys the QueryService can resolve
-  // are legal here. Anything else would silently filter to zero rows.
-  const unsupportedKeys = base.filters.map(f => f.key).filter(k => !(WQL_TAG_KEYS as readonly string[]).includes(k));
-  if (unsupportedKeys.length > 0) {
-    base.error = `Unsupported filter key(s) ${unsupportedKeys.map(k => `"${k}"`).join(', ')} on an aggregate. Supported: ${WQL_TAG_KEYS.join(', ')}`;
+  // Content-plane keys on an aggregate are a category error — a fact row
+  // has no note text or source. Every other non-structural key is a
+  // candidate custom dimension resolved at runtime (factTagValue falls
+  // back to row.dimensions), so it is NOT rejected here.
+  const contentKeys = base.filters.map(f => f.key).filter(k => (WQL_CONTENT_ONLY_KEYS as readonly string[]).includes(k));
+  if (contentKeys.length > 0) {
+    base.error = `Content filter key(s) ${contentKeys.map(k => `"${k}"`).join(', ')} cannot narrow an aggregate — facts carry effort/dimension data, not note text. Aggregate dims: ${WQL_TAG_KEYS.join(', ')}, plus any custom dimension.`;
     return base;
   }
   const grainError = retiredGrainRollup(base.filters);
@@ -823,10 +827,9 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     if (win.window) {
       advisories.push("find:effort ignores the window — efforts have no time dimension; drop 'last <n><d|w>'.");
     }
-    const supported = ['effort', 'discipline', 'intensity', 'origin', 'text'];
-    const ignored = result.filters.map(f => f.key).filter(k => !supported.includes(k));
+    const ignored = result.filters.map(f => f.key).filter(k => !(WQL_EFFORT_FILTER_KEYS as readonly string[]).includes(k));
     if (ignored.length > 0) {
-      advisories.push(`find:effort ignores ${ignored.map(k => `'${k}:'`).join(', ')} filters — supported: ${supported.join(', ')}.`);
+      advisories.push(`find:effort ignores ${ignored.map(k => `'${k}:'`).join(', ')} filters — supported: ${WQL_EFFORT_FILTER_KEYS.join(', ')}.`);
     }
     if (advisories.length > 0) {
       result.advisories = [...(result.advisories ?? []), ...advisories];

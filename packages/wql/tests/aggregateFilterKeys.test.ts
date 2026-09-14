@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { parseQuery } from '../src/wql';
 
-describe('aggregate filter-key validation', () => {
-  it('rejects keys the fact rows cannot resolve, naming the supported set', () => {
+describe('aggregate filter-key policy', () => {
+  it('rejects content-plane keys as category errors, naming the aggregate dims', () => {
     const r = parseQuery('sum:totalVolume{text:fran}');
-    expect(r.error).toContain('Unsupported filter key(s) "text"');
+    expect(r.error).toContain('Content filter key(s) "text"');
     expect(r.error).toContain('effort, discipline, intensity, grade');
   });
 
-  it('rejects unknown keys on the metric half of a cross-store join', () => {
+  it('rejects content-plane keys on the metric half of a cross-store join', () => {
     const r = parseQuery('find:note{tags:pr} last 8w where sum:totalVolume{text:x} > 5');
-    expect(r.error).toContain('Unsupported filter key(s) "text"');
+    expect(r.error).toContain('Content filter key(s) "text"');
+  });
+
+  it('accepts custom dimension keys — resolved against facts at runtime', () => {
+    expect(parseQuery('sum:totalVolume{coach:greg}').error).toBeUndefined();
+    expect(parseQuery('sum:totalVolume{coach:greg} by {coach}').error).toBeUndefined();
   });
 
   it('accepts every resolvable tag key, including grade', () => {

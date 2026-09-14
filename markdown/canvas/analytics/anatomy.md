@@ -34,6 +34,7 @@ Math applied to data buckets:
 ### 3. Dimensions (`dimension`) & Rollups (`period`)
 * **Time Dimensions:** `day`, `week` paired with rollups like `.rollup(1w)` or `.rollup(4w)`.
 * **Metadata Dimensions:** `effort`, `discipline`, `intensity`, `grade`; `session` groups per recorded workout.
+* **Custom Dimensions:** any property you author on a statement (`coach: greg`) becomes a dim — `by {coach}` groups, `{coach:greg}` filters. Keys are camelCase-normalized (`Sleep Quality` → `sleepQuality`).
 
 ## Content Queries {sticky}
 
