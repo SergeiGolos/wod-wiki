@@ -190,7 +190,17 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
               return (
                 <div key={item.id}>
                   <SidebarItem
-                    onClick={() => handleAction(item)}
+                    onClick={() => {
+                      // Mobile: L1 sections with sub-items expand in place —
+                      // pick a child on the next tap; no navigation, drawer
+                      // stays open. Home is the exception: its landing route
+                      // is the tap target.
+                      if (item.id !== 'home' && (item.children?.length || item.panel)) {
+                        dispatch({ type: 'SET_ACTIVE_L1', id: item.id })
+                        return
+                      }
+                      handleAction(item)
+                    }}
                     current={active}
                   >
                     {item.icon && <item.icon data-slot="icon" />}

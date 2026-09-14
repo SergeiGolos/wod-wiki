@@ -251,8 +251,6 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       label: 'Explore',
       level: 1,
       icon: BookOpen,
-      // Group node — no page of its own. /library (the unified stream)
-      // stays reachable by URL and lights Explore, but is not in the nav.
       isActive: (loc: Location) =>
         loc.pathname === ROUTE_PATTERNS.library ||
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
@@ -279,16 +277,6 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       // dashboard action) is dynamic — vault dashboards are runtime data —
       // so it lives in the panel, not static children.
       panel: DashboardsNavPanel,
-    },
-    // Support link — external action (new tab); rendered in the mobile drawer
-    // above Settings (icon + label) and as a rail icon button on desktop
-    // (AppRail excludes it from the L1 loop).
-    {
-      id: 'buy-me-a-coffee',
-      label: 'Buy Me a Coffee',
-      level: 1,
-      icon: BuyMeACoffeeIcon,
-      action: { type: 'external', href: BUY_ME_A_COFFEE_URL },
     },
     {
       id: 'settings',
@@ -325,6 +313,16 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
           isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsQueries,
         },
       ],
+    },
+    // Support link — external action (new tab); rendered in the mobile drawer
+    // below Settings (icon + label) and as a rail icon button on desktop
+    // (AppRail excludes it from the L1 loop).
+    {
+      id: 'buy-me-a-coffee',
+      label: 'Buy Me a Coffee',
+      level: 1,
+      icon: BuyMeACoffeeIcon,
+      action: { type: 'external', href: BUY_ME_A_COFFEE_URL },
     },
   ]
 }
