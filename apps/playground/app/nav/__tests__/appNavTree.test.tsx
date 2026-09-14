@@ -22,7 +22,7 @@ describe('appNavTree - Library navigation', () => {
     cleanup()
   })
 
-  it('defines L1 library item with L2 children for Explore, Playground, Feeds, Collections, and Journal', () => {
+  it('defines L1 library item with L2 children ordered Journal, Collections, Feeds, Playground, Efforts, Results', () => {
     const tree = buildAppNavTree(() => {})
     const library = tree.find(item => item.id === 'library')
 
@@ -31,13 +31,21 @@ describe('appNavTree - Library navigation', () => {
     expect(library?.level).toBe(1)
     expect(library?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.library })
     expect(library?.children).toBeDefined()
-    expect(library?.children?.length).toBe(5)
+    expect(library?.children?.length).toBe(6)
 
-    const [explore, playground, feeds, collections, journal] = library!.children!
+    const [journal, collections, feeds, playground, efforts, results] = library!.children!
 
-    expect(explore.id).toBe('library-explore')
-    expect(explore.label).toBe('Explore')
-    expect(explore.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.library })
+    expect(journal.id).toBe('library-journal')
+    expect(journal.label).toBe('Journal')
+    expect(journal.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
+
+    expect(collections.id).toBe('library-collections')
+    expect(collections.label).toBe('Collections')
+    expect(collections.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.collections })
+
+    expect(feeds.id).toBe('library-feeds')
+    expect(feeds.label).toBe('Feeds')
+    expect(feeds.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.feeds })
 
     expect(playground.id).toBe('library-playground')
     expect(playground.label).toBe('Playground')
@@ -46,20 +54,16 @@ describe('appNavTree - Library navigation', () => {
       to: `/library?q=${encodeURIComponent(PLAYGROUND_LIBRARY_WQL)}`,
     })
 
-    expect(feeds.id).toBe('library-feeds')
-    expect(feeds.label).toBe('Feeds')
-    expect(feeds.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.feeds })
+    expect(efforts.id).toBe('library-efforts')
+    expect(efforts.label).toBe('Efforts')
+    expect(efforts.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.efforts })
 
-    expect(collections.id).toBe('library-collections')
-    expect(collections.label).toBe('Collections')
-    expect(collections.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.collections })
-
-    expect(journal.id).toBe('library-journal')
-    expect(journal.label).toBe('Journal')
-    expect(journal.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
+    expect(results.id).toBe('library-results')
+    expect(results.label).toBe('Results')
+    expect(results.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.results })
   })
 
-  it('activates library L1 for /library, /journal, /collections, /feeds, and /feed', () => {
+  it('activates library L1 for /library, /journal, /collections, /feeds, /feed, /effort, and /results', () => {
     const tree = buildAppNavTree(() => {})
     const library = tree.find(item => item.id === 'library')!
 
@@ -68,6 +72,10 @@ describe('appNavTree - Library navigation', () => {
     expect(library.isActive!(mockLocation('/collections'))).toBe(true)
     expect(library.isActive!(mockLocation('/feeds'))).toBe(true)
     expect(library.isActive!(mockLocation('/feed'))).toBe(true)
+    expect(library.isActive!(mockLocation('/efforts'))).toBe(true)
+    expect(library.isActive!(mockLocation('/effort/push-up'))).toBe(true)
+    expect(library.isActive!(mockLocation('/results'))).toBe(true)
+    expect(library.isActive!(mockLocation('/results/res-42'))).toBe(true)
     expect(library.isActive!(mockLocation('/playground/example'))).toBe(true)
     expect(tree.find(item => item.id === 'home')!.isActive!(mockLocation('/playground/example'))).toBe(false)
     expect(library.isActive!(mockLocation('/dashboard'))).toBe(false)
@@ -76,15 +84,11 @@ describe('appNavTree - Library navigation', () => {
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const library = tree.find(item => item.id === 'library')!
-    const [explore, playground, feeds, collections, journal] = library.children!
-
-    expect(explore.isActive!(mockLocation('/library'))).toBe(true)
-    expect(explore.isActive!(mockLocation('/journal'))).toBe(false)
+    const [journal, collections, feeds, playground, efforts, results] = library.children!
 
     const playgroundLoc = { ...mockLocation('/library'), search: `?q=${encodeURIComponent('find:note{source:playground}')}` }
     expect(playground.isActive!(playgroundLoc)).toBe(true)
     expect(playground.isActive!(mockLocation('/library'))).toBe(false)
-    expect(explore.isActive!(playgroundLoc)).toBe(false)
     expect(playground.isActive!(mockLocation('/playground/example'))).toBe(true)
     expect(playground.isActive!({ ...playgroundLoc, search: `?q=${encodeURIComponent('find:note{!source:playground}')}` })).toBe(false)
 
@@ -98,6 +102,14 @@ describe('appNavTree - Library navigation', () => {
 
     expect(journal.isActive!(mockLocation('/journal'))).toBe(true)
     expect(journal.isActive!(mockLocation('/journal/2026-09-03'))).toBe(true)
+
+    expect(efforts.isActive!(mockLocation('/efforts'))).toBe(true)
+    expect(efforts.isActive!(mockLocation('/effort/push-up'))).toBe(true)
+    expect(efforts.isActive!(mockLocation('/library'))).toBe(false)
+
+    expect(results.isActive!(mockLocation('/results'))).toBe(true)
+    expect(results.isActive!(mockLocation('/results/res-42'))).toBe(true)
+    expect(results.isActive!(mockLocation('/efforts'))).toBe(false)
     expect(journal.isActive!(mockLocation('/library'))).toBe(false)
   })
 
@@ -110,7 +122,9 @@ describe('appNavTree - Library navigation', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByText('Explore').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Playground').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Efforts').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Results').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
@@ -125,7 +139,9 @@ describe('appNavTree - Library navigation', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByText('Explore').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Playground').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Efforts').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Results').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
