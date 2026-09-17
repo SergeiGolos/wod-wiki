@@ -357,6 +357,25 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
   })
 })
 
+describe('StreamQueryEngine — tag hydration (find:note)', () => {
+  it('hydrates tags via noteTagsResolver in StreamQueryEngine options', async () => {
+    runFindImpl = async () => ({
+      parsed: {} as never,
+      notes: [{ id: 'note-1', title: 'Fran', createdAt: 1000, type: 'note' } as Note],
+      blocks: [],
+      stages: { selected: 1, matched: 1 },
+    })
+
+    const engine = new StreamQueryEngine({
+      noteTagsResolver: async (noteId) => (noteId === 'note-1' ? ['benchmark', 'crossfit'] : []),
+    })
+
+    const entries = await engine.query('find:note in all')
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.tags).toEqual(['benchmark', 'crossfit'])
+  })
+})
+
 describe('StreamQueryEngine — error and unsupported query handling', () => {
   it('returns empty array on parse error', async () => {
     const entries = await searchEntries('find:invalid query syntax {}}')

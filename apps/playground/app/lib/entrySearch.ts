@@ -41,11 +41,13 @@ export interface StreamQueryService {
   runFind(parsed: ParsedFindQuery, options?: unknown): Promise<FindQueryResult>;
   runFindEffort?(parsed: ParsedFindQuery): Promise<FindQueryResult>;
   runRows?(parsed: ParsedRowsQuery, options?: unknown): Promise<RowsQueryResult>;
+  getNoteTagLabels?(noteId: string): Promise<string[]>;
 }
 
 export interface StreamQueryEngineOptions {
   service?: StreamQueryService;
   noteTitleResolver?: (noteId: string) => Promise<string | undefined> | string | undefined;
+  noteTagsResolver?: (noteId: string) => Promise<string[]> | string[];
   /**
    * When true, a find:note run also fetches the same query's block plane
    * (identical scope — no broadening) and attaches each note's excerpt lines
@@ -62,6 +64,7 @@ function isStreamQueryService(value: unknown): value is StreamQueryService {
 export class StreamQueryEngine {
   private customService?: StreamQueryService;
   private noteTitleResolver?: (noteId: string) => Promise<string | undefined> | string | undefined;
+  private noteTagsResolver?: (noteId: string) => Promise<string[]> | string[];
   private noteBlockInfo: boolean;
 
   constructor(serviceOrOptions?: StreamQueryService | StreamQueryEngineOptions) {
@@ -71,6 +74,7 @@ export class StreamQueryEngine {
       this.customService = serviceOrOptions?.service;
       this.noteTitleResolver = serviceOrOptions?.noteTitleResolver;
       this.noteBlockInfo = serviceOrOptions?.noteBlockInfo ?? false;
+      this.noteTagsResolver = serviceOrOptions?.noteTagsResolver;
     }
   }
 
@@ -85,6 +89,7 @@ export class StreamQueryEngine {
     const next = new StreamQueryEngine({
       service: this.service,
       noteTitleResolver: this.noteTitleResolver,
+      noteTagsResolver: this.noteTagsResolver,
       noteBlockInfo: true,
     });
     // The feed's companion wraps the same engine; an instance-level `query`
@@ -151,6 +156,18 @@ export class StreamQueryEngine {
       }
 
       const entries = Array.from(noteMap.values()).map(toEntry);
+      if (this.noteTagsResolver || this.service.getNoteTagLabels) {
+        const resolveTags = this.noteTagsResolver ?? ((id: string) => this.service.getNoteTagLabels!(id));
+        await Promise.all(
+          entries.map(async (entry) => {
+            if (!entry.tags || entry.tags.length === 0) {
+              const tags = await resolveTags(entry.id);
+              if (tags && tags.length > 0) entry.tags = tags;
+            }
+          }),
+        );
+      }
+
       if (this.noteBlockInfo && blockResult?.blocks) {
         // Per note: prose preview lines (feed reading depth — bounded, the
         // card collapses/ expands) and the first wod block's content id and

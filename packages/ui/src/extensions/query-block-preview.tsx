@@ -17,6 +17,8 @@ export interface QueryBlockPreviewOptions {
   onResultSaved?: (callback: () => void) => (() => void) | void;
   readOnly?: boolean;
   onSaveQuery?: (sectionId: string, nextQuery: string) => void;
+  onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
+  noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
 }
 
 class ReactQueryBlock extends WidgetType {
@@ -38,7 +40,10 @@ class ReactQueryBlock extends WidgetType {
       this.sectionId === other.sectionId &&
       this.widgetType === other.widgetType &&
       this.widgetError === other.widgetError &&
-      this.options?.executor === other.options?.executor
+      this.options?.readOnly === other.options?.readOnly &&
+      this.options?.executor === other.options?.executor &&
+      this.options?.onOpenNote === other.options?.onOpenNote &&
+      this.options?.noteHref === other.options?.noteHref
     );
   }
 
@@ -65,6 +70,8 @@ class ReactQueryBlock extends WidgetType {
         executor={this.options?.executor}
         onResultSaved={this.options?.onResultSaved}
         onSaveQuery={handleSaveQuery}
+        onOpenNote={this.options?.onOpenNote}
+        noteHref={this.options?.noteHref}
       />,
     );
 
@@ -88,6 +95,8 @@ class ReactQueryBlock extends WidgetType {
         readOnly={this.options?.readOnly}
         executor={this.options?.executor}
         onResultSaved={this.options?.onResultSaved}
+        onOpenNote={this.options?.onOpenNote}
+        noteHref={this.options?.noteHref}
         onSaveQuery={handleSaveQuery}
       />,
     );

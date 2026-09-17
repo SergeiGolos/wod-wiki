@@ -348,6 +348,7 @@ export function EffortDetailPage() {
               showLineNumbers={true}
               enablePreview={true}
               enableLinting={true}
+              enableOverlay={true}
               mode="edit"
               commands={commands}
               onBlocksChange={setScriptBlocks}

@@ -789,6 +789,14 @@ export class QueryService {
         });
       }
     }
+
+    // Note filter — exact note id
+    for (const filter of parsed.filters) {
+      if (filter.key === 'note') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        notes = notes.filter(n => (filter.negate ? !wanted.has(n.id) : wanted.has(n.id)));
+      }
+    }
     // Time window (ticket 12 precedence): an explicit query window wins; the
     // host `range` option supplies the default when the query has none.
     if (parsed.window || options.range) {
@@ -854,6 +862,14 @@ export class QueryService {
           sIds.forEach(id => matchingNoteIds.add(id));
         }
         blocks = blocks.filter(b => matchingNoteIds.has(b.noteId));
+      }
+    }
+
+    // Note filter — exact parent note id
+    for (const filter of parsed.filters) {
+      if (filter.key === 'note') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        blocks = blocks.filter(b => (filter.negate ? !wanted.has(b.noteId) : wanted.has(b.noteId)));
       }
     }
 
@@ -1332,5 +1348,16 @@ export class QueryService {
     const noteIds = [...new Set(rows.map(r => r.noteId))];
     await Promise.all(noteIds.map(async (id) => noteTags.set(id, await this.noteStore.getNoteTagLabels(id))));
     return noteTags;
+  }
+
+  /** Look up tag labels for a note across user and static stores. */
+  async getNoteTagLabels(noteId: string): Promise<string[]> {
+    const userTags = await this.noteStore.getNoteTagLabels(noteId);
+    if (userTags && userTags.length > 0) return userTags;
+    if (this.staticNoteStore) {
+      const staticTags = await this.staticNoteStore.getNoteTagLabels(noteId);
+      if (staticTags && staticTags.length > 0) return staticTags;
+    }
+    return [];
   }
 }

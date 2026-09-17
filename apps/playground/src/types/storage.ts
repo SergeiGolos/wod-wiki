@@ -40,6 +40,7 @@ export interface Note {
 
     // Metadata
     createdAt: number;
+    tags?: string[];
 
     // Note Management
     type?: NoteKind;

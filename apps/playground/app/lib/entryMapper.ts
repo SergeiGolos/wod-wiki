@@ -125,6 +125,7 @@ function feedDate(noteId: string): string | null {
 export function toEntry(note: Note): Entry {
   const id = note.id
   const title = note.title
+  const tags = note.tags && note.tags.length > 0 ? note.tags : undefined
 
   if (isPlaygroundNote(note)) {
     return {
@@ -136,6 +137,7 @@ export function toEntry(note: Note): Entry {
       title,
       date: null,
       createdAt: note.createdAt,
+      ...(tags ? { tags } : {}),
     }
   }
 
@@ -151,6 +153,7 @@ export function toEntry(note: Note): Entry {
       date: null,
       createdAt: note.createdAt,
       subtitle: (note as Note & { catalog?: string }).catalog ?? catalog,
+      ...(tags ? { tags } : {}),
     }
   }
 
@@ -165,6 +168,7 @@ export function toEntry(note: Note): Entry {
       date: feedDate(id),
       createdAt: note.createdAt,
       subtitle: (note as Note & { catalog?: string }).catalog ?? id.split('/')[1]!,
+      ...(tags ? { tags } : {}),
     }
   }
 
@@ -180,10 +184,21 @@ export function toEntry(note: Note): Entry {
       title,
       date: null,
       createdAt: note.createdAt,
+      ...(tags ? { tags } : {}),
     }
   }
 
   // Journal note
+  let journalDate: string | null = null
+  if ('journalDate' in note && typeof note.journalDate === 'string') {
+    journalDate = note.journalDate
+  } else if ('date' in note && typeof note.date === 'string') {
+    journalDate = note.date
+  } else if ('targetDate' in note && (typeof note.targetDate === 'number' || typeof note.targetDate === 'string')) {
+    journalDate = formatDateKey(new Date(note.targetDate))
+  } else if (note.createdAt) {
+    journalDate = formatDateKey(new Date(note.createdAt))
+  }
   return {
     id,
     kind: 'note',
@@ -191,8 +206,9 @@ export function toEntry(note: Note): Entry {
     sourceItem: id,
     sourceId: note.sourceId,
     title,
-    date: null,
+    date: journalDate,
     createdAt: note.createdAt,
+    ...(tags ? { tags } : {}),
   }
 }
 

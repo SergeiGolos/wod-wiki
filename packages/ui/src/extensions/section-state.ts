@@ -89,9 +89,9 @@ interface ContentFenceMatch {
 }
 
 function matchContentFence(trimmed: string): ContentFenceMatch | null {
-  const match = trimmed.match(/^```\s*query(\S*)\s*$/i);
+  const match = trimmed.match(/^```\s*query(?:[:\s](.*))?$/i);
   if (!match) return null;
-  const rawSuffix = match[1] ?? "";
+  const rawSuffix = (match[1] ?? "").trim();
   // Bare ```query renders the default widget — no suffix to parse.
   if (rawSuffix === "") return { kind: "query" };
   // Strip the `:` separator before parsing the widget type/spans

@@ -66,6 +66,16 @@ describe('toEntry — playground entries', () => {
   })
 })
 
+describe('toEntry — tag preservation', () => {
+  it('preserves tags from Note onto Entry', () => {
+    const entry = toEntry(makeNote({
+      id: 'note-with-tags',
+      tags: ['pr', 'benchmark'],
+    }))
+    expect(entry.tags).toEqual(['pr', 'benchmark'])
+  })
+})
+
 describe('toEntry — guide entries', () => {
   it('classifies a canvas-corpus note (guides: sourceId) as a guide Note carrying the route path', () => {
     const entry = toEntry(makeNote({
