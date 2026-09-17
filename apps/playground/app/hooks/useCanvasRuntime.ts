@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { v7 as uuidv7 } from 'uuid'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import { playgroundRecorder } from '@/services/resultRecorder'
 import { toast } from '@/hooks/use-toast'
 import { ensurePlaygroundEntry } from '../services/createPlaygroundPage'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
 
 export type FullscreenState =
-  | { kind: 'timer'; block: ScriptBlock; results: WorkoutResults | null }
+  | { kind: 'timer'; block: ScriptBlock; results: Sessions | null }
   | null
 
 export interface UseCanvasRuntimeOptions {
@@ -21,9 +21,9 @@ export interface UseCanvasRuntimeReturn {
   fullscreen: FullscreenState
   startRun: (block?: ScriptBlock | null, content?: string) => Promise<void>
   closeRun: () => void
-  completedResults: WorkoutResults | null
+  completedResults: Sessions | null
   runState: RunButtonState
-  handleWorkoutComplete: (results: WorkoutResults) => Promise<void>
+  handleWorkoutComplete: (results: Sessions) => Promise<void>
 }
 
 /** Owns persistence-before-run and recording against the exact started entry. */
@@ -34,7 +34,7 @@ export function useCanvasRuntime({
   getContent,
 }: UseCanvasRuntimeOptions): UseCanvasRuntimeReturn {
   const [fullscreen, setFullscreen] = useState<FullscreenState>(null)
-  const [completedResults, setCompletedResults] = useState<WorkoutResults | null>(null)
+  const [completedResults, setCompletedResults] = useState<Sessions | null>(null)
   const activeRun = useRef<{ noteId: string; resultId: string; block: ScriptBlock } | null>(null)
   const starting = useRef(false)
   const generation = useRef(0)
@@ -70,7 +70,7 @@ export function useCanvasRuntime({
     }
   }, [canvasNoteId, title, getBlock, getContent])
 
-  const handleWorkoutComplete = useCallback(async (results: WorkoutResults) => {
+  const handleWorkoutComplete = useCallback(async (results: Sessions) => {
     const run = activeRun.current
     if (!run) return
     const request = generation.current

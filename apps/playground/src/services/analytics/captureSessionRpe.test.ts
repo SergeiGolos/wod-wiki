@@ -15,8 +15,8 @@ import { describe, expect, it } from 'bun:test';
 import { captureSessionRpe } from './captureSessionRpe';
 import { IndexedDBNotePersistence } from '@/services/persistence/IndexedDBNotePersistence';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
-import type { NotePersistenceStorage, UnifiedEventRecord } from '@/services/persistence/types';
-import type { NoteSegment, WorkoutResult } from '@/types/storage';
+import type { NotePersistenceStorage, EventRecord } from '@/services/persistence/types';
+import type { NoteSegment, Session } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 
 const T0 = 1_700_000_000_000;
@@ -61,7 +61,7 @@ function baseSegmentLog(): StoredOutputStatement {
   };
 }
 
-function makeResult(overrides: Partial<WorkoutResult> = {}): WorkoutResult {
+function makeResult(overrides: Partial<Session> = {}): Session {
   return {
     id: 'result-1',
     noteId: 'note-1',
@@ -75,10 +75,10 @@ function makeResult(overrides: Partial<WorkoutResult> = {}): WorkoutResult {
   };
 }
 
-function createHarness(result: WorkoutResult, segment: NoteSegment | undefined = SEGMENT) {
+function createHarness(result: Session, segment: NoteSegment | undefined = SEGMENT) {
   let currentResult = result;
-  const savedResults: WorkoutResult[] = [];
-  const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
+  const savedResults: Session[] = [];
+  const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
 
   const storage: NotePersistenceStorage = {
     getNote: async () => undefined,

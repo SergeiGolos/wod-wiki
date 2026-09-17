@@ -55,7 +55,6 @@ import {
 } from './calendar';
 import type {
   EventStore,
-  UnifiedEventStore,
   NoteQueryStore,
   BlockQueryStore,
   EffortQueryStore,
@@ -65,7 +64,6 @@ import type {
 
 export type {
   EventStore,
-  UnifiedEventStore,
   NoteQueryStore,
   BlockQueryStore,
   EffortQueryStore,

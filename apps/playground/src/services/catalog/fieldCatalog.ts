@@ -18,7 +18,7 @@ import type {
   FieldContribution,
   Note,
   Session,
-  WorkoutResult,
+  Session,
 } from '@bitcobblers/wod-wiki-core';
 import { fieldRefKey } from '@bitcobblers/wod-wiki-core';
 

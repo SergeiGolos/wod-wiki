@@ -10,7 +10,7 @@
  */
 import type { BlockIndexRow, Note } from '@/types/storage'
 import type { IEffort, RowsRun, RowsQueryResult } from '@bitcobblers/wod-wiki-wql'
-import type { UnifiedEventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-core'
+import type { EventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-core'
 import { formatDateKey } from '../services/dateUtils'
 import { parseNoteId } from '@/lib/noteIdentity'
 
@@ -40,7 +40,7 @@ export interface EntryExecutionData {
   distanceMeters?: number
   tis?: number
   segmentCount?: number
-  events?: UnifiedEventRecord[]
+  events?: EventRecord[]
   metrics?: StoredOutputStatement['metrics']
 }
 
@@ -429,7 +429,7 @@ export function rowsRunToEntry(run: RowsRun, options?: { noteTitle?: string }): 
 }
 
 export function unifiedEventToEntry(
-  event: UnifiedEventRecord,
+  event: EventRecord,
   options?: { index?: number },
 ): Entry {
   let elapsedMs: number | undefined

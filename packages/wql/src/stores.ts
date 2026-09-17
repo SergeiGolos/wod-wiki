@@ -40,7 +40,6 @@ export interface EventStore {
   deleteEvents(ids: string[]): Promise<void>;
 }
 
-export type UnifiedEventStore = EventStore;
 
 /** Store surface for content queries (`find:note`). */
 export interface NoteQueryStore {

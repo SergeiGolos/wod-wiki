@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 import { parseQuery, isRowsQuery, type ParsedRowsQuery } from '../src/wql';
 import { toEventRows } from '../src/derivation';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import { QueryService, type EventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const day0 = Math.floor(1_700_000_000_000 / DAY) * DAY;
@@ -17,7 +17,7 @@ function log(outputType: NonNullable<StoredOutputStatement['outputType']>, start
  *  Ticket 12: statements carry their own timeSpans, anchored at the
  *  workout's end time — row timestamps are the statements' own instants,
  *  never the derivation clock. */
-function makeResult(id: string, noteId: string, blockContentId: string, endTime: number): UnifiedEventRecord[] {
+function makeResult(id: string, noteId: string, blockContentId: string, endTime: number): EventRecord[] {
   const logs = [log('segment', endTime), log('segment', endTime + 1000), log('milestone', endTime + 2000)];
   return toEventRows(logs, { noteId, resultId: id, blockContentId, workoutTimestamp: endTime });
 }
@@ -28,7 +28,7 @@ const RC = makeResult('rC', 'n2', 'bc-2', day0 - 14 * DAY);
 const EVENT_ROWS = [...RA, ...RB, ...RC];
 
 function makeService(resultCalls: string[] = []) {
-  const eventStore: UnifiedEventStore = {
+  const eventStore: EventStore = {
     getEventsByTimeRange: async () => { throw new Error('time range must never be read on the rows path'); },
     getEventsByResult: async (id) => { resultCalls.push(`by-id:${id}`); return EVENT_ROWS.filter((r) => r.resultId === id); },
     getEventsForNote: async (noteId) => { resultCalls.push(`by-note:${noteId}`); return EVENT_ROWS.filter((r) => r.noteId === noteId); },

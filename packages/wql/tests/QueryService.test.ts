@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
-import { QueryService, type NoteQueryStore, type UnifiedEventStore } from '../src/QueryService';
+import type { EventRecord } from '@bitcobblers/wod-wiki-core';
+import { QueryService, type NoteQueryStore, type EventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
@@ -26,7 +26,7 @@ function fact(
   value: number,
   timestamp: number,
   extra: SummaryExtra = {},
-): UnifiedEventRecord {
+): EventRecord {
   seq += 1;
   const { unit, effortSlug, discipline, intensityTier, grade, groupTags, ...identity } = extra;
   return {
@@ -71,12 +71,12 @@ const NOTE_TAGS: Record<string, string[]> = {
 };
 
 interface StoreSpy {
-  store: UnifiedEventStore;
+  store: EventStore;
   noteStore: NoteQueryStore;
   calls: string[];
 }
 
-function makeStore(rows: UnifiedEventRecord[] = FACTS): StoreSpy {
+function makeStore(rows: EventRecord[] = FACTS): StoreSpy {
   const calls: string[] = [];
   return {
     calls,

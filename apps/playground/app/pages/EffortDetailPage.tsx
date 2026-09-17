@@ -25,7 +25,7 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
 import type { ScriptBlock } from '@/components/Editor/types';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
@@ -106,7 +106,7 @@ export function EffortDetailPage() {
   } = useEffortContent(slug);
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([]);
-  const [results] = useState<WorkoutResult[]>([]);
+  const [results] = useState<Session[]>([]);
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
   const [showResolved, setShowResolved] = useState(false);
 

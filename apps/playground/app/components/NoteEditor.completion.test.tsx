@@ -10,21 +10,21 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
  * CM6 document, sectionField, and the completion handler stay real.
  */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, Sessions } from '@/components/Editor/types';
 
-const sampleResults: WorkoutResults = {
+const sampleResults: Sessions = {
   completed: true,
   startTime: 1_700_000_000_000,
   endTime: 1_700_000_005_000,
   duration: 5_000,
   logs: [],
   metrics: [],
-} as unknown as WorkoutResults;
+} as unknown as Sessions;
 
 mock.module('@/components/organisms/review/FullscreenTimer', () => ({
   FullscreenTimer: (props: {
     block: ScriptBlock;
-    onCompleteWorkout: (blockId: string, results: WorkoutResults) => void;
+    onCompleteWorkout: (blockId: string, results: Sessions) => void;
   }) => (
     <button
       data-testid="complete-workout"
@@ -65,7 +65,7 @@ const DOC = 'Intro prose.\n\n```time\n5s\n```\n\nTrailing notes.';
 afterEach(() => cleanup());
 
 function renderEditor(onChange: (value: string) => void, value = DOC) {
-  const onCompleteWorkout = mock((_blockId: string, _results: WorkoutResults | undefined, _resultId?: string): void => {});
+  const onCompleteWorkout = mock((_blockId: string, _results: Sessions | undefined, _resultId?: string): void => {});
   render(
     <NoteEditor
       value={value}

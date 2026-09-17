@@ -223,7 +223,7 @@ export {
 export {
   // QueryService
   QueryService,
-  type UnifiedEventStore,
+  type EventStore,
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,

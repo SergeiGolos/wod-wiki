@@ -90,4 +90,3 @@ export async function detectPRsForSession(
 
   return results;
 }
-export const detectPRsForWorkoutResult = detectPRsForSession;

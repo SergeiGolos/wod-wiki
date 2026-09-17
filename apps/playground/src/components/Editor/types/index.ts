@@ -81,7 +81,7 @@ export function toStoredOutputStatement(output: IOutputStatement): StoredOutputS
 /**
  * Results from a completed workout.
  */
-export interface WorkoutResults {
+export interface Sessions {
   /** When workout started */
   startTime: number;
 
@@ -163,7 +163,7 @@ export interface ScriptBlock {
   };
 
   /** Collected workout data (after completion) */
-  results?: WorkoutResults;
+  results?: Sessions;
 
   /** Block version */
   version: number;

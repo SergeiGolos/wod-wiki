@@ -27,7 +27,7 @@
  * day per note is the convention; multiple blocks in one note keep the LAST
  * entry per key.
  */
-import type { UnifiedEventRecord } from '@/types/storage';
+import type { EventRecord } from '@/types/storage';
 
 /** Canonical wellness keys → unit expectations. Bare numbers use the default. */
 const WELLNESS_KEYS: Record<string, { unit: string; label: string; min?: number; max?: number }> = {
@@ -93,7 +93,7 @@ export function wellnessEventsForNote(
   noteId: string,
   rawContent: string,
   options: { targetDate?: number; now?: number } = {},
-): UnifiedEventRecord[] {
+): EventRecord[] {
   const entries = extractWellnessEntries(rawContent);
   if (entries.length === 0) return [];
   const ref = options.targetDate ?? options.now ?? Date.now();
@@ -134,11 +134,11 @@ export function wellnessFactId(noteId: string, key: string): string {
 }
 
 /** The store surface wellness capture needs — injectable for tests.
- *  Subset of the engine's UnifiedEventStore (ticket 005 interface). */
+ *  Subset of the engine's EventStore (ticket 005 interface). */
 export interface WellnessEventStore {
-  appendEvents(rows: UnifiedEventRecord[]): Promise<void>;
+  appendEvents(rows: EventRecord[]): Promise<void>;
   deleteEvents(ids: string[]): Promise<void>;
-  getEventsForNote(noteId: string): Promise<UnifiedEventRecord[]>;
+  getEventsForNote(noteId: string): Promise<EventRecord[]>;
 }
 
 /**

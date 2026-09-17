@@ -2,7 +2,7 @@ import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, Sessions } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
 import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
 
@@ -19,7 +19,7 @@ export function createRuntimeForBlock(block: ScriptBlock): IScriptRuntime | null
   return factory.createRuntime(prepareRuntimeBlock(block)) ?? null;
 }
 
-export function buildWorkoutResults(
+export function buildSessions(
   outputs: readonly IOutputStatement[],
   options: {
     readonly startTime?: number;
@@ -27,7 +27,7 @@ export function buildWorkoutResults(
     readonly completed: boolean;
     readonly now: INowProvider;
   },
-): WorkoutResults {
+): Sessions {
   return {
     startTime: options.startTime ?? options.now.nowMs(),
     endTime: options.now.nowMs(),

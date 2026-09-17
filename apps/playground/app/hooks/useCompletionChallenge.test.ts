@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { renderHook } from '@testing-library/react';
 import { useCompletionChallenge } from './useCompletionChallenge';
 import { type Quest } from './usePageQuests';
-import type { WorkoutResults } from '@/components/Editor/types';
+import type { Sessions } from '@/components/Editor/types';
 
 const STORAGE_KEY = 'wodwiki.quests.v1';
 const PAGE_A = '/guide/getting-started';
@@ -25,7 +25,7 @@ const mockQuests: Quest[] = [
   },
 ];
 
-const completedRun: WorkoutResults = {
+const completedRun: Sessions = {
   startTime: 1000,
   endTime: 2000,
   duration: 1000,
@@ -33,7 +33,7 @@ const completedRun: WorkoutResults = {
   logs: [],
 };
 
-const stoppedRun: WorkoutResults = { ...completedRun, completed: false };
+const stoppedRun: Sessions = { ...completedRun, completed: false };
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -82,7 +82,7 @@ describe('useCompletionChallenge', () => {
           completedResults,
         }),
       {
-        initialProps: { completedResults: null as WorkoutResults | null },
+        initialProps: { completedResults: null as Sessions | null },
       }
     );
 

@@ -8,7 +8,7 @@
  * so call sites read like simple CRUD.
  *
  * Identity: a page's id is the composite `category/name` (unchanged), which is
- * also the `Note.id` and the `WorkoutResult.noteId` — so content and results
+ * also the `Note.id` and the `Session.noteId` — so content and results
  * join exactly, with no `sameNoteId` shim needed for new data. Category is
  * recovered from the id prefix, so no tag/type encoding is required.
  */
@@ -16,7 +16,7 @@ import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentPro
 import type { HistoryEntry } from '@/types/history';
 
 export interface PlaygroundPage {
-  /** `category/name` composite — also the Note.id and WorkoutResult.noteId. */
+  /** `category/name` composite — also the Note.id and Session.noteId. */
   id: string;
   /** V8 — route slug (e.g. 'journal/2026-07-13'); present on UUID-keyed notes. */
   slug?: string;

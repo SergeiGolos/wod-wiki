@@ -14,7 +14,7 @@ import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from '@/services/persistence';
 import type { CreateNoteInput, NoteMutation, NoteLocator, GetNoteOptions } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
-import type { WorkoutResults, StoredOutputStatement } from '@/components/Editor/types';
+import type { Sessions, StoredOutputStatement } from '@/components/Editor/types';
 import type { Attachment } from '@/types/storage';
 import type {
   IContentProvider,
@@ -296,7 +296,7 @@ describe('workbenchSessionStore', () => {
         },
       ],
     });
-    const result: WorkoutResults = {
+    const result: Sessions = {
       startTime: Date.parse('2026-01-01T00:00:00Z'),
       endTime: Date.parse('2026-01-01T00:01:00Z'),
       duration: 60_000,
@@ -311,7 +311,7 @@ describe('workbenchSessionStore', () => {
     expect(typeof call.locator === 'string' ? call.locator : call.locator.id).toBe('note-3');
     expect(call.mutation.workoutResult).toBeDefined();
     // `workoutResult.id` is the generated `resultId` (separate from
-    // `WorkoutResults.startTime`/etc.); the session's `completeWorkout`
+    // `Sessions.startTime`/etc.); the session's `completeWorkout`
     // mints it and passes it through.
     expect(call.mutation.workoutResult?.id).toBe(resultId);
 
@@ -336,7 +336,7 @@ describe('workbenchSessionStore', () => {
     // Simulate an inline NoteEditor run: no selectedBlock is ever set.
     expect(store.getState().selectedBlock).toBeNull();
 
-    const result: WorkoutResults = {
+    const result: Sessions = {
       startTime: 1, endTime: 2, duration: 1, completed: true,
     };
     const resultId = await store.getState().completeWorkout(
@@ -368,7 +368,7 @@ describe('workbenchSessionStore', () => {
     notePersistence.seed(entry);
     store.setState({ currentEntry: entry });
 
-    const result: WorkoutResults = {
+    const result: Sessions = {
       startTime: 1, endTime: 2, duration: 1, completed: true,
     };
     const resultId = await store.getState().completeWorkout(result, 'run-orphan-1');

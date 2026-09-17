@@ -5,7 +5,7 @@ import {
   toSummaryEventRows,
   type EventRowIdentity,
 } from '../src/derivation';
-import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
 const IDENTITY: EventRowIdentity = {
@@ -213,7 +213,7 @@ describe('toSummaryEventRows — analytics outputs → deterministic summary row
 
 describe('projectEventToFacts — event rows → flat fact currency (ticket 003 SELECT)', () => {
   it('flattens an event row to one fact per numeric metric, canonical key first', () => {
-    const row: UnifiedEventRecord = toEventRows(
+    const row: EventRecord = toEventRows(
       [
         statement({
           metrics: [

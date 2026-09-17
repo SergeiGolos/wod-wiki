@@ -4,7 +4,7 @@ import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { HistoryEntry } from '@/types/history';
-import type { Attachment, Note, WorkoutResult } from '@/types/storage';
+import type { Attachment, Note, Session } from '@/types/storage';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
@@ -27,11 +27,11 @@ import {
   type ResultSelection,
 } from './types';
 
-function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
+function sortNewest(results: Session[]): Session[] {
   return [...results].sort((a, b) => b.createdAt - a.createdAt);
 }
 
-function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[] {
+function limitResults(results: Session[], limit?: number): Session[] {
   return limit == null ? results : results.slice(0, limit);
 }
 
@@ -205,7 +205,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
         // (resultData.endTime || now), so event rows and the result agree.
         workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
       };
-      // Non-load-bearing (ticket 005): WorkoutResult.data.logs is canonical;
+      // Non-load-bearing (ticket 005): Session.data.logs is canonical;
       // event rows are the derived queryable projection. Failures are logged,
       // never fatal — rows are re-derivable by re-finalize or bulk re-derive.
       try {
@@ -250,7 +250,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
     await this.contentProvider.deleteEntry(note.id);
   }
-  async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
+  async getResultById(resultId: string): Promise<Session | undefined> {
     return this.storage.getResultById(resultId);
   }
 
@@ -294,7 +294,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
     const derivedLogs = replayResultAnalytics(result, block);
-    const updated: WorkoutResult = {
+    const updated: Session = {
       ...result,
       data: { ...result.data, logs: derivedLogs },
     };
@@ -387,12 +387,6 @@ export class IndexedDBNotePersistence implements INotePersistence {
       results = results.filter(r => r.origin !== 'playground');
     }
     return limitResults(sortNewest(results), options.limit);
-  }
-  async getSimilarWorkoutResults(
-    blockContentId: string,
-    options: { excludeNoteId?: string; includePlayground?: boolean; limit?: number } = {},
-  ): Promise<WorkoutResult[]> {
-    return this.getSimilarSessions(blockContentId, options);
   }
 
   private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {    if (selection.mode === 'by-result-id') {

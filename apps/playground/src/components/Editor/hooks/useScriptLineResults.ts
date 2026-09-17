@@ -10,7 +10,7 @@
  */
 
 import { useMemo } from 'react';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
@@ -56,7 +56,7 @@ function extractElapsed(output: IOutputStatement | StoredOutputStatement): numbe
  * @param statementId - The statement ID (= content line number) to filter by.
  */
 export function buildLineExecutionSummary(
-  results: WorkoutResult[],
+  results: Session[],
   statementId: number,
 ): LineExecutionSummary {
   const entries: LineResultEntry[] = [];
@@ -93,7 +93,7 @@ export function buildLineExecutionSummary(
  * Returns `null` when there is no execution data for the line.
  */
 export function useScriptLineResults(
-  results: WorkoutResult[],
+  results: Session[],
   statementId: number | undefined,
 ): LineExecutionSummary | null {
   return useMemo(() => {

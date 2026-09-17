@@ -20,7 +20,7 @@ import {
   createSyntaxGroupWidgetWrapper,
 } from '../components/widgets/widgetWrappers'
 import type { ScriptBlock } from '@/components/Editor/types'
-import type { WorkoutResult } from '@/types/storage'
+import type { Session } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { indexedDBService } from '@/services/db/IndexedDBService'
@@ -103,7 +103,7 @@ export function PlaygroundNotePage({
     if (completed) refreshPinnedEffort()
   }, [rawHandleClose, refreshPinnedEffort])
 
-  const [results, setResults] = useState<WorkoutResult[]>([])
+  const [results, setResults] = useState<Session[]>([])
 
   const refreshResults = useCallback(() => {
     indexedDBService.getResultsForNote(runtimeNoteId)

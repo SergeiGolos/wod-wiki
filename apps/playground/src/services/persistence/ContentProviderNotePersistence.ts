@@ -2,7 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
@@ -21,7 +21,7 @@ function locatorToId(locator: NoteLocator): string {
   return locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '';
 }
 
-function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
+function sortNewest(results: Session[]): Session[] {
   return [...results].sort((a, b) => b.createdAt - a.createdAt);
 }
 

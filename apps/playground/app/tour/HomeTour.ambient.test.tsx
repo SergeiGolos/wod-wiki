@@ -10,7 +10,7 @@ import { beforeEach, afterEach, describe, expect, it, mock, type Mock } from 'bu
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
@@ -64,7 +64,7 @@ mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
     block: ScriptBlock | null
     autoStart: boolean
     onClose: () => void
-    onComplete: (blockId: string, results: WorkoutResults) => void
+    onComplete: (blockId: string, results: Sessions) => void
     onRuntimeReady: (runtime: IScriptRuntime) => void
     onRunStarted?: () => void
   }) => {

@@ -13,7 +13,7 @@ import { noteRefToPath } from '../lib/noteIdentity'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { playgroundRecorder } from '@/services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
-import type { WorkoutResults } from '@/components/Editor/types'
+import type { Sessions } from '@/components/Editor/types'
 
 export function WallClockPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
@@ -28,7 +28,7 @@ export function WallClockPage() {
   const pending = pendingRef.current
 
   const handleComplete = useCallback(
-    (_blockId: string, results: WorkoutResults | undefined) => {
+    (_blockId: string, results: Sessions | undefined) => {
       if (!results || !runtimeId || !pending) return
       playgroundRecorder.record({
         runBlock: pending.block,

@@ -12,10 +12,10 @@
  */
 
 
-import type { WorkoutResults, Section } from '../components/Editor/types';
-import type { Attachment, NoteKind, WorkoutResult } from './storage';
+import type { Sessions, Section } from '../components/Editor/types';
+import type { Attachment, NoteKind, Session } from './storage';
 
-export type { WorkoutResults, Section };
+export type { Sessions, Section };
 
 /**
  * A stored workout entry in the history.
@@ -32,10 +32,10 @@ export interface HistoryEntry {
   rawContent: string;                  // Original markdown
 
   // Execution results (optional — present after completion)
-  results?: WorkoutResults;
+  results?: Sessions;
 
   // Extended results (optional — collection of completions)
-  extendedResults?: WorkoutResult[];
+  extendedResults?: Session[];
 
   // Metadata
   tags: string[];

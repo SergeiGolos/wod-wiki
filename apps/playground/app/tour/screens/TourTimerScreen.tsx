@@ -4,7 +4,7 @@ import { Button } from '@/components/atoms/primitives/button'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { TEST_IDS } from '@/testing/contracts/TestIdContract'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import { useRingRef } from '../TourRing'
 
@@ -12,7 +12,7 @@ export interface TourTimerScreenProps {
   block: ScriptBlock | null
   autoStart: boolean
   onClose: () => void
-  onComplete: (blockId: string, results: WorkoutResults) => void
+  onComplete: (blockId: string, results: Sessions) => void
   onRuntimeReady: (runtime: IScriptRuntime) => void
   /** Called once when the runtime transitions from idle to running. */
   onRunStarted?: () => void

@@ -9,8 +9,8 @@
  */
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
-import type { ResultOrigin, Session, WorkoutResult } from '@/types/storage';
-import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
+import type { ResultOrigin, Session, Session } from '@/types/storage';
+import type { Sessions, ScriptBlock } from '@/components/Editor/types';
 import { parseNoteId } from '@/lib/noteIdentity';
 import { appError } from '@/lib/log';
 
@@ -27,7 +27,7 @@ export interface ResultMutation {
     blockContentId?: string;
     segmentId?: string;
     origin?: ResultOrigin;
-    data: WorkoutResults;
+    data: Sessions;
     createdAt?: number;
   };
   /** Note kind applied only when the note is lazily created by this write. */
@@ -52,7 +52,7 @@ export interface RecordResultInput {
   /** Stable id for this result (the runtimeId). */
   resultId: string;
   /** The outcome data. */
-  data: WorkoutResults;
+  data: Sessions;
   /** Completion timestamp (Unix ms). */
   createdAt: number;
   /**
@@ -76,7 +76,7 @@ export function onResultSaved(listener: ResultSavedListener): () => void {
   };
 }
 
-export function notifyResultSaved(result: WorkoutResult): void {
+export function notifyResultSaved(result: Session): void {
   for (const listener of resultSavedListeners) {
     try {
       listener(result);

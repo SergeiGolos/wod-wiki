@@ -182,7 +182,7 @@ export function normalizeOutputFilter(filter: OutputFilterInput): OutputFilterPr
 // ── Row shape ────────────────────────────────────────────────────────────────
 
 /** Structural subset satisfied by live `IOutputStatement`s, stored statements,
- *  and `UnifiedEventRecord` event rows alike. */
+ *  and `EventRecord` event rows alike. */
 export interface OutputStatementRow {
   readonly id?: number | string;
   readonly outputType?: string;

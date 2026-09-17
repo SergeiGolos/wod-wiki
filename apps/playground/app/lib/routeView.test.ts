@@ -4,8 +4,8 @@
  * React mount and no IndexedDB.
  */
 import { describe, expect, it, mock } from 'bun:test'
-import type { WorkoutResult } from '@/types/storage'
-import type { WorkoutResults } from '@/components/Editor/types'
+import type { Session } from '@/types/storage'
+import type { Sessions } from '@/components/Editor/types'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import {
   resolveRouteView,
@@ -16,8 +16,8 @@ import {
 } from './routeView'
 
 /** Minimal result fixture — only `createdAt` matters to the nav derivation. */
-function makeResult(createdAt: number, id = `r-${createdAt}`): WorkoutResult {
-  return { id, noteId: 'note-1', data: {} as WorkoutResults, createdAt }
+function makeResult(createdAt: number, id = `r-${createdAt}`): Session {
+  return { id, noteId: 'note-1', data: {} as Sessions, createdAt }
 }
 
 function makeDeps(overrides: Partial<RouteViewDeps> = {}): RouteViewDeps {

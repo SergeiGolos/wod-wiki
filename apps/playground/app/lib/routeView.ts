@@ -11,7 +11,7 @@
  * See docs/adr/app-route-view.md.
  */
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
-import type { WorkoutResult } from '@/types/storage'
+import type { Session } from '@/types/storage'
 import type { WorkoutItem } from './workoutIndex'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import type { MenuSpec } from '../nav/menuModel'
@@ -102,7 +102,7 @@ export interface ShellConfig {
 export interface RouteViewDeps {
   workoutItems: WorkoutItem[]
   canvasPage: ParsedCanvasPage | null
-  recentResults: WorkoutResult[]
+  recentResults: Session[]
   selectWorkout: (item: SelectWorkoutItem) => void
 }
 

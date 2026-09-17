@@ -4,7 +4,7 @@ import {
   toSummaryEventRows,
   type EventRowIdentity,
 } from '../src/derivation';
-import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
 const IDENTITY: EventRowIdentity = {
@@ -25,7 +25,7 @@ function statement(overrides: Partial<StoredOutputStatement> = {}): StoredOutput
   } as StoredOutputStatement;
 }
 
-function eventRow(overrides: Partial<UnifiedEventRecord> = {}): UnifiedEventRecord {
+function eventRow(overrides: Partial<EventRecord> = {}): EventRecord {
   return {
     id: 'r1:0',
     resultId: 'r1',
@@ -56,7 +56,7 @@ describe('ticket 11 — typed field identity survives projection', () => {
         metric({ type: 'custom', value: 48, metadata: { fieldRef: { path: 'hrv', kind: 'number' }, originalKey: 'hrv' } }),
         metric({ type: 'custom', value: 7.5, metadata: { fieldRef: { path: 'sleep', kind: 'number' }, originalKey: 'sleep' } }),
       ],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     const facts = projectEventToFacts(row);
     expect(facts.map((f) => f.metricKey).sort()).toEqual(['hrv', 'sleep']);
     expect(facts.every((f) => f.metricKey !== 'custom')).toBe(true);
@@ -70,14 +70,14 @@ describe('ticket 11 — typed field identity survives projection', () => {
     for (const spelling of spellings) {
       const row = eventRow({
         metrics: [metric({ type: 'custom', value: 60, metadata: { fieldRef: { path: 'heartRate', kind: 'number' }, originalKey: spelling } })],
-      } as Partial<UnifiedEventRecord>);
+      } as Partial<EventRecord>);
       const facts = projectEventToFacts(row);
       expect(facts).toHaveLength(1);
       expect(facts[0]!.metricKey).toBe('heartRate');
     }
     const distinct = eventRow({
       metrics: [metric({ type: 'custom', value: 60, metadata: { fieldRef: { path: 'heartrate', kind: 'number' }, originalKey: 'heartrate' } })],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     expect(projectEventToFacts(distinct)[0]!.metricKey).toBe('heartrate');
   });
 
@@ -87,7 +87,7 @@ describe('ticket 11 — typed field identity survives projection', () => {
         metric({ type: 'custom', value: 85, metadata: { fieldRef: { path: 'score', kind: 'number' } } }),
         metric({ type: 'custom', value: 'excellent', metadata: { fieldRef: { path: 'score', kind: 'string' } } }),
       ],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     const facts = projectEventToFacts(row);
     // Fact currency is numeric-only: the text variant never projects, so a
     // numeric aggregation of `score` sees exactly the numeric observation.
@@ -99,10 +99,10 @@ describe('ticket 11 — typed field identity survives projection', () => {
   it('treats flat dotted and nested forms as one identity at projection (acceptance 4)', () => {
     const flat = eventRow({
       metrics: [metric({ type: 'custom', value: 85, metadata: { fieldRef: { path: 'sleep.score', kind: 'number' }, originalKey: 'sleep.score' } })],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     const nested = eventRow({
       metrics: [metric({ type: 'custom', value: 85, metadata: { fieldRef: { path: 'sleep.score', kind: 'number' }, originalKey: 'sleep' } })],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     const flatFacts = projectEventToFacts(flat);
     const nestedFacts = projectEventToFacts(nested);
     expect(flatFacts[0]!.metricKey).toBe('sleep.score');
@@ -144,7 +144,7 @@ describe('ticket 11 — typed field identity survives projection', () => {
         metric({ type: 'distance', value: 1000, unit: 'm', metadata: { canonicalKey: 'distance', fieldRef: { path: 'distance', kind: 'number', dimension: 'length' } } }),
         metric({ type: 'elapsed', value: 60, unit: 's', metadata: { canonicalKey: 'elapsed' } }),
       ],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     const facts = projectEventToFacts(row);
     expect(facts.map((f) => f.metricKey).sort()).toEqual(['distance', 'elapsed']);
   });
@@ -156,20 +156,20 @@ describe('ticket 11 — typed field identity survives projection', () => {
         metric({ type: 'label', value: 'Total Volume' }),
         metric({ type: 'rep', value: 21 }),
       ],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     const facts = projectEventToFacts(labeled);
     expect(facts.map((f) => f.metricKey)).toEqual(['totalVolume']);
 
     // Pre-fieldRef custom property with no identity source: no invented key.
     const pooled = eventRow({
       metrics: [metric({ type: 'custom', value: 5 })],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     expect(projectEventToFacts(pooled)).toEqual([]);
 
     // Unlabeled rep metrics keep the genuine legacy `reps` fallback.
     const unlabeledReps = eventRow({
       metrics: [metric({ type: 'rep', value: 15 })],
-    } as Partial<UnifiedEventRecord>);
+    } as Partial<EventRecord>);
     expect(projectEventToFacts(unlabeledReps)[0]!.metricKey).toBe('reps');
   });
 });

@@ -32,7 +32,7 @@ import { playgroundContent, pageId, type PlaygroundPage } from './playgroundCont
 
 /** A persisted playground entry: the canonical Note UUID + its route id. */
 export interface PlaygroundEntry {
-  /** Canonical Note UUID — the WorkoutResult.noteId join key. */
+  /** Canonical Note UUID — the Session.noteId join key. */
   noteId: string;
   /** `playground/<name>` route id — open at /playground/<name>. */
   routeId: string;

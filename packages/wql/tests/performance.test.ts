@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IFieldCatalog, CatalogFieldSuggestion } from '../src/catalog';
-import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import type { EventRecord } from '@bitcobblers/wod-wiki-core';
+import { QueryService, type EventStore } from '../src/QueryService';
 
 /**
  * Ticket 20 — measured budgets from the invalidation and performance
@@ -54,7 +54,7 @@ describe('ticket 20 — measured budgets', () => {
 
   it('a 50-row tabular page at contract scale stays under 50 ms', async () => {
     // 5 000 segment observations across 500 workouts (contract scale lower bound).
-    const rows: UnifiedEventRecord[] = [];
+    const rows: EventRecord[] = [];
     for (let i = 0; i < 5000; i++) {
       rows.push({
         id: `r${Math.floor(i / 10)}:${i % 10}`,
@@ -67,9 +67,9 @@ describe('ticket 20 — measured budgets', () => {
         segmentVersion: 1,
         effortSlug: i % 2 ? 'running' : 'cycling',
         metrics: [{ type: 'distance', value: 100 + (i % 7), metadata: { canonicalKey: 'distance' } }],
-      } as unknown as UnifiedEventRecord);
+      } as unknown as EventRecord);
     }
-    const eventStore: UnifiedEventStore = {
+    const eventStore: EventStore = {
       getEventsByTimeRange: async () => rows,
       getEventsByResult: async () => [],
       getEventsForNote: async () => [],

@@ -22,7 +22,7 @@ import {
   resolveCanonicalMetricKey,
 } from './workoutDerivation';
 import type { ScriptBlock, StoredOutputStatement } from '@/components/Editor/types';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 const T0 = 1_700_000_000_000;
@@ -144,7 +144,7 @@ describe('deriveWorkoutFromLogs', () => {
 
 describe('replayResultAnalytics', () => {
   it('re-derives a persisted result from its canonical logs', () => {
-    const result: WorkoutResult = {
+    const result: Session = {
       id: 'r1',
       noteId: 'n1',
       segmentId: 'wod-2-test',
@@ -169,7 +169,7 @@ describe('replayResultAnalytics', () => {
       sourceBlockKey: 'block-1',
       stackLevel: 0,
     };
-    const result: WorkoutResult = {
+    const result: Session = {
       id: 'r1',
       noteId: 'n1',
       segmentId: 'wod-2-test',

@@ -7,7 +7,7 @@
 
 import { v7 as uuidv7 } from 'uuid';
 import { indexedDBService } from './IndexedDBService';
-import { Note, NoteSegment, WorkoutResult } from '../../types/storage';
+import { Note, NoteSegment, Session } from '../../types/storage';
 import { HistoryEntry } from '../../types/history';
 
 const KEY_PREFIX = 'wodwiki:history:';
@@ -71,9 +71,9 @@ export const migrationService = {
                     // 3. Migrate Result (if exists)
                     if (entry.results) {
                         // @ts-ignore - Handle potential type mismatch during migration
-                        const legacyResult = entry.results as unknown as WorkoutResult[];
+                        const legacyResult = entry.results as unknown as Session[];
 
-                        const result: WorkoutResult = {
+                        const result: Session = {
                             id: uuidv7(),
                             blockContentId: segmentId,
                             noteId: entry.id,

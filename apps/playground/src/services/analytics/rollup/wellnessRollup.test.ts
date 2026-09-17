@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'bun:test';
 import { QueryService, inMemoryEventStore } from '@bitcobblers/wod-wiki-engine';
-import type { UnifiedEventRecord } from '@/types/storage';
+import type { EventRecord } from '@/types/storage';
 import { DAY } from '@/services/analytics/rollup';
 import { wellnessEventsForNote } from '@/services/analytics/wellness';
 
@@ -17,7 +17,7 @@ const T0 = Date.parse('2026-08-09T12:00:00Z');
 const ROLLUP_NOW = Date.parse('2026-08-13T12:00:00Z'); // 4 days later
 const dayOf = (ms: number) => Math.floor(ms / DAY);
 
-function seedWellness(noteId: string, entries: string, targetDay: number): UnifiedEventRecord[] {
+function seedWellness(noteId: string, entries: string, targetDay: number): EventRecord[] {
   return wellnessEventsForNote(
     noteId,
     `# M\n\n\`\`\`wellness\n${entries}\n\`\`\`\n`,
@@ -25,7 +25,7 @@ function seedWellness(noteId: string, entries: string, targetDay: number): Unifi
   );
 }
 
-function makeQueryService(events: UnifiedEventRecord[]) {
+function makeQueryService(events: EventRecord[]) {
   const eventStore = inMemoryEventStore(events);
   return new QueryService(eventStore);
 }

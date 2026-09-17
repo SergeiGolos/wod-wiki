@@ -16,7 +16,7 @@
 import { describe, expect, it } from 'bun:test';
 import { openDB, type IDBPDatabase } from 'idb';
 
-import type { AnalyticsDataPoint, Note, NoteSegment, Tag, WorkoutResult } from '@/types/storage';
+import type { AnalyticsDataPoint, Note, NoteSegment, Tag, Session } from '@/types/storage';
 import type { ScriptBlock, StoredOutputStatement } from '@/components/Editor/types';
 import type { IndexedDBService, WodWikiDB } from '@/services/db/IndexedDBService';
 import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
@@ -94,7 +94,7 @@ function segmentLog(): StoredOutputStatement {
 }
 
 /** Result with a recoverable segment but a stale Tier-2 output and no facts. */
-const REPLAY_RESULT: WorkoutResult = {
+const REPLAY_RESULT: Session = {
   id: replayResultId,
   noteId,
   segmentId: SCRIPT_BLOCK.id,
@@ -123,7 +123,7 @@ const REPLAY_RESULT: WorkoutResult = {
 
 /** Pre-V12 partial-save shape: logs exist (with an old Tier-2 output that has
  *  no metadata), no segment context, no facts. */
-const ORPHAN_RESULT: WorkoutResult = {
+const ORPHAN_RESULT: Session = {
   id: orphanResultId,
   noteId,
   origin: 'journal',

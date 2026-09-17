@@ -16,7 +16,7 @@
 import { useEffect, useMemo } from 'react'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { ScriptBlock } from '@/components/Editor/types'
-import type { WorkoutResult } from '@/types/storage'
+import type { Session } from '@/types/storage'
 import { useNav } from '../../nav/NavContext'
 import { extractPageIndex, mapIndexToL3 } from './pageUtils'
 import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
@@ -32,7 +32,7 @@ export interface UseNotePageNavOptions {
    * Optional results to badge each time/log link with `hasResult` / `resultCount`.
    * Only the JournalPage uses this today.
    */
-  results?: WorkoutResult[]
+  results?: Session[]
 }
 
 /**

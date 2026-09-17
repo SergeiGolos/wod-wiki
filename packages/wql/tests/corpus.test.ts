@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { KNOWN_OUTPUT_TYPES, type UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import { KNOWN_OUTPUT_TYPES, type EventRecord } from '@bitcobblers/wod-wiki-core';
 import { EFFORT_DISCIPLINES } from '../src/disciplines';
 import { QueryService } from '../src/QueryService';
 import {
@@ -75,7 +75,7 @@ describe('fake-data corpus', () => {
     });
 
     it('timestamps are non-decreasing within each result', () => {
-      const byResult = new Map<string, UnifiedEventRecord[]>();
+      const byResult = new Map<string, EventRecord[]>();
       for (const r of journal.records) {
         const group = byResult.get(r.resultId) ?? [];
         group.push(r);

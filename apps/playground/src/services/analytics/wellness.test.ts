@@ -16,13 +16,13 @@ import {
   parseWellnessContent,
   type WellnessEventStore,
 } from './wellness';
-import type { UnifiedEventRecord } from '@/types/storage';
+import type { EventRecord } from '@/types/storage';
 import { dayBucket } from './rollup/workloadRollup';
 
 const T0 = Date.parse('2026-08-09T12:00:00Z');
 
-function makeStore(): WellnessEventStore & { rows: Map<string, UnifiedEventRecord> } {
-  const rows = new Map<string, UnifiedEventRecord>();
+function makeStore(): WellnessEventStore & { rows: Map<string, EventRecord> } {
+  const rows = new Map<string, EventRecord>();
   return {
     rows,
     async appendEvents(points) {

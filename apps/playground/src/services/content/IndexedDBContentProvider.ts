@@ -10,7 +10,7 @@ import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDBService';
-import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
+import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType, ScriptBlock } from '../../components/Editor/types/section';
 import { extractFrontmatterTags } from '../../lib/frontmatter';
@@ -503,7 +503,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             const latestSegment = patch.segmentId
                 ? await this.db.getLatestSegmentVersion(patch.segmentId)
                 : undefined;
-            const newResult: WorkoutResult = {
+            const newResult: Session = {
                 id: patch.resultId || uuidv7(),
                 segmentId: patch.segmentId,
                 segmentVersion: latestSegment?.version,

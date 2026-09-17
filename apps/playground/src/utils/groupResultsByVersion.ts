@@ -10,17 +10,17 @@
  * Used by display layers to show current-version results inline and
  * previous-version results in a history toggle.
  */
-import type { WorkoutResult } from '../types/storage';
+import type { Session } from '../types/storage';
 
 export interface VersionGroup {
   version: number;
   contentId: string | undefined;
-  results: WorkoutResult[];
+  results: Session[];
 }
 
 export interface GroupedResults {
   /** Results matching the section's current contentId. */
-  current: WorkoutResult[];
+  current: Session[];
   /** Current version number (max version whose contentId matches). */
   currentVersion: number;
   /** All other versions, grouped by version number. */
@@ -28,7 +28,7 @@ export interface GroupedResults {
 }
 
 export function groupResultsByVersion(
-  results: WorkoutResult[],
+  results: Session[],
   blockId: string | undefined,
   currentContentId: string | undefined,
 ): GroupedResults {
@@ -40,7 +40,7 @@ export function groupResultsByVersion(
   // Group all results by version. segmentVersion (NoteSegment.version, written
   // by the current recorder path) wins; version (legacy computeVersion rows)
   // is the fallback for results recorded before the consolidation.
-  const byVersion = new Map<number, WorkoutResult[]>();
+  const byVersion = new Map<number, Session[]>();
   for (const r of blockResults) {
     const v = r.segmentVersion ?? r.version ?? 1;
     if (!byVersion.has(v)) byVersion.set(v, []);
@@ -49,7 +49,7 @@ export function groupResultsByVersion(
 
   // Find the current version: the max version whose results' contentId
   // matches the section's current contentId.
-  const currentEntries: WorkoutResult[] = [];
+  const currentEntries: Session[] = [];
   let currentVersion = 0;
   for (const [version, rs] of byVersion) {
     if (rs.some(r => r.blockContentId === currentContentId)) {

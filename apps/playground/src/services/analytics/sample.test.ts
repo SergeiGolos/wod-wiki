@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { QueryService, type UnifiedEventStore, type NoteQueryStore } from '@bitcobblers/wod-wiki-wql';
+import { QueryService, type EventStore, type NoteQueryStore } from '@bitcobblers/wod-wiki-wql';
 import { factRowsToEventRows } from '@bitcobblers/wod-wiki-engine';
 import type { IndexedDBService } from '@/services/db/IndexedDBService';
 import { loadSampleData, purgeSampleData, hasSampleData, setSampleDataService } from '@/services/analytics/sample';
@@ -22,7 +22,7 @@ function noteStore(serviceInstance: IndexedDBService): NoteQueryStore {
 }
 
 function queryService(serviceInstance: IndexedDBService) {
-  return new QueryService({ eventStore: serviceInstance as UnifiedEventStore, noteStore: noteStore(serviceInstance) });
+  return new QueryService({ eventStore: serviceInstance as EventStore, noteStore: noteStore(serviceInstance) });
 }
 
 describe('sample analytics dataset', () => {

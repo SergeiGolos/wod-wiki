@@ -34,7 +34,7 @@ import {
   toEventRows,
   toSummaryEventRows,
   projectEventToFacts,
-  type UnifiedEventStore,
+  type EventStore,
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,
@@ -99,7 +99,7 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
   });
 
   it('exports QueryService with injectable stores and zero default DB imports', async () => {
-    const mockEventStore: UnifiedEventStore = {
+    const mockEventStore: EventStore = {
       getEventsByTimeRange: async () => [],
       getEventsByResult: async () => [],
       getEventsForNote: async () => [],

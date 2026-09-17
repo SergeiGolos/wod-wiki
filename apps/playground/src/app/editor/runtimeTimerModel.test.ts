@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
-import { buildWorkoutResults, countSegmentOutputs, prepareRuntimeBlock } from './runtimeTimerModel';
+import { buildSessions, countSegmentOutputs, prepareRuntimeBlock } from './runtimeTimerModel';
 import { frozenNow } from '@bitcobblers/wod-wiki-engine';
 import type { ScriptBlock } from '@/components/Editor/types';
 
@@ -78,7 +78,7 @@ describe('runtimeTimerModel', () => {
       },
     ] as unknown as IOutputStatement[];
 
-    const results = buildWorkoutResults(outputs, {
+    const results = buildSessions(outputs, {
       startTime,
       elapsedTime: 60000,
       completed: true,
@@ -93,7 +93,7 @@ describe('runtimeTimerModel', () => {
 
   it('uses Date.now() as startTime fallback when not provided', () => {
     const startTime = Date.now();
-    const results = buildWorkoutResults([], {
+    const results = buildSessions([], {
       elapsedTime: 0,
       completed: false,
       now: frozenNow(new Date(startTime)),
@@ -107,8 +107,8 @@ describe('runtimeTimerModel', () => {
     expect(results.logs).toHaveLength(0);
   });
 
-  it('buildWorkoutResults handles zero elapsedTime and incomplete state', () => {
-    const results = buildWorkoutResults([], {
+  it('buildSessions handles zero elapsedTime and incomplete state', () => {
+    const results = buildSessions([], {
       startTime: 1_700_000_000_000,
       elapsedTime: 0,
       now: frozenNow(new Date(1_700_000_000_000)),

@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 
 import type { HistoryEntry } from '@/types/history';
 import type { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import type { Note, NoteSegment, UnifiedEventRecord, WorkoutResult } from '@/types/storage';
+import type { Note, NoteSegment, EventRecord, Session } from '@/types/storage';
 import { normalizeSummaryFacts } from '@/services/analytics/workoutDerivation';
 
 const indexedDBService = {};
@@ -19,7 +19,7 @@ const note: Note = {
   createdAt: 1,
 };
 
-const olderSectionResult: WorkoutResult = {
+const olderSectionResult: Session = {
   id: 'older',
   noteId: note.id,
   blockContentId: 'wod-a',
@@ -27,14 +27,14 @@ const olderSectionResult: WorkoutResult = {
   createdAt: 200,
 };
 
-const latestSectionResult: WorkoutResult = {
+const latestSectionResult: Session = {
   id: 'latest',
   noteId: note.id,
   blockContentId: 'wod-a',
   data: { startTime: 300, endTime: 450, duration: 150, logs: [], completed: true },
   createdAt: 450,
 };
-const otherResult: WorkoutResult = {
+const otherResult: Session = {
   id: 'other',
   noteId: note.id,
   blockContentId: 'wod-b',
@@ -46,8 +46,8 @@ function createHarness(latestSegments: NoteSegment[] = []) {
   const results = [olderSectionResult, latestSectionResult, otherResult];
   const savedNotes: Note[] = [];
   const savedAttachments: import('@/types/storage').Attachment[] = [];
-  const appendedEvents: UnifiedEventRecord[][] = [];
-  const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
+  const appendedEvents: EventRecord[][] = [];
+  const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
   const deletedEventIds: string[] = [];
   const storage = {
     getNote: async (id: string) => id === note.id ? note : undefined,
@@ -57,7 +57,7 @@ function createHarness(latestSegments: NoteSegment[] = []) {
       latestSegments.find(segment => segment.id === segmentId),
     getResultsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
     getResultsByContentId: async (blockContentId: string) => results.filter(result => result.blockContentId === blockContentId),
-    saveResult: async (result: WorkoutResult) => result.id,
+    saveResult: async (result: Session) => result.id,
     getResultsForSection: async (_noteId: string, blockContentId: string) =>
       results.filter(result => result.blockContentId === blockContentId),
     getResultById: async (resultId: string) => results.find(result => result.id === resultId),
@@ -67,10 +67,10 @@ function createHarness(latestSegments: NoteSegment[] = []) {
       return attachment.id;
     },
     deleteAttachment: async () => undefined,
-    appendEvents: async (rows: UnifiedEventRecord[]) => {
+    appendEvents: async (rows: EventRecord[]) => {
       appendedEvents.push(rows);
     },
-    finalizeSummaries: async (resultId: string, rows: UnifiedEventRecord[]) => {
+    finalizeSummaries: async (resultId: string, rows: EventRecord[]) => {
       finalizedSummaries.push({ resultId, rows });
     },
     deleteEvents: async (ids: string[]) => {
@@ -406,10 +406,10 @@ describe('IndexedDBNotePersistence', () => {
     }
   });
 
-  it('getSimilarWorkoutResults filters by note and origin, sorts newest first', async () => {
+  it('getSimilarSessions filters by note and origin, sorts newest first', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const crossNote: WorkoutResult[] = [
+    const crossNote: Session[] = [
       { id: 'x1', noteId: 'other-note', blockContentId: 'wod-a', origin: 'journal', data: { startTime: 1, endTime: 2, duration: 1, logs: [], completed: true }, createdAt: 500 },
       { id: 'x2', noteId: note.id, blockContentId: 'wod-a', origin: 'journal', data: { startTime: 1, endTime: 2, duration: 1, logs: [], completed: true }, createdAt: 900 },
       { id: 'x3', noteId: 'pg-note', blockContentId: 'wod-a', origin: 'playground', data: { startTime: 1, endTime: 2, duration: 1, logs: [], completed: true }, createdAt: 700 },
@@ -422,19 +422,19 @@ describe('IndexedDBNotePersistence', () => {
     const persistence = new IndexedDBNotePersistence(harnessStorage, contentProvider as unknown as IndexedDBContentProvider);
 
     // Default: playground excluded, newest first, only matching content.
-    const all = await persistence.getSimilarWorkoutResults('wod-a');
+    const all = await persistence.getSimilarSessions('wod-a');
     expect(all.map(r => r.id)).toEqual(['x2', 'x1']);
 
     // excludeNoteId removes the current note's own results.
-    const others = await persistence.getSimilarWorkoutResults('wod-a', { excludeNoteId: note.id });
+    const others = await persistence.getSimilarSessions('wod-a', { excludeNoteId: note.id });
     expect(others.map(r => r.id)).toEqual(['x1']);
 
     // includePlayground reveals playground rows, still newest first.
-    const withPlayground = await persistence.getSimilarWorkoutResults('wod-a', { includePlayground: true });
+    const withPlayground = await persistence.getSimilarSessions('wod-a', { includePlayground: true });
     expect(withPlayground.map(r => r.id)).toEqual(['x2', 'x3', 'x1']);
 
     // limit applies after filtering.
-    const limited = await persistence.getSimilarWorkoutResults('wod-a', { includePlayground: true, limit: 2 });
+    const limited = await persistence.getSimilarSessions('wod-a', { includePlayground: true, limit: 2 });
     expect(limited.map(r => r.id)).toEqual(['x2', 'x3']);
   });
 
@@ -462,7 +462,7 @@ describe('IndexedDBNotePersistence', () => {
       rawContent: '21 Deadlift 60kg',
       createdAt: 1,
     };
-    const staleResult: WorkoutResult = {
+    const staleResult: Session = {
       id: 'result-replay',
       noteId: note.id,
       segmentId: 'wod-a',
@@ -500,17 +500,17 @@ describe('IndexedDBNotePersistence', () => {
       createdAt: T0 + 60_000,
     };
 
-    const savedResults: WorkoutResult[] = [];
-    const appendedEvents: UnifiedEventRecord[][] = [];
-    const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
+    const savedResults: Session[] = [];
+    const appendedEvents: EventRecord[][] = [];
+    const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
     const storage = {
       getNote: async () => note,
       getResultById: async () => staleResult,
       getSegment: async () => segment,
       getLatestSegmentVersion: async () => segment,
-      saveResult: async (r: WorkoutResult) => { savedResults.push(r); return r.id; },
-      appendEvents: async (rows: UnifiedEventRecord[]) => { appendedEvents.push(rows); },
-      finalizeSummaries: async (resultId: string, rows: UnifiedEventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
+      saveResult: async (r: Session) => { savedResults.push(r); return r.id; },
+      appendEvents: async (rows: EventRecord[]) => { appendedEvents.push(rows); },
+      finalizeSummaries: async (resultId: string, rows: EventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
       deleteEvents: async () => {},
       getEventsForNote: async () => [],
     };
@@ -546,7 +546,7 @@ describe('IndexedDBNotePersistence', () => {
         noteId: note.id,
         data: { startTime: 0, endTime: 1, duration: 1, completed: true, logs: [] },
         createdAt: 1,
-      } as WorkoutResult),
+      } as Session),
     };
     const persistence = new IndexedDBNotePersistence(storage as never, {} as never);
 

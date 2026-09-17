@@ -26,9 +26,9 @@ import {
     NoteTag,
     Page,
     Tag,
-    WorkoutResult,
+    Session,
     Attachment,
-    UnifiedEventRecord,
+    EventRecord,
     SegmentDataType,
     CatalogBackfillState,
     FieldCatalogEntry,
@@ -106,7 +106,7 @@ export interface WodWikiDB extends DBSchema {
     };
     results: {
         key: string;
-        value: WorkoutResult;
+        value: Session;
         indexes: {
             'by-segment': string; // segmentId — per-block journal queries (live since identity fix)
             'by-note': string;
@@ -171,7 +171,7 @@ export interface WodWikiDB extends DBSchema {
      */
     events: {
         key: string;
-        value: UnifiedEventRecord;
+        value: EventRecord;
         indexes: {
             'by-timestamp': number;              // the one proven culling index
             'by-result-grain': [string, string]; // finalize clear, per-result fetch, orphan GC
@@ -339,7 +339,7 @@ async function backfillV11(tx: V10Tx): Promise<void> {
     // 1. Results: createdAt rename.
     const resultsStore = tx.objectStore('results');
     for await (const cursor of resultsStore) {
-        const row = cursor.value as WorkoutResult & { completedAt?: number };
+        const row = cursor.value as Session & { completedAt?: number };
         if (row.completedAt != null && row.createdAt == null) {
             row.createdAt = row.completedAt;
         }
@@ -442,7 +442,7 @@ async function backfillV11(tx: V10Tx): Promise<void> {
  *     that reached execution but never got facts (the pre-V12 partial-save
  *     path) gain them here.
  *  2. Fact rows are written with the canonical workout time
- *     (WorkoutResult.createdAt) as `timestamp` — the new by-timestamp index
+ *     (Session.createdAt) as `timestamp` — the new by-timestamp index
  *     makes time-range queries IDBKeyRange scans.
  *  3. Frontmatter `tags:` sweep: every note's latest frontmatter segments
  *     contribute their tags to note_tags (additive — existing links kept).
@@ -1354,26 +1354,26 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('notes', 'by-page', pageId);
     }
 
-    async getResultsForPage(pageId: string): Promise<WorkoutResult[]> {
+    async getResultsForPage(pageId: string): Promise<Session[]> {
         return (await this.dbPromise).getAllFromIndex('results', 'by-page', pageId);
     }
 
     // =======================================================================
     // Events (V16 — unified event store; implements the engine's
-    // UnifiedEventStore contract, tickets 003/005)
+    // EventStore contract, tickets 003/005)
     // =======================================================================
 
     /** Windowed fetch — the one proven culling index (ticket 001/003). */
-    async getEventsByTimeRange(start: number, end: number): Promise<UnifiedEventRecord[]> {
+    async getEventsByTimeRange(start: number, end: number): Promise<EventRecord[]> {
         return (await this.dbPromise).getAllFromIndex('events', 'by-timestamp', IDBKeyRange.bound(start, end));
     }
 
     /** Ticket 12/14 complete fetch — union over the by-metric-date
      *  multiEntry index (`d:YYYY-MM-DD` keys): rows whose metric date is in
      *  range even when their fetch-hint timestamp is not. */
-    async getEventsByMetricDates(dates: readonly string[]): Promise<UnifiedEventRecord[]> {
+    async getEventsByMetricDates(dates: readonly string[]): Promise<EventRecord[]> {
         const db = await this.dbPromise;
-        const out: UnifiedEventRecord[] = [];
+        const out: EventRecord[] = [];
         for (const date of dates) {
             const rows = await db.getAllFromIndex('events', 'by-metric-date', IDBKeyRange.bound(`d:${date}`, `d:${date}\uFFFF`, false, true));
             out.push(...rows);
@@ -1382,7 +1382,7 @@ export class IndexedDBService {
     }
 
     /** Per-result fetch (rows:{result:…}, re-finalize, orphan inspection). */
-    async getEventsByResult(resultId: string): Promise<UnifiedEventRecord[]> {
+    async getEventsByResult(resultId: string): Promise<EventRecord[]> {
         return (await this.dbPromise).getAllFromIndex(
             'events', 'by-result-grain', IDBKeyRange.bound([resultId, ''], [resultId, []]),
         );
@@ -1390,7 +1390,7 @@ export class IndexedDBService {
 
     /** Note-scoped fetch (rows:{note:…}) — join through the results store;
      *  the events schema has no by-note index (ticket 002: six indexes only). */
-    async getEventsForNote(noteId: string): Promise<UnifiedEventRecord[]> {
+    async getEventsForNote(noteId: string): Promise<EventRecord[]> {
         const resultIds = (await this.getResultsForNote(noteId)).map((r) => r.id);
         // Wellness rows live under the synthetic per-note resultId (ticket 005).
         resultIds.push(`wellness:${noteId}`);
@@ -1399,14 +1399,14 @@ export class IndexedDBService {
     }
 
     /** Content-scoped fetch — the cross-store join hot path (indexed). */
-    async getEventsByContent(blockContentId: string): Promise<UnifiedEventRecord[]> {
+    async getEventsByContent(blockContentId: string): Promise<EventRecord[]> {
         return (await this.dbPromise).getAllFromIndex(
             'events', 'by-content-grain', IDBKeyRange.bound([blockContentId, ''], [blockContentId, []]),
         );
     }
 
     /** Full scan — all-time SELECT leg (ticket 001: scan beats non-selective indexes). */
-    async scanAll(): Promise<UnifiedEventRecord[]> {
+    async scanAll(): Promise<EventRecord[]> {
         return (await this.dbPromise).getAll('events');
     }
 
@@ -1420,7 +1420,7 @@ export class IndexedDBService {
      * a replaced row (wellness upsert) removes its previous row-scoped
      * contributions before the new ones land.
      */
-    async appendEvents(rows: UnifiedEventRecord[]): Promise<void> {
+    async appendEvents(rows: EventRecord[]): Promise<void> {
         if (rows.length === 0) return;
         const db = await this.dbPromise;
         const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
@@ -1446,7 +1446,7 @@ export class IndexedDBService {
      * contributions are reversed in the same transaction — stale coverage
      * never survives beside its replacement.
      */
-    async finalizeSummaries(resultId: string, rows: UnifiedEventRecord[]): Promise<void> {
+    async finalizeSummaries(resultId: string, rows: EventRecord[]): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
         const now = Date.now();
@@ -1844,7 +1844,7 @@ export class IndexedDBService {
         return session.id;
     }
 
-    async saveResult(result: WorkoutResult): Promise<string> {
+    async saveResult(result: Session): Promise<string> {
         return this.saveSession(result);
     }
 
@@ -1852,7 +1852,7 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('sessions', 'by-note', noteId);
     }
 
-    async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
+    async getResultsForNote(noteId: string): Promise<Session[]> {
         return this.getSessionsForNote(noteId);
     }
 
@@ -1861,7 +1861,7 @@ export class IndexedDBService {
         return noteSessions.filter(r => r.blockContentId === sectionId);
     }
 
-    async getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]> {
+    async getResultsForSection(noteId: string, sectionId: string): Promise<Session[]> {
         return this.getSessionsForSection(noteId, sectionId);
     }
 
@@ -1869,7 +1869,7 @@ export class IndexedDBService {
         return (await this.dbPromise).get('sessions', sessionId);
     }
 
-    async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
+    async getResultById(resultId: string): Promise<Session | undefined> {
         return this.getSessionById(resultId);
     }
 
@@ -1886,7 +1886,7 @@ export class IndexedDBService {
         return sessions;
     }
 
-    async getRecentResults(limit = 20): Promise<WorkoutResult[]> {
+    async getRecentResults(limit = 20): Promise<Session[]> {
         return this.getRecentSessions(limit);
     }
 
@@ -1894,7 +1894,7 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('sessions', 'by-content', blockContentId);
     }
 
-    async getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]> {
+    async getResultsByContentId(blockContentId: string): Promise<Session[]> {
         return this.getSessionsByContentId(blockContentId);
     }
 
@@ -1902,7 +1902,7 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('sessions', 'by-block', blockId);
     }
 
-    async getResultsForBlock(blockId: string): Promise<WorkoutResult[]> {
+    async getResultsForBlock(blockId: string): Promise<Session[]> {
         return this.getSessionsForBlock(blockId);
     }
 

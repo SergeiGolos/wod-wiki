@@ -339,7 +339,7 @@ export interface WhiteboardCompanionProps {
   /** Commands to display as action buttons. */
   commands: ScriptCommand[];
   /** In-memory results fallback */
-  extendedResults?: WorkoutResult[];
+  extendedResults?: Session[];
 }
 
 export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({

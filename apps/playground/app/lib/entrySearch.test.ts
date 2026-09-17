@@ -10,7 +10,7 @@ import type { FindQueryResult, ParsedRowsQuery, RowsQueryResult } from '@bitcobb
 import type { BlockIndexRow } from '@/types/storage'
 import { parseQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import type { IEffort, RowsRun } from '@bitcobblers/wod-wiki-wql'
-import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core'
+import type { EventRecord } from '@bitcobblers/wod-wiki-core'
 function makeBlock(i: number, createdAt = i): BlockIndexRow {
   return {
     id: `static:note-${i % 5}:seg-${i}:1`,
@@ -294,7 +294,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
         effortSlug: 'thruster',
         timeSpan: { started: timestamp, ended: timestamp + 100_000 },
         metrics: [{ type: 'rep', value: 21 }, { type: 'weight', value: 95 }],
-      } as UnifiedEventRecord,
+      } as EventRecord,
       {
         id: 'res-42:1',
         resultId: 'res-42',
@@ -305,7 +305,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
         effortSlug: 'pull-up',
         timeSpan: { started: timestamp + 100_000, ended: timestamp + 180_000 },
         metrics: [{ type: 'rep', value: 21 }, { type: 'tis', value: 8.5 }],
-      } as UnifiedEventRecord,
+      } as EventRecord,
     ],
   }
 

@@ -122,7 +122,7 @@ export interface NoteEditorProps {
   /** Note persistence seam used for result and attachment projections */
   notePersistence?: INotePersistence;
   /** Optional in-memory workout results override */
-  results?: WorkoutResult[];
+  results?: Session[];
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */

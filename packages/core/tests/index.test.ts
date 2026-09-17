@@ -19,8 +19,6 @@ import {
   type StoredOutputStatement,
   type Session,
   type EventRecord,
-  type WorkoutResult,
-  type UnifiedEventRecord,
   type Note,
   type NoteSegment,
   type BlockIndexRow,

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import { QueryService, type EventStore } from '../src/QueryService';
 import { toSummaryEventRows } from '../src/derivation';
 import { parseQuery, type ParsedFindQuery, type ParsedAggregateQuery } from '../src/wql';
-import type { BlockIndexRow, Note, StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { BlockIndexRow, Note, StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
 
@@ -24,7 +24,7 @@ function makeResult(
   blockContentId: string,
   volume: number,
   ts = TS,
-): UnifiedEventRecord[] {
+): EventRecord[] {
   return toSummaryEventRows([summaryLog('Total Volume', volume, 'lb', ts)], {
     noteId,
     resultId: id,
@@ -62,7 +62,7 @@ const BLOCKS: BlockIndexRow[] = [
   makeBlock('noteB', 'bc-cindy', 'Cindy'),
 ];
 
-const SUMMARY_ROWS: Record<string, UnifiedEventRecord[]> = {
+const SUMMARY_ROWS: Record<string, EventRecord[]> = {
   'bc-fran': [...makeResult('r1', 'noteA', 'bc-fran', 3000), ...makeResult('r2', 'noteA', 'bc-fran', 3000)],
   'bc-cindy': makeResult('r3', 'noteB', 'bc-cindy', 2000),
 };
@@ -71,7 +71,7 @@ const TAG_TO_NOTES: Record<string, Set<string>> = {
   competition: new Set(['noteA']),
 };
 
-const eventStore: UnifiedEventStore = {
+const eventStore: EventStore = {
   getEventsByTimeRange: async () => [],
   getEventsByResult: async () => [],
   getEventsForNote: async () => [],

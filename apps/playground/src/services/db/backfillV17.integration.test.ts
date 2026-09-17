@@ -17,7 +17,7 @@ import { describe, expect, it } from 'bun:test';
 
 import type { IDBPDatabase } from 'idb';
 
-import type { Note, WorkoutResult } from '@/types/storage';
+import type { Note, Session } from '@/types/storage';
 import type { IndexedDBService, WodWikiDB } from '@/services/db/IndexedDBService';
 
 // @ts-expect-error — bun-only '?real' specifier: bypasses the shared
@@ -31,14 +31,14 @@ const service: IndexedDBService = new RealIndexedDBService();
 const RUN_ID = `v17-${crypto.randomUUID()}`;
 const noteId = `${RUN_ID}-note`;
 
-function resultWith(id: string, logs: unknown[]): WorkoutResult {
+function resultWith(id: string, logs: unknown[]): Session {
   return {
     id,
     noteId,
     origin: 'journal',
     createdAt: 1_700_000_000_000,
     data: { logs },
-  } as unknown as WorkoutResult;
+  } as unknown as Session;
 }
 
 const hangLog = (kg: number) => ({

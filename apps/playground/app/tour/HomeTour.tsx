@@ -29,7 +29,7 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { playgroundRecorder } from '@/services/resultRecorder'
 import { NextEvent } from '@bitcobblers/wod-wiki-engine'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { Segment } from '@bitcobblers/wod-wiki-engine'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter, ScrollSpec, ScrollStage } from '../canvas/parseCanvasMarkdown'
@@ -408,7 +408,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   }, [isMobile, mobileStage])
 
   // ── Session results (playground completion) + scroll-mode analytics ──
-  const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
+  const [session, setSession] = useState<{ segments: Segment[]; results: Sessions } | null>(null)
   const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | 'empty' | null>(null)
   // Which editor context started the current playground run, and the block
   // it runs — captured at Run click so the fullscreen overlay is bound to the
@@ -731,7 +731,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   }, [sectionApis])
 
   const handleTimerComplete = useCallback(
-    (_blockId: string, results: WorkoutResults) => {
+    (_blockId: string, results: Sessions) => {
       const wasPlaygroundRun = interactiveRef.current === 'timer'
       const { segments } = getAnalyticsFromLogs(results.logs ?? [], results.startTime)
       setSession({ segments, results })

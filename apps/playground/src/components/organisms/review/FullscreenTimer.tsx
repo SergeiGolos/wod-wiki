@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "@/components/organisms/editor/RuntimeTimerPanel";
-import type { ScriptBlock, WorkoutResults } from "@/components/Editor/types";
+import type { ScriptBlock, Sessions } from "@/components/Editor/types";
 import { ReviewGrid } from "@/components/organisms/review/ReviewGrid";
 import { useDebugMode } from "@/contexts/DebugModeContext";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
@@ -14,7 +14,7 @@ export interface FullscreenTimerProps {
   block: ScriptBlock;
   view?: EditorView;
   onClose: () => void;
-  onCompleteWorkout?: (blockId: string, results: WorkoutResults) => void;
+  onCompleteWorkout?: (blockId: string, results: Sessions) => void;
   /** Whether the timer should start automatically on mount. */
   autoStart?: boolean;
 }
@@ -44,7 +44,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
   // Called by RuntimeTimerPanel when the workout finishes (either naturally or
   // via the Stop button).  When completed === true (natural finish), we
   // transition to the results view instead of closing.
-  const handleComplete = (blockId: string, results: WorkoutResults) => {
+  const handleComplete = (blockId: string, results: Sessions) => {
     onCompleteWorkout?.(blockId, results);
 
     if (results.completed && results.logs && results.logs.length > 0) {

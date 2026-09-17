@@ -39,7 +39,7 @@ import { useDebugMode } from '@/contexts/DebugModeContext';
 import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import type { ContentProviderMode, IContentProvider } from '@/types/content-provider';
 import type { ScriptBlock } from '@/components/Editor/types';
-import type { WorkoutResults } from '@/types/history';
+import type { Sessions } from '@/types/history';
 import { workbenchEventBus } from '@/hooks/useBrowserServices';
 import { getWorkbenchDocumentTitle } from '@/app/workbench/workbenchEntryLoader';
 import { WorkbenchCastBridge } from '@/components/organisms/cast/WorkbenchCastBridge';
@@ -304,7 +304,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     return () => { cleanup(); };
   }, [documentItems, setHighlightedLine]);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults | undefined, resultId?: string, runBlock?: Pick<ScriptBlock, 'id' | 'contentId'>) => {
+  const handleCompleteWorkout = useCallback((blockId: string, results: Sessions | undefined, resultId?: string, runBlock?: Pick<ScriptBlock, 'id' | 'contentId'>) => {
     if (results) {
       void completeWorkout(results, resultId, runBlock);
     }

@@ -12,7 +12,7 @@ import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testi
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import { ensurePlaygroundEntry } from '../services/createPlaygroundPage'
 
@@ -56,18 +56,18 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
 
 mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
   RuntimeTimerPanel: (props: {
-    onComplete?: (blockId: string, results: WorkoutResults) => void
+    onComplete?: (blockId: string, results: Sessions) => void
     externalPause?: boolean
   }) => {
     const control = globalThis as unknown as {
       mockTimerPanelMounts?: number
-      fireTimerComplete?: (results: WorkoutResults) => void
+      fireTimerComplete?: (results: Sessions) => void
     }
     const React = require('react')
     React.useEffect(() => {
       control.mockTimerPanelMounts = (control.mockTimerPanelMounts ?? 0) + 1
     }, [])
-    control.fireTimerComplete = (results: WorkoutResults) =>
+    control.fireTimerComplete = (results: Sessions) =>
       props.onComplete?.('block-1', results)
     return (
       <div
@@ -254,17 +254,17 @@ const scrollRunwayToCallCount = () => scrollSpyControl().scrollRunwayToCalls ?? 
 // Timer-panel access — globalThis is augmented by the RuntimeTimerPanel mock.
 type TimerPanelControl = {
   mockTimerPanelMounts?: number
-  fireTimerComplete?: (results: WorkoutResults) => void
+  fireTimerComplete?: (results: Sessions) => void
 }
 const timerPanelControl = () => globalThis as unknown as TimerPanelControl
-const completedResults = (): WorkoutResults =>
+const completedResults = (): Sessions =>
   ({
     startTime: 0,
     endTime: 60_000,
     duration: 60_000,
     completed: true,
     logs: [],
-  }) as unknown as WorkoutResults
+  }) as unknown as Sessions
 
 // ── Test data ───────────────────────────────────────────────────────────────
 
