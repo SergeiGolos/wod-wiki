@@ -3,9 +3,11 @@ import { v7 as uuidv7 } from 'uuid';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import type { Session } from '@/types/storage';
+import type { Sessions } from '@/components/Editor/types';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
+import { sessionToPayload } from './sessionPayload';
 import {
   NotePersistenceError,
   type CreateNoteInput,
@@ -30,29 +32,36 @@ function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partia
   const resolvedSelection = selection ?? { mode: 'latest' as const };
   const mode = resolvedSelection.mode;
 
+  // The provider path has no event-store access, so an explicitly selected
+  // session reconstructs its payload from the row's scalar fields. The
+  // default (latest) selection prefers the payload the provider already
+  // built, which carries the event-derived logs.
+  const payloadFor = (session: Session | undefined): Sessions | undefined =>
+    session ? sessionToPayload(session) : undefined;
+
   if (mode === 'by-result-id') {
     const result = all.find(r => r.id === resolvedSelection.resultId);
     if (!result) {
       throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${resolvedSelection.resultId}`);
     }
-    return { results: result.data };
+    return { results: payloadFor(result) };
   }
 
   if (mode === 'latest-for-section' || mode === 'all-for-section') {
     const matches = all.filter(r => r.blockContentId === resolvedSelection.blockContentId);
     if (mode === 'all-for-section') {
       const limited = resolvedSelection.limit ? matches.slice(0, resolvedSelection.limit) : matches;
-      return { results: limited[0]?.data, extendedResults: limited };
+      return { results: payloadFor(limited[0]), extendedResults: limited };
     }
-    return { results: matches[0]?.data };
+    return { results: payloadFor(matches[0]) };
   }
 
   if (mode === 'all-for-note') {
     const limited = resolvedSelection.limit ? all.slice(0, resolvedSelection.limit) : all;
-    return { results: limited[0]?.data, extendedResults: limited };
+    return { results: payloadFor(limited[0]), extendedResults: limited };
   }
 
-  return { results: all[0]?.data };
+  return { results: entry.results ?? payloadFor(all[0]) };
 }
 
 export class ContentProviderNotePersistence implements INotePersistence {

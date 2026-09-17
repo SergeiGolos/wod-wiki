@@ -465,3 +465,26 @@ export function projectEventToFacts(record: EventRecord): AnalyticsDataPoint[] {
   });
   return facts;
 }
+
+/**
+ * Inverse of {@link toEventRows}/{@link toSummaryEventRows}: rebuild the
+ * statement stream a session's event rows represent. Event rows keep their
+ * recorded order (id `${resultId}:${seq}`); summary rows follow in fold
+ * order. Consumers that need the statement shape (replay, review display)
+ * read events and call this — the store keeps only event rows.
+ */
+export function eventsToStoredLogs(events: readonly EventRecord[]): StoredOutputStatement[] {
+  const ordered = [...events].sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    return a.id.localeCompare(b.id);
+  });
+  return ordered.map((row, index) => ({
+    id: index,
+    outputType: row.outputType as StoredOutputStatement['outputType'],
+    timeSpan: row.timeSpan ?? { started: row.timestamp },
+    metrics: row.metrics,
+    sourceBlockKey: row.sourceBlockKey,
+    stackLevel: row.stackLevel,
+    completionReason: row.completionReason,
+  }));
+}

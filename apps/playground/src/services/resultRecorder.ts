@@ -126,7 +126,13 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
         blockId,
         blockContentId,
         origin: resolvedOrigin,
-        data,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        duration: data.duration ?? 0,
+        roundsCompleted: data.roundsCompleted,
+        totalRounds: data.totalRounds,
+        repsCompleted: data.repsCompleted,
+        completed: data.completed,
         createdAt,
       };
       notifyResultSaved(result);

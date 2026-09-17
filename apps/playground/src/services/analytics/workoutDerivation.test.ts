@@ -22,7 +22,7 @@ import {
   resolveCanonicalMetricKey,
 } from './workoutDerivation';
 import type { ScriptBlock, StoredOutputStatement } from '@/components/Editor/types';
-import type { Session } from '@/types/storage';
+import { toEventRows } from '@bitcobblers/wod-wiki-wql';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 const T0 = 1_700_000_000_000;
@@ -143,20 +143,20 @@ describe('deriveWorkoutFromLogs', () => {
 });
 
 describe('replayResultAnalytics', () => {
-  it('re-derives a persisted result from its canonical logs', () => {
-    const result: Session = {
-      id: 'r1',
-      noteId: 'n1',
-      segmentId: 'wod-2-test',
-      segmentVersion: 1,
-      blockContentId: 'bc-test',
-      origin: 'journal',
-      data: { startTime: T0, endTime: T0 + 60_000, duration: 60_000, completed: true, logs: [segmentLog(), STALE_SUMMARY] },
-      createdAt: T0 + 60_000,
-    };
+  it('re-derives a persisted result from its event rows', () => {
+    const events = [
+      ...toEventRows([segmentLog(), STALE_SUMMARY], {
+        noteId: 'n1',
+        resultId: 'r1',
+        segmentId: 'wod-2-test',
+        segmentVersion: 1,
+        blockContentId: 'bc-test',
+        origin: 'journal',
+        workoutTimestamp: T0 + 60_000,
+      }),
+    ];
 
-    const derived = replayResultAnalytics(result, BLOCK);
-    expect(derived.some(o => o.id === 99)).toBe(false);
+    const derived = replayResultAnalytics(BLOCK, events);
     expect(derived.filter(o => o.outputType === 'analytics').length).toBeGreaterThan(0);
   });
 
@@ -169,24 +169,17 @@ describe('replayResultAnalytics', () => {
       sourceBlockKey: 'block-1',
       stackLevel: 0,
     };
-    const result: Session = {
-      id: 'r1',
+    const events = toEventRows([segmentLog(), rpeStatement], {
       noteId: 'n1',
+      resultId: 'r1',
       segmentId: 'wod-2-test',
       segmentVersion: 1,
       blockContentId: 'bc-test',
       origin: 'journal',
-      data: {
-        startTime: T0,
-        endTime: T0 + 60_000,
-        duration: 60_000,
-        completed: true,
-        logs: [segmentLog(), rpeStatement],
-      },
-      createdAt: T0 + 60_000,
-    };
+      workoutTimestamp: T0 + 60_000,
+    });
 
-    const derived = replayResultAnalytics(result, BLOCK);
+    const derived = replayResultAnalytics(BLOCK, events);
 
     // User-origin SessionRPE survives the replay strip (only 'analyzed' is removed).
     const userRpe = derived

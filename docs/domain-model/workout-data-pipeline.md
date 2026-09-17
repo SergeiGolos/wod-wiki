@@ -1,154 +1,73 @@
 # The Workout Data Pipeline: From Execution to Query Facts
 
-This document walks through how workout data is created, transformed, stored, and queried across the codebase, and explains why `factRowsToEventRows` and `projectEventToFacts` exist.
+How workout data is created, stored, and read after V21, and what changed from the old dual-store model.
 
----
+## 1. The Architecture in One Picture
 
-## 1. The High-Level Architecture
+```
+Engine execution (IOutputStatement[])
+        │
+        ▼
+EventRecord rows in `events`            ← THE single statement/metric store
+        │
+        ├── projectEventToFacts(record) → AnalyticsDataPoint  (WQL filters/aggregates)
+        └── eventsToStoredLogs(events)  → StoredOutputStatement[]  (display, replay)
 
-The workout analytics subsystem operates in four stages:
-
-1. **Execution (`IOutputStatement`)**: The Whiteboard language runtime emits raw output statements into a `Session` (formerly `WorkoutResult`).
-2. **Persistence (`EventRecord`)**: The `events` store in IndexedDB persists structured event rows (`grain: 'event'`) and folded summary rows (`grain: 'summary'`).
-3. **Query Engine (`AnalyticsDataPoint`)**: WQL `QueryService` flattens stored event rows into tabular `AnalyticsDataPoint` facts in-memory to evaluate filters, groups, and windowed aggregations.
-4. **Fixture Inversion (`factRowsToEventRows`)**: An in-memory bridge that converts legacy flat facts into `EventRecord` rows so test fixtures and golden datasets can run through `QueryService` without re-running the workout compiler.
-
----
-
-## 2. Where Data Is Originally Created
-
-Workout execution begins in the CodeMirror editor or fullscreen timer runtime:
-
-- **Source Code**: `apps/playground/src/components/organisms/editor/NoteEditor.tsx` and `apps/playground/src/components/organisms/review/FullscreenTimer.tsx`.
-- **Compiler/Runner**: The Whiteboard language runtime (`@bitcobblers/wod-wiki-engine`) executes a workout block (e.g. `21-15-9 Thrusters / Pull-ups`).
-- **Raw Outputs**: As segments, rounds, and movements complete, the runtime emits `IOutputStatement` objects containing metrics (reps, elapsed time, load, heart rate).
-- **Archival Session**: When the workout completes, `resultRecorder.record(...)` writes a `Session` object into IndexedDB table `sessions` (`DB_VERSION 20`).
-  - `Session.data.logs`: Array of `StoredOutputStatement[]`.
-  - This is the immutable source of truth for the raw workout run.
-
----
-
-## 3. How Data Is Transformed for Storage (`EventRecord`)
-
-Writing raw `StoredOutputStatement[]` alone is insufficient for multi-workout queries (e.g. "sum total volume across all Fran runs in the last 6 weeks"). 
-
-IndexedDB needs a queryable timeline. That is the job of `derivation.ts`:
-
-- **Path**: `packages/wql/src/derivation.ts`.
-- **Functions**:
-  - `toEventRows(logs, identity)`: Emits detail rows (`grain: 'event'`). Each row represents one statement execution with an ID like `${sessionId}:${seq}`.
-  - `toSummaryEventRows(logs, identity)`: Emits folded metric rows (`grain: 'summary'`). Calculates deterministic summary values (such as `totalVolume`, `elapsed`, `reps`) with an ID like `${sessionId}:summary:${metricKey}`.
-- **Stored Table**: Table `events` in IndexedDB.
-- **Interface**: `EventRecord` (in `packages/core/src/types/storage.ts`):
-  ```typescript
-  export interface EventRecord {
-    id: string;                      // e.g. "res-123:summary:totalVolume"
-    resultId: string;                // owning Session UUID
-    noteId: string;                  // owning Note UUID
-    blockContentId?: string;         // content-stable hash (e.g. "bc-391b8bed")
-    timestamp: number;               // canonical workout timestamp
-    grain: 'event' | 'summary';
-    outputType: string;              // "segment", "analytics", "wellness"
-    metrics: StoredMetric[];         // typed array of metric values and units
-  }
-  ```
-
----
-
-## 4. How WQL Queries Consume Data (`AnalyticsDataPoint`)
-
-When WQL runs a query like `sum:totalVolume{} last 6w`:
-
-1. `QueryService.ts` fetches `EventRecord[]` rows from `events` by timestamp range or content ID.
-2. In-memory, `QueryService` calls `projectEventToFacts(record)` (`packages/wql/src/derivation.ts`).
-3. **Why flatten?** An `EventRecord` can hold multiple metrics in its `metrics: []` array. To filter and aggregate cleanly, `projectEventToFacts` unpacks the record into individual, 1-to-1 metric rows called `AnalyticsDataPoint`:
-   ```typescript
-   export interface AnalyticsDataPoint {
-     id: string;             // e.g. "res-123:summary:totalVolume:0"
-     resultId: string;
-     noteId: string;
-     blockContentId?: string;
-     timestamp: number;
-     metricKey: string;      // e.g. "totalVolume"
-     value: number;          // e.g. 4500
-     unit?: string;          // e.g. "kg"
-   }
-   ```
-4. `QueryService` buckets, groups, and reduces these `AnalyticsDataPoint` facts into the final scalar, series, or table.
-
----
-
-## 5. What `factRowsToEventRows` Means and Why It Exists
-
-`factRowsToEventRows` lives in `packages/engine/src/store.ts`.
-
-It is the **exact inverse** of `projectEventToFacts`:
-
-$$\text{EventRecord} \xrightarrow{\text{projectEventToFacts}} \text{AnalyticsDataPoint}$$
-
-$$\text{AnalyticsDataPoint} \xrightarrow{\text{factRowsToEventRows}} \text{EventRecord}$$
-
-```typescript
-export function factRowsToEventRows(facts: readonly AnalyticsDataPoint[]): EventRecord[] {
-  return facts.map((f, i) => {
-    const metricKey = f.metricKey ?? f.type;
-    return {
-      id: `fact:${f.resultId}:${metricKey}:${i}`,
-      resultId: f.resultId,
-      noteId: f.noteId,
-      blockContentId: f.blockContentId,
-      pageId: f.pageId,
-      origin: f.origin,
-      timestamp: f.timestamp,
-      grain: f.grain === 'event' ? 'event' : 'summary',
-      outputType: 'analytics',
-      effortSlug: f.effortSlug,
-      metrics: [{
-        type: metricKey,
-        value: f.value,
-        ...(f.unit ? { unit: f.unit } : {}),
-        metadata: {
-          canonicalKey: metricKey,
-          ...(f.effortSlug ? { effortSlug: f.effortSlug } : {}),
-          ...(f.discipline ? { effortDiscipline: f.discipline } : {}),
-          ...(f.intensityTier ? { effortIntensityTier: f.intensityTier } : {}),
-        },
-      }],
-      segmentId: f.segmentId,
-      segmentVersion: f.segmentVersion,
-    };
-  });
-}
+Session rows in `sessions`              ← execution metadata only (no statements)
 ```
 
-### Why was it needed?
+`Session` carries identity and totals (id, noteId, block content, start/end, duration, completed). `EventRecord` carries every statement and metric. Nothing stores the statement stream twice.
 
-Historically, the project wrote and stored flat `AnalyticsDataPoint` rows directly into an `analytics` table. Many legacy test suites, Storybook mocks, and CLI tools defined mock fixtures as flat objects:
+## 2. Where Data Is Created
 
-```typescript
-const sampleFacts: AnalyticsDataPoint[] = [
-  { id: 'f1', resultId: 'r1', noteId: 'n1', metricKey: 'totalVolume', value: 5000, timestamp: 1000 },
-];
-```
+Workout execution runs in the CodeMirror editor or fullscreen timer:
 
-When the storage engine migrated to `EventRecord` and table `events` (V16 upgrade), `QueryService` was changed to read exclusively from `EventStore` (`getEventsByTimeRange`, etc.). 
+- `apps/playground/src/components/organisms/editor/NoteEditor.tsx` and `.../review/FullscreenTimer.tsx` drive the run.
+- The Whiteboard runtime (`@bitcobblers/wod-wiki-engine`) emits `IOutputStatement`s (reps, loads, elapsed time, HR).
+- On completion, `resultRecorder.record(...)` hands the payload to the persistence seam.
 
-Rather than rewriting hundreds of test fixtures and JSON datasets to conform to the nested `EventRecord` format, `factRowsToEventRows` wraps flat fact fixtures into synthetic `EventRecord` rows on the fly:
+## 3. How Data Is Written
 
-```typescript
-// Helper used in tests and CLI query evaluation:
-export function inMemoryEventStoreFromFacts(facts: readonly AnalyticsDataPoint[]): EventStore {
-  return inMemoryEventStore(factRowsToEventRows(facts));
-}
-```
+Two writes, both inside `IndexedDBNotePersistence.mutateNote` / `IndexedDBContentProvider.updateEntry`:
 
----
+1. **Session row** — `saveSession` writes the flattened metadata record (scalars only).
+2. **Event rows** — `toEventRows(logs, identity)` converts each statement to an `EventRecord` (`grain: 'event'`, id `${resultId}:${seq}`) and `toSummaryEventRows` folds Tier-2 outputs into `grain: 'summary'` rows; `appendEvents` + `finalizeSummaries` persist them.
 
-## 6. Pipeline Summary Table
+The event rows are the archival record. If a later re-derivation runs (`rederiveResultAnalytics`), it purges the result's event rows and re-appends the replayed set, so the store converges to exactly one row set.
 
-| Stage | Data Type | Primary File / Store | Purpose |
+## 4. How Data Is Read
+
+### WQL queries (facts)
+
+`QueryService` fetches `EventRecord[]` by time range, result, note, or block content, then flattens each row with `projectEventToFacts(record)` into one `AnalyticsDataPoint` per numeric metric. Filters, buckets, rollups, and cross-workout joins run on those facts. Joins are relational: `resultId` → session, `noteId` → note/page, `blockContentId` → same workout across notes and days.
+
+### Display and replay (statement stream)
+
+`eventsToStoredLogs(events)` is the inverse of `toEventRows`: it rebuilds an ordered `StoredOutputStatement[]` from a session's event rows. Consumers:
+
+- `sessionToPayload(session, events)` reconstructs the `results` payload a `HistoryEntry` exposes, so review grids and analytics views keep working.
+- `replayResultAnalytics(block, events)` feeds the headless engine to recompute Tier-1/Tier-2 outputs after edits or RPE capture.
+
+### Reads that kept their old shape
+
+The live runtime still hands `getAnalyticsFromLogs` its in-memory statement stream directly; nothing round-trips through IndexedDB mid-run.
+
+## 5. What V21 Removed
+
+| Removed | Why |
+|---|---|
+| `Session.data.logs` | The statement stream had two homes; event rows are now the only one. |
+| `factRowsToEventRows` / `inMemoryEventStoreFromFacts` | Legacy fixture adapters that faked event rows from flat facts. Fixtures now build `EventRecord` rows directly. |
+| Contribution extraction from session rows | Field-catalog contributions are maintained by the event-row write paths and the catalog backfill's events pass. |
+
+The V21 upgrade copies each session's scalar fields onto the row, projects any unprojected legacy logs into event rows (idempotent, deterministic ids), then drops `data`.
+
+## 6. Pipeline Summary
+
+| Stage | Type | Location | Purpose |
 |---|---|---|---|
-| 1. Execution | `StoredOutputStatement` | `Session.data.logs` (`sessions` table) | Archival record of raw workout execution outputs. |
-| 2. Persistence | `EventRecord` | `events` table (IndexedDB) | Timeline index of event (`event`) and summary (`summary`) metrics. |
-| 3. Query Flattening | `AnalyticsDataPoint` | In-memory inside `QueryService.ts` | 1-to-1 metric rows ready for filtering, bucketing, and aggregation. |
-| 4. Test Adapter | `factRowsToEventRows` | `packages/engine/src/store.ts` | Inverse bridge: converts mock `AnalyticsDataPoint[]` into `EventRecord[]` for in-memory testing. |
+| Execution | `IOutputStatement` | runtime (in memory) | Live workout output. |
+| Storage (metadata) | `Session` | `sessions` store | Identity, totals, lifecycle. |
+| Storage (statements) | `EventRecord` | `events` store | The archival statement/metric rows. |
+| Query | `AnalyticsDataPoint` | in-memory (`projectEventToFacts`) | Filterable/aggregatable facts for WQL. |
+| Display/replay | `StoredOutputStatement` | in-memory (`eventsToStoredLogs`) | Reconstructed stream for grids, analytics views, and replay. |

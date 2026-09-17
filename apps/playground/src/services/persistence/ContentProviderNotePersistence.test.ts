@@ -36,7 +36,10 @@ const WORKOUT_RESULT: Session = {
   id: 'result-001',
   noteId: BASE_ENTRY.id,
   blockContentId: 'wod-a',
-  data: { startTime: 1000, endTime: 1430, duration: 430, logs: [], completed: true },
+  startTime: 1000,
+  endTime: 1430,
+  duration: 430,
+  completed: true,
   createdAt: 1430,
 };
 
@@ -44,7 +47,10 @@ const OLDER_RESULT: Session = {
   id: 'result-000',
   noteId: BASE_ENTRY.id,
   blockContentId: 'wod-a',
-  data: { startTime: 500, endTime: 1000, duration: 500, logs: [], completed: true },
+  startTime: 500,
+  endTime: 1000,
+  duration: 500,
+  completed: true,
   createdAt: 1000,
 };
 // ── Mock provider builder ─────────────────────────────────────────────────────

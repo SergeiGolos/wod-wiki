@@ -165,7 +165,8 @@ export interface BlockIndexRow {
 export type ResultOrigin = 'journal' | 'playground' | 'user';
 
 /**
- * Session: The outcome of running a specific segment version (renamed from Session; table results -> sessions in DB V20).
+ * Session: A pure execution metadata record (renamed from Session; table results -> sessions in DB V20, flattened in V21).
+ * Statements and metrics stream directly to `EventRecord` rows in the `events` table.
  */
 export interface Session {
     id: string;           // UUID
@@ -194,7 +195,26 @@ export interface Session {
     /** V10 — FK to the `page` store (copied from the parent note). */
     pageId?: string;
 
-    data: Sessions; // The actual results data
+    /** When workout started */
+    startTime: number;
+
+    /** When workout ended */
+    endTime: number;
+
+    /** Total elapsed time (ms) */
+    duration: number;
+
+    /** Rounds completed (for rounds-based workouts) */
+    roundsCompleted?: number;
+
+    /** Total rounds (for rounds-based workouts) */
+    totalRounds?: number;
+
+    /** Reps completed (for rep-based workouts) */
+    repsCompleted?: number;
+
+    /** Whether workout was completed or stopped early */
+    completed: boolean;
 
     createdAt: number;  // When the workout was finished
 }

@@ -47,55 +47,45 @@ export async function captureSessionRpe(
     return 'not-found';
   }
 
-  const previousLogs = result.data.logs ?? [];
+  const events = storage.getEventsByResult ? await storage.getEventsByResult(resultId) : [];
 
-  // Strip any existing user-origin SessionRPE metrics so a re-answer replaces
-  // rather than duplicates. Drop segment statements that become empty.
-  const cleanedLogs: StoredOutputStatement[] = [];
-  for (const statement of previousLogs) {
-    if (statement.outputType !== 'segment') {
-      cleanedLogs.push(statement);
-      continue;
-    }
-    const userRpeIndices = statement.metrics
-      .map((m, i) => (m.type === MetricType.SessionRPE && m.origin === 'user' ? i : -1))
-      .filter((i) => i >= 0);
-    if (userRpeIndices.length === 0) {
-      cleanedLogs.push(statement);
-      continue;
-    }
-    const remainingMetrics = statement.metrics.filter((_, i) => !userRpeIndices.includes(i));
-    if (remainingMetrics.length > 0) {
-      cleanedLogs.push({ ...statement, metrics: remainingMetrics });
-    }
+  // Strip any existing user-origin SessionRPE event rows so a re-answer replaces
+  // rather than duplicates.
+  const userRpeRows = events.filter(
+    (row) =>
+      row.grain === 'event' &&
+      row.metrics.some((m) => m.type === MetricType.SessionRPE && m.origin === 'user'),
+  );
+  if (userRpeRows.length > 0 && storage.deleteEvents) {
+    await storage.deleteEvents(userRpeRows.map((row) => row.id));
   }
 
-  // Anchor the new statement to the last real segment so the review grid keeps
+  // Re-fetch events after deletion so the anchor resolves to a non-RPE segment.
+  const currentEvents = storage.getEventsByResult ? await storage.getEventsByResult(resultId) : [];
+
+  // Anchor the new event to the last real segment row so the review grid keeps
   // a coherent block association, falling back to a synthetic session key.
   let sourceBlockKey = 'session';
   let stackLevel = 0;
-  for (let i = cleanedLogs.length - 1; i >= 0; i--) {
-    const log = cleanedLogs[i]!;
-    if (log.outputType === 'segment') {
-      sourceBlockKey = log.sourceBlockKey;
-      stackLevel = log.stackLevel;
-      break;
-    }
+  const segmentRows = currentEvents.filter((row) => row.outputType === 'segment');
+  if (segmentRows.length > 0) {
+    const lastSegment = segmentRows[segmentRows.length - 1]!;
+    sourceBlockKey = lastSegment.sourceBlockKey ?? 'session';
+    stackLevel = lastSegment.stackLevel ?? 0;
   }
 
-  let nextId = 1;
-  for (const log of cleanedLogs) {
-    if (typeof log.id === 'number' && log.id >= nextId) {
-      nextId = log.id + 1;
-    }
-  }
+  const ended = result.endTime ?? result.startTime ?? Date.now();
 
-  const ended = result.data.endTime ?? result.data.startTime ?? Date.now();
-
-  const rpeStatement: StoredOutputStatement = {
-    id: nextId,
+  const rpeEvent: EventRecord = {
+    id: `${resultId}:rpe:${Date.now()}`,
+    resultId,
+    noteId: result.noteId,
+    blockContentId: result.blockContentId,
+    pageId: result.pageId,
+    origin: 'user',
+    timestamp: ended,
+    grain: 'event',
     outputType: 'segment',
-    timeSpan: { started: ended, ended },
     metrics: [
       {
         type: MetricType.SessionRPE,
@@ -108,11 +98,9 @@ export async function captureSessionRpe(
     stackLevel,
   };
 
-  const updatedResult = {
-    ...result,
-    data: { ...result.data, logs: [...cleanedLogs, rpeStatement] },
-  };
-  await storage.saveResult(updatedResult);
+  if (storage.appendEvents) {
+    await storage.appendEvents([rpeEvent]);
+  }
 
   try {
     await persistence.rederiveResultAnalytics(resultId);

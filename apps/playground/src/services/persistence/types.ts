@@ -165,6 +165,8 @@ export interface NotePersistenceStorage {
   deleteEvents?(ids: string[]): Promise<void>;
   /** Note-scoped event reads for wellness reconcile. */
   getEventsForNote?(noteId: string): Promise<EventRecord[]>;
+  /** Session-scoped event reads for RPE capture and review. */
+  getEventsByResult?(resultId: string): Promise<EventRecord[]>;
 }
 
 export type { HistoryEntry, Attachment, AnalyticsDataPoint, Session, EventRecord };

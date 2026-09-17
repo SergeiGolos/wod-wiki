@@ -7,13 +7,18 @@ import {
 } from './fieldCatalog';
 import type { FieldContribution, Session, Note } from '@bitcobblers/wod-wiki-core';
 
-function result(logs: unknown[]): Session {
+function result(logs: unknown[]): Session & { data?: { logs?: unknown } } {
   return {
     id: 'r1',
     noteId: 'n1',
     origin: 'journal',
-    data: { logs } as Session['data'],
-  } as unknown as Session;
+    startTime: 0,
+    endTime: 0,
+    duration: 0,
+    completed: true,
+    createdAt: 0,
+    data: { logs },
+  };
 }
 
 describe('field catalog — contribution extraction (ticket 14)', () => {

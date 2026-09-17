@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { AnalyticsDataPoint } from '@/types/storage';
-import { inMemoryEventStore, factRowsToEventRows } from '@bitcobblers/wod-wiki-engine';
+import type { AnalyticsDataPoint, EventRecord } from '@/types/storage';
+import { inMemoryEventStore } from '@bitcobblers/wod-wiki-engine';
 import { detectPRsForSession } from './prDetection';
 
 function mockFact(
@@ -28,7 +28,19 @@ function mockFact(
 }
 
 function eventsStoreFromFacts(facts: AnalyticsDataPoint[]) {
-  return inMemoryEventStore(factRowsToEventRows(facts));
+  const rows: EventRecord[] = facts.map((f) => ({
+    id: `${f.resultId}:summary:${f.metricKey ?? f.type}`,
+    resultId: f.resultId,
+    noteId: f.noteId,
+    blockContentId: f.blockContentId,
+    segmentId: f.segmentId,
+    segmentVersion: f.segmentVersion,
+    timestamp: f.timestamp,
+    grain: 'summary',
+    outputType: 'analytics',
+    metrics: [{ type: f.metricKey ?? f.type, value: f.value, unit: f.unit, origin: 'engine' }],
+  }));
+  return inMemoryEventStore(rows);
 }
 
 describe('prDetection', () => {

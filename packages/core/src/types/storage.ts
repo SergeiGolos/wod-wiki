@@ -1,4 +1,4 @@
-import type { StoredOutputStatement, WorkoutResults } from './results';
+import type { StoredOutputStatement } from './results';
 
 // ---------------------------------------------------------------------------
 // Segment data types
@@ -119,7 +119,28 @@ export interface Session {
    *  start, flipped to 'completed' at finalize. Absent = 'completed'
    *  (legacy rows predate streaming). */
   status?: 'in-progress' | 'completed';
-  data: WorkoutResults;
+
+  /** When workout started */
+  startTime: number;
+
+  /** When workout ended */
+  endTime: number;
+
+  /** Total elapsed time (ms) */
+  duration: number;
+
+  /** Rounds completed (for rounds-based workouts) */
+  roundsCompleted?: number;
+
+  /** Total rounds (for rounds-based workouts) */
+  totalRounds?: number;
+
+  /** Reps completed (for rep-based workouts) */
+  repsCompleted?: number;
+
+  /** Whether workout was completed or stopped early */
+  completed: boolean;
+
   createdAt: number;
 }
 
@@ -187,9 +208,9 @@ export interface AnalyticsDataPoint {
 
 
 // ---------------------------------------------------------------------------
-// UnifiedEventRecord — THE single stored record for all workout data
-// (wayfinder ticket 002). Replaces AnalyticsDataPoint as the stored/query
-// shape; results.data.logs stay the archival source of truth (ticket 005).
+// EventRecord — THE single stored record for all workout data (V21).
+// Statement rows are the archival source: sessions hold execution metadata
+// only, and display/replay shapes are reconstructed from these rows.
 // ---------------------------------------------------------------------------
 
 /** Store-row kind: 'event' = raw statement row, 'summary' = folded row.
@@ -353,7 +374,7 @@ export interface CatalogBackfillState {
   id: 'backfill';
   status: 'initializing' | 'complete';
   /** Last processed source key per source store (resume cursor). */
-  cursor?: { results?: string; notes?: string };
+  cursor?: { results?: string; notes?: string; events?: string };
   revision: number;
   updatedAt: number;
 }

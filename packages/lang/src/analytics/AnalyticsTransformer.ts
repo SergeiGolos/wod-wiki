@@ -308,21 +308,16 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
 }
 
 /**
- * Derive analytics segments from a stored workout log.
+ * Derive analytics segments from a statement stream.
  *
  * This is the **canonical read path** for all analytics derived from a
- * completed workout. WorkoutResult.data.logs (StoredOutputStatement[]) is
- * the source of truth; call this function to obtain Segment[] for display,
- * review grids, or trend summaries.
+ * completed workout. Under V21 the statement stream is reconstructed from
+ * the session's event rows (`eventsToStoredLogs`); the live runtime passes
+ * its in-memory stream directly. Call this function to obtain Segment[] for
+ * display, review grids, or trend summaries.
  *
- * Relationship to the analytics IDB store:
- *   The `analytics` IndexedDB store holds AnalyticsDataPoint[] summary fact
- *   rows written by normalizeSummaryFacts() from Tier-2 outputs in data.logs.
- *   They are NOT required for any current display feature. If they disagree
- *   with logs, logs win. Use this function — not the analytics store — to
- *   obtain segment data for display.
- *
- * @param outputs - StoredOutputStatement[] from WorkoutResult.data.logs
+ * @param outputs - StoredOutputStatement[] (runtime stream, or event rows
+ *   reconstructed via `eventsToStoredLogs`)
  * @param workoutStartTime - Optional workout start timestamp (ms). Used to
  *   anchor relative timing in the segment timeline.
  * @param now - Optional clock provider; defaults to wall-clock.

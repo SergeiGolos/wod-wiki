@@ -21,7 +21,8 @@ import type {
     FieldSourceRecord,
 } from '@bitcobblers/wod-wiki-core';
 import type { WodWikiDB } from './IndexedDBService';
-import { computeCatalogDeltas, extractContributionsFromNote, extractContributionsFromResult, fieldSourceId } from '../catalog/fieldCatalog';
+import { computeCatalogDeltas, extractContributionsFromEventRows, extractContributionsFromNote, extractContributionsFromResult, fieldSourceId } from '../catalog/fieldCatalog';
+import type { EventRecord } from '@/types/storage';
 
 type RW = 'readwrite';
 type CatalogStores = ('field_catalog' | 'field_sources' | 'field_values')[];
@@ -297,6 +298,46 @@ export async function runCatalogBackfill(db: IDBPDatabase<WodWikiDB>, batchSize 
                 processed += 1;
             }
             cursor[store] = afterKey;
+            await persistCursor(db, started, cursor, processed, batchSize);
+        }
+    }
+
+    // Events (V21) — the live statement rows are the current contribution
+    // source; the legacy `results` pass above only covers pre-V21 rows.
+    {
+        let afterKey = cursor.events ?? '';
+        for (;;) {
+            const readTx = db.transaction('events', 'readonly');
+            const rows: EventRecord[] = [];
+            let rowCursor = await readTx.store.openCursor(IDBKeyRange.lowerBound(afterKey, true));
+            while (rowCursor && rows.length < batchSize) {
+                rows.push(rowCursor.value as EventRecord);
+                rowCursor = await rowCursor.continue();
+            }
+            await readTx.done;
+            if (rows.length === 0) break;
+
+            const byResult = new Map<string, EventRecord[]>();
+            for (const row of rows) {
+                const bucket = byResult.get(row.resultId);
+                if (bucket) bucket.push(row);
+                else byResult.set(row.resultId, [row]);
+            }
+            for (const [resultId, group] of byResult) {
+                const writeTx = db.transaction(['field_catalog', 'field_sources', 'field_values'] as const, 'readwrite');
+                const current = await writeTx.objectStore('field_sources').get(fieldSourceId('result', resultId));
+                if (!current) {
+                    for (const row of group) {
+                        for (const c of extractContributionsFromEventRows([row])) {
+                            await replaceRowContributionsTx(writeTx, 'result', resultId, c.rowId, [c], now);
+                        }
+                    }
+                }
+                await writeTx.done;
+            }
+            afterKey = rows[rows.length - 1]!.id;
+            processed += rows.length;
+            cursor.events = afterKey;
             await persistCursor(db, started, cursor, processed, batchSize);
         }
     }

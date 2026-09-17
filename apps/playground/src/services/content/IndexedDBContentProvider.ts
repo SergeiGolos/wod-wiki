@@ -14,6 +14,8 @@ import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin }
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType, ScriptBlock } from '../../components/Editor/types/section';
 import { extractFrontmatterTags } from '../../lib/frontmatter';
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import { sessionToPayload } from '../persistence/sessionPayload';
 
 const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
 
@@ -203,6 +205,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         const latestResult = latestResults.length > 0
             ? latestResults.sort((a, b) => b.createdAt - a.createdAt)[0]
             : undefined;
+        const latestEvents = latestResult ? await this.db.getEventsByResult(latestResult.id) : [];
 
         // Map NoteSegment to Section types for the editor
         const sections: Section[] = segments.map(s => {
@@ -239,7 +242,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             journalDate: page?.date,
             rawContent,
             sections,
-            results: latestResult?.data,
+            results: latestResult ? sessionToPayload(latestResult, latestEvents) : undefined,
             tags: tags.map(t => t.label),
             type: note.type ?? 'note',
             sourceId: note.sourceId,
@@ -503,7 +506,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             const latestSegment = patch.segmentId
                 ? await this.db.getLatestSegmentVersion(patch.segmentId)
                 : undefined;
-            const newResult: Session = {
+            const newSession: Session = {
                 id: patch.resultId || uuidv7(),
                 segmentId: patch.segmentId,
                 segmentVersion: latestSegment?.version,
@@ -513,14 +516,40 @@ export class IndexedDBContentProvider implements IContentProvider {
                 blockContentId: patch.blockContentId,
                 version: patch.version,
                 origin: patch.origin,
-                data: resultData,
+                startTime: resultData.startTime,
+                endTime: resultData.endTime,
+                duration: resultData.duration ?? 0,
+                roundsCompleted: resultData.roundsCompleted,
+                totalRounds: resultData.totalRounds,
+                repsCompleted: resultData.repsCompleted,
+                completed: resultData.completed,
                 // V16 write-path lifecycle (ticket 005): completion writes are
                 // 'completed'; unmount partial saves (completed === false) are
                 // 'in-progress' — swept by the 30-day GC if never finalized.
                 status: resultData.completed === false ? 'in-progress' : 'completed',
                 createdAt: resultData.endTime || now
             };
-            await this.db.saveResult(newResult);
+            await this.db.saveSession(newSession);
+
+            // Stream raw statements directly to the unified event store (V21: data.logs eliminated)
+            if (resultData.logs?.length && this.db.appendEvents && this.db.finalizeSummaries) {
+                const identity = {
+                    noteId: note.id,
+                    resultId: newSession.id,
+                    segmentId: newSession.segmentId,
+                    segmentVersion: newSession.segmentVersion,
+                    blockContentId: newSession.blockContentId,
+                    origin: newSession.origin,
+                    pageId: newSession.pageId,
+                    workoutTimestamp: newSession.endTime || now,
+                };
+                try {
+                    await this.db.appendEvents(toEventRows(resultData.logs, identity));
+                    await this.db.finalizeSummaries(newSession.id, toSummaryEventRows(resultData.logs, identity));
+                } catch (err) {
+                    console.warn(`[IndexedDBContentProvider] event projection failed for session ${newSession.id}`, err);
+                }
+            }
         }
 
         // Persist the mutated note when metadata/content changed (updateEntry

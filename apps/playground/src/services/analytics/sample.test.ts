@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { QueryService, type EventStore, type NoteQueryStore } from '@bitcobblers/wod-wiki-wql';
-import { factRowsToEventRows } from '@bitcobblers/wod-wiki-engine';
 import type { IndexedDBService } from '@/services/db/IndexedDBService';
 import { loadSampleData, purgeSampleData, hasSampleData, setSampleDataService } from '@/services/analytics/sample';
-import type { AnalyticsDataPoint, Note } from '@/types/storage';
+import type { AnalyticsDataPoint, EventRecord, Note } from '@/types/storage';
 
 // @ts-expect-error — bun-only '?real' specifier: bypasses the shared
 // mock.module registry (sibling files stub this module process-globally).
@@ -109,7 +108,17 @@ describe('sample analytics dataset', () => {
       timestamp: Date.now(),
       createdAt: Date.now(),
     };
-    await service.appendEvents(factRowsToEventRows([userFact]));
+    await service.appendEvents([{
+      id: `${userFact.resultId}:summary:${userFact.metricKey}`,
+      resultId: userFact.resultId,
+      noteId: userFact.noteId,
+      segmentId: userFact.segmentId,
+      segmentVersion: userFact.segmentVersion,
+      timestamp: userFact.timestamp,
+      grain: 'summary',
+      outputType: 'analytics',
+      metrics: [{ type: userFact.metricKey, value: userFact.value, unit: userFact.unit, origin: 'engine' }],
+    } satisfies EventRecord]);
 
     await purgeSampleData();
 

@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: events
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v21)
 ---
 
 # EventRecord
@@ -15,9 +15,9 @@ db: wodwiki-db (v20)
 - **Store:** `events`
 - **Key path:** `id`
 - **Type source:** `packages/core/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v20)
+- **Database version:** `wodwiki-db` (v21)
 
-Unified query/event representation for workout data (renamed from `UnifiedEventRecord`); recorded workouts retain archival logs in [[Session]]. Grain `event` rows represent raw outputs; grain `summary` rows support derived aggregates. Wellness rows are reconciled from note content rather than requiring a recorded workout. `projectEventToFacts` folds rows into query facts.
+THE single stored record for workout data (renamed from `UnifiedEventRecord`). Grain `event` rows are the archival statement stream: the engine's output statements land here directly (V21), and [[Session]] rows carry execution metadata only. Grain `summary` rows hold derived aggregates; wellness rows are reconciled from note content. `projectEventToFacts` folds rows into query facts; `eventsToStoredLogs` rebuilds the statement stream for display and replay.
 
 ### Fields (Current)
 

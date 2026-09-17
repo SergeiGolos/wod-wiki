@@ -23,7 +23,10 @@ const olderSectionResult: Session = {
   id: 'older',
   noteId: note.id,
   blockContentId: 'wod-a',
-  data: { startTime: 100, endTime: 200, duration: 100, logs: [], completed: true },
+  startTime: 100,
+  endTime: 200,
+  duration: 100,
+  completed: true,
   createdAt: 200,
 };
 
@@ -31,14 +34,20 @@ const latestSectionResult: Session = {
   id: 'latest',
   noteId: note.id,
   blockContentId: 'wod-a',
-  data: { startTime: 300, endTime: 450, duration: 150, logs: [], completed: true },
+  startTime: 300,
+  endTime: 450,
+  duration: 150,
+  completed: true,
   createdAt: 450,
 };
 const otherResult: Session = {
   id: 'other',
   noteId: note.id,
   blockContentId: 'wod-b',
-  data: { startTime: 500, endTime: 700, duration: 200, logs: [], completed: true },
+  startTime: 500,
+  endTime: 700,
+  duration: 200,
+  completed: true,
   createdAt: 700,
 };
 
@@ -77,6 +86,7 @@ function createHarness(latestSegments: NoteSegment[] = []) {
       deletedEventIds.push(...ids);
     },
     getEventsForNote: async (_noteId: string) => [],
+    getEventsByResult: async (_resultId: string) => [],
   };
   const contentProvider = {
     getEntry: async (): Promise<HistoryEntry> => ({
@@ -438,7 +448,7 @@ describe('IndexedDBNotePersistence', () => {
     expect(limited.map(r => r.id)).toEqual(['x2', 'x3']);
   });
 
-  it('rederiveResultAnalytics replays logs headlessly and rewrites result + events', async () => {
+  it('rederiveResultAnalytics replays events headlessly and rewrites event rows', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const T0 = 1_700_000_000_000;
     const scriptBlock = {
@@ -469,40 +479,47 @@ describe('IndexedDBNotePersistence', () => {
       segmentVersion: 1,
       blockContentId: 'bc-a',
       origin: 'journal',
-      data: {
-        startTime: T0,
-        endTime: T0 + 60_000,
-        duration: 60_000,
-        completed: true,
-        logs: [
-          {
-            id: 1,
-            outputType: 'segment',
-            timeSpan: { started: T0, ended: T0 + 60_000 },
-            metrics: [
-              { type: 'rep', value: 21, image: '21', origin: 'runtime' },
-              { type: 'effort', value: 'Deadlift', image: 'Deadlift', origin: 'parser' },
-              { type: 'elapsed', value: 60_000, origin: 'runtime' },
-            ],
-            sourceBlockKey: 'block-1',
-            stackLevel: 0,
-          },
-          {
-            id: 99,
-            outputType: 'analytics',
-            timeSpan: { started: T0, ended: T0 },
-            metrics: [{ type: 'label', value: 'Stale', image: 'Stale', origin: 'analyzed' }],
-            sourceBlockKey: 'analytics-summary',
-            stackLevel: 0,
-          },
-        ],
-      },
+      startTime: T0,
+      endTime: T0 + 60_000,
+      duration: 60_000,
+      completed: true,
       createdAt: T0 + 60_000,
     };
+    const initialEvents: EventRecord[] = [
+      {
+        id: 'result-replay:0',
+        resultId: 'result-replay',
+        noteId: note.id,
+        blockContentId: 'bc-a',
+        timestamp: T0,
+        grain: 'event',
+        outputType: 'segment',
+        metrics: [
+          { type: 'rep', value: 21, image: '21', origin: 'runtime' },
+          { type: 'effort', value: 'Deadlift', image: 'Deadlift', origin: 'parser' },
+          { type: 'elapsed', value: 60_000, origin: 'runtime' },
+        ],
+        sourceBlockKey: 'block-1',
+        stackLevel: 0,
+      },
+      {
+        id: 'result-replay:99',
+        resultId: 'result-replay',
+        noteId: note.id,
+        blockContentId: 'bc-a',
+        timestamp: T0,
+        grain: 'summary',
+        outputType: 'analytics',
+        metrics: [{ type: 'label', value: 'Stale', image: 'Stale', origin: 'analyzed' }],
+        sourceBlockKey: 'analytics-summary',
+        stackLevel: 0,
+      },
+    ];
 
     const savedResults: Session[] = [];
     const appendedEvents: EventRecord[][] = [];
     const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
+    const deletedEventIds: string[] = [];
     const storage = {
       getNote: async () => note,
       getResultById: async () => staleResult,
@@ -511,18 +528,21 @@ describe('IndexedDBNotePersistence', () => {
       saveResult: async (r: Session) => { savedResults.push(r); return r.id; },
       appendEvents: async (rows: EventRecord[]) => { appendedEvents.push(rows); },
       finalizeSummaries: async (resultId: string, rows: EventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
-      deleteEvents: async () => {},
+      deleteEvents: async (ids: string[]) => { deletedEventIds.push(...ids); },
       getEventsForNote: async () => [],
+      getEventsByResult: async () => initialEvents,
     };
     const persistence = new IndexedDBNotePersistence(storage as never, {} as never);
 
     const updated = await persistence.rederiveResultAnalytics('result-replay');
 
-    // Result rewritten: stale Tier-2 discarded, fresh Tier-2 regenerated
-    // into the SAME logs stream (no data.analytics split).
-    expect(savedResults).toHaveLength(1);
-    expect(updated.data.logs?.some(o => o.id === 99)).toBe(false);
-    expect((updated.data.logs?.filter(o => o.outputType === 'analytics').length ?? 0)).toBeGreaterThan(0);
+    // The sessions row is untouched under V21 — the replay rewrites events only.
+    expect(savedResults).toHaveLength(0);
+    expect(updated.id).toBe('result-replay');
+
+    // The previous projection is purged before the replayed rows are written,
+    // so re-running converges to exactly one row set.
+    expect(deletedEventIds).toEqual(initialEvents.map(r => r.id));
 
     // Event projection re-written: event rows + finalized summary rows carry
     // the result identity and block identity.
@@ -530,6 +550,7 @@ describe('IndexedDBNotePersistence', () => {
     expect(summaryRows.some(r => r.grain === 'summary')).toBe(true);
     const eventRows = appendedEvents.flat();
     expect(eventRows.some(r => r.grain === 'event')).toBe(true);
+    expect(eventRows.some(r => r.metrics.some(m => m.type === 'label' && m.value === 'Stale'))).toBe(false);
 
     const projected = [...eventRows, ...summaryRows];
     expect(projected.every(r => r.resultId === 'result-replay')).toBe(true);

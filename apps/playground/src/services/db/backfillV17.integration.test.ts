@@ -16,8 +16,9 @@
 import { describe, expect, it } from 'bun:test';
 
 import type { IDBPDatabase } from 'idb';
+import { toEventRows } from '@bitcobblers/wod-wiki-wql';
 
-import type { Note, Session } from '@/types/storage';
+import type { EventRecord, Note, Session } from '@/types/storage';
 import type { IndexedDBService, WodWikiDB } from '@/services/db/IndexedDBService';
 
 // @ts-expect-error — bun-only '?real' specifier: bypasses the shared
@@ -31,14 +32,26 @@ const service: IndexedDBService = new RealIndexedDBService();
 const RUN_ID = `v17-${crypto.randomUUID()}`;
 const noteId = `${RUN_ID}-note`;
 
-function resultWith(id: string, logs: unknown[]): Session {
+function resultWith(id: string): Session {
   return {
     id,
     noteId,
     origin: 'journal',
-    createdAt: 1_700_000_000_000,
-    data: { logs },
-  } as unknown as Session;
+    startTime: 1_700_000_000_000,
+    endTime: 1_700_000_060_000,
+    duration: 60_000,
+    completed: true,
+    createdAt: 1_700_000_060_000,
+  };
+}
+
+/** Statements land in the events store (V21) — the catalog's live source. */
+function eventRowsOf(id: string, logs: unknown[]): EventRecord[] {
+  return toEventRows(logs as never, {
+    noteId,
+    resultId: id,
+    workoutTimestamp: 1_700_000_000_000,
+  });
 }
 
 const hangLog = (kg: number) => ({
@@ -82,24 +95,25 @@ function fieldIdFor(path: string, kind: 'number' | 'string'): string {
 
 describe('V17 field catalog lifecycle (ticket 14)', () => {
   it('save → identical re-save keeps reference counts exact; the note cascade removes the last support', async () => {
-    const r1 = resultWith(`${RUN_ID}-r1`, [hangLog(28)]);
+    const r1 = resultWith(`${RUN_ID}-r1`);
     await service.saveResult(r1);
+    await service.appendEvents(eventRowsOf(r1.id, [hangLog(28)]));
 
     const hangId = fieldIdFor('hang', 'number');
     expect(await sourceCountOf(hangId)).toBe(1);
 
-    // Identical re-save — no double-increment.
-    await service.saveResult(r1);
+    // Identical re-append — deterministic row ids, no double-increment.
+    await service.appendEvents(eventRowsOf(r1.id, [hangLog(28)]));
     expect(await sourceCountOf(hangId)).toBe(1);
 
     // A second supporting result keeps the field on first delete.
-    await service.saveResult(resultWith(`${RUN_ID}-r2`, [hangLog(30), hrvLog]));
+    const r2 = resultWith(`${RUN_ID}-r2`);
+    await service.saveResult(r2);
+    await service.appendEvents(eventRowsOf(r2.id, [hangLog(30), hrvLog]));
     expect(await sourceCountOf(hangId)).toBe(2);
 
-    // Deleting one of two supporting results keeps the field…
-    await service.saveResult(resultWith(`${RUN_ID}-r2-empty`, []));
+    // Deleting the note cascade removes every remaining support.
     await service.deleteNote(noteId);
-    // …but deleting the note cascade removes every remaining support.
     expect(await sourceCountOf(hangId)).toBeUndefined();
     expect(await sourceCountOf(fieldIdFor('hrv', 'number'))).toBeUndefined();
   });
@@ -124,7 +138,9 @@ describe('V17 field catalog lifecycle (ticket 14)', () => {
   });
 
   it('backfill populates from retained sources, is idempotent, and completes', async () => {
-    await service.saveResult(resultWith(`${RUN_ID}-bf-r1`, [shoeLog('Alphafly')]));
+    const r1 = resultWith(`${RUN_ID}-bf-r1`);
+    await service.saveResult(r1);
+    await service.appendEvents(eventRowsOf(r1.id, [shoeLog('Alphafly')]));
 
     // Simulate an interrupted earlier backfill (marker initializing, no data).
     const database = await db();

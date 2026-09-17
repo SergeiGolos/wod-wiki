@@ -4,10 +4,11 @@ import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { HistoryEntry } from '@/types/history';
-import type { Attachment, Note, Session } from '@/types/storage';
+import type { Attachment, EventRecord, Note, Session } from '@/types/storage';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
+import { sessionToPayload } from './sessionPayload';
 import {
   replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
@@ -15,7 +16,7 @@ import { captureWellnessFacts } from '@/services/analytics/wellness';
 import type { WellnessEventStore } from '@/services/analytics/wellness';
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import type { ScriptBlock } from '@/components/Editor/types';
+import type { ScriptBlock, Sessions } from '@/components/Editor/types';
 import {
   NotePersistenceError,
   type CreateNoteInput,
@@ -205,9 +206,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
         // (resultData.endTime || now), so event rows and the result agree.
         workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
       };
-      // Non-load-bearing (ticket 005): Session.data.logs is canonical;
-      // event rows are the derived queryable projection. Failures are logged,
-      // never fatal — rows are re-derivable by re-finalize or bulk re-derive.
+      // Event rows are the authoritative projection for the event store (V21).
       try {
         await this.storage.appendEvents(toEventRows(resultLogs, identity));
         await this.storage.finalizeSummaries(resultId, toSummaryEventRows(resultLogs, identity));
@@ -293,27 +292,25 @@ export class IndexedDBNotePersistence implements INotePersistence {
       ? scriptBlock
       : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
-    const derivedLogs = replayResultAnalytics(result, block);
-    const updated: Session = {
-      ...result,
-      data: { ...result.data, logs: derivedLogs },
-    };
-    await this.storage.saveResult(updated);
+    const events = this.storage.getEventsByResult ? await this.storage.getEventsByResult(resultId) : [];
+    const derivedLogs = replayResultAnalytics(block, events);
 
-    // Re-derive the event projection from the canonical derived logs (single
-    // derivation policy — the event store must agree with data.logs).
-    // finalizeSummaries clears engine-authored summaries and rewrites finals
-    // atomically; appendEvents re-puts the deterministic event rows.
+    // Event rows are the authoritative store (V21): purge the previous
+    // projection, then write the replayed rows so the result converges to
+    // exactly one row set — re-running this is idempotent.
     if (this.storage.appendEvents && this.storage.finalizeSummaries) {
+      if (this.storage.deleteEvents && events.length > 0) {
+        await this.storage.deleteEvents(events.map((row) => row.id));
+      }
       const identity = {
-        noteId: updated.noteId,
+        noteId: result.noteId,
         resultId: result.id,
-        segmentId: updated.segmentId,
-        segmentVersion: updated.segmentVersion,
-        blockContentId: updated.blockContentId,
-        origin: updated.origin,
-        pageId: updated.pageId,
-        workoutTimestamp: updated.createdAt,
+        segmentId: result.segmentId,
+        segmentVersion: result.segmentVersion,
+        blockContentId: result.blockContentId,
+        origin: result.origin,
+        pageId: result.pageId,
+        workoutTimestamp: result.createdAt,
       };
       try {
         await this.storage.appendEvents(toEventRows(derivedLogs, identity));
@@ -323,7 +320,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       }
     }
 
-    return updated;
+    return result;
   }
 
   private async resolveNote(locator: NoteLocator): Promise<Note | undefined> {
@@ -389,7 +386,13 @@ export class IndexedDBNotePersistence implements INotePersistence {
     return limitResults(sortNewest(results), options.limit);
   }
 
-  private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {    if (selection.mode === 'by-result-id') {
+  private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {
+    const eventsFor = async (session: Session | undefined): Promise<EventRecord[]> => {
+      if (!session || !this.storage.getEventsByResult) return [];
+      return this.storage.getEventsByResult(session.id);
+    };
+
+    if (selection.mode === 'by-result-id') {
       const result = await this.storage.getResultById(selection.resultId);
       if (!result) {
         throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${selection.resultId}`);
@@ -400,24 +403,30 @@ export class IndexedDBNotePersistence implements INotePersistence {
           `Result ${selection.resultId} does not belong to note ${note.id}`,
         );
       }
-      return { results: result.data };
+      return { results: sessionToPayload(result, await eventsFor(result)) };
     }
 
     if (selection.mode === 'latest-for-section' || selection.mode === 'all-for-section') {
       const results = sortNewest(await this.storage.getResultsForSection(note.id, selection.blockContentId));
       if (selection.mode === 'all-for-section') {
         const extendedResults = limitResults(results, selection.limit);
-        return { results: extendedResults[0]?.data, extendedResults };
+        return { results: await this.payloadOf(extendedResults[0]), extendedResults };
       }
-      return { results: results[0]?.data };
+      return { results: await this.payloadOf(results[0]) };
     }
 
     const results = sortNewest(await this.storage.getResultsForNote(note.id));
     if (selection.mode === 'all-for-note') {
       const extendedResults = limitResults(results, selection.limit);
-      return { results: extendedResults[0]?.data, extendedResults };
+      return { results: await this.payloadOf(extendedResults[0]), extendedResults };
     }
 
-    return { results: results[0]?.data };
+    return { results: await this.payloadOf(results[0]) };
+  }
+
+  private async payloadOf(session: Session | undefined): Promise<Sessions | undefined> {
+    if (!session) return undefined;
+    const events = this.storage.getEventsByResult ? await this.storage.getEventsByResult(session.id) : [];
+    return sessionToPayload(session, events);
   }
 }

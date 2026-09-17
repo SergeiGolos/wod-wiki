@@ -3,22 +3,22 @@ tags: [domain-model]
 store: sessions
 legacyStore: results
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v21)
 ---
 
 # Session
 
 > [!info] Implementation Note
-> Renamed from `WorkoutResult` with table rename `sessions` → `sessions` in DB v20. Legacy alias `WorkoutResult` is retained for backwards compatibility.
+> Renamed from `WorkoutResult` (table `results` → `sessions`, DB v20) and flattened in V21: the statement stream no longer lives on the row. Every statement is an [[EventRecord]].
 
 ## Current State (Implemented in Code)
 
-- **Store:** `sessions` (legacy `sessions` migrated on V20 upgrade)
+- **Store:** `sessions` (legacy `results` copied on V20, flattened on V21)
 - **Key path:** `id`
 - **Type source:** `apps/playground/src/types/storage.ts` (`Session`)
-- **Database version:** `wodwiki-db` (v20)
+- **Database version:** `wodwiki-db` (v21)
 
-Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progress'` at workout start, flipped to `'completed'` at finalize; `data.logs` stay the archival source of truth folded into [[EventRecord]] rows.
+Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progress'` at workout start, flipped to `'completed'` at finalize. A session row is **execution metadata only** (V21): statements and metrics live as [[EventRecord]] rows, and display/replay shapes are reconstructed from them (`eventsToStoredLogs`).
 
 ### Fields (Current)
 
@@ -34,7 +34,12 @@ Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progres
 | `origin?` | ResultOrigin | 'journal' \| 'playground' \| 'user'; playground excluded from default filters |
 | `status?` | 'in-progress' \| 'completed' | Absent = 'completed' (legacy rows) |
 | `pageId?` | string | FK → [[Page]] — copied from parent note (V10) |
-| `data` | WorkoutResults | The actual results data |
+| `startTime` | number | When the workout started (flattened from `data` in V21) |
+| `endTime` | number | When the workout ended |
+| `duration` | number | Total elapsed time (ms) |
+| `roundsCompleted?` / `totalRounds?` | number | Rounds-based workouts |
+| `repsCompleted?` | number | Rep-based workouts |
+| `completed` | boolean | Finished vs stopped early |
 | `createdAt` | number | When the workout was finished |
 
 ### Indexes (Current)
@@ -81,20 +86,15 @@ These recommendations do not implement behavior or resolve a ticket; mode policy
 
 **Feedback case:** run the second of two identical workouts on a read-presented note. Where is the result stored and displayed if the source cannot accept a results-query insertion? The run must not overwrite seed content or attach to the first occurrence.
 
-### Separate session-renaming proposal
+### Implemented rename and flattening
 
-The pre-existing rename below is outside the typed-note review and remains a proposal, not a prerequisite. No schema or helper aliases are introduced by these documents.
+Landed as its own cutover (commit `0988427e` and the V21 migration). No compatibility aliases remain.
 
-- **Store:** `sessions` (renamed from `sessions`)
-- **Key path:** `id`
-- **Domain concept:** Represents a recorded workout execution session.
+- **Store:** `sessions` (renamed from `results` in V20; flattened in V21).
+- **Entity:** `Session` (renamed from `WorkoutResult`); `UnifiedEventRecord` → [[EventRecord]].
+- **Fields:** the inline `data` payload is gone — scalars flattened onto the row, statements stored as [[EventRecord]] rows.
+- **Ids:** stored identifiers keep their historical names (`resultId`, `field_sources` prefix `result:<id>`, `${resultId}:${seq}` row ids) because they are persisted keys, not vocabulary.
 
-### Proposed Structure / Changes
-
-1. **Table Rename:** `sessions` → `sessions`.
-2. **Entity Terminology:** `WorkoutResult` → `Session` or `WorkoutSession`.
-3. **Foreign Keys:** References pointing to `resultId` (such as in `attachments`, `events`, and `field_sources`) will transition conceptually to `sessionId`.
-4. **Fields & Indexes:** Retain the execution payload structure (`data: WorkoutResults`, `createdAt`, `origin`, `status`, `blockContentId`). Any future rename must migrate callers and references as its own complete change, not add parallel terminology here.
 
 ## Map
 

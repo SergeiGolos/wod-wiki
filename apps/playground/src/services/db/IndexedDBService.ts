@@ -39,7 +39,6 @@ import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import {
     extractContributionsFromEventRows,
     extractContributionsFromNote,
-    extractContributionsFromResult,
     fieldSourceId,
 } from '../catalog/fieldCatalog';
 import {
@@ -54,9 +53,9 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import {
+    deriveWorkoutFromLogs,
     normalizeAllMetrics,
     normalizeSummaryFacts,
-    replayResultAnalytics,
     type LegacyFactRow,
 } from '@/services/analytics/workoutDerivation';
 
@@ -231,7 +230,7 @@ export interface WodWikiDB extends DBSchema {
         indexes: {};
     };
 }
-const DB_VERSION = 20; // V20 — sessions store (renamed from results); V19 — meta kv store // V19 — meta kv store (seed import checkpoint); V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
+const DB_VERSION = 21; // V21 — flattened sessions (data.logs removed); V20 — sessions store (renamed from results); V19 — meta kv store
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -506,7 +505,7 @@ export async function backfillV12(tx: V10Tx): Promise<void> {
                 ? scriptBlock
                 : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
-            const derivedLogs = replayResultAnalytics(result, block);
+            const derivedLogs = deriveWorkoutFromLogs(logs, { block });
             await resultsStore.put({ ...result, data: { ...result.data, logs: derivedLogs } });
             points = normalizeSummaryFacts(derivedLogs, identity);
             replayed++;
@@ -806,7 +805,7 @@ export async function backfillV16(tx: V10Tx): Promise<void> {
             const block = scriptBlock.statements?.length
                 ? scriptBlock
                 : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
-            logs = replayResultAnalytics(result, block);
+            logs = deriveWorkoutFromLogs(storedLogs, { block });
             if (logs !== storedLogs) {
                 await resultsStore.put({ ...result, data: { ...result.data, logs } });
             }
@@ -1155,6 +1154,55 @@ export class IndexedDBService {
                     const sessionsStore = tx.objectStore('sessions');
                     for await (const cursor of resultsStore) {
                         await sessionsStore.put(cursor.value as Session);
+                    }
+                }
+
+                // ---- V21: flatten sessions, drop data.logs, project legacy logs idempotently ----
+                if (oldVersion < 21 && db.objectStoreNames.contains('sessions')) {
+                    const sessionsStore = tx.objectStore('sessions');
+                    const eventsStore = tx.objectStore('events');
+                    for await (const cursor of sessionsStore) {
+                        const legacy = cursor.value as Session & { data?: { logs?: unknown[]; startTime?: number; endTime?: number; duration?: number; completed?: boolean; roundsCompleted?: number; totalRounds?: number; repsCompleted?: number } };
+                        const logs = legacy.data?.logs ?? [];
+                        // Idempotent event projection: only project if no events exist for this result
+                        let alreadyProjected = false;
+                        for await (const evCursor of eventsStore.index('by-result-grain').iterate(IDBKeyRange.bound([legacy.id, ''], [legacy.id, []]))) {
+                            alreadyProjected = true;
+                            break;
+                        }
+                        if (!alreadyProjected && logs.length > 0) {
+                            const identity = {
+                                noteId: legacy.noteId,
+                                resultId: legacy.id,
+                                segmentId: legacy.segmentId,
+                                segmentVersion: legacy.segmentVersion,
+                                blockContentId: legacy.blockContentId,
+                                origin: legacy.origin,
+                                pageId: legacy.pageId,
+                                workoutTimestamp: legacy.data?.endTime ?? legacy.createdAt,
+                            };
+                            const eventRows = toEventRows(logs as any, identity);
+                            const summaryRows = toSummaryEventRows(logs as any, identity);
+                            for (const row of eventRows) {
+                                await eventsStore.put(row);
+                            }
+                            for (const row of summaryRows) {
+                                await eventsStore.put(row);
+                            }
+                        }
+                        // Flatten legacy data.* fields onto the session record
+                        const flat: Session = {
+                            ...legacy,
+                            startTime: legacy.data?.startTime ?? legacy.createdAt,
+                            endTime: legacy.data?.endTime ?? legacy.createdAt,
+                            duration: legacy.data?.duration ?? 0,
+                            completed: legacy.data?.completed ?? true,
+                            roundsCompleted: legacy.data?.roundsCompleted,
+                            totalRounds: legacy.data?.totalRounds,
+                            repsCompleted: legacy.data?.repsCompleted,
+                        };
+                        delete (flat as any).data;
+                        await cursor.update(flat);
                     }
                 }
             },
@@ -1816,32 +1864,10 @@ export class IndexedDBService {
     // Sessions (V20 — renamed from results)
     // ======================================================================
 
+    /** Session rows are metadata only (V21): statement contributions are
+     *  maintained by the event-row write paths (appendEvents/finalize/delete). */
     async saveSession(session: Session): Promise<string> {
-        const db = await this.dbPromise;
-        const tx = db.transaction(['sessions', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
-        const now = Date.now();
-        const rowIds: string[] = [];
-        tx.objectStore('sessions').put(session);
-        const contributions = extractContributionsFromResult(session);
-        const nextByRow = new Map<string, typeof contributions>();
-        for (const c of contributions) {
-            rowIds.push(c.rowId);
-            const bucket = nextByRow.get(c.rowId);
-            if (bucket) bucket.push(c);
-            else nextByRow.set(c.rowId, [c]);
-        }
-        for (const [rowId, set] of nextByRow) {
-            await replaceRowContributionsTx(tx, 'result', session.id, rowId, set, now);
-        }
-        const record = await tx.objectStore('field_sources').get(fieldSourceId('result', session.id));
-        if (record) {
-            const stale = record.contributions.filter((c) => !rowIds.includes(c.rowId));
-            const seen = new Set(stale.map((c) => c.rowId));
-            await removeRowSetContributionsTx(tx, 'result', session.id, [...seen]);
-        }
-        await tx.done;
-        this.signalCatalogChanged();
-        return session.id;
+        return (await this.dbPromise).put('sessions', session);
     }
 
     async saveResult(result: Session): Promise<string> {
