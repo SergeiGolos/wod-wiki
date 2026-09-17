@@ -10,3 +10,4 @@ export * from './BlockKey';
 export * from './Dialect';
 export * from './DisplayItem';
 export * from './AnalyticsModels';
+export * from './blockContentId';

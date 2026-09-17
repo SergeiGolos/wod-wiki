@@ -1571,7 +1571,7 @@ export class IndexedDBService {
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(
-            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values'],
+            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values', 'block_index'],
             'readwrite',
         );
 
@@ -1593,6 +1593,12 @@ export class IndexedDBService {
         while (segCursor) {
             await segCursor.delete();
             segCursor = await segCursor.continue();
+        }
+        const blockIdx = tx.objectStore('block_index').index('by-note');
+        let blockCursor = await blockIdx.openCursor(IDBKeyRange.only(id));
+        while (blockCursor) {
+            await blockCursor.delete();
+            blockCursor = await blockCursor.continue();
         }
 
         const resIdx = tx.objectStore('results').index('by-note');

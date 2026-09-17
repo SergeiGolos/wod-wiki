@@ -150,6 +150,10 @@ export function saveBlockQuerySource(
   newQuery: string,
   queryIndex = 0,
 ): { ok: boolean; patchedContent?: string; message?: string } {
+  if (view.state.readOnly) {
+    return { ok: false, message: "Cannot modify query source in read-only mode." };
+  }
+
   const section = findQueryBlockSection(view, sectionId);
   if (!section || section.contentFrom === undefined || section.contentTo === undefined) {
     return { ok: false, message: "Query block section not found" };

@@ -15,6 +15,7 @@
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import { EditorState, StateEffect, type Extension } from "@codemirror/state";
+import type { ViewUpdate } from "@codemirror/view";
 import {
   EditorView,
   keymap,
@@ -93,6 +94,8 @@ export interface NoteEditorProps {
   value: string;
   /** Called on every document change */
   onChange: (value: string) => void;
+  /** Called on document change with the full ViewUpdate for tracking edits and coordinate changes */
+  onDocUpdate?: (update: ViewUpdate) => void;
   /** Called when cursor position changes */
   onCursorPositionChange?: (line: number, column: number) => void;
   /** Called when the editor loses focus */
@@ -173,6 +176,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   noteId,
   value,
   onChange,
+  onDocUpdate,
   onCursorPositionChange,
   onBlur,
   theme = "vs",
@@ -482,6 +486,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
+          onDocUpdate?.(update);
           notifyBlockChanges(update.state, onBlocksChange, lastBlocksJsonRef);
         }
         if (update.selectionSet || update.docChanged) {
@@ -506,6 +511,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       onChange,
       onCursorPositionChange,
       onBlur,
+      onDocUpdate,
       onBlocksChange,
       readonly,
       openNavigationPalette,

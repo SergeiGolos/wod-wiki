@@ -16,6 +16,8 @@ import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentPro
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { sessionQueryInsert, sessionQueryWql } from '@bitcobblers/wod-wiki-ui/extensions';
 import { resolveCompletionTargets } from '../lib/workoutCompletion';
+import type { ViewUpdate } from '@codemirror/view';
+import { shiftBoundariesOnUpdate } from './shared/noteBoundaries';
 import { useEditorSave } from '../hooks/useEditorSave';
 
 import { JournalPageShell } from '@/panels/page-shells';
@@ -203,6 +205,9 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     setContent(value);
     editorSaveOnChange(value);
   }, [editorSaveOnChange]);
+  const onDocUpdate = useCallback((update: ViewUpdate) => {
+    boundariesRef.current = shiftBoundariesOnUpdate(boundariesRef.current, update);
+  }, []);
 
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
 
@@ -231,6 +236,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           <NoteEditor
             value={content}
             onChange={onChange}
+            onDocUpdate={onDocUpdate}
             onBlur={onBlur}
             noteId={journalDate}
             readonly={viewMode === 'read'}

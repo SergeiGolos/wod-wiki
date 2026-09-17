@@ -1,3 +1,4 @@
+import { blockContentId } from "@bitcobblers/wod-wiki-core";
 import { StateField, StateEffect, EditorState } from "@codemirror/state";
 import { parseQueryWidgetSuffix } from '@bitcobblers/wod-wiki-wql';
 import { hashCode } from "../utils/cn";
@@ -51,16 +52,7 @@ export interface SectionState {
 }
 
 export const forceSectionParse = StateEffect.define<null>();
-
-export function blockContentId(content: string): string {
-  const normalized = content
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .join('\n');
-  return `wblk-${hashCode(normalized).toString(36)}`;
-}
-
+export { blockContentId };
 function generateSectionId(type: string, startLine: number, content: string): string {
   return `${type}-${startLine}-${hashCode(content).toString(36)}`;
 }

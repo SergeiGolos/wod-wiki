@@ -269,11 +269,18 @@ function findWidgetSection(view: EditorView, sectionId: string): EditorSection |
 }
 
 function saveWidgetSource(view: EditorView, sectionId: string, markdown: string): WidgetConfigParseResult | null {
+  if (view.state.readOnly) {
+    return {
+      ok: false,
+      config: {},
+      message: "Cannot modify widget source in read-only mode.",
+    };
+  }
+
   const parsed = parseWidgetConfig(markdown);
   if (!parsed.ok) {
     return parsed;
   }
-
   const section = findWidgetSection(view, sectionId);
   if (!section || section.contentFrom == null || section.contentTo == null) {
     return {

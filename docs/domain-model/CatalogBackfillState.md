@@ -7,11 +7,19 @@ db: wodwiki-db (v19)
 
 # CatalogBackfillState
 
-**Store:** `field_catalog_meta` · **Key path:** `id` · **Type source:** `packages/core/src/types/storage.ts`
+> [!info] Current vs Future State
+> This document distinguishes the current implementation in code from proposed/future-state enhancements.
+
+## Current State (Implemented in Code)
+
+- **Store:** `field_catalog_meta`
+- **Key path:** `id`
+- **Type source:** `packages/core/src/types/storage.ts`
+- **Database version:** `wodwiki-db` (v19)
 
 Singleton `'backfill'` row — resumable progress/completion marker for the initial [[FieldCatalogEntry]] population (V17, ticket 14). Invoked by app bootstrap, not at module scope.
 
-## Fields
+### Fields (Current)
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -19,11 +27,20 @@ Singleton `'backfill'` row — resumable progress/completion marker for the init
 | `status` | 'initializing' \| 'complete' |  |
 | `cursor?` | { results?: string; notes?: string } | Last processed source key per source store — resume cursor |
 | `revision` | number |  |
-| `updatedAt` | number |  |
+| `updatedAt` | number | Unix ms |
 
-## Relationships
+### Relationships (Current)
 
 None — standalone store.
+
+---
+
+## Future State (Proposed)
+
+### Proposed Structure
+
+- Store remains singleton backfill progress marker.
+- `cursor` tracks `sessions` instead of `results` once session rename lands.
 
 ## Map
 
