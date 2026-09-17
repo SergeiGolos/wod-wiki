@@ -49,6 +49,7 @@ export interface HistoryEntry {
   // Note Management
   type?: NoteKind;                     // Default to 'note' if undefined
   sourceId?: string;                   // N-10 — the entry this one was created from (template/collection source; renamed from templateId)
+  catalog?: string;                    // Bundled-source catalog id (collection directory) for seed corpus notes
   slug?: string;                        // V8 — route slug (e.g. 'journal/2026-07-13'); UUID-keyed notes carry their original route id here
 }
 

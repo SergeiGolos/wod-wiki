@@ -284,3 +284,35 @@ describe('resolveRouteView — Library replaces the legacy list routes', () => {
     expect(resolveRouteView('/dashboard/training-block-review', NO_PARAMS, makeDeps()).page).toBe('dashboardView')
   })
 })
+
+describe('resolveRouteView — single-note and collection-date routes', () => {
+  const UUID = '01990e80-0000-7000-8000-000000000001'
+
+  it('classifies /notes/:noteId as the single-note page', () => {
+    const view = resolveRouteView(`/notes/${UUID}`, NO_PARAMS, makeDeps())
+    expect(view.page).toBe('note')
+    expect(view.isNoteByIdRoute).toBe(true)
+    expect(view.noteById).toBe(UUID)
+    expect(view.workout.category).toBe('note')
+  })
+
+  it('classifies /collections/:slug/:noteId as the single-note page', () => {
+    const view = resolveRouteView(`/collections/girls/${UUID}`, { collection: 'girls', workout: UUID }, makeDeps())
+    expect(view.page).toBe('note')
+    expect(view.noteById).toBe(UUID)
+  })
+
+  it('classifies /collections/:slug/:date as the date-scoped collection page', () => {
+    const view = resolveRouteView('/collections/girls/2026-09-17', { collection: 'girls', workout: '2026-09-17' }, makeDeps())
+    expect(view.page).toBe('collectionDate')
+    expect(view.collectionDate).toEqual({ slug: 'girls', date: '2026-09-17' })
+    expect(view.workout.category).toBe('girls')
+  })
+
+  it('keeps /collections/:slug/:name on the workout page', () => {
+    const view = resolveRouteView('/collections/girls/Fran', { collection: 'girls', workout: 'Fran' }, makeDeps())
+    expect(view.page).toBe('workout')
+    expect(view.collectionDate).toBeNull()
+    expect(view.noteById).toBeUndefined()
+  })
+})

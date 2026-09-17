@@ -3,6 +3,11 @@ import { parseJournalDate } from '../services/parseJournalDate';
 // Accepts RFC 9562 versions 1-8 (v7 included — note IDs are time-ordered v7).
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** True when the value looks like a note UUID (any version 1-8). */
+export function isNoteUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
 export type JournalRoute =
   | { kind: 'index' }
   | { kind: 'date'; journalDate: string }

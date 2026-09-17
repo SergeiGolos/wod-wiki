@@ -152,6 +152,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             tags: tagsByNote.get(note.id) ?? [],
             type: note.type || 'note',
             sourceId: note.sourceId,
+            catalog: note.catalog,
             schemaVersion: 1,
         } as HistoryEntry));
 

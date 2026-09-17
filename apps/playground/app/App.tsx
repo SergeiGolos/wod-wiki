@@ -64,6 +64,8 @@ import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAu
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
+import { NoteByIdPage } from './pages/NoteByIdPage'
+import { CollectionDatePage } from './pages/CollectionDatePage'
 import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
 import { SettingsPage } from './pages/SettingsPage'
 
@@ -258,6 +260,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     ),
     journalEntry: () => (
       <JournalPage key={view.journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} onSearch={openSearchPalette} />
+    ),
+    note: () => (
+      <NoteByIdPage key={view.noteById} noteId={view.noteById!} theme={actualTheme} />
+    ),
+    collectionDate: () => (
+      <CollectionDatePage key={`${view.collectionDate!.slug}/${view.collectionDate!.date}`} slug={view.collectionDate!.slug} date={view.collectionDate!.date} theme={actualTheme} />
     ),
     workout: () => (
       <WorkoutEditorPage
@@ -481,6 +489,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.noteById} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />

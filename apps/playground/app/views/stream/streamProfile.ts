@@ -99,7 +99,9 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
 
 export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   route: '/library',
-  defaultWql: 'find:note last 2w',
+  // The library landing surfaces the collection listing (not the journal
+  // stream); `?q=` deep links still override the default explicitly.
+  defaultWql: 'find:note{source:collections} last 4w',
   level: 'note',
   typeOptions: ['notes', 'journal', 'collections', 'feeds', 'playground', 'blocks'],
   shelfVisible: true,

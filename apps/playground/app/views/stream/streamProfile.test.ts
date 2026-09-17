@@ -35,7 +35,7 @@ describe('streamProfile presets', () => {
 
   it('defines the Library stream profile', () => {
     expect(LIBRARY_STREAM_PROFILE.route).toBe('/library')
-    expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe('find:note last 2w')
+    expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} last 4w')
     expect(LIBRARY_STREAM_PROFILE.level).toBe('note')
     expect(LIBRARY_STREAM_PROFILE.typeOptions).toEqual(['notes', 'journal', 'collections', 'feeds', 'playground', 'blocks'])
   })

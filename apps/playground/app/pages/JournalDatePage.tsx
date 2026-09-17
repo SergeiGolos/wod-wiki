@@ -6,7 +6,8 @@ import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
 import { playgroundRecorder } from '@/services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+import { noteByIdPath } from '../lib/routes';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { ResponsiveActions } from '../nav/ResponsiveActions'
@@ -229,6 +230,19 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           actions={<ResponsiveActions navbar={editToggle} />}
           editor={
         <div className="flex flex-col gap-8 px-4 py-6 sm:px-6">
+          {notes.length > 1 && (
+            <nav aria-label="Notes on this date" className="flex flex-wrap gap-2">
+              {notes.map((note) => (
+                <Link
+                  key={note.id}
+                  to={noteByIdPath(note.id)}
+                  className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  {note.title}
+                </Link>
+              ))}
+            </nav>
+          )}
           {notes.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
           ) : (

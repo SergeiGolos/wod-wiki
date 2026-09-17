@@ -22,7 +22,8 @@ import {
   matchFeedDetail,
 } from './routes'
 import { cleanRoutePath } from '../views/stream/streamProfile'
-import { resolveJournalRoute } from './journalRoute'
+import { resolveJournalRoute, isNoteUuid } from './journalRoute'
+import { parseJournalDate } from '../services/parseJournalDate'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { formatDateMedium } from '@/lib/dateFormat'
 import { formatDateKey } from '../services/dateUtils'
@@ -78,6 +79,8 @@ export type PageKind =
   | 'playground'
   | 'workout'
   | 'journalEntry'
+  | 'note'
+  | 'collectionDate'
   | 'library'
   | 'settings'
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
@@ -112,6 +115,11 @@ export interface RouteFlags {
   effectivePlaygroundId: string | undefined
   isJournalEntryRoute: boolean
   journalEntryId: string | undefined
+  /** /notes/:noteId — the canonical single-note route. */
+  isNoteByIdRoute: boolean
+  noteById: string | undefined
+  /** /collections/:slug/:date — a date-scoped, journal-style collection view. */
+  collectionDate: { slug: string; date: string } | null
   feedItemMatch: [string, string, string] | null
   feedDetailMatch: string | null
 }
@@ -167,7 +175,32 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
         : undefined
   const feedItemMatch = matchFeedItem(pathname)
   const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(pathname)
-  return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, feedItemMatch, feedDetailMatch }
+
+  const noteByIdMatch = pathname.match(/^\/notes\/([^/]+)$/)
+  const isNoteByIdRoute = noteByIdMatch != null
+  const noteById = noteByIdMatch ? decodeURIComponent(noteByIdMatch[1]!) : undefined
+
+  // /collections/:slug/:target — a UUID targets one note (same single-note
+  // page as /notes/:noteId), a date scopes the collection to a journal-style
+  // day; anything else stays a workout name.
+  let collectionDate: { slug: string; date: string } | null = null
+  const collectionMatch = pathname.match(/^\/collections\/([^/]+)\/([^/]+)$/)
+  if (collectionMatch) {
+    const slug = decodeURIComponent(collectionMatch[1]!)
+    const target = decodeURIComponent(collectionMatch[2]!)
+    if (isNoteUuid(target)) {
+      if (!isNoteByIdRoute) {
+        return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, isNoteByIdRoute: true, noteById: target, collectionDate: null, feedItemMatch, feedDetailMatch }
+      }
+    } else {
+      const parsed = parseJournalDate(target)
+      if (parsed) {
+        collectionDate = { slug, date: parsed.dateKey }
+      }
+    }
+  }
+
+  return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, isNoteByIdRoute, noteById, collectionDate, feedItemMatch, feedDetailMatch }
 }
 
 function deriveWorkout(
@@ -181,6 +214,12 @@ function deriveWorkout(
 
   if (flags.isPlaygroundRoute) {
     return { name: 'Playground', content: '', category: 'playground' }
+  }
+  if (flags.isNoteByIdRoute && flags.noteById) {
+    return { name: 'Note', content: '', category: 'note' }
+  }
+  if (flags.collectionDate) {
+    return { name: flags.collectionDate.date, content: '', category: flags.collectionDate.slug }
   }
   if (flags.isJournalEntryRoute && flags.journalEntryId) {
     return { name: flags.journalEntryId, content: '', category: 'journal' }
@@ -385,6 +424,8 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
 
   if (canvasPage) return 'canvas'
   if (flags.isPlaygroundRoute && flags.effectivePlaygroundId) return 'playground'
+  if (flags.isNoteByIdRoute && flags.noteById) return 'note'
+  if (flags.collectionDate) return 'collectionDate'
   if (flags.isJournalEntryRoute && flags.journalEntryId) return 'journalEntry'
   return 'workout'
 }

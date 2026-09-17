@@ -23,6 +23,7 @@ export const ROUTE_PATTERNS = {
   journal: '/journal',
   journalEntry: '/journal/:identity',
   journalNote: '/journal/:date/:uuid',
+  noteById: '/notes/:noteId',
   plan: '/plan',
   guideGettingStarted: '/guide/getting-started',
   guideSyntax: '/guide/syntax',
@@ -91,6 +92,21 @@ export function journalNotePath(date: string, uuid: string): string {
 /** Legacy single-segment journal route (date, UUID alias, or slug alias). */
 export function journalEntryPath(identity: string): string {
   return `/journal/${encodeURIComponent(identity)}`;
+}
+
+/** /notes/:noteId — the canonical single-note route (any note kind). */
+export function noteByIdPath(noteId: string): string {
+  return `/notes/${encodeURIComponent(noteId)}`;
+}
+
+/** /collections/:slug/:noteId — a specific note within a collection. */
+export function collectionNotePath(slug: string, noteId: string): string {
+  return `/collections/${encodeURIComponent(slug)}/${encodeURIComponent(noteId)}`;
+}
+
+/** /collections/:slug/:date — a date-scoped view of a collection, journal-style. */
+export function collectionDatePath(slug: string, date: string): string {
+  return `/collections/${encodeURIComponent(slug)}/${encodeURIComponent(date)}`;
 }
 
 /** /journal/:id?autoStart=<runtimeId> */
