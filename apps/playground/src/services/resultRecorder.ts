@@ -9,7 +9,7 @@
  */
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
-import type { ResultOrigin, Session, Session } from '@/types/storage';
+import type { ResultOrigin, Session } from '@/types/storage';
 import type { Sessions, ScriptBlock } from '@/components/Editor/types';
 import { parseNoteId } from '@/lib/noteIdentity';
 import { appError } from '@/lib/log';
