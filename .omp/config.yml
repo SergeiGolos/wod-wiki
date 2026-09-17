@@ -1,0 +1,14 @@
+# pstack role models (project-local; deep-merges over ~/.omp/agent/config.yml)
+# Aliases confirmed against the live `local` provider inventory on 2026-09-17.
+modelRoles:
+  pstack-worker: local/glm/glm-5.3-flash
+  pstack-reviewer: local/ag/gemini-3.8-flash-high
+  pstack-synthesizer: local/glm/glm-5.3
+
+task:
+  agentModelOverrides:
+    scout: "@pstack-worker"
+    task: "@pstack-worker"
+    sonic: "@pstack-worker"
+    reviewer: "@pstack-reviewer"
+    security-reviewer: "@pstack-reviewer"
