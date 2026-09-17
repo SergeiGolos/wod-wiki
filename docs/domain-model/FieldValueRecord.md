@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: field_values
 keyPath: "key"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 role: relationship-table
 ---
 

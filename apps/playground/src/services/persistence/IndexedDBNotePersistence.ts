@@ -267,7 +267,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
    * Lives on the concrete class (not INotePersistence): the provider-delegated
    * adapter has no direct store access to drive the cascade.
    */
-  async rederiveResultAnalytics(resultId: string): Promise<WorkoutResult> {
+  async rederiveResultAnalytics(resultId: string): Promise<Session> {
     const result = await this.storage.getResultById(resultId);
     if (!result) {
       throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${resultId}`);
@@ -373,11 +373,13 @@ export class IndexedDBNotePersistence implements INotePersistence {
    * across all notes. Playground-origin rows are excluded by default — pass
    * includePlayground to reveal them. Sorted newest-first.
    */
-  async getSimilarWorkoutResults(
+  async getSimilarSessions(
     blockContentId: string,
     options: { excludeNoteId?: string; includePlayground?: boolean; limit?: number } = {},
-  ): Promise<WorkoutResult[]> {
-    let results = await this.storage.getResultsByContentId(blockContentId);
+  ): Promise<Session[]> {
+    let results = typeof this.storage.getSessionsByContentId === 'function'
+      ? await this.storage.getSessionsByContentId(blockContentId)
+      : await this.storage.getResultsByContentId(blockContentId);
     if (options.excludeNoteId) {
       results = results.filter(r => r.noteId !== options.excludeNoteId);
     }
@@ -385,6 +387,12 @@ export class IndexedDBNotePersistence implements INotePersistence {
       results = results.filter(r => r.origin !== 'playground');
     }
     return limitResults(sortNewest(results), options.limit);
+  }
+  async getSimilarWorkoutResults(
+    blockContentId: string,
+    options: { excludeNoteId?: string; includePlayground?: boolean; limit?: number } = {},
+  ): Promise<WorkoutResult[]> {
+    return this.getSimilarSessions(blockContentId, options);
   }
 
   private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {    if (selection.mode === 'by-result-id') {

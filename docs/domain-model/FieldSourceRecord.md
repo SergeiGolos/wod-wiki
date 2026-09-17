@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: field_sources
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 role: relationship-table
 ---
 
@@ -18,7 +18,7 @@ role: relationship-table
 - **Type source:** `packages/core/src/types/storage.ts`
 - **Database version:** `wodwiki-db` (v19)
 
-**Relationship table** — the reversal record making re-saves idempotent and deletes reversible: the field-identity contribution set of one stable source record ([[Note]] or [[WorkoutResult]]).
+**Relationship table** — the reversal record making re-saves idempotent and deletes reversible: the field-identity contribution set of one stable source record ([[Note]] or [[Session]]).
 
 ### Fields (Current)
 
@@ -34,7 +34,7 @@ role: relationship-table
 #### Outgoing (this row references)
 
 - `id` → [[Note]] — polymorphic — `note:<id>`
-- `id` → [[WorkoutResult]] — polymorphic — `result:<id>`
+- `id` → [[Session]] — polymorphic — `result:<id>`
 - `contributions[].fieldId` → [[FieldCatalogEntry]]
 
 ---
@@ -53,7 +53,7 @@ These are review proposals, not implemented fixes. The session-prefix change bel
 ### Proposed Structure (Session Prefixing)
 
 In the proposed future state:
-- Source records originating from recorded workouts update their prefix from `result:<id>` to `session:<id>` pointing to [[WorkoutResult|sessions]].
+- Source records originating from recorded workouts update their prefix from `result:<id>` to `session:<id>` pointing to [[Session|sessions]].
 - Note-level contributions remain `note:<id>`.
 
 ## Map

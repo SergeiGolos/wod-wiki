@@ -1,4 +1,4 @@
-import type { WorkoutResult } from '@/types/storage';
+import type { Session, WorkoutResult } from '@/types/storage';
 import type { CreateNoteInput, GetNoteOptions, NoteLocator, NoteMutation, NoteQuery } from './types';
 import type { HistoryEntry } from '@/types/history';
 
@@ -12,9 +12,14 @@ export interface INotePersistence {
    * Fetch results for the same workout block (same `blockContentId`) recorded in
    * other notes. Optional because not every backend adapter supports this query.
    */
+  getSimilarSessions?(
+    blockContentId: string,
+    options?: { excludeNoteId?: string; includePlayground?: boolean; limit?: number },
+  ): Promise<Session[]>;
   getSimilarWorkoutResults?(
     blockContentId: string,
     options?: { excludeNoteId?: string; includePlayground?: boolean; limit?: number },
   ): Promise<WorkoutResult[]>;
+  getSessionById?(sessionId: string): Promise<Session | undefined>;
   getResultById?(resultId: string): Promise<WorkoutResult | undefined>;
 }

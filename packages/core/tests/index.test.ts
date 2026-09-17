@@ -17,7 +17,10 @@ import {
   isNotebookTag,
   type TimeSpan,
   type StoredOutputStatement,
+  type Session,
+  type EventRecord,
   type WorkoutResult,
+  type UnifiedEventRecord,
   type Note,
   type NoteSegment,
   type BlockIndexRow,
@@ -191,7 +194,7 @@ describe('@bitcobblers/wod-wiki-core public API', () => {
         sourceBlockKey: 'b1',
       };
 
-      const workoutResult: WorkoutResult = {
+      const workoutResult: Session = {
         id: 'res-1',
         noteId: 'note-1',
         createdAt: 1000,

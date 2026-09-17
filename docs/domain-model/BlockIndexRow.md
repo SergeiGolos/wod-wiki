@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: block_index
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # BlockIndexRow
@@ -51,8 +51,8 @@ Derived content-search projection for WQL `find:block`. The user-note rebuild em
 
 #### Incoming (referenced by)
 
-- [[WorkoutResult]].`blockContentId` — content-hash join, not an FK
-- [[UnifiedEventRecord]].`blockContentId` — content-hash join, not an FK
+- [[Session]].`blockContentId` — content-hash join, not an FK
+- [[EventRecord]].`blockContentId` — content-hash join, not an FK
 
 ---
 
@@ -76,7 +76,7 @@ Supports [[Note#Wayfinder questions and proposed answers]], [[NoteSegment#Taxono
 
 **Feedback case:** delete a user note, or refresh the same bundled item. A content search must not show an orphan, duplicate owner or broken detail link. Two identical workouts can share history without becoming the same editable occurrence.
 
-The separate results-to-sessions rename remains in [[WorkoutResult]]; it does not change this projection's authority or justify extra content hashing.
+The separate results-to-sessions rename remains in [[Session]]; it does not change this projection's authority or justify extra content hashing.
 
 ### Source evidence
 

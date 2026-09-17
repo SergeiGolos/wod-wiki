@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: notes
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # Note
@@ -66,10 +66,10 @@ Identity is not yet uniform across sources: seed import derives an ID from its p
 #### Incoming (referenced by)
 
 - [[NoteSegment]].`noteId`
-- [[WorkoutResult]].`noteId`
+- [[Session]].`noteId`
 - [[Attachment]].`noteId`
 - [[NoteTag]].`noteId`
-- [[UnifiedEventRecord]].`noteId`
+- [[EventRecord]].`noteId`
 - [[BlockIndexRow]].`noteId`
 - [[FieldSourceRecord]].`id` — polymorphic `note:<id>`
 
@@ -98,7 +98,7 @@ These are review targets, **not a proposed closed enum** or new tables.
 | ----------------------- | ----------------------------------------------------------------------------------------------------- |
 | Ordinary note           | Default authored content; no extra projection.                                                        |
 | Journal                 | Placement on a journal date; whether `journal` remains a distinct type is open.                       |
-| Playground              | Runnable scratch workflow; result origin/destination belongs to [[WorkoutResult]], not just the type. |
+| Playground              | Runnable scratch workflow; result origin/destination belongs to [[Session]], not just the type. |
 | Template                | Creation source for a new note; copies own their edits and retain provenance.                         |
 | Syntax                  | Teaching configuration and local examples; see [[Page#Syntax and dashboard composition]].             |
 | Collection / dated feed | Prose plus query-derived listings; see [[collection]].                                                |
@@ -116,7 +116,7 @@ Owner: [Pick the note-type taxonomy and where type lives](https://github.com/Ser
 
 **Feedback case:** a template-derived playground note appears in two collection queries and on a journal date. Which facts change its type, and which merely describe source, placement or presentation? Its owning ID and saved results must not change because another query displays it.
 
-The earlier results-to-sessions proposal remains separate in [[WorkoutResult]]; it is not a prerequisite for typed-note composition.
+The earlier results-to-sessions proposal remains separate in [[Session]]; it is not a prerequisite for typed-note composition.
 
 ### Source evidence
 

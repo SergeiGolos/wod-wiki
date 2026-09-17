@@ -19,7 +19,7 @@
  * Fully inverted dependencies: zero IndexedDB/storage module-level imports.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, EventRecord } from '@bitcobblers/wod-wiki-core';
 import { normalizeFieldComponent } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
@@ -54,6 +54,7 @@ import {
   type ResolvedRange,
 } from './calendar';
 import type {
+  EventStore,
   UnifiedEventStore,
   NoteQueryStore,
   BlockQueryStore,
@@ -63,6 +64,7 @@ import type {
 } from './stores';
 
 export type {
+  EventStore,
   UnifiedEventStore,
   NoteQueryStore,
   BlockQueryStore,
@@ -158,7 +160,7 @@ function effectiveTimeWindow(
   return inRange(createdAt, resolved);
 }
 
-const defaultEventStore: UnifiedEventStore = {
+const defaultEventStore: EventStore = {
   getEventsByTimeRange: async () => [],
   getEventsByResult: async () => [],
   getEventsForNote: async () => [],
@@ -236,7 +238,7 @@ export interface RowsRun {
   noteId: string;
   /** Canonical workout time (result.createdAt under the unified model). */
   timestamp: number;
-  events: UnifiedEventRecord[];
+  events: EventRecord[];
 }
 
 export interface RowsQueryResult {
@@ -460,14 +462,14 @@ function compareOp(value: number, op: ComparisonOp, threshold: number): boolean 
 }
 
 export class QueryService {
-  private readonly store: UnifiedEventStore;
+  private readonly store: EventStore;
   private readonly noteStore: NoteQueryStore;
   private readonly blockStore: BlockQueryStore;
   private readonly effortStore: EffortQueryStore;
   private readonly staticNoteStore?: NoteQueryStore;
 
   constructor(
-    storesOrEventStore?: QueryServiceStores | UnifiedEventStore,
+    storesOrEventStore?: QueryServiceStores | EventStore,
     noteStore?: NoteQueryStore,
     blockStore?: BlockQueryStore,
     effortStore?: EffortQueryStore,
@@ -489,7 +491,7 @@ export class QueryService {
       this.effortStore = stores.effortStore ?? defaultEffortStore;
       this.staticNoteStore = stores.staticNoteStore;
     } else {
-      this.store = (storesOrEventStore as UnifiedEventStore | undefined) ?? defaultEventStore;
+      this.store = (storesOrEventStore as EventStore | undefined) ?? defaultEventStore;
       this.noteStore = noteStore ?? defaultNoteStore;
       this.blockStore = blockStore ?? defaultBlockStore;
       this.effortStore = effortStore ?? defaultEffortStore;
@@ -545,8 +547,8 @@ export class QueryService {
     }
 
     // Scope → event rows, grouped per result (insertion order = first seen).
-    const byResult = new Map<string, UnifiedEventRecord[]>();
-    const collect = (rows: UnifiedEventRecord[]) => {
+    const byResult = new Map<string, EventRecord[]>();
+    const collect = (rows: EventRecord[]) => {
       for (const row of rows) {
         const bucket = byResult.get(row.resultId);
         if (bucket) bucket.push(row);
@@ -601,7 +603,7 @@ export class QueryService {
     // Eligible segment observations, deduped by stable record identity —
     // overlapping scope fetches contribute each segment exactly once.
     const seen = new Set<string>();
-    const segments: UnifiedEventRecord[] = [];
+    const segments: EventRecord[] = [];
     for (const row of eventRows) {
       if (row.grain !== 'event') continue;
       if (parsed.outputType && row.outputType !== parsed.outputType) continue;
@@ -625,7 +627,7 @@ export class QueryService {
     const totalCount = eligible.length;
     // Civil-date memo: one formatToParts per distinct instant per run.
     const civilDateCache = new Map<number, string>();
-    const dateOf = (row: UnifiedEventRecord): string => {
+    const dateOf = (row: EventRecord): string => {
       const temporal = row.metricTemporal?.[0];
       if (temporal?.temporalKind === 'civil-date' && temporal.civilDate) return temporal.civilDate;
       const cached = civilDateCache.get(row.timestamp);

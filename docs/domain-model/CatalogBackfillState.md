@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: field_catalog_meta
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # CatalogBackfillState
@@ -40,7 +40,7 @@ None — standalone store.
 ### Proposed Structure
 
 - Store remains singleton backfill progress marker.
-- `cursor` tracks `sessions` instead of `results` once session rename lands.
+- `cursor` tracks `sessions` instead of `sessions` once session rename lands.
 
 ## Map
 

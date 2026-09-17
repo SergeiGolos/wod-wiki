@@ -17,6 +17,7 @@
 import type {
   FieldContribution,
   Note,
+  Session,
   WorkoutResult,
 } from '@bitcobblers/wod-wiki-core';
 import { fieldRefKey } from '@bitcobblers/wod-wiki-core';
@@ -105,7 +106,7 @@ function contributionOfMetric(m: LooseMetric): FieldContribution | undefined {
   };
 }
 
-export function extractContributionsFromResult(result: WorkoutResult): Array<FieldContribution & { rowId: string }> {
+export function extractContributionsFromSession(result: Session): Array<FieldContribution & { rowId: string }> {
   const data: unknown = result.data;
   const logs: unknown = data && typeof data === 'object' && 'logs' in data ? data.logs : undefined;
   const contributions: Array<FieldContribution & { rowId: string }> = [];
@@ -124,6 +125,7 @@ export function extractContributionsFromResult(result: WorkoutResult): Array<Fie
   });
   return contributions;
 }
+export const extractContributionsFromResult = extractContributionsFromSession;
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
 
 /**

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { type UnifiedEventRecord, MetricType } from '@bitcobblers/wod-wiki-core';
+import { type EventRecord, MetricType } from '@bitcobblers/wod-wiki-core';
 import { parseQuery, isRowsQuery, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
@@ -7,7 +7,7 @@ import { cn } from '../utils/cn';
 
 const RPE_SCALE = Array.from({ length: 10 }, (_, i) => i + 1);
 
-export function readSessionRpe(events: UnifiedEventRecord[] | undefined): number | undefined {
+export function readSessionRpe(events: EventRecord[] | undefined): number | undefined {
   if (!events) return undefined;
   for (const statement of events) {
     for (const metric of statement.metrics) {

@@ -1,24 +1,24 @@
 ---
 tags: [domain-model]
-store: results
-proposedStore: sessions
+store: sessions
+legacyStore: results
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
-# WorkoutResult (Sessions)
+# Session
 
-> [!warning] Implementation Note
-> This document describes both the current code state and proposed/future-state table renames. The table rename to `sessions` is **not yet implemented** in the codebase. The live IndexedDB store remains `results`.
+> [!info] Implementation Note
+> Renamed from `WorkoutResult` with table rename `sessions` → `sessions` in DB v20. Legacy alias `WorkoutResult` is retained for backwards compatibility.
 
 ## Current State (Implemented in Code)
 
-- **Store:** `results`
+- **Store:** `sessions` (legacy `sessions` migrated on V20 upgrade)
 - **Key path:** `id`
-- **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Type source:** `apps/playground/src/types/storage.ts` (`Session`)
+- **Database version:** `wodwiki-db` (v20)
 
-Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progress'` at workout start, flipped to `'completed'` at finalize; `data.logs` stay the archival source of truth folded into [[UnifiedEventRecord]] rows.
+Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progress'` at workout start, flipped to `'completed'` at finalize; `data.logs` stay the archival source of truth folded into [[EventRecord]] rows.
 
 ### Fields (Current)
 
@@ -59,7 +59,7 @@ Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progres
 #### Incoming (referenced by)
 
 - [[Attachment]].`resultId`
-- [[UnifiedEventRecord]].`resultId`
+- [[EventRecord]].`resultId`
 - [[FieldSourceRecord]].`id` — polymorphic `result:<id>`
 
 #### Relationship tables
@@ -85,13 +85,13 @@ These recommendations do not implement behavior or resolve a ticket; mode policy
 
 The pre-existing rename below is outside the typed-note review and remains a proposal, not a prerequisite. No schema or helper aliases are introduced by these documents.
 
-- **Store:** `sessions` (renamed from `results`)
+- **Store:** `sessions` (renamed from `sessions`)
 - **Key path:** `id`
 - **Domain concept:** Represents a recorded workout execution session.
 
 ### Proposed Structure / Changes
 
-1. **Table Rename:** `results` → `sessions`.
+1. **Table Rename:** `sessions` → `sessions`.
 2. **Entity Terminology:** `WorkoutResult` → `Session` or `WorkoutSession`.
 3. **Foreign Keys:** References pointing to `resultId` (such as in `attachments`, `events`, and `field_sources`) will transition conceptually to `sessionId`.
 4. **Fields & Indexes:** Retain the execution payload structure (`data: WorkoutResults`, `createdAt`, `origin`, `status`, `blockContentId`). Any future rename must migrate callers and references as its own complete change, not add parallel terminology here.

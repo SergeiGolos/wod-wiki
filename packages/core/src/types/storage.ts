@@ -101,11 +101,11 @@ export interface BlockIndexRow {
 }
 
 // ---------------------------------------------------------------------------
-// WorkoutResult — execution log
+// Session — execution log (renamed from WorkoutResult; table results -> sessions in DB V20)
 // ---------------------------------------------------------------------------
 export type ResultOrigin = 'journal' | 'playground' | 'user';
 
-export interface WorkoutResult {
+export interface Session {
   id: string;
   segmentId?: string;
   segmentVersion?: number;
@@ -123,6 +123,8 @@ export interface WorkoutResult {
   createdAt: number;
 }
 
+/** @deprecated Use Session instead. Kept for backwards compatibility. */
+export type WorkoutResult = Session;
 // ---------------------------------------------------------------------------
 // Attachment — external temporal data blobs (GPS / HR)
 // ---------------------------------------------------------------------------
@@ -210,8 +212,9 @@ export const KNOWN_OUTPUT_TYPES = [
   'analytics',
   'wellness',
 ] as const;
-
-export interface UnifiedEventRecord {
+// EventRecord — THE single stored record for all workout data (renamed from UnifiedEventRecord)
+// ---------------------------------------------------------------------------
+export interface EventRecord {
   /**
    * Event rows:    `${resultId}:${seq}` — immutable, append-only.
    * Summary rows:  `${resultId}:summary:${metricKey}[:k=v…]` — deterministic
@@ -261,6 +264,8 @@ export interface UnifiedEventRecord {
   /** Ticket 14: retained reducer statistics for substitution proofs. */
   reducerStats?: ReducerStats;
 }
+/** @deprecated Use EventRecord instead. Kept for backwards compatibility. */
+export type UnifiedEventRecord = EventRecord;
 
 /** Scope descriptor of a substitute summary's coverage (ticket 14). */
 export interface SummaryCoverage {

@@ -10,7 +10,7 @@
 		{"id":"70a10d56a8252469","type":"file","file":"domain-model/FieldValueRecord.md","x":860,"y":1520,"width":340,"height":240},
 		{"id":"8251ffa3d4baef5d","type":"file","file":"domain-model/CatalogBackfillState.md","x":1280,"y":1520,"width":320,"height":220},
 		{"id":"b6755d218d5f4e1c","type":"file","file":"domain-model/Configuration.md","x":20,"y":2160,"width":300,"height":580},
-		{"id":"ef933d5554cd75b1","type":"file","file":"domain-model/WorkoutResult.md","x":-2040,"y":1200,"width":340,"height":320},
+		{"id":"ef933d5554cd75b1","type":"file","file":"domain-model/Session.md","x":-2040,"y":1200,"width":340,"height":320},
 		{"id":"3b0649c72650c313","type":"file","file":"domain-model/Note.md","x":-2020,"y":535,"width":300,"height":190},
 		{"id":"152e22186fc04c8a","type":"file","file":"domain-model/NoteSegment.md","x":-1540,"y":928,"width":360,"height":205},
 		{"id":"c101058e7ea21bbb","type":"file","file":"domain-model/Tag.md","x":-3400,"y":515,"width":300,"height":210},
@@ -18,7 +18,7 @@
 		{"id":"035b9ae578574cdf","type":"file","file":"domain-model/Effort.md","x":-1540,"y":130,"width":320,"height":180},
 		{"id":"dbe70a9a93533944","type":"file","file":"domain-model/NoteTag.md","x":-2650,"y":925,"width":300,"height":210},
 		{"id":"e9cb217697088a98","type":"file","file":"domain-model/Attachment.md","x":-2650,"y":1220,"width":320,"height":280},
-		{"id":"63b36e57b704ff6a","type":"file","file":"domain-model/UnifiedEventRecord.md","x":-1540,"y":1440,"width":380,"height":340}
+		{"id":"63b36e57b704ff6a","type":"file","file":"domain-model/EventRecord.md","x":-1540,"y":1440,"width":380,"height":340}
 	],
 	"edges":[
 		{"id":"92fd4b61d014c70e","fromNode":"063b90b3a0488151","fromSide":"right","toNode":"cf808f110813faf9","toSide":"left","label":"contributions[].fieldId"},

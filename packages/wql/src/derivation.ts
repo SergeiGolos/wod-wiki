@@ -11,7 +11,7 @@ import {
   type FieldRef,
   type ResultOrigin,
   type StoredOutputStatement,
-  type UnifiedEventRecord,
+  type EventRecord,
 } from '@bitcobblers/wod-wiki-core';
 
 /**
@@ -228,7 +228,7 @@ function firstEffortSlug(metrics: StoredOutputStatement['metrics']): string | un
 export function toEventRows(
   logs: readonly StoredOutputStatement[],
   identity: SummaryFactIdentity,
-): UnifiedEventRecord[] {
+): EventRecord[] {
   return logs.map((output, seq) => ({
     id: `${identity.resultId}:${seq}`,
     resultId: identity.resultId,
@@ -264,7 +264,7 @@ export function toEventRows(
 export function toSummaryEventRows(
   logs: readonly StoredOutputStatement[],
   identity: SummaryFactIdentity,
-): UnifiedEventRecord[] {
+): EventRecord[] {
   const now = Date.now();
   return Array.from(foldSummaryOutputs(logs).values(), (f) => ({
     id: `${identity.resultId}:summary:${f.rowKey}`,
@@ -320,7 +320,7 @@ export function toSummaryEventRows(
  * from the row's label metric as fallback. Deterministic fact ids:
  * `${record.id}:${factOrdinal}`.
  */
-export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPoint[] {
+export function projectEventToFacts(record: EventRecord): AnalyticsDataPoint[] {
   const metrics = record.metrics as readonly {
     type?: string; value?: unknown; unit?: string; image?: string;
     metadata?: Record<string, unknown>;

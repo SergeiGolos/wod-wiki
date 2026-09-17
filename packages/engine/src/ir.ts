@@ -13,7 +13,7 @@ import type {
   Note,
   NoteSegment,
   BlockIndexRow,
-  WorkoutResult,
+  Session,
   StoredOutputStatement,
   WorkoutResults,
 } from '@bitcobblers/wod-wiki-core';
@@ -172,7 +172,7 @@ export interface CorpusIRData {
   notes?: Note[];
   segments?: NoteSegment[];
   blocks?: BlockIndexRow[];
-  results?: WorkoutResult[];
+  results?: Session[];
   facts?: AnalyticsDataPoint[];
   efforts?: IEffort[];
   logs?: StoredOutputStatement[];

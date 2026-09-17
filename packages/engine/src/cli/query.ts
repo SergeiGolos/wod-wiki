@@ -27,7 +27,7 @@ import {
 } from '@bitcobblers/wod-wiki-wql';
 import { factRowsToEventRows, inMemoryEventStore } from '../store';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, Session, EventRecord } from '@bitcobblers/wod-wiki-core';
 import type { WorkoutResults } from '@bitcobblers/wod-wiki-core';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { bundledEfforts } from '@bitcobblers/wod-wiki-lang';
@@ -51,9 +51,9 @@ export interface QueryCliOptions {
 }
 
 interface LoadedData {
-  eventRecords: UnifiedEventRecord[];
+  eventRecords: EventRecord[];
   facts: AnalyticsDataPoint[];
-  results: WorkoutResult[];
+  results: Session[];
   notes: Note[];
   blocks: BlockIndexRow[];
   efforts: IEffort[];
@@ -173,7 +173,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
       const obj = payload as Record<string, unknown>;
       if (obj.kind === 'event-journal' || Array.isArray(obj.records)) {
         if (Array.isArray(obj.records)) {
-          data.eventRecords = obj.records as UnifiedEventRecord[];
+          data.eventRecords = obj.records as EventRecord[];
         }
         if (Array.isArray(obj.notes)) {
           data.notes = obj.notes as Note[];
@@ -194,7 +194,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
 
         // If logs are provided without separate results, synthesize results
         if (corpus.logs && (!corpus.results || corpus.results.length === 0)) {
-          const syntheticResult: WorkoutResult = {
+          const syntheticResult: Session = {
             id: 'corpus-result-1',
             noteId: 'corpus-note-1',
             blockContentId: 'corpus-block-1',
@@ -225,7 +225,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
     }
 
     const resultId = 'stdin-result-1';
-    const workoutResult: WorkoutResult = {
+    const workoutResult: Session = {
       id: resultId,
       noteId: 'stdin-note-1',
       blockContentId: 'stdin-block-1',

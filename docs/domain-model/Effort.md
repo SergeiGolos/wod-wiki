@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: efforts
 keyPath: "slug"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # Effort
@@ -56,7 +56,7 @@ Bundled import creates note content and parsed effort records alongside each oth
 
 #### Incoming (referenced by)
 
-- [[UnifiedEventRecord]].`effortSlug`
+- [[EventRecord]].`effortSlug`
 
 ---
 

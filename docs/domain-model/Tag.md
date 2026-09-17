@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: tags
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # Tag

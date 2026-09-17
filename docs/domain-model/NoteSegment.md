@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: segments
 keyPath: "[id, version]"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # NoteSegment
@@ -55,8 +55,8 @@ The normal content provider writes `wod`, `markdown`, `frontmatter` and `h1`–`
 
 #### Incoming (referenced by)
 
-- [[WorkoutResult]].`segmentId + segmentVersion` — recorded occurrence/version, distinct from a same-content join
-- [[UnifiedEventRecord]].`segmentId + segmentVersion`
+- [[Session]].`segmentId + segmentVersion` — recorded occurrence/version, distinct from a same-content join
+- [[EventRecord]].`segmentId + segmentVersion`
 - [[BlockIndexRow]].`segmentId + segmentVersion` — derived projection
 
 ---
@@ -101,7 +101,7 @@ Evidence: [Research: CodeMirror 6 patterns for mode-aware block widgets](https:/
 
 ### Identity and round-trip questions
 
-- **Which identity owns state/results?** Recommended answer: occurrence plus version for a specific run; block-content identity for intentional same-content history. Two identical blocks still need distinct edit targets. See [[WorkoutResult]].
+- **Which identity owns state/results?** Recommended answer: occurrence plus version for a specific run; block-content identity for intentional same-content history. Two identical blocks still need distinct edit targets. See [[Session]].
 - **Is source preserved byte-for-byte?** Not today: delimiters are reconstructed and sections can be matched by position/type. Recommended minimum: preserve unknown fences, metadata, query attributes, ordering and recoverable drafts. Exact whitespace/delimiter normalization and occurrence preservation across edits remain open acceptance decisions.
 - **Do we need `contentHash` on every segment?** Not for this map. Retain existing workout content IDs; require a concrete prose/query deduplication use before adding a field/index. The previous V20 proposal is not a prerequisite or adopted migration.
 - **Are content IDs already consistent across editor and persistence?** Source inspection shows different functions: editor normalization emits `wblk-…`; persistence's trimmed FNV-1a emits `bc-…`. Do not assume cross-path equivalence from the shared name; establish the canonical contract before migration or cross-source joins. No runtime compatibility test was performed for this documentation update.

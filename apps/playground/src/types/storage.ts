@@ -165,9 +165,9 @@ export interface BlockIndexRow {
 export type ResultOrigin = 'journal' | 'playground' | 'user';
 
 /**
- * WorkoutResult: The outcome of running a specific segment version.
+ * Session: The outcome of running a specific segment version (renamed from WorkoutResult; table results -> sessions in DB V20).
  */
-export interface WorkoutResult {
+export interface Session {
     id: string;           // UUID
 
     /** Positional identity — FK to NoteSegment.id (the section id of the block run). */
@@ -198,6 +198,8 @@ export interface WorkoutResult {
 
     createdAt: number;  // When the workout was finished
 }
+
+export type WorkoutResult = Session;
 // Attachment — external temporal data blobs (GPS / HR)
 // ---------------------------------------------------------------------------
 /**

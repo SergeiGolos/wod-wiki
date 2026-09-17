@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: note_tags
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 role: relationship-table
 ---
 

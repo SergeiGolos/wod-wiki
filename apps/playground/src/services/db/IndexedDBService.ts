@@ -117,6 +117,19 @@ export interface WodWikiDB extends DBSchema {
             'by-origin': string;  // V10 — origin; default exclusion of playground rows
         };
     };
+    sessions: {
+        key: string;
+        value: Session;
+        indexes: {
+            'by-segment': string;
+            'by-note': string;
+            'by-completed': number;
+            'by-content': string;
+            'by-block': string;
+            'by-page': string;
+            'by-origin': string;
+        };
+    };
     attachments: {
         key: string;
         value: Attachment;
@@ -218,7 +231,7 @@ export interface WodWikiDB extends DBSchema {
         indexes: {};
     };
 }
-const DB_VERSION = 19; // V19 — meta kv store (seed import checkpoint); V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
+const DB_VERSION = 20; // V20 — sessions store (renamed from results); V19 — meta kv store // V19 — meta kv store (seed import checkpoint); V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -1021,6 +1034,18 @@ export class IndexedDBService {
                     db.createObjectStore('meta', { keyPath: 'key' });
                 }
 
+                // ---- Sessions (V20 — renamed from results) ----
+                if (!db.objectStoreNames.contains('sessions')) {
+                    const store = db.createObjectStore('sessions', { keyPath: 'id' });
+                    store.createIndex('by-segment', 'segmentId');
+                    store.createIndex('by-note', 'noteId');
+                    store.createIndex('by-completed', 'createdAt');
+                    store.createIndex('by-content', 'blockContentId');
+                    store.createIndex('by-block', 'blockId');
+                    store.createIndex('by-page', 'pageId');
+                    store.createIndex('by-origin', 'origin');
+                }
+
                 // ---- Page / Tags / NoteTags (V10 — additive) ----
                 if (!db.objectStoreNames.contains('page')) {
                     const store = db.createObjectStore('page', { keyPath: 'id' });
@@ -1122,6 +1147,15 @@ export class IndexedDBService {
                 }
                 if (db.objectStoreNames.contains('analytics')) {
                     db.deleteObjectStore('analytics');
+                }
+
+                // ---- V20: copy results to sessions ----
+                if (oldVersion < 20 && db.objectStoreNames.contains('results') && db.objectStoreNames.contains('sessions')) {
+                    const resultsStore = tx.objectStore('results');
+                    const sessionsStore = tx.objectStore('sessions');
+                    for await (const cursor of resultsStore) {
+                        await sessionsStore.put(cursor.value as Session);
+                    }
                 }
             },
             // Another tab is waiting on a schema upgrade this connection
@@ -1571,7 +1605,7 @@ export class IndexedDBService {
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(
-            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values', 'block_index'],
+            ['notes', 'segments', 'results', 'sessions', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values', 'block_index'],
             'readwrite',
         );
 
@@ -1601,13 +1635,20 @@ export class IndexedDBService {
             blockCursor = await blockCursor.continue();
         }
 
+        const deletedResultIds: string[] = [];
         const resIdx = tx.objectStore('results').index('by-note');
         let resCursor = await resIdx.openCursor(IDBKeyRange.only(id));
-        const deletedResultIds: string[] = [];
         while (resCursor) {
             deletedResultIds.push(resCursor.value.id);
             await resCursor.delete();
             resCursor = await resCursor.continue();
+        }
+        const sessIdx = tx.objectStore('sessions').index('by-note');
+        let sessCursor = await sessIdx.openCursor(IDBKeyRange.only(id));
+        while (sessCursor) {
+            deletedResultIds.push(sessCursor.value.id);
+            await sessCursor.delete();
+            sessCursor = await sessCursor.continue();
         }
 
         const attIdx = tx.objectStore('attachments').index('by-note');
@@ -1672,7 +1713,7 @@ export class IndexedDBService {
         };
 
         const db = await this.dbPromise;
-        const tx = db.transaction(['notes', 'segments', 'results', 'attachments', 'events'], 'readwrite');
+        const tx = db.transaction(['notes', 'segments', 'results', 'sessions', 'attachments', 'events'], 'readwrite');
         const migratedExisting = await tx.objectStore('notes').index('by-slug').get(oldId);
         if (migratedExisting) {
             await tx.done;
@@ -1682,7 +1723,7 @@ export class IndexedDBService {
         await tx.objectStore('notes').put(migrated);
 
         // Re-key noteId-keyed dependents via by-note cursors.
-        for (const storeName of ['segments', 'results', 'attachments'] as const) {
+        for (const storeName of ['segments', 'results', 'sessions', 'attachments'] as const) {
             const store = tx.objectStore(storeName);
             let cursor = await store.index('by-note').openCursor(IDBKeyRange.only(oldId));
             while (cursor) {
@@ -1771,18 +1812,17 @@ export class IndexedDBService {
     // Results
     // ======================================================================
 
-    /** Save a result; ticket 14 — the result's catalog contribution set is
-     *  replaced in the same transaction (identical re-save = empty delta). */
-    async saveResult(result: WorkoutResult): Promise<string> {
+    // ======================================================================
+    // Sessions (V20 — renamed from results)
+    // ======================================================================
+
+    async saveSession(session: Session): Promise<string> {
         const db = await this.dbPromise;
-        const tx = db.transaction(['results', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
+        const tx = db.transaction(['sessions', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
         const now = Date.now();
         const rowIds: string[] = [];
-        tx.objectStore('results').put(result);
-        const contributions = extractContributionsFromResult(result);
-        // One replacement per ROW with the row's FULL next set — per-
-        // contribution calls would reverse earlier metrics' support
-        // (multi-metric statements must keep every metric's contribution).
+        tx.objectStore('sessions').put(session);
+        const contributions = extractContributionsFromResult(session);
         const nextByRow = new Map<string, typeof contributions>();
         for (const c of contributions) {
             rowIds.push(c.rowId);
@@ -1791,54 +1831,79 @@ export class IndexedDBService {
             else nextByRow.set(c.rowId, [c]);
         }
         for (const [rowId, set] of nextByRow) {
-            await replaceRowContributionsTx(tx, 'result', result.id, rowId, set, now);
+            await replaceRowContributionsTx(tx, 'result', session.id, rowId, set, now);
         }
-        // Log statements removed by this save reverse their contributions.
-        const record = await tx.objectStore('field_sources').get(fieldSourceId('result', result.id));
+        const record = await tx.objectStore('field_sources').get(fieldSourceId('result', session.id));
         if (record) {
             const stale = record.contributions.filter((c) => !rowIds.includes(c.rowId));
             const seen = new Set(stale.map((c) => c.rowId));
-            await removeRowSetContributionsTx(tx, 'result', result.id, [...seen]);
+            await removeRowSetContributionsTx(tx, 'result', session.id, [...seen]);
         }
         await tx.done;
         this.signalCatalogChanged();
-        return result.id;
+        return session.id;
+    }
+
+    async saveResult(result: WorkoutResult): Promise<string> {
+        return this.saveSession(result);
+    }
+
+    async getSessionsForNote(noteId: string): Promise<Session[]> {
+        return (await this.dbPromise).getAllFromIndex('sessions', 'by-note', noteId);
     }
 
     async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
+        return this.getSessionsForNote(noteId);
+    }
+
+    async getSessionsForSection(noteId: string, sectionId: string): Promise<Session[]> {
+        const noteSessions = await this.getSessionsForNote(noteId);
+        return noteSessions.filter(r => r.blockContentId === sectionId);
     }
 
     async getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]> {
-        const noteResults = await this.getResultsForNote(noteId);
-        return noteResults.filter(r => r.blockContentId === sectionId);
+        return this.getSessionsForSection(noteId, sectionId);
+    }
+
+    async getSessionById(sessionId: string): Promise<Session | undefined> {
+        return (await this.dbPromise).get('sessions', sessionId);
     }
 
     async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
-        return (await this.dbPromise).get('results', resultId);
+        return this.getSessionById(resultId);
+    }
+
+    async getRecentSessions(limit = 20): Promise<Session[]> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('sessions', 'readonly');
+        const idx = tx.objectStore('sessions').index('by-completed');
+        const sessions: Session[] = [];
+        let cursor = await idx.openCursor(null, 'prev');
+        while (cursor && sessions.length < limit) {
+            sessions.push(cursor.value);
+            cursor = await cursor.continue();
+        }
+        return sessions;
     }
 
     async getRecentResults(limit = 20): Promise<WorkoutResult[]> {
-        const db = await this.dbPromise;
-        const tx = db.transaction('results', 'readonly');
-        const idx = tx.objectStore('results').index('by-completed');
-        const results: WorkoutResult[] = [];
-        let cursor = await idx.openCursor(null, 'prev');
-        while (cursor && results.length < limit) {
-            results.push(cursor.value);
-            cursor = await cursor.continue();
-        }
-        return results;
+        return this.getRecentSessions(limit);
     }
 
-    /** V6 — cross-note collection aggregation. */
+    async getSessionsByContentId(blockContentId: string): Promise<Session[]> {
+        return (await this.dbPromise).getAllFromIndex('sessions', 'by-content', blockContentId);
+    }
+
     async getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-content', blockContentId);
+        return this.getSessionsByContentId(blockContentId);
     }
 
-    /** V6 — per-clone journal history. */
+    async getSessionsForBlock(blockId: string): Promise<Session[]> {
+        return (await this.dbPromise).getAllFromIndex('sessions', 'by-block', blockId);
+    }
+
     async getResultsForBlock(blockId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-block', blockId);
+        return this.getSessionsForBlock(blockId);
     }
 
     // =======================================================================

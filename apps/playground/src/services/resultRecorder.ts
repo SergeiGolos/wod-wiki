@@ -9,7 +9,7 @@
  */
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
-import type { ResultOrigin, WorkoutResult } from '@/types/storage';
+import type { ResultOrigin, Session, WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import { parseNoteId } from '@/lib/noteIdentity';
 import { appError } from '@/lib/log';
@@ -64,9 +64,9 @@ export interface RecordResultInput {
 }
 
 export interface ResultRecorder {
-  record(input: RecordResultInput): Promise<WorkoutResult>;
+  record(input: RecordResultInput): Promise<Session>;
 }
-type ResultSavedListener = (result: WorkoutResult) => void;
+type ResultSavedListener = (result: Session) => void;
 const resultSavedListeners = new Set<ResultSavedListener>();
 
 export function onResultSaved(listener: ResultSavedListener): () => void {
@@ -119,7 +119,7 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
         },
       );
 
-      const result: WorkoutResult = {
+      const result: Session = {
         id: resultId,
         noteId,
         segmentId,

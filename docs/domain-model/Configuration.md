@@ -3,7 +3,7 @@ tags: [domain-model]
 store: meta
 proposedStore: configuration
 keyPath: "key"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # Configuration (Meta)

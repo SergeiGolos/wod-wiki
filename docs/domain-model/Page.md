@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: page
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # Page
@@ -53,9 +53,9 @@ None.
 
 - [[Note]].`pageId` — membership
 - [[NoteSegment]].`pageId` — copied from parent note
-- [[WorkoutResult]].`pageId` — copied from parent note
+- [[Session]].`pageId` — copied from parent note
 - [[Attachment]].`pageId` — copied from parent note
-- [[UnifiedEventRecord]].`pageId` — copied from parent note
+- [[EventRecord]].`pageId` — copied from parent note
 
 ---
 
@@ -81,7 +81,7 @@ Owner: [Define the mode-resolution rule matrix (read-only vs edit)](https://gith
 |---|---|---|
 | Change text, query definitions or widget configuration | No protected-source write; offer an explicit supported Edit/copy workflow. | Validate and save to the identified note; retain draft on failure or stale revision. |
 | Run, inspect, follow links, adjust temporary filters | Allowed when supported by the host; does not imply source authoring. | Same shared actions. |
-| Save results or attachments | Separate explicit destination; see [[WorkoutResult]] and [[Attachment]]. | Same destination requirement. |
+| Save results or attachments | Separate explicit destination; see [[Session]] and [[Attachment]]. | Same destination requirement. |
 | Try a syntax example or feed scratch | Local/example content may be editable without changing teaching/seed source. | Authoring source is a distinct operation. |
 | Persist dashboard defaults | Explicit source-authoring operation, not an implicit consequence of exploring a chart. | Write through the guarded note-authoring path. |
 

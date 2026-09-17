@@ -2,10 +2,10 @@
 tags: [domain-model]
 store: events
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
-# UnifiedEventRecord
+# EventRecord
 
 > [!info] Current vs Future State
 > This document distinguishes the current implementation in code from proposed/future-state enhancements.
@@ -15,16 +15,16 @@ db: wodwiki-db (v19)
 - **Store:** `events`
 - **Key path:** `id`
 - **Type source:** `packages/core/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v20)
 
-Unified query/event representation for workout data; recorded workouts retain archival logs in [[WorkoutResult]]. Grain `event` rows represent raw outputs; grain `summary` rows support derived aggregates. Wellness rows are reconciled from note content rather than requiring a recorded workout. `projectEventToFacts` folds rows into query facts.
+Unified query/event representation for workout data (renamed from `UnifiedEventRecord`); recorded workouts retain archival logs in [[Session]]. Grain `event` rows represent raw outputs; grain `summary` rows support derived aggregates. Wellness rows are reconciled from note content rather than requiring a recorded workout. `projectEventToFacts` folds rows into query facts.
 
 ### Fields (Current)
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | string | `${resultId}:${seq}` event \| `${resultId}:summary:${metricKey}[:k=v…]` summary \| `wellness:${noteId}:${key}` |
-| `resultId` | string | [[WorkoutResult]] for workout rows; synthetic `wellness:<noteId>` source for note-derived wellness |
+| `resultId` | string | [[Session]] for workout rows; synthetic `wellness:<noteId>` source for note-derived wellness |
 | `noteId` | string | FK → [[Note]] |
 | `blockContentId?` | string | Content-stable cross-workout join key → [[BlockIndexRow]] |
 | `pageId?` | string | FK → [[Page]] |
@@ -61,7 +61,7 @@ Unified query/event representation for workout data; recorded workouts retain ar
 
 #### Outgoing (this row references)
 
-- `resultId` → [[WorkoutResult]] for workout rows; wellness uses a synthetic per-note source ID, not a result foreign key
+- `resultId` → [[Session]] for workout rows; wellness uses a synthetic per-note source ID, not a result foreign key
 - `noteId` → [[Note]]
 - `pageId` → [[Page]]
 - `effortSlug` → [[Effort]]
@@ -78,14 +78,14 @@ Unified query/event representation for workout data; recorded workouts retain ar
 - Preserve source identity and provenance through note deletion/re-key or projection rebuild. Runtime output type `segment` is not a new [[NoteSegment]] kind.
 - Do not create another page-membership projection here. Existing `pageId` semantics follow [[Page#Recommended composition contract]]; query-derived membership does not rewrite events.
 
-**Feedback case:** a workout note appears in a second collection or switches to read presentation. Its recorded facts must remain attached to the original run, not be duplicated or reassigned because presentation changed. See [[WorkoutResult#Typed-note composition recommendations]].
+**Feedback case:** a workout note appears in a second collection or switches to read presentation. Its recorded facts must remain attached to the original run, not be duplicated or reassigned because presentation changed. See [[Session#Typed-note composition recommendations]].
 
 These are review proposals; the session-renaming proposal below is independent and remains unimplemented.
 
 ### Proposed Structure (Session Renaming)
 
 In the proposed future state:
-- `resultId` transitions to `sessionId` pointing to [[WorkoutResult|sessions]].
+- `resultId` transitions to `sessionId` pointing to [[Session|sessions]].
 - Event ID formatting updates from `${resultId}:${seq}` to `${sessionId}:${seq}`.
 - Index `by-result-grain` updates from `[resultId, grain]` to `[sessionId, grain]` (`by-session-grain`).
 

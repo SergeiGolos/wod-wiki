@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: attachments
 keyPath: "id"
-db: wodwiki-db (v19)
+db: wodwiki-db (v20)
 ---
 
 # Attachment
@@ -26,7 +26,7 @@ Temporal blob data attached to a workout — GPS/HR streams (GPX, JSON).
 | `id` | string | UUID |
 | `noteId` | string | FK → [[Note]] |
 | `pageId?` | string | FK → [[Page]] (V10) |
-| `resultId?` | string | FK → [[WorkoutResult]] when known (V10) |
+| `resultId?` | string | FK → [[Session]] when known (V10) |
 | `mimeType` | string | e.g. 'application/gpx+xml', 'application/json' |
 | `label` | string | Human-readable, e.g. "Garmin HR stream" |
 | `data` | ArrayBuffer \| string | Raw blob or JSON string |
@@ -48,7 +48,7 @@ Temporal blob data attached to a workout — GPS/HR streams (GPX, JSON).
 
 - `noteId` → [[Note]] — parent
 - `pageId` → [[Page]]
-- `resultId` → [[WorkoutResult]] — owning result when known
+- `resultId` → [[Session]] — owning result when known
 
 ---
 
@@ -69,7 +69,7 @@ The session-renaming proposal below is separate; typed-note composition does not
 ### Proposed Structure (Session Renaming)
 
 In the proposed future state:
-- `resultId` transitions to `sessionId` pointing to [[WorkoutResult|sessions]].
+- `resultId` transitions to `sessionId` pointing to [[Session|sessions]].
 - The index `by-result` becomes `by-session` on `sessionId`.
 
 ## Map
