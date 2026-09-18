@@ -254,7 +254,7 @@ describe('SettingsPage — Query Defaults tab', () => {
 
     expect(screen.getByTestId('settings-tab-queries')).toBeDefined()
     expect(screen.getByTestId('query-defaults-section')).toBeDefined()
-    for (const id of ['/library', '/journal', '/collections', '/feeds', '/efforts', '/results', '/results/segments', '/palette']) {
+    for (const id of ['/library', '/journal', '/collections', '/feeds', '/efforts', '/sessions', '/playgrounds', '/palette']) {
       expect(screen.getByTestId(`query-defaults-card-${id}`)).toBeDefined()
     }
   })

@@ -5,8 +5,8 @@ import {
   FEEDS_STREAM_PROFILE,
   LIBRARY_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
-  RESULTS_STREAM_PROFILE,
-  SEGMENTS_STREAM_PROFILE,
+  SESSIONS_STREAM_PROFILE,
+  PLAYGROUNDS_STREAM_PROFILE,
   getStreamProfile,
   resolveStreamProfile,
 } from './streamProfile'
@@ -47,18 +47,18 @@ describe('streamProfile presets', () => {
     expect(EFFORTS_STREAM_PROFILE.typeOptions).toEqual(['efforts'])
   })
 
-  it('defines the Results stream profile', () => {
-    expect(RESULTS_STREAM_PROFILE.route).toBe('/results')
-    expect(RESULTS_STREAM_PROFILE.defaultWql).toBe('rows:all{} last 4w')
-    expect(RESULTS_STREAM_PROFILE.level).toBe('result')
-    expect(RESULTS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
+  it('defines the Sessions stream profile (/sessions, rebranded from /results)', () => {
+    expect(SESSIONS_STREAM_PROFILE.route).toBe('/sessions')
+    expect(SESSIONS_STREAM_PROFILE.defaultWql).toBe('rows:all{} last 4w')
+    expect(SESSIONS_STREAM_PROFILE.level).toBe('result')
+    expect(SESSIONS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
   })
 
-  it('defines the Segments stream profile', () => {
-    expect(SEGMENTS_STREAM_PROFILE.route).toBe('/results/segments')
-    expect(SEGMENTS_STREAM_PROFILE.defaultWql).toBe('rows:segment{} last 8w')
-    expect(SEGMENTS_STREAM_PROFILE.level).toBe('segment')
-    expect(SEGMENTS_STREAM_PROFILE.typeOptions).toEqual(['rows'])
+  it('defines the Playgrounds stream profile', () => {
+    expect(PLAYGROUNDS_STREAM_PROFILE.route).toBe('/playgrounds')
+    expect(PLAYGROUNDS_STREAM_PROFILE.defaultWql).toBe('find:note{source:playground} last 4w')
+    expect(PLAYGROUNDS_STREAM_PROFILE.level).toBe('note')
+    expect(PLAYGROUNDS_STREAM_PROFILE.typeOptions).toEqual(['playground'])
   })
 
   it('resolves stream profile by route using getStreamProfile and resolveStreamProfile', () => {
@@ -67,8 +67,8 @@ describe('streamProfile presets', () => {
     expect(getStreamProfile('/collections')?.route).toBe('/collections')
     expect(getStreamProfile('/feeds')?.route).toBe('/feeds')
     expect(getStreamProfile('/efforts')?.route).toBe('/efforts')
-    expect(getStreamProfile('/results')?.route).toBe('/results')
-    expect(getStreamProfile('/results/segments')?.route).toBe('/results/segments')
+    expect(getStreamProfile('/sessions')?.route).toBe('/sessions')
+    expect(getStreamProfile('/playgrounds')?.route).toBe('/playgrounds')
     expect(getStreamProfile('/library')?.route).toBe('/library')
 
     // getStreamProfile returns undefined for unknown routes
@@ -78,25 +78,29 @@ describe('streamProfile presets', () => {
     expect(resolveStreamProfile('/unknown').route).toBe('/library')
   })
 
-  it('dynamically resolves result detail stream profile for /results/:resultId', () => {
-    const detail = getStreamProfile('/results/res-42')
+  it('dynamically resolves result detail stream profile for /sessions/:sessionId', () => {
+    const detail = getStreamProfile('/sessions/res-42')
     expect(detail).toBeDefined()
-    expect(detail?.route).toBe('/results/res-42')
+    expect(detail?.route).toBe('/sessions/res-42')
     expect(detail?.defaultWql).toBe('rows:segment{result:res-42}')
     expect(detail?.level).toBe('segment')
     expect(detail?.typeOptions).toEqual(['rows'])
 
     // Trailing slash normalizes
-    const trailing = getStreamProfile('/results/res-42/')
-    expect(trailing?.route).toBe('/results/res-42')
+    const trailing = getStreamProfile('/sessions/res-42/')
+    expect(trailing?.route).toBe('/sessions/res-42')
     expect(trailing?.defaultWql).toBe('rows:segment{result:res-42}')
 
     // resolveStreamProfile returns the dynamic profile
-    expect(resolveStreamProfile('/results/res-99').defaultWql).toBe('rows:segment{result:res-99}')
+    expect(resolveStreamProfile('/sessions/res-99').defaultWql).toBe('rows:segment{result:res-99}')
+  })
 
-    // /results/segments does NOT get treated as a dynamic resultId 'segments'
-    expect(getStreamProfile('/results/segments')?.route).toBe('/results/segments')
-    expect(getStreamProfile('/results/segments')?.defaultWql).toBe('rows:segment{} last 8w')
+  it('dynamically resolves a date-scoped sessions profile for /session/:date', () => {
+    const byDate = getStreamProfile('/session/2026-09-17')
+    expect(byDate).toBeDefined()
+    expect(byDate?.route).toBe('/session/2026-09-17')
+    expect(byDate?.defaultWql).toBe('rows:all{date:2026-09-17}')
+    expect(byDate?.level).toBe('result')
   })
 })
 

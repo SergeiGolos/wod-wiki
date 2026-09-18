@@ -33,6 +33,13 @@ import {
   ReviewRedirect,
   NotePlaygroundRedirect,
   WorkoutRedirect,
+  CollectionItemRedirect,
+  EffortRedirect,
+  ResultsRedirect,
+  SegmentsRedirect,
+  ResultDetailRedirect,
+  DashboardLandingRedirect,
+  noteByIdPath,
 } from './lib/routes'
 import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
@@ -87,7 +94,7 @@ const LIBRARY_SECONDARY: MenuSpec = [
     query: 'find:note{}',
     limit: 6,
     filterEntry: e => !!e.date,
-    toEntry: e => `/journal/${e.date}?note=${e.id}`,
+    toEntry: e => noteByIdPath(e.id),
   },
 ]
 
@@ -99,11 +106,11 @@ import { useWorkoutItems, EMPTY_WOD_FILES, type WorkoutItem } from './lib/workou
 import { useSeedContent } from '@/services/content/seedContent'
 export type { WorkoutItem }
 
-/** Redirect /analytics/explorer → /dashboard, preserving the shareable ?q=
- *  (and ?weeks=) query string. The WQL explorer moved to /dashboard. */
+/** Redirect /analytics/explorer → /dashboards, preserving the shareable ?q=
+ *  (and ?weeks=) query string. The WQL explorer lives on the dashboards list. */
 function ExplorerRedirect(): ReactNode {
   const { search } = useLocation()
-  return <Navigate to={{ pathname: '/dashboard', search }} replace />
+  return <Navigate to={{ pathname: '/dashboards', search }} replace />
 }
 
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
@@ -466,9 +473,9 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.settingsQueries} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/settings/library/calcs" element={<div className="p-6"><CalcAuthoringPanel /></div>} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
-                  <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />
-                  <Route path="/chapters/sequences" element={<Navigate to="/guide/syntax" replace />} />
-                  <Route path="/chapters/protocols" element={<Navigate to="/guide/syntax/protocols" replace />} />
+                  <Route path="/chapters/basics" element={<Navigate to="/p/syntax/basics" replace />} />
+                  <Route path="/chapters/sequences" element={<Navigate to="/p/syntax" replace />} />
+                  <Route path="/chapters/protocols" element={<Navigate to="/p/syntax/protocols" replace />} />
                   <Route path="/challenge" element={<Navigate to="/" replace />} />
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
@@ -478,13 +485,17 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* /collections item paths redirect into the /c prefix (note UUIDs → /notes/:noteId). */}
+                  <Route path="/collections/:slug" element={<CollectionItemRedirect />} />
+                  <Route path="/collections/:slug/:target" element={<CollectionItemRedirect />} />
+                  <Route path={ROUTE_PATTERNS.collection} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionTarget} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.loadJournal} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.loadJournalDate} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
                   <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.playgrounds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
@@ -492,25 +503,34 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.noteById} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.pages} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  {/* Dedicated execution telemetry streams and result detail (#946, Ticket 005). */}
-                  <Route path={ROUTE_PATTERNS.results} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.resultsSegments} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.resultDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  {/* Retired review screens (#946, Ticket 005) — bookmarks land on dedicated results routes. */}
+                  {/* Sessions — execution telemetry streams and detail (#946, Ticket 005);
+                      /results rebranded to /sessions with redirects. */}
+                  <Route path="/results" element={<ResultsRedirect />} />
+                  <Route path="/results/segments" element={<SegmentsRedirect />} />
+                  <Route path="/results/:resultId" element={<ResultDetailRedirect />} />
+                  <Route path={ROUTE_PATTERNS.sessions} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.sessionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.sessionDate} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* Retired review screens (#946, Ticket 005) — bookmarks land on the sessions family. */}
                   <Route path="/review/:runtimeId" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review/:sectionId" element={<ReviewRedirect />} />
                   <Route path="/note/:noteId/review/:sectionId/:resultId" element={<ReviewRedirect />} />
                   <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
                   <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  {/* The dashboard namespace (/dashboard = WQL explorer, /dashboard/:slug = a
-                      saved or prebuilt dashboard). Legacy /analytics/* redirect here. */}
-                  <Route path={ROUTE_PATTERNS.dashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.effort} element={<EffortRedirect />} />
+                  <Route path={ROUTE_PATTERNS.effortSlug} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* Dashboards: /dashboards = list + WQL explorer, /dashboard/:slug = a
+                      saved dashboard by id, /d/:slug = by page slug. Legacy
+                      /dashboard and /analytics/* redirect here. */}
+                  <Route path={ROUTE_PATTERNS.dashboard} element={<DashboardLandingRedirect />} />
+                  <Route path={ROUTE_PATTERNS.dashboards} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.dashboardView} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to="/dashboard" replace />} />
+                  <Route path={ROUTE_PATTERNS.dashboardSlug} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to="/dashboards" replace />} />
                   <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<ExplorerRedirect />} />
                   {canvasRouteList.map(({ route }) => (
                     <Route

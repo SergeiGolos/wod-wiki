@@ -3,7 +3,7 @@ import { render, screen, cleanup, act } from '@testing-library/react'
 import { useEffect } from 'react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
-import { buildAppNavTree, appNavTree, PLAYGROUND_LIBRARY_WQL } from '../appNavTree'
+import { buildAppNavTree, appNavTree } from '../appNavTree'
 import { ROUTE_PATTERNS } from '../../lib/routes'
 import { NavProvider } from '../NavContext'
 import { NavSidebar } from '../NavSidebar'
@@ -49,16 +49,16 @@ describe('appNavTree - Library navigation', () => {
     expect(playground.label).toBe('Playground')
     expect(playground.action).toEqual({
       type: 'route',
-      to: `/library?q=${encodeURIComponent(PLAYGROUND_LIBRARY_WQL)}`,
+      to: ROUTE_PATTERNS.playgrounds,
     })
 
     expect(efforts.id).toBe('library-efforts')
     expect(efforts.label).toBe('Efforts')
     expect(efforts.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.efforts })
 
-    expect(results.id).toBe('library-results')
-    expect(results.label).toBe('Results')
-    expect(results.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.results })
+    expect(results.id).toBe('library-sessions')
+    expect(results.label).toBe('Sessions')
+    expect(results.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.sessions })
   })
 
   it('defines a top-level Journal item ordered above Explore', () => {
@@ -140,7 +140,7 @@ describe('appNavTree - Library navigation', () => {
 
     expect(screen.getAllByText('Playground').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Efforts').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Results').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Sessions').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)

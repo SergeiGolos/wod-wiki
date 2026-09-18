@@ -12,7 +12,7 @@
 
 import { useMemo } from 'react'
 import { parseCanvasMarkdown, type ParsedCanvasPage } from './parseCanvasMarkdown'
-import { normalizePathname } from './canvasRouteLookup'
+import { findRouteWithCandidatesIn, normalizePathname } from './canvasRouteLookup'
 import { useSeedContent, type SeedContentFiles } from '@/services/content/seedContent'
 export { getSectionProse } from './parseCanvasMarkdown'
 export { normalizePathname } from './canvasRouteLookup'
@@ -35,20 +35,18 @@ export function buildCanvasRoutes(files: SeedContentFiles): CanvasRoute[] {
     }
     const readmeMatch = path.match(/^markdown\/collections\/([^/]+)\/README\.md$/)
     if (readmeMatch) {
-      // markdown/collections/dan-john/README.md -> /collections/dan-john
-      const page = parseCanvasMarkdown(raw, `/collections/${readmeMatch[1]}`)
+      // markdown/collections/dan-john/README.md -> /c/dan-john (the rebranded
+      // collection landing; /collections/:slug redirects there)
+      const page = parseCanvasMarkdown(raw, `/c/${readmeMatch[1]}`)
       if (page) collectionReadmes.push({ route: page.route, page })
     }
   }
   return [...canvas, ...collectionReadmes]
 }
 
-/** Pure lookup over a route list — normalized keys (#1005). */
+/** Exact lookup against normalized route keys — rebranded prefixes absorbed. */
 export function findCanvasPageIn(routes: CanvasRoute[], pathname: string): ParsedCanvasPage | null {
-  for (const r of routes) {
-    if (normalizePathname(r.route) === normalizePathname(pathname)) return r.page
-  }
-  return null
+  return findRouteWithCandidatesIn(routes, pathname)
 }
 
 /** Reactive route table — empty until the seeded corpus lands. */

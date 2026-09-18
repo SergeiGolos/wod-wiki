@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { readFileSync } from 'fs'
 
 import { ROUTE_PATTERNS } from '../lib/routes'
-import { findRouteIn, normalizePathname } from './canvasRouteLookup'
+import { findRouteIn, findRouteWithCandidatesIn, normalizePathname } from './canvasRouteLookup'
 import { parseCanvasMarkdown } from './parseCanvasMarkdown'
 
 const appSource = readFileSync(new URL('../App.tsx', import.meta.url), 'utf8')
@@ -48,5 +48,20 @@ describe('canvas route normalization (#1005)', () => {
 
     expect(findRouteIn(routes, '/guide/behaviors/')).toBe(behaviors.page)
     expect(findRouteIn(routes, '/guide/missing')).toBeNull()
+  })
+
+  it('resolves /p/<slug> aliases to declared guide and collection pages', () => {
+    const basics = { route: '/guide/syntax/basics', page: { route: '/guide/syntax/basics' } }
+    const readme = { route: '/c/dan-john', page: { route: '/c/dan-john' } }
+    const routes = [basics, readme]
+
+    // slug = declared route minus the leading slash and optional guide/ prefix
+    expect(findRouteWithCandidatesIn(routes, '/p/syntax/basics')).toBe(basics.page)
+    expect(findRouteWithCandidatesIn(routes, '/p/guide/syntax/basics')).toBe(basics.page)
+    // collection READMEs are declared at the /c prefix and resolve directly
+    expect(findRouteWithCandidatesIn(routes, '/c/dan-john')).toBe(readme.page)
+    // declared routes still win directly, unknown paths stay null
+    expect(findRouteWithCandidatesIn(routes, '/guide/syntax/basics')).toBe(basics.page)
+    expect(findRouteWithCandidatesIn(routes, '/p/missing')).toBeNull()
   })
 })

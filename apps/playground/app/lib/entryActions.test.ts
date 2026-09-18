@@ -31,34 +31,52 @@ describe('entryOpenHref', () => {
     }))).toBe('/playground/fran-experiment')
   })
 
-  it('routes a guide Note to its canvas route deep-link', () => {
+  it('routes a guide Note to its page render', () => {
     expect(entryOpenHref(makeEntry({
       id: 'guide/syntax/basics',
       kind: 'note',
       sourceCatalog: 'guides',
       sourceItem: 'guide/syntax/basics',
       sourceId: 'guides:guide/syntax/basics',
+      pageId: 'syntax/basics',
       date: null,
-    }))).toBe('/guide/syntax/basics')
+    }))).toBe('/p/syntax/basics')
   })
 
-  it('routes a Note to the journal deep-link', () => {
+  it('routes a Note to the canonical single-note editor', () => {
     expect(entryOpenHref(makeEntry({
-      id: 'journal-2026-07-15',
+      id: 'note-uuid-1',
       kind: 'note',
       sourceCatalog: 'journal',
-      sourceItem: 'journal-2026-07-15',
+      sourceItem: 'note-uuid-1',
       date: '2026-07-15',
-    }))).toBe('/journal/2026-07-15/')
+    }))).toBe('/notes/note-uuid-1')
   })
 
-  it('routes a Session to the workout deep-link', () => {
+  it('routes a page note to its /p page render', () => {
+    expect(entryOpenHref(makeEntry({
+      id: 'guide/syntax/basics',
+      kind: 'note',
+      sourceCatalog: 'guides',
+      sourceItem: '/guide/syntax/basics',
+      pageId: 'syntax/basics',
+    }))).toBe('/p/syntax/basics')
+  })
+
+  it('routes a Session to the /c page-slug editor', () => {
     expect(entryOpenHref(makeEntry({
       id: 'crossfit-girls/fran',
       kind: 'session',
       sourceCatalog: 'crossfit-girls',
       sourceItem: 'fran',
-    }))).toBe('/collections/crossfit-girls/fran')
+    }))).toBe('/c/crossfit-girls/fran')
+  })
+
+  it('routes an Effort to the /e slug editor', () => {
+    expect(entryOpenHref(makeEntry({
+      id: 'grace',
+      kind: 'effort',
+    }))).toBe('/e/grace')
   })
 
   it('routes a Post to the feed-item deep-link (catalog/date/item)', () => {
@@ -73,9 +91,9 @@ describe('entryOpenHref', () => {
 })
 
 describe('entryCompareHref', () => {
-  it('routes any row with a blockContentId to /analytics/explorer?q=<id>', () => {
+  it('routes any row with a blockContentId to /dashboards?q=<id>', () => {
     expect(entryCompareHref(makeEntry({ blockContentId: 'bc-fran' }))).toBe(
-      '/analytics/explorer?q=bc-fran',
+      '/dashboards?q=bc-fran',
     )
   })
 

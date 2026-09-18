@@ -180,11 +180,11 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
   const isNoteByIdRoute = noteByIdMatch != null
   const noteById = noteByIdMatch ? decodeURIComponent(noteByIdMatch[1]!) : undefined
 
-  // /collections/:slug/:target — a UUID targets one note (same single-note
-  // page as /notes/:noteId), a date scopes the collection to a journal-style
-  // day; anything else stays a workout name.
+  // /c/:slug/:target (and legacy /collections/…) — a UUID targets one note
+  // (same single-note page as /notes/:noteId), a date scopes the collection to
+  // a journal-style day; anything else stays a page-slug workout name.
   let collectionDate: { slug: string; date: string } | null = null
-  const collectionMatch = pathname.match(/^\/collections\/([^/]+)\/([^/]+)$/)
+  const collectionMatch = pathname.match(/^\/(?:c|collections)\/([^/]+)\/([^/]+)$/)
   if (collectionMatch) {
     const slug = decodeURIComponent(collectionMatch[1]!)
     const target = decodeURIComponent(collectionMatch[2]!)
@@ -227,8 +227,9 @@ function deriveWorkout(
   // Detail routes carry their identity in the path — surface the slug as the
   // workout name so the mobile navbar breadcrumb can show it (the page-level
   // header is hidden below lg).
-  if (pathname.startsWith('/effort/')) {
-    return { name: decodeURIComponent(pathname.split('/')[2] ?? 'Effort'), content: '', category: 'effort' }
+  if (pathname.startsWith('/effort/') || pathname.startsWith('/e/')) {
+    const prefix = pathname.startsWith('/e/') ? '/e/' : '/effort/'
+    return { name: decodeURIComponent(pathname.slice(prefix.length).split('/')[0] ?? 'Effort'), content: '', category: 'effort' }
   }
   if (flags.feedItemMatch) {
     return { name: decodeURIComponent(flags.feedItemMatch[2]), content: '', category: 'feed' }
@@ -236,8 +237,14 @@ function deriveWorkout(
   if (flags.feedDetailMatch) {
     return { name: decodeURIComponent(flags.feedDetailMatch), content: '', category: 'feed' }
   }
-  if (pathname.startsWith('/dashboard/')) {
-    return { name: decodeURIComponent(pathname.split('/')[2] ?? 'Dashboard'), content: '', category: 'dashboard' }
+  if (pathname.startsWith('/dashboard/') || pathname.startsWith('/d/')) {
+    const segment = pathname.startsWith('/d/')
+      ? pathname.slice('/d/'.length)
+      : pathname.split('/')[2]
+    return { name: decodeURIComponent(segment ?? 'Dashboard'), content: '', category: 'dashboard' }
+  }
+  if (pathname.startsWith('/session/')) {
+    return { name: decodeURIComponent(pathname.split('/')[2] ?? 'Sessions'), content: '', category: 'sessions' }
   }
   if (canvasPage) {
     return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
@@ -254,9 +261,12 @@ function deriveWorkout(
     '/efforts': 'Efforts',
     '/results': 'Results',
     '/results/segments': 'Segments',
+    '/sessions': 'Sessions',
+    '/playgrounds': 'Playgrounds',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
     '/dashboard': 'Dashboards',
+    '/dashboards': 'Dashboards',
     '/guide/analytics': 'Analytics Guide',
     '/analytics/dashboard': 'Analytics Dashboard',
     '/analytics/explorer': 'Metric Explorer',
@@ -266,7 +276,7 @@ function deriveWorkout(
   if (namedMatch) {
     return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
   }
-  if (cleanPath.startsWith('/results/')) {
+  if (cleanPath.startsWith('/results/') || cleanPath.startsWith('/sessions/')) {
     return { name: 'Result', content: PLAYGROUND_CONTENT, category: 'Results' }
   }
   if (cleanPath === '/settings' || cleanPath.startsWith('/settings/')) {
@@ -292,7 +302,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
 
   // 1. Canvas pages (including Home)
   if (canvasPage) {
-    const isCollection = pathname.startsWith('/collections/')
+    const isCollection = /^\/(?:c|collections)\//.test(pathname)
     const collectionSlug = isCollection ? pathname.split('/').pop() ?? null : null
 
     if (pathname === '/') {
@@ -410,16 +420,20 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
     clean === '/feed' ||
     clean === '/efforts' ||
     clean === '/results' ||
-    clean.startsWith('/results/')
+    clean === '/sessions' ||
+    clean === '/playgrounds' ||
+    clean.startsWith('/results/') ||
+    clean.startsWith('/sessions/') ||
+    clean.startsWith('/session/')
   ) {
     return 'library'
   }
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
-  if (pathname.startsWith('/effort/')) return 'effortDetail'
+  if (pathname.startsWith('/effort/') || pathname.startsWith('/e/')) return 'effortDetail'
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
-  if (pathname === '/dashboard') return 'dashboardExplorer'
-  if (pathname.startsWith('/dashboard/')) return 'dashboardView'
+  if (pathname === '/dashboard' || pathname === '/dashboards') return 'dashboardExplorer'
+  if (pathname.startsWith('/dashboard/') || pathname.startsWith('/d/')) return 'dashboardView'
   if (clean === '/settings' || clean.startsWith('/settings/')) return 'settings'
 
   if (canvasPage) return 'canvas'
@@ -436,7 +450,7 @@ function deriveShell(page: PageKind, pathname: string, workout: CurrentWorkout):
       return {
         wrap: 'canvas',
         title: workout.name,
-        subheader: pathname.startsWith('/collections/') ? 'filter-collection-workouts' : undefined,
+        subheader: /^\/(?:c|collections)\//.test(pathname) ? 'filter-collection-workouts' : undefined,
         actionsMode: 'collection-readonly',
         withIndex: true,
       }

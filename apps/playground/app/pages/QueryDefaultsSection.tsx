@@ -26,8 +26,8 @@ import {
   FEEDS_STREAM_PROFILE,
   LIBRARY_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
-  RESULTS_STREAM_PROFILE,
-  SEGMENTS_STREAM_PROFILE,
+  SESSIONS_STREAM_PROFILE,
+  PLAYGROUNDS_STREAM_PROFILE,
   type StreamProfile,
 } from '../views/stream/streamProfile'
 import { PALETTE_SEED_QUERY } from '../services/wqlSearchSource'
@@ -44,8 +44,8 @@ const CONFIGURABLE_SURFACES: ConfigurableSurface[] = [
   { id: COLLECTIONS_STREAM_PROFILE.route, label: 'Collections', profile: COLLECTIONS_STREAM_PROFILE },
   { id: FEEDS_STREAM_PROFILE.route, label: 'Feeds', profile: FEEDS_STREAM_PROFILE },
   { id: EFFORTS_STREAM_PROFILE.route, label: 'Efforts', profile: EFFORTS_STREAM_PROFILE },
-  { id: RESULTS_STREAM_PROFILE.route, label: 'Results', profile: RESULTS_STREAM_PROFILE },
-  { id: SEGMENTS_STREAM_PROFILE.route, label: 'Result Segments', profile: SEGMENTS_STREAM_PROFILE },
+  { id: SESSIONS_STREAM_PROFILE.route, label: 'Sessions', profile: SESSIONS_STREAM_PROFILE },
+  { id: PLAYGROUNDS_STREAM_PROFILE.route, label: 'Playgrounds', profile: PLAYGROUNDS_STREAM_PROFILE },
   { id: PALETTE_ROUTE_ID, label: '⌘K Command Palette' },
 ]
 

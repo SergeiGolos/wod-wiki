@@ -87,6 +87,17 @@ describe('toEntry — guide entries', () => {
     expect(entry.sourceItem).toBe('guide/syntax/basics')
     expect(entry.date).toBeNull()
   })
+
+  it('derives the page id — the /p slug — from the declared route (#link-crosswalk)', () => {
+    const entry = toEntry(makeNote({
+      id: 'guide/syntax/basics',
+      sourceId: 'guides:guide/syntax/basics',
+    }))
+    expect(entry.pageId).toBe('syntax/basics')
+
+    // Non-guide notes have no page render target
+    expect(toEntry(makeNote({ id: 'uuid-1' })).pageId).toBeUndefined()
+  })
 })
 
 describe('toEntry — kind discrimination', () => {

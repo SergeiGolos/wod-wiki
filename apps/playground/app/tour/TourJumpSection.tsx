@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Library, Newspaper, NotebookPen } from 'lucide-react'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import { journalNotes } from '../services/journalNotes'
-import { journalNotePath } from '../lib/routes'
+import { noteByIdPath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
 
 const CARD_BASE =
@@ -36,7 +36,7 @@ export function TourJumpSection() {
       rawContent: '',
     })
     telemetry.record(HOME_EVENTS.noteCreated)
-    navigate(journalNotePath(today, note.id))
+    navigate(noteByIdPath(note.id))
   }, [navigate])
 
   return (

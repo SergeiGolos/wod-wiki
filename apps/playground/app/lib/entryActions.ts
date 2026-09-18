@@ -18,38 +18,42 @@
  * (`entryCanAddToToday`) so the LibraryRow can render the button.
  */
 import type { Entry } from './entryMapper'
+import { noteByIdPath, sessionDetailPath } from './routes'
 
 /** Open: the Entry's deep-link per its kind; block Entries anchor to their
  *  section within the parent note (#855 — honored wherever the target
- *  surface exposes section DOM ids; degrades to the plain note elsewhere). */
+ *  surface exposes section DOM ids; degrades to the plain note elsewhere).
+ *  Every stored note opens in the canonical editor `/notes/:noteId`; the
+ *  remaining specialization is the page render (`/p/:pageId`) for notes that
+ *  publish a page (#link-crosswalk). */
 export function entryOpenHref(entry: Entry): string {
   const href = (() => {
     switch (entry.kind) {
       case 'note':
-        // Guide (canvas) entries deep-link to their canvas route — the
-        // block-index noteId is the declared route minus the leading slash.
+        // Page notes (guides, user-built pages) render at their page id; the
+        // lookup in canvasRouteLookup resolves the declared route.
         if (entry.sourceCatalog === 'guides') {
-          return `/${entry.sourceItem}`
+          return entry.pageId ? `/p/${entry.pageId}` : `/${entry.sourceItem}`
         }
-        // Playground entries open in the playground editor; journal notes use
-        // the journal-date (YYYY-MM-DD), falling back to sourceItem.
+        // Playground entries open in the playground editor; other stored
+        // notes open in the canonical single-note editor.
         if (entry.sourceCatalog === 'playground') {
           return `/playground/${encodeURIComponent(entry.sourceItem)}`
         }
-        return `/journal/${encodeURIComponent(entry.date ?? entry.sourceItem)}/`
+        return noteByIdPath(entry.id)
       case 'session':
-        return `/collections/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
+        return `/c/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
       case 'post': {
         const date = entry.date ?? ''
         return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`
       }
       case 'effort':
-        return `/effort/${encodeURIComponent(entry.id)}`
+        return `/e/${encodeURIComponent(entry.id)}`
       case 'result':
-        return `/results/${encodeURIComponent(entry.id)}`
+        return sessionDetailPath(entry.id)
       case 'segment':
       case 'event':
-        return `/results/${encodeURIComponent(entry.execution?.resultId ?? entry.id)}`
+        return sessionDetailPath(entry.execution?.resultId ?? entry.id)
       default:
         return '/'
     }
@@ -63,10 +67,11 @@ export function entryIsPlayground(entry: Entry): boolean {
   return entry.sourceCatalog === 'playground' || entry.sourceId === 'playground'
 }
 
-/** Compare: any row with a blockContentId; routes to the analytics explorer. */
+/** Compare: any row with a blockContentId; routes to the WQL explorer on the
+ *  dashboards list (the ?q= deep link pre-fills the query). */
 export function entryCompareHref(entry: Entry): string | null {
   if (!entry.blockContentId) return null
-  return `/analytics/explorer?q=${encodeURIComponent(entry.blockContentId)}`
+  return `/dashboards?q=${encodeURIComponent(entry.blockContentId)}`
 }
 
 /** Add to today: Note + Post (per spec), and Result + Segment when associated with a noteId. */

@@ -117,25 +117,37 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   legacy: EFFORTS_LEGACY_CONFIG,
 }
 
-export const RESULTS_STREAM_PROFILE: StreamProfile = {
-  route: '/results',
+export const SESSIONS_STREAM_PROFILE: StreamProfile = {
+  route: '/sessions',
   defaultWql: 'rows:all{} last 4w',
   level: 'result',
   typeOptions: ['rows'],
   emptyMessage: 'No completed session results recorded in this period.',
 }
 
-export const SEGMENTS_STREAM_PROFILE: StreamProfile = {
-  route: '/results/segments',
-  defaultWql: 'rows:segment{} last 8w',
-  level: 'segment',
-  typeOptions: ['rows'],
-  emptyMessage: 'No interval or segment splits recorded in this period.',
+export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
+  route: '/playgrounds',
+  defaultWql: 'find:note{source:playground} last 4w',
+  level: 'note',
+  typeOptions: ['playground'],
+  shelfVisible: true,
+  legacy: createContentLegacyConfig('playground'),
+}
+
+/** /session/:date — the sessions recorded on one date. */
+export function createSessionDateProfile(date: string): StreamProfile {
+  return {
+    route: `/session/${date}`,
+    defaultWql: `rows:all{date:${date}}`,
+    level: 'result',
+    typeOptions: ['rows'],
+    emptyMessage: `No session results recorded on ${date}.`,
+  }
 }
 
 export function createResultDetailProfile(resultId: string): StreamProfile {
   return {
-    route: `/results/${resultId}`,
+    route: `/sessions/${resultId}`,
     defaultWql: `rows:segment{result:${resultId}}`,
     level: 'segment',
     typeOptions: ['rows'],
@@ -150,8 +162,8 @@ const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
   '/feed': FEEDS_STREAM_PROFILE,
   '/library': LIBRARY_STREAM_PROFILE,
   '/efforts': EFFORTS_STREAM_PROFILE,
-  '/results': RESULTS_STREAM_PROFILE,
-  '/results/segments': SEGMENTS_STREAM_PROFILE,
+  '/sessions': SESSIONS_STREAM_PROFILE,
+  '/playgrounds': PLAYGROUNDS_STREAM_PROFILE,
 }
 
 export function getStreamProfile(route: string): StreamProfile | undefined {
@@ -159,10 +171,17 @@ export function getStreamProfile(route: string): StreamProfile | undefined {
   const exact = PROFILES_BY_ROUTE[clean]
   if (exact) return exact
 
-  if (clean.startsWith('/results/')) {
-    const resultId = clean.slice('/results/'.length)
-    if (resultId) {
-      return createResultDetailProfile(resultId)
+  if (clean.startsWith('/sessions/')) {
+    const sessionId = clean.slice('/sessions/'.length)
+    if (sessionId) {
+      return createResultDetailProfile(sessionId)
+    }
+  }
+
+  if (clean.startsWith('/session/')) {
+    const date = clean.slice('/session/'.length)
+    if (date) {
+      return createSessionDateProfile(date)
     }
   }
 

@@ -3,17 +3,19 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 
 // ── Mutable mock state for react-router-dom ───────────────────────────────
 let mockParams: Record<string, string> = {}
+let mockLocation: { pathname: string; search: string } = { pathname: '/', search: '' }
 let lastNavigateTo: string | null = null
 let lastNavigateReplace: boolean | undefined
 const navigateCalls: Array<{ to: string; options?: { replace?: boolean } }> = []
 
 mock.module('react-router-dom', () => ({
   useParams: () => mockParams,
+  useLocation: () => mockLocation,
   useNavigate: () => (to: string, options?: { replace?: boolean }) => {
     navigateCalls.push({ to, options })
   },
   Navigate: ({ to, replace }: { to: string; replace?: boolean }) => {
-    lastNavigateTo = to
+    lastNavigateTo = typeof to === 'string' ? to : `${to.pathname}${to.search ?? ''}`
     lastNavigateReplace = replace
     return <div data-testid="navigate" />
   },
@@ -27,9 +29,18 @@ import {
   playgroundPath,
   notePath,
   journalEntryPath,
-  journalNotePath,
+  noteByIdPath,
   journalEntryAutoStartPath,
   workoutPath,
+  collectionPath,
+  collectionDatePath,
+  sessionsPath,
+  sessionDetailPath,
+  sessionDatePath,
+  pagePath,
+  dashboardPath,
+  dashboardSlugPath,
+  playgroundsPath,
   runPath,
   trackerPath,
   settingsPath,
@@ -38,11 +49,12 @@ import {
   buildJournalLoadUrl,
   feedDetailPath,
   feedItemPath,
-  collectionDetailPath,
   isPlaygroundNotePath,
   isJournalEntryPath,
   isTrackerPath,
   isCollectionWorkoutPath,
+  effortPath,
+  analyticsExplorerPath,
 } from './routes'
 
 // ── Dynamic imports for components that consume react-router-dom mocks ────
@@ -71,9 +83,9 @@ describe('resolveRedirect', () => {
     )
   })
 
-  it('redirects /workout/:category/:name → /collections/:category/:name', () => {
+  it('redirects /workout/:category/:name → /c/:category/:name', () => {
     expect(resolveRedirect('/workout/dan-john/simple-strength')).toBe(
-      '/collections/dan-john/simple-strength',
+      '/c/dan-john/simple-strength',
     )
   })
 
@@ -81,32 +93,38 @@ describe('resolveRedirect', () => {
     expect(resolveRedirect('/getting-started')).toBe('/')
   })
 
-  it('redirects /chapters/basics → /guide/syntax/basics', () => {
-    expect(resolveRedirect('/chapters/basics')).toBe('/guide/syntax/basics')
+  it('redirects /chapters/basics → /p/syntax/basics', () => {
+    expect(resolveRedirect('/chapters/basics')).toBe('/p/syntax/basics')
   })
 
-  it('redirects /chapters/sequences → /guide/syntax', () => {
-    expect(resolveRedirect('/chapters/sequences')).toBe('/guide/syntax')
+  it('redirects /chapters/sequences → /p/syntax', () => {
+    expect(resolveRedirect('/chapters/sequences')).toBe('/p/syntax')
   })
 
-  it('redirects /chapters/protocols → /guide/syntax/protocols', () => {
-    expect(resolveRedirect('/chapters/protocols')).toBe('/guide/syntax/protocols')
+  it('redirects /chapters/protocols → /p/syntax/protocols', () => {
+    expect(resolveRedirect('/chapters/protocols')).toBe('/p/syntax/protocols')
   })
 
   it('redirects /challenge → /', () => {
     expect(resolveRedirect('/challenge')).toBe('/')
   })
 
-  it('redirects /syntax → /guide/syntax', () => {
-    expect(resolveRedirect('/syntax')).toBe('/guide/syntax')
+  it('redirects /syntax → /p/syntax', () => {
+    expect(resolveRedirect('/syntax')).toBe('/p/syntax')
   })
 
-  it('redirects /syntax/basics → /guide/syntax/basics', () => {
-    expect(resolveRedirect('/syntax/basics')).toBe('/guide/syntax/basics')
+  it('redirects /syntax/basics → /p/syntax/basics', () => {
+    expect(resolveRedirect('/syntax/basics')).toBe('/p/syntax/basics')
   })
 
-  it('redirects /syntax/protocols → /guide/syntax/protocols', () => {
-    expect(resolveRedirect('/syntax/protocols')).toBe('/guide/syntax/protocols')
+  it('redirects /syntax/protocols → /p/syntax/protocols', () => {
+    expect(resolveRedirect('/syntax/protocols')).toBe('/p/syntax/protocols')
+  })
+
+  it('redirects /note/:category/:name → /c/:category/:name', () => {
+    expect(resolveRedirect('/note/dan-john/simple-strength')).toBe('/c/dan-john/simple-strength')
+    // the playground alias keeps priority
+    expect(resolveRedirect('/note/playground/my-note')).toBe('/playground/my-note')
   })
 
   it('redirects /tracker/:runtimeId → /run/:runtimeId', () => {
@@ -140,7 +158,7 @@ describe('resolveRedirect', () => {
       '/playground/hello%20world',
     )
     expect(resolveRedirect('/workout/cat%201/name%202')).toBe(
-      '/collections/cat%201/name%202',
+      '/c/cat%201/name%202',
     )
   })
 
@@ -158,7 +176,7 @@ describe('resolveRedirect', () => {
 
 describe('ROUTE_REDIRECTS structure', () => {
   it('contains exactly the declared legacy aliases', () => {
-    expect(ROUTE_REDIRECTS).toHaveLength(11)
+    expect(ROUTE_REDIRECTS).toHaveLength(12)
   })
 
   it('every rule has a match function and a to function', () => {
@@ -198,8 +216,10 @@ describe('path builders', () => {
     expect(journalEntryPath('2026-05-19')).toBe('/journal/2026-05-19')
   })
 
-  it('journalNotePath targets the date page with a ?note= selection', () => {
-    expect(journalNotePath('2026-05-19', 'abc-123')).toBe('/journal/2026-05-19?note=abc-123')
+  it('journalNotePath is retired — note selection opens the canonical editor', () => {
+    // journalNotePath was removed; /journal/:date?note= and /journal/:date/:noteId
+    // redirect to the canonical single-note editor.
+    expect(noteByIdPath('abc-123')).toBe('/notes/abc-123')
   })
 
   it('journalEntryAutoStartPath appends query param', () => {
@@ -208,10 +228,46 @@ describe('path builders', () => {
     )
   })
 
-  it('workoutPath encodes collection and workout', () => {
+  it('workoutPath encodes collection and page slug under the /c prefix', () => {
     expect(workoutPath('dan john', 'simple strength')).toBe(
-      '/collections/dan%20john/simple%20strength',
+      '/c/dan%20john/simple%20strength',
     )
+  })
+
+  it('collectionPath lands the collection under the /c prefix', () => {
+    expect(collectionPath('dan-john')).toBe('/c/dan-john')
+  })
+
+  it('collectionDatePath scopes a collection to a date under the /c prefix', () => {
+    expect(collectionDatePath('dan-john', '2026-09-17')).toBe('/c/dan-john/2026-09-17')
+  })
+
+  it('sessionsPath, sessionDetailPath and sessionDatePath build the sessions family', () => {
+    expect(sessionsPath()).toBe('/sessions')
+    expect(sessionDetailPath('res-1')).toBe('/sessions/res-1')
+    expect(sessionDatePath('2026-09-17')).toBe('/session/2026-09-17')
+  })
+
+  it('pagePath builds the generic page render route', () => {
+    expect(pagePath('syntax/basics')).toBe('/p/syntax/basics')
+  })
+
+  it('dashboardPath lands the dashboards list and dashboardSlugPath the /d view', () => {
+    expect(dashboardPath()).toBe('/dashboards')
+    expect(dashboardSlugPath('strength-trends')).toBe('/d/strength-trends')
+  })
+
+  it('playgroundsPath builds the playground list route', () => {
+    expect(playgroundsPath()).toBe('/playgrounds')
+  })
+
+  it('effortPath builds under the /e prefix, preserving modifiers', () => {
+    expect(effortPath('grace')).toBe('/e/grace')
+    expect(effortPath('grace', { weight: '60' })).toBe('/e/grace?weight=60')
+  })
+
+  it('analyticsExplorerPath points deep links at /dashboards', () => {
+    expect(analyticsExplorerPath({ q: 'bc-fran' })).toBe('/dashboards?q=bc-fran')
   })
 
   it('runPath encodes runtimeId', () => {
@@ -256,8 +312,8 @@ describe('path builders', () => {
     )
   })
 
-  it('collectionDetailPath encodes slug', () => {
-    expect(collectionDetailPath('dan-john')).toBe('/collections/dan-john')
+  it('collectionPath lands the collection under the /c prefix', () => {
+    expect(collectionPath('dan-john')).toBe('/c/dan-john')
   })
 })
 
@@ -323,13 +379,39 @@ describe('NotePlaygroundRedirect', () => {
 })
 
 describe('WorkoutRedirect', () => {
-  it('renders Navigate to /collections/:category/:name with replace', async () => {
+  it('renders Navigate to /c/:category/:name with replace', async () => {
     mockParams = { category: 'dan-john', name: 'simple-strength' }
     const { WorkoutRedirect } = redirectComponents!
     render(<WorkoutRedirect />)
 
-    expect(lastNavigateTo).toBe('/collections/dan-john/simple-strength')
+    expect(lastNavigateTo).toBe('/c/dan-john/simple-strength')
     expect(lastNavigateReplace).toBe(true)
+  })
+})
+
+describe('CollectionItemRedirect', () => {
+  it('routes a page-slug target to the /c collection editor', async () => {
+    mockParams = { slug: 'dan-john', target: 'simple-strength' }
+    const { CollectionItemRedirect } = redirectComponents!
+    render(<CollectionItemRedirect />)
+
+    expect(lastNavigateTo).toBe('/c/dan-john/simple-strength')
+  })
+
+  it('routes a note-UUID target to the canonical single-note editor', async () => {
+    mockParams = { slug: 'dan-john', target: '550e8400-e29b-41d4-a716-446655440000' }
+    const { CollectionItemRedirect } = redirectComponents!
+    render(<CollectionItemRedirect />)
+
+    expect(lastNavigateTo).toBe('/notes/550e8400-e29b-41d4-a716-446655440000')
+  })
+
+  it('routes a slug-only landing to /c/:slug', async () => {
+    mockParams = { slug: 'dan-john' }
+    const { CollectionItemRedirect } = redirectComponents!
+    render(<CollectionItemRedirect />)
+
+    expect(lastNavigateTo).toBe('/c/dan-john')
   })
 })
 
@@ -355,30 +437,30 @@ describe('GettingStartedRedirect', () => {
 })
 
 describe('SyntaxRedirect', () => {
-  it('redirects bare /syntax to /guide/syntax', async () => {
+  it('redirects bare /syntax to /p/syntax', async () => {
     mockParams = {}
     const { SyntaxRedirect } = redirectComponents!
     render(<SyntaxRedirect />)
 
-    expect(lastNavigateTo).toBe('/guide/syntax')
+    expect(lastNavigateTo).toBe('/p/syntax')
     expect(lastNavigateReplace).toBe(true)
   })
 
-  it('redirects /syntax/basics to /guide/syntax/basics', async () => {
+  it('redirects /syntax/basics to /p/syntax/basics', async () => {
     mockParams = { '*': 'basics' }
     const { SyntaxRedirect } = redirectComponents!
     render(<SyntaxRedirect />)
 
-    expect(lastNavigateTo).toBe('/guide/syntax/basics')
+    expect(lastNavigateTo).toBe('/p/syntax/basics')
     expect(lastNavigateReplace).toBe(true)
   })
 
-  it('redirects /syntax/protocols to /guide/syntax/protocols', async () => {
+  it('redirects /syntax/protocols to /p/syntax/protocols', async () => {
     mockParams = { '*': 'protocols' }
     const { SyntaxRedirect } = redirectComponents!
     render(<SyntaxRedirect />)
 
-    expect(lastNavigateTo).toBe('/guide/syntax/protocols')
+    expect(lastNavigateTo).toBe('/p/syntax/protocols')
     expect(lastNavigateReplace).toBe(true)
   })
 })
@@ -448,7 +530,7 @@ describe('ROUTE_PATTERNS', () => {
 // 7. Short canonical routes — not yet implemented
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('short canonical routes (not yet registered in router)', () => {
+describe('short canonical routes', () => {
   it.skip('/p/:id should resolve as a canonical playground note route', () => {
     // Expected: /p/:id either renders PlaygroundNotePage directly or
     // redirects to /playground/:id. Currently no route pattern exists.

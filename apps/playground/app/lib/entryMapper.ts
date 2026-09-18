@@ -85,6 +85,10 @@ export interface Entry {
   block?: EntryBlock
   execution?: EntryExecutionData
   effort?: EntryEffortData
+  /** The note's page id — the /p/:slug page-render target (#link-crosswalk).
+   *  Present when the note publishes a page; lists link the editor
+   *  (/notes/:noteId) and the page render (/p/:pageId) from the same row. */
+  pageId?: string
 }
 
 function isCollection(sourceId: string | undefined): boolean {
@@ -173,7 +177,8 @@ export function toEntry(note: Note): Entry {
   }
 
   // Guide (canvas-corpus) note: sourceId `guides:<route-without-slash>` —
-  // sourceItem IS the deep-link path (see entryOpenHref).
+  // the page id is the /p/ slug (declared route minus the leading slash and
+  // optional guide/ prefix); sourceItem stays the declared path.
   if (note.sourceId?.startsWith('guides:')) {
     return {
       id,
@@ -181,6 +186,7 @@ export function toEntry(note: Note): Entry {
       sourceCatalog: 'guides',
       sourceItem: id,
       sourceId: note.sourceId,
+      pageId: id.replace(/^\//, '').replace(/^guide\//, ''),
       title,
       date: null,
       createdAt: note.createdAt,

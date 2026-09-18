@@ -25,7 +25,7 @@ import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
-import { journalNotePath, runPath } from '../lib/routes'
+import { noteByIdPath, runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
@@ -159,7 +159,7 @@ export function PlaygroundNotePage({
           title: 'Added to journal',
           description: journalNote.journalDate === today ? "Added to today's journal" : `Added to ${journalNote.journalDate}`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
+            <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
               Open
             </ToastAction>
           ),
@@ -190,12 +190,12 @@ export function PlaygroundNotePage({
           title: 'Moved to journal',
           description: `This playground now lives on ${dateKey}.`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(dateKey, runtimeNoteId))}>
+            <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(runtimeNoteId))}>
               Open
             </ToastAction>
           ),
         })
-        navigate(journalNotePath(dateKey, runtimeNoteId))
+        navigate(noteByIdPath(runtimeNoteId))
       } catch {
         toast({ title: 'Error', description: 'Could not move to journal', variant: 'destructive' })
       }

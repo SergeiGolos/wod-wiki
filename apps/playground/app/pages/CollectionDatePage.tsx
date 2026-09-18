@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { JournalPageShell } from '@/panels/page-shells'
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
-import { collectionNotePath } from '../lib/routes'
+import { noteByIdPath } from '../lib/routes'
 import type { HistoryEntry } from '@/types/history'
 
 const contentProvider = new IndexedDBContentProvider()
@@ -60,7 +60,7 @@ export function CollectionDatePage({ slug, date }: CollectionDatePageProps) {
             {entries.map((entry) => (
               <li key={entry.id}>
                 <Link
-                  to={collectionNotePath(slug, entry.id)}
+                  to={noteByIdPath(entry.id)}
                   className="flex flex-col gap-0.5 px-4 py-3 hover:bg-muted/50"
                 >
                   <span className="font-medium">{entry.title}</span>

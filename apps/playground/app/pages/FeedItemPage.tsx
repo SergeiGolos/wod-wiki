@@ -25,7 +25,7 @@ import { useSeedContent } from '@/services/content/seedContent';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
-import { journalDatePath, journalNotePath, runPath } from '../lib/routes';
+import { journalDatePath, noteByIdPath, runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
@@ -114,7 +114,7 @@ export function FeedItemPage({
         title: 'Added to journal',
         description: journalNote.journalDate === today ? `Added to today's journal` : `Added to ${journalNote.journalDate}`,
         action: (
-          <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
+          <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
             Open
           </ToastAction>
         ),

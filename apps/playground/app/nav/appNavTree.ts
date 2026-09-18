@@ -142,14 +142,14 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
 
 // ─── L2 children for Explore ──────────────────────────────────────────────────
 
-/** Canonical playground library view — the WQL-encoded library stream query
- *  (no dedicated route; the stream profile resolves /library + ?q=).
- *  One-month window; bucketed by the notes' source plane. */
+/** Canonical playground listing — the dedicated /playgrounds stream route
+ *  (the library ?q= deep link remains a valid alias via the library profile). */
 export const PLAYGROUND_LIBRARY_WQL = 'find:note{source:playground} by {source} last 4w'
-export const PLAYGROUND_LIBRARY_HREF = `/library?q=${encodeURIComponent(PLAYGROUND_LIBRARY_WQL)}`
+export const PLAYGROUND_LIBRARY_HREF = ROUTE_PATTERNS.playgrounds
 
 function isLibraryPlaygroundActive(loc: Location): boolean {
   if (loc.pathname === '/playground' || loc.pathname.startsWith('/playground/')) return true
+  if (loc.pathname === ROUTE_PATTERNS.playgrounds) return true
   if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) {
     return false
   }
@@ -165,7 +165,8 @@ const exploreChildren: NavItem[] = [
     action: { type: 'route', to: ROUTE_PATTERNS.collections },
     isActive: (loc: Location) =>
       loc.pathname === '/collections' ||
-      loc.pathname.startsWith('/collections/'),
+      loc.pathname.startsWith('/collections/') ||
+      loc.pathname.startsWith('/c/'),
   },
   {
     id: 'library-feeds',
@@ -193,15 +194,15 @@ const exploreChildren: NavItem[] = [
     level: 2,
     icon: Dumbbell,
     action: { type: 'route', to: ROUTE_PATTERNS.efforts },
-    isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
+    isActive: (loc: Location) => loc.pathname.startsWith('/effort') || loc.pathname.startsWith('/e/'),
   },
   {
-    id: 'library-results',
-    label: 'Results',
+    id: 'library-sessions',
+    label: 'Sessions',
     level: 2,
     icon: ClipboardList,
-    action: { type: 'route', to: ROUTE_PATTERNS.results },
-    isActive: (loc: Location) => loc.pathname.startsWith('/results'),
+    action: { type: 'route', to: ROUTE_PATTERNS.sessions },
+    isActive: (loc: Location) => loc.pathname.startsWith('/sessions') || loc.pathname.startsWith('/session/') || loc.pathname.startsWith('/results'),
   },
 ]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
@@ -256,12 +257,17 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
         loc.pathname === '/playground' ||
         loc.pathname.startsWith('/playground/') ||
-        // Collections, feeds, efforts, and results are library stream
+        loc.pathname === '/playgrounds' ||
+        // Collections, feeds, efforts, and sessions are library stream
         // profiles (see streamProfile) — they live under Explore.
         loc.pathname.startsWith('/collections') ||
+        loc.pathname.startsWith('/c/') ||
         loc.pathname.startsWith('/feeds') ||
         loc.pathname.startsWith('/feed') ||
         loc.pathname.startsWith('/effort') ||
+        loc.pathname.startsWith('/e/') ||
+        loc.pathname.startsWith('/sessions') ||
+        loc.pathname.startsWith('/session/') ||
         loc.pathname.startsWith('/results'),
       children: exploreChildren,
     },

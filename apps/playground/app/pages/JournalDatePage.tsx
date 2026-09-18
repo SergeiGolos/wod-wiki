@@ -5,7 +5,7 @@ import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
 import { playgroundRecorder } from '@/services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { noteByIdPath } from '../lib/routes';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
@@ -139,6 +139,12 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   }, [journalDate]);
 
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
+
+  // Legacy deep links: /journal/:date?note=<uuid> now opens the canonical
+  // single-note editor (#link-crosswalk).
+  if (selectedNoteId) {
+    return <Navigate to={noteByIdPath(selectedNoteId)} replace />;
+  }
 
   const editToggle = notes.length > 0 ? (
     <Button
