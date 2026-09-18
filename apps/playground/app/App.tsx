@@ -27,6 +27,8 @@ import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import {
   ROUTE_PATTERNS,
+} from './lib/routes'
+import {
   PlanRedirect,
   SyntaxRedirect,
   TrackerRedirect,
@@ -39,8 +41,7 @@ import {
   SegmentsRedirect,
   ResultDetailRedirect,
   DashboardLandingRedirect,
-  noteByIdPath,
-} from './lib/routes'
+} from './lib/routeRedirects'
 import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { useCanvasRoutes } from './canvas/canvasRoutes'
@@ -82,21 +83,10 @@ import { PageActions } from './pages/shared/PageActions'
 import { PageOptionsSheetRows } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
-import type { MenuSpec } from './nav/menuModel'
 import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 
-/** Library routes get a WQL-driven secondary section — recent entries, newest first. */
-const LIBRARY_SECONDARY: MenuSpec = [
-  {
-    kind: 'wql',
-    id: 'recent-entries',
-    label: 'Recent entries',
-    query: 'find:note{}',
-    limit: 6,
-    filterEntry: e => !!e.date,
-    toEntry: e => noteByIdPath(e.id),
-  },
-]
+/** Library routes get a WQL-driven secondary section — now owned by each
+ *  stream profile (`StreamProfile.secondary`), not a page-level constant. */
 
 
 // `useWorkoutItems` (typed list) and the seeded file map (`wodFiles`) both
@@ -140,7 +130,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // (journal date, workout/effort/feed/dashboard slug) — on mobile the navbar
   // crumb is the ONLY page identity, since the page header is hidden below lg.
   const crumbTitle = view.shell.title ?? currentWorkout.name
-  const secondarySpec = view.page === 'library' ? LIBRARY_SECONDARY : view.shell.secondary
+  // Stream surfaces resolve their profile once per path — the profile owns the
+  // surface's secondary rail (composition: same view, per-route variation).
+  const streamProfile = useMemo(
+    () => (view.page === 'library' ? applyRouteWqlConfig(resolveStreamProfile(location.pathname)) : undefined),
+    [view.page, location.pathname],
+  )
+  const secondarySpec = streamProfile ? streamProfile.secondary : view.shell.secondary
 
   useEffect(() => {
     setSecondarySpec(secondarySpec)
@@ -286,7 +282,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       />
     ),
     library: () => {
-      const profile = applyRouteWqlConfig(resolveStreamProfile(location.pathname))
+      const profile = streamProfile ?? applyRouteWqlConfig(resolveStreamProfile(location.pathname))
       return (
         <QueriableStreamView
           key={profile.route}

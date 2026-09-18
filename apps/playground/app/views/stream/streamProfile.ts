@@ -8,6 +8,8 @@
 import type { EntityLevel } from '../../lib/fieldProjection'
 import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
 import type { ComposerLegacyConfig } from '../../hooks/useComposerQueryState'
+import { noteByIdPath, playgroundPath, sessionDetailPath } from '../../lib/routes'
+import type { MenuSpec } from '../../nav/menuModel'
 
 export function cleanRoutePath(route: string): string {
   return route.endsWith('/') && route.length > 1 ? route.slice(0, -1) : route
@@ -29,6 +31,10 @@ export interface StreamProfile {
   shelfVisible?: boolean
   /** Optional message displayed when query yields zero results. */
   emptyMessage?: string
+  /** The surface's own secondary rail (zone 4) — composition seam for the
+   *  view variations rebranded under different routes. AppContent renders it
+   *  instead of any page-level constant. */
+  secondary?: MenuSpec
   /** Legacy parameter and salvage configuration for URL migration. */
   legacy?: StreamProfileLegacyConfig
 }
@@ -72,11 +78,26 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
   }
 }
 
+/** Shared recent-entries rail — the dated-note listing the content streams
+ *  have always shown. Sessions and playgrounds declare their own instead. */
+const RECENT_ENTRIES_MENU: MenuSpec = [
+  {
+    kind: 'wql',
+    id: 'recent-entries',
+    label: 'Recent entries',
+    query: 'find:note{}',
+    limit: 6,
+    filterEntry: e => !!e.date,
+    toEntry: e => noteByIdPath(e.id),
+  },
+]
+
 export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   route: '/journal',
   defaultWql: 'find:note{source:journal} last 4w',
   level: 'note',
   typeOptions: ['journal'],
+  secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('journal'),
 }
 
@@ -86,6 +107,7 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   level: 'session',
   typeOptions: ['collections'],
   shelfVisible: true,
+  secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('collections'),
 }
 
@@ -94,6 +116,7 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   defaultWql: 'find:note{source:feeds} last 2w',
   level: 'note',
   typeOptions: ['feeds'],
+  secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('feeds'),
 }
 
@@ -105,6 +128,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   level: 'note',
   typeOptions: ['notes', 'journal', 'collections', 'feeds', 'playground', 'blocks'],
   shelfVisible: true,
+  secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig(),
 }
 
@@ -114,6 +138,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   level: 'effort',
   typeOptions: ['efforts'],
   emptyMessage: 'No efforts match your search.',
+  secondary: RECENT_ENTRIES_MENU,
   legacy: EFFORTS_LEGACY_CONFIG,
 }
 
@@ -123,6 +148,16 @@ export const SESSIONS_STREAM_PROFILE: StreamProfile = {
   level: 'result',
   typeOptions: ['rows'],
   emptyMessage: 'No completed session results recorded in this period.',
+  secondary: [
+    {
+      kind: 'wql',
+      id: 'recent-sessions',
+      label: 'Recent sessions',
+      query: 'rows:all{} last 2w',
+      limit: 6,
+      toEntry: e => sessionDetailPath(e.id),
+    },
+  ],
 }
 
 export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
@@ -131,6 +166,16 @@ export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
   level: 'note',
   typeOptions: ['playground'],
   shelfVisible: true,
+  secondary: [
+    {
+      kind: 'wql',
+      id: 'recent-playgrounds',
+      label: 'Recent playground pages',
+      query: 'find:note{source:playground} last 2w',
+      limit: 6,
+      toEntry: e => playgroundPath(e.sourceItem),
+    },
+  ],
   legacy: createContentLegacyConfig('playground'),
 }
 

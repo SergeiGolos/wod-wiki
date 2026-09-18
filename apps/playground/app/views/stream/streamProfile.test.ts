@@ -61,6 +61,22 @@ describe('streamProfile presets', () => {
     expect(PLAYGROUNDS_STREAM_PROFILE.typeOptions).toEqual(['playground'])
   })
 
+  it('owns a per-surface secondary rail — the composition seam for rebranded routes', () => {
+    // Library and journal keep the shared recent-entries rail (existing behavior)
+    const libraryRail = LIBRARY_STREAM_PROFILE.secondary?.[0]
+    expect(libraryRail).toMatchObject({ kind: 'wql', id: 'recent-entries', label: 'Recent entries' })
+    expect(JOURNAL_STREAM_PROFILE.secondary?.[0]?.id).toBe('recent-entries')
+
+    // Sessions lists its own records, linked into the sessions family
+    const sessionsRail = SESSIONS_STREAM_PROFILE.secondary?.[0]
+    expect(sessionsRail).toMatchObject({ kind: 'wql', id: 'recent-sessions', label: 'Recent sessions' })
+    expect(sessionsRail?.kind === 'wql' && sessionsRail.toEntry?.({ id: 'res-1' } as never)).toBe('/sessions/res-1')
+
+    // Playgrounds link back into the playground editor
+    const playgroundRail = PLAYGROUNDS_STREAM_PROFILE.secondary?.[0]
+    expect(playgroundRail).toMatchObject({ kind: 'wql', id: 'recent-playgrounds', label: 'Recent playground pages' })
+  })
+
   it('resolves stream profile by route using getStreamProfile and resolveStreamProfile', () => {
     expect(getStreamProfile('/journal')?.route).toBe('/journal')
     expect(getStreamProfile('/journal/')?.route).toBe('/journal')

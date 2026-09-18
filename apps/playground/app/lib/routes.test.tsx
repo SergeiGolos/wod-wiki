@@ -58,7 +58,7 @@ import {
 } from './routes'
 
 // ── Dynamic imports for components that consume react-router-dom mocks ────
-let redirectComponents: typeof import('./routes') | null = null
+let redirectComponents: typeof import('./routeRedirects') | null = null
 
 beforeEach(async () => {
   mockParams = {}
@@ -68,7 +68,7 @@ beforeEach(async () => {
   cleanup()
 
   if (!redirectComponents) {
-    redirectComponents = await import('./routes')
+    redirectComponents = await import('./routeRedirects')
   }
 })
 
