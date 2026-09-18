@@ -3,11 +3,13 @@
  * Open / Compare row action should navigate to. The LibraryRow consumes
  * these; the test seam is the URL the row would visit on click.
  *
- * URL shapes (per the spec's row-action section):
- *   Open  Note    → /journal/:date/
- *   Open  Session → /collections/:cat/:workout
- *   Open  Post    → /feeds/:feedSlug/:date/:item
- *   Compare (any) → /analytics/explorer?q=:blockContentId
+ * URL shapes (target scheme — see docs/link-crosswalk.md):
+ *   Open  Note         → /notes/:noteId (page notes → /p/:pageId)
+ *   Open  Session      → /c/:cat/:page-slug
+ *   Open  Post         → /feeds/:feedSlug/:date/:item (transitional)
+ *   Open  Effort       → /e/:slug
+ *   Open  Result       → /sessions/:sessionId
+ *   Compare (any)      → /dashboards?q=:blockContentId
  *
  * Run is NOT a URL: WallClockPage only consumes pendingRuntimes, so the Run
  * action stages a runtime through startEntryRun (./entryRun) and navigates

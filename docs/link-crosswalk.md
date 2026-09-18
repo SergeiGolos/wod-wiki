@@ -154,5 +154,6 @@ export function entryOpenHref(entry: Entry): string {
   rename time.
 - `workoutPath(collection, name)` stays canonical for corpus workout names
   that have no note row, re-pointed at `/c/:collection-slug/:page-slug`.
-- `noteRefToPath`'s flagged effort mis-routing should be fixed in the same
-  pass that adds the prefix rename.
+- ~~`noteRefToPath`'s flagged effort mis-routing should be fixed in the same
+  pass that adds the prefix rename.~~ Done: `effort/<slug>` result ids route
+  to `/e/:slug`; collection-backed ids route to `/c/:cat/:page-slug`.
