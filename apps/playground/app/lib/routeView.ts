@@ -20,7 +20,7 @@ import {
   matchFeedItem,
   matchFeedDetail,
 } from './routes'
-import { cleanRoutePath, isStreamRoute } from '../views/stream/streamProfile'
+import { cleanRoutePath, isStreamRoute, streamRouteTitle } from '../views/stream/streamProfile'
 import { deriveNav, type RouteNavDeps } from './routeNav'
 import { resolveJournalRoute, isNoteUuid } from './journalRoute'
 import { parseJournalDate } from '../services/parseJournalDate'
@@ -219,26 +219,22 @@ function deriveWorkout(
   // Named routes without params
   const named: Record<string, string> = {
     '/': 'Home',
-    '/library': 'Library',
-    '/journal': 'Journal',
-    '/feeds': 'Feeds',
-    '/feed': 'Feeds',
-    '/collections': 'Collections',
-    '/efforts': 'Efforts',
+    // /results kept for the legacy classification contract (router redirects it)
     '/results': 'Results',
     '/results/segments': 'Segments',
-    '/sessions': 'Sessions',
-    '/playgrounds': 'Playgrounds',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
+    '/guide/analytics': 'Analytics Guide',
     '/dashboard': 'Dashboards',
     '/dashboards': 'Dashboards',
-    '/guide/analytics': 'Analytics Guide',
     '/analytics/dashboard': 'Analytics Dashboard',
     '/analytics/explorer': 'Metric Explorer',
   }
   const cleanPath = cleanRoutePath(pathname)
-  const namedMatch = named[pathname] ?? named[cleanPath]
+  // Stream surfaces take their name from the profile registry — one source of
+  // truth for what a route is called.
+  const streamTitle = streamRouteTitle(cleanPath)
+  const namedMatch = streamTitle ?? named[pathname] ?? named[cleanPath]
   if (namedMatch) {
     return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
   }

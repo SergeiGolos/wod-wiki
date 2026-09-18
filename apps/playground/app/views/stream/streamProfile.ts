@@ -35,6 +35,9 @@ export interface StreamProfile {
    *  view variations rebranded under different routes. AppContent renders it
    *  instead of any page-level constant. */
   secondary?: MenuSpec
+  /** Display name for breadcrumbs/crumbs — `routeView.deriveWorkout` reads
+   *  it instead of keeping its own route-name map. */
+  title?: string
   /** Legacy parameter and salvage configuration for URL migration. */
   legacy?: StreamProfileLegacyConfig
 }
@@ -94,6 +97,7 @@ const RECENT_ENTRIES_MENU: MenuSpec = [
 
 export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   route: '/journal',
+  title: 'Journal',
   defaultWql: 'find:note{source:journal} last 4w',
   level: 'note',
   typeOptions: ['journal'],
@@ -103,6 +107,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   route: '/collections',
+  title: 'Collections',
   defaultWql: 'find:note{source:collections} by {tag}',
   level: 'session',
   typeOptions: ['collections'],
@@ -113,6 +118,7 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
 
 export const FEEDS_STREAM_PROFILE: StreamProfile = {
   route: '/feeds',
+  title: 'Feeds',
   defaultWql: 'find:note{source:feeds} last 2w',
   level: 'note',
   typeOptions: ['feeds'],
@@ -122,6 +128,7 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
 
 export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   route: '/library',
+  title: 'Library',
   // The library landing surfaces the collection listing (not the journal
   // stream); `?q=` deep links still override the default explicitly.
   defaultWql: 'find:note{source:collections} last 4w',
@@ -134,6 +141,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
 
 export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   route: '/efforts',
+  title: 'Efforts',
   defaultWql: 'find:effort',
   level: 'effort',
   typeOptions: ['efforts'],
@@ -144,6 +152,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
 
 export const SESSIONS_STREAM_PROFILE: StreamProfile = {
   route: '/sessions',
+  title: 'Sessions',
   defaultWql: 'rows:all{} last 4w',
   level: 'result',
   typeOptions: ['rows'],
@@ -162,6 +171,7 @@ export const SESSIONS_STREAM_PROFILE: StreamProfile = {
 
 export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
   route: '/playgrounds',
+  title: 'Playgrounds',
   defaultWql: 'find:note{source:playground} last 4w',
   level: 'note',
   typeOptions: ['playground'],
@@ -235,6 +245,14 @@ export function getStreamProfile(route: string): StreamProfile | undefined {
 
 export function resolveStreamProfile(route: string): StreamProfile {
   return getStreamProfile(route) ?? LIBRARY_STREAM_PROFILE
+}
+
+/**
+ * Display title for an exact stream route — `routeView.deriveWorkout` reads
+ * this instead of a parallel route-name map.
+ */
+export function streamRouteTitle(pathname: string): string | undefined {
+  return PROFILES_BY_ROUTE[cleanRoutePath(pathname)]?.title
 }
 
 /**

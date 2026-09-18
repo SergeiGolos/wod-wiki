@@ -62,6 +62,16 @@ describe('streamProfile presets', () => {
     expect(PLAYGROUNDS_STREAM_PROFILE.typeOptions).toEqual(['playground'])
   })
 
+  it('carries a display title per stream surface — deriveWorkout reads these', () => {
+    expect(LIBRARY_STREAM_PROFILE.title).toBe('Library')
+    expect(JOURNAL_STREAM_PROFILE.title).toBe('Journal')
+    expect(COLLECTIONS_STREAM_PROFILE.title).toBe('Collections')
+    expect(FEEDS_STREAM_PROFILE.title).toBe('Feeds')
+    expect(EFFORTS_STREAM_PROFILE.title).toBe('Efforts')
+    expect(SESSIONS_STREAM_PROFILE.title).toBe('Sessions')
+    expect(PLAYGROUNDS_STREAM_PROFILE.title).toBe('Playgrounds')
+  })
+
   it('owns a per-surface secondary rail — the composition seam for rebranded routes', () => {
     // Library and journal keep the shared recent-entries rail (existing behavior)
     const libraryRail = LIBRARY_STREAM_PROFILE.secondary?.[0]
