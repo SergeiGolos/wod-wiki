@@ -109,6 +109,15 @@ describe('routeWqlConfig — pure read/write/clear', () => {
     clearRouteWqlConfig('/journal')
     expect(readRouteWqlConfig('/journal')).toEqual({})
   })
+
+  it('clear on a renamed surface also clears the legacy key — a reset must not resurrect', () => {
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/results'),
+      JSON.stringify({ defaultWql: 'rows:all{} last 8w' }),
+    )
+    clearRouteWqlConfig('/sessions')
+    expect(readRouteWqlConfig('/sessions')).toEqual({})
+  })
 })
 
 describe('routeWqlConfig — resolution', () => {

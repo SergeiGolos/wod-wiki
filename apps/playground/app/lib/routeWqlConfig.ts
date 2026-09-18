@@ -91,10 +91,15 @@ export function writeRouteWqlConfig(routeId: string, config: RouteWqlConfig): vo
 
 export function clearRouteWqlConfig(routeId: string): void {
   if (typeof window === 'undefined' || !window.localStorage) return
-  try {
-    window.localStorage.removeItem(getRouteWqlStorageKey(routeId))
-  } catch {
-    // Non-fatal
+  // A clear must also drop the legacy key, or the read alias resurrects it.
+  const legacyId = LEGACY_STORAGE_ALIASES[routeId]
+  const ids = legacyId ? [routeId, legacyId] : [routeId]
+  for (const id of ids) {
+    try {
+      window.localStorage.removeItem(getRouteWqlStorageKey(id))
+    } catch {
+      // Non-fatal
+    }
   }
 }
 
