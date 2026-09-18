@@ -271,11 +271,9 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   const renderShell = (inner: ReactNode): ReactNode => {
     if (view.shell.wrap === 'bare') return inner
     const subheader =
-      view.shell.subheader === 'filter-collections'
-        ? <TextFilterStrip placeholder="Filter collections… Press / to start filtering" />
-        : view.shell.subheader === 'filter-collection-workouts'
-          ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" />
-          : undefined
+      view.shell.subheader === 'filter-collection-workouts'
+        ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" />
+        : undefined
     return (
       <CanvasPage
         title={view.shell.title}

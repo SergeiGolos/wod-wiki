@@ -75,7 +75,7 @@ export interface ShellConfig {
   /** Canvas title (canvas branches). */
   title?: string
   /** Subheader filter strip kind. */
-  subheader?: 'filter-collections' | 'filter-collection-workouts'
+  subheader?: 'filter-collection-workouts'
   /** `<PageActions>` mode (canvas branches render an actions menu). */
   actionsMode?: 'journal-active' | 'collection-readonly'
   /** Whether the canvas shell receives the nav index + scroll handler. */

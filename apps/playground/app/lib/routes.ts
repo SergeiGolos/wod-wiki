@@ -61,9 +61,6 @@ export const ROUTE_PATTERNS = {
   efforts: '/efforts',
   effort: '/effort/:slug',
   effortDetail: '/effort/:slug',
-  results: '/results',
-  resultsSegments: '/results/segments',
-  resultDetail: '/results/:resultId',
   analytics: '/analytics',
   analyticsExplorer: '/analytics/explorer',
   analyticsDashboard: '/analytics/dashboard',
@@ -83,11 +80,6 @@ export const ROUTE_PATTERNS = {
 /** /playground/:id */
 export function playgroundPath(id: string): string {
   return `/playground/${encodeURIComponent(id)}`;
-}
-
-/** /note/:category/:name */
-export function notePath(category: string, name: string): string {
-  return `/note/${encodeURIComponent(category)}/${encodeURIComponent(name)}`;
 }
 
 /** /journal/:date/ */

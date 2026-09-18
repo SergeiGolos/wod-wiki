@@ -10,7 +10,7 @@ const navigateCalls: Array<{ to: string; options?: { replace?: boolean } }> = []
 
 mock.module('react-router-dom', () => ({
   useParams: () => mockParams,
-  useLocation: () => mockLocation,
+  useLocation: (): { pathname: string; search: string } => mockLocation,
   useNavigate: () => (to: string, options?: { replace?: boolean }) => {
     navigateCalls.push({ to, options })
   },
@@ -27,7 +27,6 @@ import {
   resolveRedirect,
   ROUTE_REDIRECTS,
   playgroundPath,
-  notePath,
   journalEntryPath,
   noteByIdPath,
   journalEntryAutoStartPath,
@@ -206,10 +205,6 @@ describe('ROUTE_REDIRECTS structure', () => {
 describe('path builders', () => {
   it('playgroundPath encodes the id', () => {
     expect(playgroundPath('hello world')).toBe('/playground/hello%20world')
-  })
-
-  it('notePath encodes category and name', () => {
-    expect(notePath('cat 1', 'name 2')).toBe('/note/cat%201/name%202')
   })
 
   it('journalEntryPath encodes the id', () => {
@@ -523,23 +518,5 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.load).toBe('/load')
     expect(ROUTE_PATTERNS.loadJournal).toBe('/load/journal')
     expect(ROUTE_PATTERNS.loadJournalDate).toBe('/load/journal/:date')
-  })
-})
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 7. Short canonical routes — not yet implemented
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('short canonical routes', () => {
-  it.skip('/p/:id should resolve as a canonical playground note route', () => {
-    // Expected: /p/:id either renders PlaygroundNotePage directly or
-    // redirects to /playground/:id. Currently no route pattern exists.
-    expect(resolveRedirect('/p/my-note')).not.toBeNull()
-  })
-
-  it.skip('/j/:date should resolve as a canonical journal entry route', () => {
-    // Expected: /j/:date either renders JournalPage directly or
-    // redirects to /journal/:date. Currently no route pattern exists.
-    expect(resolveRedirect('/j/2026-05-19')).not.toBeNull()
   })
 })

@@ -25,7 +25,7 @@ import { useSeedContent } from '@/services/content/seedContent';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
-import { journalDatePath, noteByIdPath, runPath } from '../lib/routes';
+import { noteByIdPath, runPath, journalEntryAutoStartPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
@@ -90,7 +90,7 @@ export function FeedItemPage({
           wodContent: block.content,
         });
         pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
-        navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`);
+        navigate(journalEntryAutoStartPath(journalNote.journalDate ?? '', runtimeId));
       } catch {
         const runtimeId = uuidv7();
         pendingRuntimes.set(runtimeId, { block, noteId });
