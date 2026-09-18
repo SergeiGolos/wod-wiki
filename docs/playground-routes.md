@@ -122,6 +122,19 @@ A saved or prebuilt dashboard rendered by `DashboardViewPage`. Today
 `/dashboard/:slug`; becomes a note id once dashboards are stored as notes
 (they are built in the editor like any note).
 
+## Pages
+
+### `/p/:slug` — note-built page (page, new)
+A page rendered from a collection of notes. The syntax guide pages are the
+existing example: today they mount at their declared corpus routes
+(`/guide/syntax/*`, derived from canvas page metadata in
+`canvas/canvasRoutes.ts` and served by the `/syntax` redirect). The target
+addresses every such page by slug — `/p/<slug>` — without the `/syntax/`
+namespace: the slug carries the identity. This covers any collection of
+notes a user builds, not just the seeded syntax corpus; publishing a page
+and addressing it are the same mechanism. Legacy paths redirect:
+`/syntax/*`, `/chapters/*`, and each declared guide route.
+
 ## Run & support routes
 
 ### `/run/:runtimeId` — wall-clock tracker (editor, current)
@@ -132,11 +145,13 @@ Fullscreen runtime consuming `pendingRuntimes`; staged by the Run action
 Settings panels; ZIP intake for workouts and journal archives. Post-load
 redirects land on the record's canonical route.
 
-### Guide / canvas routes (page, current)
+### Guide / canvas routes (page, transitional)
 Seeded corpus routes (`/guide/…`) hydrate from the canvas corpus via
 `useCanvasRoutes`; each guide note's `sourceItem` is its declared route.
+Superseded by `/p/:slug` — see Pages above.
 
 ### Legacy redirects (current)
 `/workout/:cat/:name` → collection workout, `/tracker/:rt` → `/run/:rt`,
 `/review/*` → sessions, `/analytics/*` → dashboards, `/note/:cat/:name` →
-collection note, `/feed` → `/feeds`.
+collection note, `/feed` → `/feeds`, `/syntax/*` and `/chapters/*` →
+`/p/<slug>` pages.

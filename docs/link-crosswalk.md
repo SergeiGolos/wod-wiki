@@ -35,6 +35,7 @@ The target scheme follows one naming rule: **plural = list, singular = item**
 | `/session/:date` | Loads the sessions from a given date | add | editor |
 | `/dashboards` | Dashboard list (WQL explorer landing, optional `?q=`) | rename from `/dashboard` | list |
 | `/dashboard/:noteId` | A saved or prebuilt dashboard, built in the editor | current as `/dashboard/:slug` | editor |
+| `/p/:slug` | A page built from notes — syntax guides today, any user-built note collection | new — syntax routes re-address here | page |
 
 Second-segment ambiguity in `/collection/:slug/:x` resolves by shape, same as
 today: a note UUID → note, `YYYY-MM-DD` → date view, anything else → workout
@@ -66,6 +67,7 @@ name.
 | 20 | `QueriableStreamView.tsx` (stream rows) | playground note | `/playground/:id` via `playgroundPath` | `/playground/:noteId` | |
 | 21 | `routes.tsx` redirect matrix (`/workout/:cat/:name`, `/tracker/:rt`) | legacy aliases | canonical targets | re-point at renamed targets | |
 | 22 | Stream view rows, non-playground kinds (via `entryOpenHref`) | journal / collection / feed | see #1–#3 | context-aware per the matrix below | |
+| 23 | `entryOpenHref` guides case; canvas page links | page note (guide / user-built) | the note's declared route (`/${entry.sourceItem}`, e.g. `/guide/syntax/basics`) | `/p/:slug` | |
 
 ## 3. Context matrix (the consistency rule)
 
@@ -78,13 +80,13 @@ surface the link lives on, not the record's home.
 | Collection item | `/notes/:noteId` | `/collection/:slug/:noteId` | `/notes/:noteId` | `/notes/:noteId` |
 | Feed post | `/feeds/:slug/:date/:item` (transitional) | `/feeds/:slug/:date/:item` (transitional) | `/feeds/:slug/:date/:item` (transitional) | `/feeds/:slug/:date/:item` (transitional) |
 | Playground note | `/playground/:noteId` | `/playground/:noteId` | `/playground/:noteId` | `/playground/:noteId` |
-| Guide / canvas note | its canvas route | its canvas route | its canvas route | its canvas route |
+| Page note (guides, user-built) | `/p/:slug` | `/p/:slug` | `/p/:slug` | `/p/:slug` |
 | Effort | `/effort/:slug` | `/effort/:slug` | `/effort/:slug` | `/effort/:slug` |
 | Session (result) | `/sessions/:sessionId` | `/sessions/:sessionId` | `/sessions/:sessionId` | `/sessions/:sessionId` |
 | Dashboard | `/dashboard/:noteId` | `/dashboard/:noteId` | `/dashboard/:noteId` | `/dashboard/:noteId` |
 | Block | parent target + `#<segmentId>` | parent target + `#<segmentId>` | parent target + `#<segmentId>` | parent target + `#<segmentId>` |
 
-Rule of thumb: feeds (transitional), playground, guides, efforts, sessions,
+Rule of thumb: feeds (transitional), playground, pages, efforts, sessions,
 and dashboards have one home each. Notes differ: journal notes stay inside
 their date stack in the journal, collection items stay inside their
 collection in a collection, and everywhere else both resolve to
@@ -123,6 +125,13 @@ stream view passes the profile's context.
   `/results/:resultId` → `/sessions/:sessionId`, `/results` → `/sessions`,
   `/dashboard` → `/dashboards`, and the `?note=<uuid>` query form →
   `/journal/:date/:noteId` (the alias resolver already owns that rewrite).
+- Page addressing: `/p/:slug` becomes the single home for note-built pages.
+  The syntax corpus re-addresses from its declared namespace routes
+  (`/guide/syntax/*`, served by the `/syntax` redirect) to
+  `/p/<slug>` — the slug replaces the `/syntax/` prefix. Legacy paths
+  (`/syntax/*`, `/chapters/*`, each declared guide route) redirect. Any
+  user-built note collection publishes the same way. The seeded corpus keeps
+  working as today until the rewrite lands.
 - Feed removal depends on feed items gaining note rows and dates as
   collection items (open domain-model question); `/feeds/*` routes stay until
   that lands, then redirect.
