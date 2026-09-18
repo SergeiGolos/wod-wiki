@@ -4,11 +4,14 @@ Reference for every route the playground front end serves. Types: **list**
 (a listing surface), **editor** (an authoring or detail surface), **page**
 (a curated landing). Route classification and deep-link derivation live in
 `app/lib/routeView.ts`; URL builders in `app/lib/routes.tsx`; the target
-scheme and its link-by-context rules in [link-crosswalk.md](./link-crosswalk.md).
+scheme and its link rules in [link-crosswalk.md](./link-crosswalk.md).
 
-Status markers: **current** (serves traffic today), **new** (agreed target,
-not built), **rename** (exists under a different path), **transitional**
-(stays until a dependency lands).
+Naming rules: **plural = list** for browsing surfaces; **single-letter
+prefix = item** for the specialized view of a slug (`/c`, `/e`, `/d`, `/p`).
+Every slug is a page and also renders generically at `/p/:slug`. Stored
+notes always open in the editor at `/notes/:noteId`; note records carry both
+a **note id** (editor link) and a **page id** (page-render link) so list UIs
+can target either.
 
 ## Notes
 
@@ -16,30 +19,29 @@ not built), **rename** (exists under a different path), **transitional**
 Loads one note of any kind — journal, collection item, feed, playground —
 through the content provider, with a read-first Edit toggle and a guarded
 save path. Missing ids render a "Note not found" state. Builder:
-`noteByIdPath(noteId)`. This is the canonical global target for stored notes.
+`noteByIdPath(noteId)`. This is the universal editor target: journal
+selection and collection-scoped note routes fold into it.
+
+Note records returned by queries and the content provider carry `noteId`
+and `pageId`; lists link the editor (`/notes/:noteId`) and the page render
+(`/p/:slug`) from the same row.
 
 ## Journal
 
 ### `/journal` — journal stream (list, current)
 Dated list of journal notes. Stream profile `JOURNAL_STREAM_PROFILE`
-(`find:note last 2w`). Builder: `/journal`.
+(`find:note last 2w`).
 
 ### `/journal/:date` — date stack (editor, current)
 All notes for one `YYYY-MM-DD`, editor-first, with the per-note chip list.
-Builders: `journalDatePath(date)` (canonical, with trailing slash),
-`journalEntryPath(identity)` for the legacy single-segment form. Multiple
-notes on one date stack vertically; each chip links to `/notes/:noteId`.
-
-### `/journal/:date/:noteId` — date stack with selection (editor, new)
-Replaces the `?note=<uuid>` query form. The date context stays in the URL
-while one note is selected — journal links from journal surfaces target
-this. The alias resolver (`resolveJournalRoute`) rewrites UUID and slug
-aliases into this shape.
+Selecting a note opens `/notes/:noteId`; the stack is the browsing view.
+Builders: `journalDatePath(date)`, `journalEntryPath(identity)` for the
+legacy single-segment form.
 
 ### Journal aliases (redirects, current)
-`/journal/:uuid` and `/journal/:slug` resolve via `resolveJournalRoute`:
-uuid-alias fetches the note and redirects to its date stack; slug-alias
-loads the linked note; malformed segments redirect to `/journal`.
+`/journal/:uuid` and `/journal/:slug` resolve via `resolveJournalRoute` and
+redirect to the canonical target (`/notes/:noteId`); malformed segments
+redirect to `/journal`.
 
 ## Collections
 
@@ -47,31 +49,28 @@ loads the linked note; malformed segments redirect to `/journal`.
 The collections stream: `find:note{source:collections} by {tag}`. The
 library landing (`/library`) defaults to the same query.
 
-### `/collection/:slug` — collection landing (page, rename)
-Curated landing for one collection. Today `/collections/:slug`; the singular
-form marks the item surface per the plural-list/singular-item rule.
+### `/c/:slug` — collection landing (page, rename)
+Curated landing for one collection; the slug's specialized page view
+(`/p/:slug` renders it generically). Today `/collections/:slug`.
 
-### `/collection/:slug/:date` — collection date view (editor, rename)
-Journal-style day view of one collection's notes, each linking to the
-collection-scoped note route. Today `/collections/:slug/:date`. Mounts
+### `/c/:slug/:date` — collection date view (editor, rename)
+Journal-style day view of one collection's notes, each linking to
+`/notes/:noteId`. Today `/collections/:slug/:date`. Mounts
 `pages/CollectionDatePage.tsx` via the route-view classification.
 
-### `/collection/:slug/:noteId` — collection-scoped note (editor, rename)
-One collection item inside its collection. Today
-`/collections/:slug/:noteId`. Mounts the single-note page. Builder:
-`collectionNotePath(slug, noteId)`.
-
-### `/collection/:slug/:name` — workout editor (editor, rename)
-Workout editor addressed by corpus name. Today
-`/collections/:slug/:name` via `workoutPath`. Segment shape disambiguates:
-UUID → note, `YYYY-MM-DD` → date, else name.
+### `/c/:slug/:page-slug` — named workout editor (editor, rename)
+Workout editor addressed by the note's page slug within the collection.
+Today `/collections/:slug/:name` via `workoutPath`. Second-segment shape
+disambiguates: `YYYY-MM-DD` → date view, anything else → page slug. Stored
+notes skip this route and open at `/notes/:noteId`.
 
 ## Feeds (transitional)
 
 ### `/feeds/:feedSlug/:date/:item` — feed post (editor, transitional)
 Slated for removal: feeds become collections with dates, and posts address
-as dated collection items. The route and the `/feeds` stream stay until feed
-items gain note rows and dates in the collection catalogs; then redirect.
+as notes (`/notes/:noteId`). The route and the `/feeds` stream stay until
+feed items gain note rows and dates in the collection catalogs; then
+redirect.
 
 ## Playground
 
@@ -93,8 +92,10 @@ renamed to `:noteId` for consistency with the other note routes.
 ### `/efforts` — efforts list (list, current)
 Stream profile `EFFORTS_STREAM_PROFILE` (`find:effort`).
 
-### `/effort/:slug` — effort detail (editor, current)
+### `/e/:slug` — effort detail (editor, rename)
 One effort with optional modifiers and page controls via `effortPath`.
+Today `/effort/:slug`; the slug's specialized page view
+(`/p/:slug` renders it generically).
 
 ## Sessions
 
@@ -104,7 +105,7 @@ Today `/results` (plus `/results/segments`, which folds into this filter).
 
 ### `/sessions/:sessionId` — session detail (editor, rename)
 One session's execution detail — segments, metrics, results. Today
-`/results/:resultId` via `sessionResultPath` builders; bookmarks and the
+`/results/:resultId` via the session result builders; bookmarks and the
 retired `/review/*` screens redirect here.
 
 ### `/session/:date` — sessions from a date (editor, new)
@@ -117,23 +118,25 @@ date stack.
 The WQL explorer landing with optional `?q=`/`?weeks=`. Today `/dashboard`;
 `/analytics/*` already redirects here.
 
-### `/dashboard/:noteId` — saved dashboard (editor, current)
-A saved or prebuilt dashboard rendered by `DashboardViewPage`. Today
-`/dashboard/:slug`; becomes a note id once dashboards are stored as notes
-(they are built in the editor like any note).
+### `/dashboard/:dashboardId` — saved dashboard (editor, current)
+A saved or prebuilt dashboard rendered by `DashboardViewPage`, addressed by
+id. Today `/dashboard/:slug`.
+
+### `/d/:slug` — dashboard by slug (editor, new)
+The same dashboard addressed by its page slug — the slug's specialized page
+view; `/p/:slug` renders it generically.
 
 ## Pages
 
 ### `/p/:slug` — note-built page (page, new)
-A page rendered from a collection of notes. The syntax guide pages are the
-existing example: today they mount at their declared corpus routes
-(`/guide/syntax/*`, derived from canvas page metadata in
-`canvas/canvasRoutes.ts` and served by the `/syntax` redirect). The target
-addresses every such page by slug — `/p/<slug>` — without the `/syntax/`
-namespace: the slug carries the identity. This covers any collection of
-notes a user builds, not just the seeded syntax corpus; publishing a page
-and addressing it are the same mechanism. Legacy paths redirect:
-`/syntax/*`, `/chapters/*`, and each declared guide route.
+The generic render for any slug: a page built from a collection of notes.
+The syntax guide pages are the existing example — today they mount at their
+declared corpus routes (`/guide/syntax/*`, derived from canvas page metadata
+in `canvas/canvasRoutes.ts` and served by the `/syntax` redirect). The
+target addresses every such page by slug without the `/syntax/` namespace.
+This covers any collection of notes a user builds, not just the seeded
+corpus; publishing a page and addressing it are the same mechanism. Legacy
+paths redirect: `/syntax/*`, `/chapters/*`, and each declared guide route.
 
 ## Run & support routes
 
@@ -143,7 +146,7 @@ Fullscreen runtime consuming `pendingRuntimes`; staged by the Run action
 
 ### `/settings/*`, `/load`, `/load/journal` (support, current)
 Settings panels; ZIP intake for workouts and journal archives. Post-load
-redirects land on the record's canonical route.
+redirects land on the record's canonical route (`/notes/:noteId`).
 
 ### Guide / canvas routes (page, transitional)
 Seeded corpus routes (`/guide/…`) hydrate from the canvas corpus via
@@ -151,7 +154,8 @@ Seeded corpus routes (`/guide/…`) hydrate from the canvas corpus via
 Superseded by `/p/:slug` — see Pages above.
 
 ### Legacy redirects (current)
-`/workout/:cat/:name` → collection workout, `/tracker/:rt` → `/run/:rt`,
+`/workout/:cat/:name` → `/c/:cat/:page-slug`, `/tracker/:rt` → `/run/:rt`,
 `/review/*` → sessions, `/analytics/*` → dashboards, `/note/:cat/:name` →
-collection note, `/feed` → `/feeds`, `/syntax/*` and `/chapters/*` →
-`/p/<slug>` pages.
+`/notes/:noteId`, `/feed` → `/feeds`, `/effort/:slug` → `/e/:slug`,
+`/collection(s)/…` → `/c/…` or `/notes/:noteId`, `/syntax/*` and
+`/chapters/*` → `/p/<slug>` pages.
