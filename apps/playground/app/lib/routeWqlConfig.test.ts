@@ -64,7 +64,36 @@ describe('routeWqlConfig — pure read/write/clear', () => {
 
   it('survives malformed JSON with an empty config', () => {
     window.localStorage.setItem(getRouteWqlStorageKey('/journal'), '{not json')
+
     expect(readRouteWqlConfig('/journal')).toEqual({})
+  })
+
+  it('resolves overrides saved under pre-rename surface ids (legacy alias)', () => {
+    // Overrides saved before the /results → /sessions and /dashboard →
+    // /dashboards rebrands must still resolve.
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/results'),
+      JSON.stringify({ defaultWql: 'rows:all{} last 8w' }),
+    )
+    expect(readRouteWqlConfig('/sessions')).toEqual({ defaultWql: 'rows:all{} last 8w' })
+
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/dashboard'),
+      JSON.stringify({ defaultWql: 'rows:all{} last 12w' }),
+    )
+    expect(readRouteWqlConfig('/dashboards')).toEqual({ defaultWql: 'rows:all{} last 12w' })
+
+    // The new key always wins when both exist
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/sessions'),
+      JSON.stringify({ defaultWql: 'rows:all{} last 4w' }),
+    )
+    expect(readRouteWqlConfig('/sessions')).toEqual({ defaultWql: 'rows:all{} last 4w' })
+  })
+
+  it('never aliases the other direction — writes land on the new key only', () => {
+    writeRouteWqlConfig('/sessions', { defaultWql: 'rows:all{} last 4w' })
+    expect(window.localStorage.getItem(getRouteWqlStorageKey('/results'))).toBeNull()
   })
 
   it('drops non-string garbage from stored arrays', () => {

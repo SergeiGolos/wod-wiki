@@ -241,7 +241,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         <QueriableStreamView
           key={profile.route}
           profile={profile}
-          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={view.page !== 'library'} />}
+          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={false} />}
         />
       )
     },

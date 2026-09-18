@@ -37,23 +37,40 @@ function sanitizeStringArray(value: unknown): string[] | undefined {
     .map(v => v.trim())
 }
 
+/**
+ * Storage keys that moved during the route rebrand (#link-crosswalk):
+ * overrides saved under the old surface id still resolve under the new one.
+ * The new key always wins when both exist.
+ */
+const LEGACY_STORAGE_ALIASES: Record<string, string> = {
+  '/sessions': '/results',
+  '/dashboards': '/dashboard',
+}
+
 export function readRouteWqlConfig(routeId: string): RouteWqlConfig {
-  if (typeof window === 'undefined' || !window.localStorage) return {}
-  try {
-    const raw = window.localStorage.getItem(getRouteWqlStorageKey(routeId))
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as Partial<RouteWqlConfig>
-    return {
-      defaultWql:
-        typeof parsed.defaultWql === 'string' && parsed.defaultWql.trim().length > 0
-          ? parsed.defaultWql.trim()
-          : undefined,
-      typeOptions: sanitizeStringArray(parsed.typeOptions),
-      groupByOptions: sanitizeStringArray(parsed.groupByOptions),
+  const read = (id: string): RouteWqlConfig | null => {
+    if (typeof window === 'undefined' || !window.localStorage) return null
+    try {
+      const raw = window.localStorage.getItem(getRouteWqlStorageKey(id))
+      if (!raw) return null
+      const parsed = JSON.parse(raw) as Partial<RouteWqlConfig>
+      return {
+        defaultWql:
+          typeof parsed.defaultWql === 'string' && parsed.defaultWql.trim().length > 0
+            ? parsed.defaultWql.trim()
+            : undefined,
+        typeOptions: sanitizeStringArray(parsed.typeOptions),
+        groupByOptions: sanitizeStringArray(parsed.groupByOptions),
+      }
+    } catch {
+      return null
     }
-  } catch {
-    return {}
   }
+
+  const current = read(routeId)
+  if (current) return current
+  const legacyId = LEGACY_STORAGE_ALIASES[routeId]
+  return (legacyId && read(legacyId)) || {}
 }
 
 export function writeRouteWqlConfig(routeId: string, config: RouteWqlConfig): void {
