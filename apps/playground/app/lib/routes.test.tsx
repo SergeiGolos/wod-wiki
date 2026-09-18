@@ -41,11 +41,8 @@ import {
   dashboardSlugPath,
   playgroundsPath,
   runPath,
-  trackerPath,
   settingsPath,
-  loadPath,
   buildPlaygroundLoadUrl,
-  buildJournalLoadUrl,
   feedDetailPath,
   feedItemPath,
   isPlaygroundNotePath,
@@ -269,32 +266,14 @@ describe('path builders', () => {
     expect(runPath('abc-123')).toBe('/run/abc-123')
   })
 
-  it('trackerPath encodes runtimeId (legacy alias)', () => {
-    expect(trackerPath('abc-123')).toBe('/tracker/abc-123')
-  })
-
   it('settingsPath returns default or section path', () => {
     expect(settingsPath()).toBe('/settings/appearance')
     expect(settingsPath('appearance')).toBe('/settings/appearance')
     expect(settingsPath('system')).toBe('/settings/system')
   })
 
-  it('loadPath returns static path', () => {
-    expect(loadPath()).toBe('/load')
-  })
-
   it('buildPlaygroundLoadUrl encodes zip query', () => {
     expect(buildPlaygroundLoadUrl({ zip: 'abc 123' })).toBe('/load?zip=abc%20123')
-  })
-
-  it('buildJournalLoadUrl builds journal load path without date', () => {
-    expect(buildJournalLoadUrl({ zip: 'abc 123' })).toBe('/load/journal?zip=abc%20123')
-  })
-
-  it('buildJournalLoadUrl builds journal load path with date', () => {
-    expect(buildJournalLoadUrl({ zip: 'abc 123', date: '2024-06-15' })).toBe(
-      '/load/journal/2024-06-15?zip=abc%20123',
-    )
   })
 
   it('feedDetailPath encodes slug', () => {

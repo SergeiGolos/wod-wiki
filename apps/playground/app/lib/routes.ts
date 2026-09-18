@@ -129,19 +129,9 @@ export function workoutPath(collection: string, workout: string): string {
   return `/c/${encodeURIComponent(collection)}/${encodeURIComponent(workout)}`;
 }
 
-/** /tracker/:runtimeId (legacy redirect alias — preserved for external links) */
-export function trackerPath(runtimeId: string): string {
-  return `/tracker/${encodeURIComponent(runtimeId)}`;
-}
-
 /** /run/:runtimeId (canonical runtime seam for WOD-505) */
 export function runPath(runtimeId: string): string {
   return `/run/${encodeURIComponent(runtimeId)}`;
-}
-
-/** /load */
-export function loadPath(): string {
-  return '/load';
 }
 
 export interface PlaygroundLoadUrlOptions {
@@ -151,17 +141,6 @@ export interface PlaygroundLoadUrlOptions {
 /** /load?zip=<encoded> */
 export function buildPlaygroundLoadUrl({ zip }: PlaygroundLoadUrlOptions): string {
   return `/load?zip=${encodeURIComponent(zip)}`;
-}
-
-export interface JournalLoadUrlOptions {
-  zip: string;
-  date?: string;
-}
-
-/** /load/journal?zip=<encoded> or /load/journal/:date?zip=<encoded> */
-export function buildJournalLoadUrl({ zip, date }: JournalLoadUrlOptions): string {
-  const basePath = date ? `/load/journal/${encodeURIComponent(date)}` : '/load/journal';
-  return `${basePath}?zip=${encodeURIComponent(zip)}`;
 }
 
 /** /sessions — the sessions listing. */
