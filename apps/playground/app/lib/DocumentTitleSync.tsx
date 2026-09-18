@@ -3,8 +3,10 @@ import { useLocation } from 'react-router-dom'
 
 /**
  * Route-level document title sync. Sets a base page title from the current
- * route, leaving leaf routes such as /effort/:slug and /playground/:id alone
- * so their own effects can set a dynamic title.
+ * route, leaving leaf routes such as /effort/, /e/:slug and /playground/:id
+ * alone so their own effects can set a dynamic title. Section titles use
+ * prefix matching on purpose: deep routes (/journal/:date, /feeds/:slug)
+ * belong to their section, which a profile-exact lookup cannot express.
  */
 export function DocumentTitleSync() {
   const location = useLocation()

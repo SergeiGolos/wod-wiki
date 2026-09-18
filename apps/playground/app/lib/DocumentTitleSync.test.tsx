@@ -54,6 +54,26 @@ describe('DocumentTitleSync', () => {
     expect(document.title).toBe('Wod.Wiki - Library')
   })
 
+  it('derives rebranded stream titles from the profile registry', () => {
+    renderAt('/c/dan-john')
+    expect(document.title).toBe('Wod.Wiki - Collections')
+
+    renderAt('/sessions')
+    expect(document.title).toBe('Wod.Wiki - Sessions')
+
+    renderAt('/session/2026-09-17')
+    expect(document.title).toBe('Wod.Wiki - Sessions')
+
+    renderAt('/playgrounds')
+    expect(document.title).toBe('Wod.Wiki - Playgrounds')
+
+    renderAt('/dashboards')
+    expect(document.title).toBe('Wod.Wiki - Dashboards')
+
+    renderAt('/d/strength-trends')
+    expect(document.title).toBe('Wod.Wiki - Dashboards')
+  })
+
   it('sets the base title for efforts list route', () => {
     renderAt('/efforts')
     expect(document.title).toBe('Wod.Wiki - Efforts')
