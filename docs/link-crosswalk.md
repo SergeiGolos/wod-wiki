@@ -7,48 +7,64 @@ built the link. This document inventories every link-generation site, states
 the current target, proposes the consistent target, and leaves an alignment
 column for decisions.
 
+The target scheme follows one naming rule: **plural = list, singular = item**
+(`/collections` lists, `/collection/:slug` lands; `/sessions` lists,
+`/session/:date` edits). Per-route reference: [playground-routes.md](./playground-routes.md).
+
 ## 1. Canonical link-target routes
 
-| Route | Loads | Scope |
-|---|---|---|
-| `/journal` | Journal stream (dated list) | global |
-| `/journal/:date` | Date stack (all notes on the date) | journal |
-| `/journal/:date?note=<uuid>` | Date stack with one note selected | journal |
-| `/notes/:noteId` | One note, any kind | global |
-| `/collections/:slug` | Collection landing | collection |
-| `/collections/:slug/:noteId` | One note, collection-scoped | collection |
-| `/collections/:slug/:date` | Date view of one collection | collection |
-| `/collections/:slug/:workout-name` | Workout editor by name | collection |
-| `/feeds/:feedSlug/:date/:item` | One feed post | feed |
-| `/playground/:id` | Playground note | playground |
-| `/effort/:slug` | Effort detail | effort |
-| `/results/:resultId` | Session execution detail | global |
+| Route | Loads | Update | Type |
+| --- | --- | --- | --- |
+| `/notes/:noteId` | One note, any kind | | editor |
+| `/journal` | Journal stream (dated list) | | list |
+| `/journal/:date` | Date stack (all notes on the date) | | editor |
+| `/journal/:date/:noteId` | Date stack with one note selected | replaces `?note=<uuid>` param | editor |
+| `/collections` | A list of all the collections | add | list |
+| `/collection/:slug` | Collection landing | rename from `/collections/:slug` | page |
+| `/collection/:slug/:date` | Date view of one collection | rename | editor |
+| `/collection/:slug/:noteId` | One note, collection-scoped | rename | editor |
+| `/collection/:slug/:name` | Workout editor by name | rename from `/collections/:slug/:name` | editor |
+| `/feeds/:feedSlug/:date/:item` | One feed post | remove — feeds are collections with dates on them | |
+| `/playgrounds` | The library link for the list of all playground entries created | add | list |
+| `/playground` | Empty playground note | add | editor |
+| `/playground/:noteId` | Playground note | param renamed to `:noteId` | editor |
+| `/efforts` | Efforts list | | list |
+| `/effort/:slug` | Effort detail | | editor |
+| `/sessions` | Sessions listing; optional `?q=` WQL filter from the command line | rename from `/results` | list |
+| `/sessions/:sessionId` | Session execution detail | rename from `/results/:resultId` | editor |
+| `/session/:date` | Loads the sessions from a given date | add | editor |
+| `/dashboards` | Dashboard list (WQL explorer landing, optional `?q=`) | rename from `/dashboard` | list |
+| `/dashboard/:noteId` | A saved or prebuilt dashboard, built in the editor | current as `/dashboard/:slug` | editor |
+
+Second-segment ambiguity in `/collection/:slug/:x` resolves by shape, same as
+today: a note UUID → note, `YYYY-MM-DD` → date view, anything else → workout
+name.
 
 ## 2. Link-generation sites (survey)
 
 | # | Site (file → consumer) | Record | Current target | Proposed target | Alignment notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | `app/lib/entryActions.ts` → `entryOpenHref` (LibraryRow, PropertyTable, StreamFeed) | journal note | `/journal/:date/` | unchanged (journal context) | |
-| 2 | same | collection item | `/collections/:cat/:workout-name` | `/collections/:cat/:noteId` when opened from a collection context; `/notes/:noteId` from library | |
-| 3 | same | feed post | `/feeds/:slug/:date/:item` | unchanged | |
-| 4 | same | playground note | `/playground/:id` | unchanged | |
+| 2 | same | collection item | `/collections/:cat/:workout-name` | `/collection/:cat/:noteId` in a collection context; `/notes/:noteId` from library | |
+| 3 | same | feed post | `/feeds/:slug/:date/:item` | transitional — unchanged until feeds unify into collections, then the date-scoped collection target | |
+| 4 | same | playground note | `/playground/:id` | `/playground/:noteId` (builder rename only) | |
 | 5 | same | effort | `/effort/:slug` | unchanged | |
-| 6 | same | result / segment | `/results/:resultId` | unchanged | |
-| 7 | `app/lib/entryActions.ts` → `entryCompareHref` | any with blockContentId | `/analytics/explorer?q=<id>` (redirects to `/dashboard?q=`) | unchanged; route literal moves to the builder in `routes.tsx` | explorer literal still hand-built here |
+| 6 | same | result / segment | `/results/:resultId` | `/sessions/:sessionId` | |
+| 7 | `app/lib/entryActions.ts` → `entryCompareHref` | any with blockContentId | `/analytics/explorer?q=<id>` (redirects to `/dashboard?q=`) | emit `/dashboard?q=` directly; literal moves to the builder in `routes.tsx` | explorer literal still hand-built here |
 | 8 | `app/lib/entryRun.ts` (Run action) | journal note created by Run | `/journal/:date/?autoStart=<rt>` | unchanged | |
 | 9 | `app/lib/noteIdentity.ts` → `noteRefToPath` (back-route rule) | journal note | `/journal/:id` | unchanged | |
-| 10 | same | workout note | `/collections/:cat/:name` | note-id form once notes carry ids (see #2) | file's own comment flags effort mis-routing; fix with this pass |
-| 11 | same | playground note | `/playground/:id` | unchanged | |
-| 12 | `App.tsx` → `LIBRARY_SECONDARY.toEntry` | journal note | `/journal/:date?note=<id>` | unchanged (library side panel keeps journal context) | |
+| 10 | same | workout note | `/collections/:cat/:name` | note-id form once notes carry ids (see #2); name form moves to `/collection/:cat/:name` | file's own comment flags effort mis-routing; fix with this pass |
+| 11 | same | playground note | `/playground/:id` | `/playground/:noteId` | |
+| 12 | `App.tsx` → `LIBRARY_SECONDARY.toEntry` | journal note | `/journal/:date?note=<id>` | `/journal/:date/:noteId` (library side panel keeps journal context) | |
 | 13 | `JournalDatePage.tsx` (note chips + titles) | journal note | `/notes/:noteId` | unchanged (new) | |
-| 14 | `CollectionDatePage.tsx` (date list) | collection item | `/collections/:slug/:noteId` | unchanged (new) | |
-| 15 | `JournalPage.tsx` (uuid-alias resolve) | journal note | `/journal/:date?note=<id>` | unchanged | |
-| 16 | `useJournalZipProcessor.ts` (post-load redirect) | journal note | `/journal/:date/:uuid` | unchanged | |
-| 17 | `FeedDetailPage` / `FeedItemPage` / `PlaygroundNotePage` / `WorkoutEditorPage` "Open journal" toasts | journal note | `/journal/:date?note=<id>` | unchanged | |
+| 14 | `CollectionDatePage.tsx` (date list) | collection item | `/collections/:slug/:noteId` | `/collection/:slug/:noteId` (new) | |
+| 15 | `JournalPage.tsx` (uuid-alias resolve) | journal note | `/journal/:date?note=<id>` | `/journal/:date/:noteId` | |
+| 16 | `useJournalZipProcessor.ts` (post-load redirect) | journal note | `/journal/:date/:uuid` | unchanged — already the target shape | |
+| 17 | `FeedDetailPage` / `FeedItemPage` / `PlaygroundNotePage` / `WorkoutEditorPage` "Open journal" toasts | journal note | `/journal/:date?note=<id>` | `/journal/:date/:noteId` | |
 | 18 | `useSelectWorkout.ts` (nav onRun, page onSelect) | collection item | `/collections/:cat/:name` | note-id form when the item is a stored note; name form for corpus items without rows | |
-| 19 | `appNavTree.ts` → `PLAYGROUND_LIBRARY_HREF` | playground stream | `/library?q=find:note{source:playground}…` | unchanged | |
-| 20 | `QueriableStreamView.tsx` (stream rows) | playground note | `/playground/:id` via `playgroundPath` | unchanged | |
-| 21 | `routes.tsx` redirect matrix (`/workout/:cat/:name`, `/tracker/:rt`) | legacy aliases | canonical targets | unchanged | |
+| 19 | `appNavTree.ts` → `PLAYGROUND_LIBRARY_HREF` | playground stream | `/library?q=find:note{source:playground}…` | `/playgrounds` once the list route exists | |
+| 20 | `QueriableStreamView.tsx` (stream rows) | playground note | `/playground/:id` via `playgroundPath` | `/playground/:noteId` | |
+| 21 | `routes.tsx` redirect matrix (`/workout/:cat/:name`, `/tracker/:rt`) | legacy aliases | canonical targets | re-point at renamed targets | |
 | 22 | Stream view rows, non-playground kinds (via `entryOpenHref`) | journal / collection / feed | see #1–#3 | context-aware per the matrix below | |
 
 ## 3. Context matrix (the consistency rule)
@@ -57,20 +73,22 @@ Read: record kind × where the link is generated → target. "Context" is the
 surface the link lives on, not the record's home.
 
 | Record | Journal context | Collection context (`:slug`) | Library / global | Playground context |
-|---|---|---|---|---|
-| Journal note | `/journal/:date?note=<id>` | `/notes/:noteId` | `/notes/:noteId` | `/notes/:noteId` |
-| Collection item | `/notes/:noteId` | `/collections/:slug/:noteId` | `/notes/:noteId` | `/notes/:noteId` |
-| Feed post | `/feeds/:slug/:date/:item` | `/feeds/:slug/:date/:item` | `/feeds/:slug/:date/:item` | `/feeds/:slug/:date/:item` |
-| Playground note | `/playground/:id` | `/playground/:id` | `/playground/:id` | `/playground/:id` |
+| --- | --- | --- | --- | --- |
+| Journal note | `/journal/:date/:noteId` | `/notes/:noteId` | `/notes/:noteId` | `/notes/:noteId` |
+| Collection item | `/notes/:noteId` | `/collection/:slug/:noteId` | `/notes/:noteId` | `/notes/:noteId` |
+| Feed post | `/feeds/:slug/:date/:item` (transitional) | `/feeds/:slug/:date/:item` (transitional) | `/feeds/:slug/:date/:item` (transitional) | `/feeds/:slug/:date/:item` (transitional) |
+| Playground note | `/playground/:noteId` | `/playground/:noteId` | `/playground/:noteId` | `/playground/:noteId` |
 | Guide / canvas note | its canvas route | its canvas route | its canvas route | its canvas route |
 | Effort | `/effort/:slug` | `/effort/:slug` | `/effort/:slug` | `/effort/:slug` |
-| Session (result) | `/results/:resultId` | `/results/:resultId` | `/results/:resultId` | `/results/:resultId` |
+| Session (result) | `/sessions/:sessionId` | `/sessions/:sessionId` | `/sessions/:sessionId` | `/sessions/:sessionId` |
+| Dashboard | `/dashboard/:noteId` | `/dashboard/:noteId` | `/dashboard/:noteId` | `/dashboard/:noteId` |
 | Block | parent target + `#<segmentId>` | parent target + `#<segmentId>` | parent target + `#<segmentId>` | parent target + `#<segmentId>` |
 
-Rule of thumb: feeds, playground, guides, efforts, and results have one home
-each. Notes differ: journal notes stay inside their date stack in the journal,
-collection items stay inside their collection in a collection, and everywhere
-else both resolve to `/notes/:noteId`.
+Rule of thumb: feeds (transitional), playground, guides, efforts, sessions,
+and dashboards have one home each. Notes differ: journal notes stay inside
+their date stack in the journal, collection items stay inside their
+collection in a collection, and everywhere else both resolve to
+`/notes/:noteId`.
 
 ## 4. Proposed implementation seam
 
@@ -84,12 +102,16 @@ export type LinkContext = 'journal' | 'collection' | 'library' | 'playground';
 export function entryOpenHref(entry: Entry, context: LinkContext = 'library'): string
 ```
 
-- Journal context falls back to `/journal/:date?note=<id>` when the entry has
-  a date; otherwise `/notes/:noteId`.
+- Journal context emits `/journal/:date/:noteId` when the entry has a date;
+  otherwise `/notes/:noteId`.
 - Collection context receives the slug from the page (the route already has
-  it) and emits `/collections/:slug/:noteId` for collection items.
+  it) and emits `/collection/:slug/:noteId` for collection items.
 - Library context emits `/notes/:noteId` for every stored note kind.
 - Block entries keep the `#<segmentId>` anchor appended by today's builder.
+- Builders gain the renamed set: `journalNotePath(date, noteId)` → path
+  segment form, `collectionNotePath` / `collectionDatePath` / `workoutPath`
+  re-point at `/collection/…`, new `sessionsPath`, `sessionDetailPath`,
+  `sessionDatePath`, `dashboardsPath`, `playgroundsPath`.
 
 Call-site changes are then mechanical: `LibraryRow` (library → `'library'`),
 collection pages (`'collection'`), journal pages (`'journal'`), and the
@@ -97,9 +119,16 @@ stream view passes the profile's context.
 
 ## 5. Migration notes
 
+- Redirects absorb the renames: `/collections/:slug…` → `/collection/:slug…`,
+  `/results/:resultId` → `/sessions/:sessionId`, `/results` → `/sessions`,
+  `/dashboard` → `/dashboards`, and the `?note=<uuid>` query form →
+  `/journal/:date/:noteId` (the alias resolver already owns that rewrite).
+- Feed removal depends on feed items gaining note rows and dates as
+  collection items (open domain-model question); `/feeds/*` routes stay until
+  that lands, then redirect.
+- `/results/segments` folds into `/sessions` as a `?q=` filter; decide at
+  rename time.
 - `workoutPath(collection, name)` stays canonical for corpus workout names
   that have no note row; the note-id forms apply to stored notes.
-- `entryCompareHref` keeps hand-building `/analytics/explorer?q=` until the
-  explorer literal moves into `routes.tsx`; harmless but inconsistent.
 - `noteRefToPath`'s flagged effort mis-routing should be fixed in the same
   pass that adds context-awareness.
