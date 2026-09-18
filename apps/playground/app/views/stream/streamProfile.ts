@@ -236,3 +236,21 @@ export function getStreamProfile(route: string): StreamProfile | undefined {
 export function resolveStreamProfile(route: string): StreamProfile {
   return getStreamProfile(route) ?? LIBRARY_STREAM_PROFILE
 }
+
+/**
+ * Stream-surface membership — the single registry `routeView` consults when
+ * classifying a pathname as a list surface. Covers every profile route plus
+ * the dynamic detail/date routes; legacy `/results*` paths classify too (the
+ * router redirects them, but this function stays pure on the pathname).
+ */
+export function isStreamRoute(pathname: string): boolean {
+  const clean = cleanRoutePath(pathname)
+  if (PROFILES_BY_ROUTE[clean]) return true
+
+  if (clean.startsWith('/sessions/')) return clean.slice('/sessions/'.length) !== ''
+  if (clean.startsWith('/session/')) return clean.slice('/session/'.length) !== ''
+  if (clean === '/results' || clean === '/results/segments') return true
+  if (clean.startsWith('/results/')) return true
+
+  return false
+}

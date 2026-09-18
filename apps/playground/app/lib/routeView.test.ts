@@ -9,11 +9,11 @@ import type { Sessions } from '@/components/Editor/types'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import {
   resolveRouteView,
-  SYNTAX_LINKS,
   type RouteViewDeps,
   type RouteViewParams,
   type SelectWorkoutItem,
 } from './routeView'
+import { SYNTAX_LINKS } from './routeNav'
 
 /** Minimal result fixture — only `createdAt` matters to the nav derivation. */
 function makeResult(createdAt: number, id = `r-${createdAt}`): Session {

@@ -9,6 +9,7 @@ import {
   PLAYGROUNDS_STREAM_PROFILE,
   getStreamProfile,
   resolveStreamProfile,
+  isStreamRoute,
 } from './streamProfile'
 
 describe('streamProfile presets', () => {
@@ -75,6 +76,31 @@ describe('streamProfile presets', () => {
     // Playgrounds link back into the playground editor
     const playgroundRail = PLAYGROUNDS_STREAM_PROFILE.secondary?.[0]
     expect(playgroundRail).toMatchObject({ kind: 'wql', id: 'recent-playgrounds', label: 'Recent playground pages' })
+  })
+
+  it('owns stream-surface membership — isStreamRoute is the single registry', () => {
+    // every profile route is a stream surface
+    expect(isStreamRoute('/journal')).toBe(true)
+    expect(isStreamRoute('/collections')).toBe(true)
+    expect(isStreamRoute('/feeds')).toBe(true)
+    expect(isStreamRoute('/library')).toBe(true)
+    expect(isStreamRoute('/efforts')).toBe(true)
+    expect(isStreamRoute('/sessions')).toBe(true)
+    expect(isStreamRoute('/playgrounds')).toBe(true)
+    // trailing slashes normalize
+    expect(isStreamRoute('/journal/')).toBe(true)
+    // dynamic stream routes
+    expect(isStreamRoute('/sessions/res-42')).toBe(true)
+    expect(isStreamRoute('/session/2026-09-17')).toBe(true)
+    // legacy results paths classify too (pure function; router redirects them)
+    expect(isStreamRoute('/results')).toBe(true)
+    expect(isStreamRoute('/results/segments')).toBe(true)
+    expect(isStreamRoute('/results/res-42')).toBe(true)
+    // non-stream routes stay out
+    expect(isStreamRoute('/settings/appearance')).toBe(false)
+    expect(isStreamRoute('/playground/abc')).toBe(false)
+    expect(isStreamRoute('/notes/some-id')).toBe(false)
+    expect(isStreamRoute('/dashboard')).toBe(false)
   })
 
   it('resolves stream profile by route using getStreamProfile and resolveStreamProfile', () => {
