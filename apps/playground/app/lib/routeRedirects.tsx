@@ -131,3 +131,9 @@ export function SyntaxRedirect(): ReactNode {
   return <Navigate to={splat ? `/p/syntax/${splat}` : '/p/syntax'} replace />
 }
 
+/** Redirect /analytics/explorer → /dashboards, preserving the shareable ?q=
+ *  (and ?weeks=) query string. The WQL explorer lives on the dashboards list. */
+export function ExplorerRedirect(): ReactNode {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/dashboards', search }} replace />
+}
