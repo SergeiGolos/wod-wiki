@@ -10,6 +10,7 @@
  * wins over any default — that precedence lives in useComposerQueryState.
  */
 import type { StreamProfile } from '../views/stream/streamProfile'
+import { LocalStore } from '@/services/storage/LocalStore'
 
 export interface RouteWqlConfig {
   /** Landing default WQL when the URL carries no `?q=`. */
@@ -25,9 +26,11 @@ export const PALETTE_ROUTE_ID = '/palette'
 
 export const ROUTE_WQL_STORAGE_PREFIX = 'wodwiki.routeWql.v1'
 
+export const routeWqlStore = new LocalStore(ROUTE_WQL_STORAGE_PREFIX)
+
 export function getRouteWqlStorageKey(routeId: string): string {
   const id = routeId.startsWith('/') ? routeId : `/${routeId}`
-  return `${ROUTE_WQL_STORAGE_PREFIX}${id}`
+  return routeWqlStore.qualify(id)
 }
 
 function sanitizeStringArray(value: unknown): string[] | undefined {
@@ -47,60 +50,34 @@ const LEGACY_STORAGE_ALIASES: Record<string, string> = {
   '/dashboards': '/dashboard',
 }
 
-export function readRouteWqlConfig(routeId: string): RouteWqlConfig {
-  const read = (id: string): RouteWqlConfig | null => {
-    if (typeof window === 'undefined' || !window.localStorage) return null
-    try {
-      const raw = window.localStorage.getItem(getRouteWqlStorageKey(id))
-      if (!raw) return null
-      const parsed = JSON.parse(raw) as Partial<RouteWqlConfig>
-      return {
-        defaultWql:
-          typeof parsed.defaultWql === 'string' && parsed.defaultWql.trim().length > 0
-            ? parsed.defaultWql.trim()
-            : undefined,
-        typeOptions: sanitizeStringArray(parsed.typeOptions),
-        groupByOptions: sanitizeStringArray(parsed.groupByOptions),
-      }
-    } catch {
-      return null
-    }
-  }
-
-  const current = read(routeId)
-  if (current) return current
-  const legacyId = LEGACY_STORAGE_ALIASES[routeId]
-  return (legacyId && read(legacyId)) || {}
-}
-
-export function writeRouteWqlConfig(routeId: string, config: RouteWqlConfig): void {
-  if (typeof window === 'undefined' || !window.localStorage) return
-  try {
-    window.localStorage.setItem(
-      getRouteWqlStorageKey(routeId),
-      JSON.stringify({
-        defaultWql: config.defaultWql?.trim() || undefined,
-        typeOptions: sanitizeStringArray(config.typeOptions),
-        groupByOptions: sanitizeStringArray(config.groupByOptions),
-      }),
-    )
-  } catch {
-    // Non-fatal if quota exceeded
+export function readRouteWqlConfig(routeId: string, store: LocalStore = routeWqlStore): RouteWqlConfig {
+  const id = routeId.startsWith('/') ? routeId : `/${routeId}`
+  const legacyId = LEGACY_STORAGE_ALIASES[id]
+  const parsed = store.get<Partial<RouteWqlConfig>>(id, { alias: legacyId })
+  if (!parsed) return {}
+  return {
+    defaultWql:
+      typeof parsed.defaultWql === 'string' && parsed.defaultWql.trim().length > 0
+        ? parsed.defaultWql.trim()
+        : undefined,
+    typeOptions: sanitizeStringArray(parsed.typeOptions),
+    groupByOptions: sanitizeStringArray(parsed.groupByOptions),
   }
 }
 
-export function clearRouteWqlConfig(routeId: string): void {
-  if (typeof window === 'undefined' || !window.localStorage) return
-  // A clear must also drop the legacy key, or the read alias resurrects it.
-  const legacyId = LEGACY_STORAGE_ALIASES[routeId]
-  const ids = legacyId ? [routeId, legacyId] : [routeId]
-  for (const id of ids) {
-    try {
-      window.localStorage.removeItem(getRouteWqlStorageKey(id))
-    } catch {
-      // Non-fatal
-    }
-  }
+export function writeRouteWqlConfig(routeId: string, config: RouteWqlConfig, store: LocalStore = routeWqlStore): void {
+  const id = routeId.startsWith('/') ? routeId : `/${routeId}`
+  store.set(id, {
+    defaultWql: config.defaultWql?.trim() || undefined,
+    typeOptions: sanitizeStringArray(config.typeOptions),
+    groupByOptions: sanitizeStringArray(config.groupByOptions),
+  })
+}
+
+export function clearRouteWqlConfig(routeId: string, store: LocalStore = routeWqlStore): void {
+  const id = routeId.startsWith('/') ? routeId : `/${routeId}`
+  const legacyId = LEGACY_STORAGE_ALIASES[id]
+  store.remove(id, legacyId)
 }
 
 /**

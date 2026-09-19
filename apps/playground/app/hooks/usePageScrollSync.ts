@@ -25,7 +25,7 @@ import { useNav } from '../nav/NavContext'
 import type { NavStateAction } from '../nav/navTypes'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import { mapIndexToL3 } from '../pages/shared/pageUtils'
-import { parseDocumentSections } from '@/components/Editor/utils/sectionParser'
+import { parseDocumentSections } from '@bitcobblers/wod-wiki-core'
 export interface UsePageScrollSync {
   /** Pass to a CodeMirror factory so we can hold the live `EditorView` for editor-scroll fallback. */
   handleViewCreated: (view: EditorView) => void

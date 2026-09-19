@@ -10,7 +10,7 @@
 import type { SeedMetaRecord } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storage, type IStorage } from '@/services/storage';
 import { SEED_META_KEY, seedSegmentId } from '@/types/seed';
 
 export interface SeedChunkWrite {
@@ -42,44 +42,48 @@ export interface SeedImportStorage {
 
 /** Production adapter over the shared `wodwiki-db` connection. */
 export class IndexedDBSeedImportStorage implements SeedImportStorage {
+  constructor(private readonly storageInstance: IStorage = storage) {}
+
   async getSeedMeta(): Promise<SeedMetaRecord | undefined> {
-    const db = await indexedDBService.getDB();
-    return (await db.get('meta', SEED_META_KEY)) as SeedMetaRecord | undefined;
+    return (await this.storageInstance.readonly('meta').get(SEED_META_KEY)) as SeedMetaRecord | undefined;
   }
 
   async putSeedMeta(meta: SeedMetaRecord): Promise<void> {
-    const db = await indexedDBService.getDB();
-    await db.put('meta', meta);
+    await this.storageInstance.readwrite('meta').put(meta);
   }
 
   async getNote(id: string): Promise<Note | undefined> {
-    const db = await indexedDBService.getDB();
-    return db.get('notes', id);
+    return this.storageInstance.readonly('notes').get(id);
   }
 
   async getEffort(slug: string): Promise<IEffort | undefined> {
-    const db = await indexedDBService.getDB();
-    return db.get('efforts', slug);
+    return this.storageInstance.readonly('efforts').get(slug);
   }
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
-    const db = await indexedDBService.getDB();
-    const tx = db.transaction(['notes', 'segments', 'efforts', 'block_index', 'meta'], 'readwrite');
-    const notes = tx.objectStore('notes');
-    for (const note of write.notes) notes.put(note);
-    for (const id of write.deleteNoteIds) notes.delete(id);
-    const segments = tx.objectStore('segments');
-    for (const segment of write.segments) segments.put(segment);
-    // Seed notes own exactly one segment at [seed:<noteId>, 1] — precise delete.
-    for (const id of write.deleteNoteIds) segments.delete([seedSegmentId(id), 1]);
-    const efforts = tx.objectStore('efforts');
-    for (const effort of write.efforts) efforts.put(effort);
-    for (const slug of write.deleteEffortSlugs) efforts.delete(slug);
-    const blocks = tx.objectStore('block_index');
-    for (const row of write.blocks) blocks.put(row);
-    for (const id of write.deleteBlockIds) blocks.delete(id);
-    await tx.objectStore('meta').put(write.meta);
-    await tx.done;
+    await this.storageInstance.transaction(
+      ['notes', 'segments', 'efforts', 'block_index', 'meta'],
+      'readwrite',
+      async (tx) => {
+        const notes = tx.readwrite('notes');
+        for (const note of write.notes) await notes.put(note);
+        for (const id of write.deleteNoteIds) await notes.delete(id);
+
+        const segments = tx.readwrite('segments');
+        for (const segment of write.segments) await segments.put(segment);
+        for (const id of write.deleteNoteIds) await segments.delete([seedSegmentId(id), 1]);
+
+        const efforts = tx.readwrite('efforts');
+        for (const effort of write.efforts) await efforts.put(effort);
+        for (const slug of write.deleteEffortSlugs) await efforts.delete(slug);
+
+        const blocks = tx.readwrite('block_index');
+        for (const row of write.blocks) await blocks.put(row);
+        for (const id of write.deleteBlockIds) await blocks.delete(id);
+
+        await tx.readwrite('meta').put(write.meta);
+      }
+    );
   }
 }
 

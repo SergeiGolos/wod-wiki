@@ -2,7 +2,7 @@ export { constructSource } from './constructSource';
 export type { ConstructItem } from './constructSource';
 
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import { notePersistence } from '@/services/persistence';
 import { normalizeNoteTitle } from '@/lib/noteTitle';
 import { playgroundContent } from './playgroundContent';
@@ -92,7 +92,7 @@ export function globalSearchSource(
 
       // Recent IndexedDB results. IndexedDB failures propagate to the
       // palette shell, which already handles and reports search errors.
-      const recent = await indexedDBService.getRecentResults(50);
+      const recent = await storageService.getRecentResults(50);
       const noteIds = [...new Set(recent.map(r => r.noteId))];
       const notes = noteIds.length > 0
         ? await notePersistence.listNotes({ ids: noteIds, projection: 'summary' }).catch(() => [])

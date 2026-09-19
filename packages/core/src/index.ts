@@ -11,4 +11,5 @@ export * from './fields/fieldIdentity';
 export * from './units/catalog';
 export * from './models';
 export * from './types';
+export * from './sections';
 export * from './version';

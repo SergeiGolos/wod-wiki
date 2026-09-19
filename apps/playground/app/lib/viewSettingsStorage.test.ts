@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { LocalStore, InMemoryBackend } from '@/services/storage/LocalStore'
 import { renderHook, act } from '@testing-library/react'
 import {
   readViewSettings,
@@ -143,6 +144,13 @@ describe('viewSettingsStorage — pure read/write/reset', () => {
 
     const read = readViewSettings('/journal', 'note')
     expect(read.layout).toBe('cards')
+  })
+  it('operates identically when an isolated LocalStore is injected', () => {
+    const inMemory = new LocalStore(VIEW_SETTINGS_STORAGE_PREFIX, new InMemoryBackend())
+    writeViewSettings('/custom', { level: 'note', layout: 'feed', visibleFields: ['title'] }, inMemory)
+    const read = readViewSettings('/custom', 'note', inMemory)
+    expect(read.layout).toBe('feed')
+    expect(read.visibleFields).toEqual(['title'])
   })
 })
 

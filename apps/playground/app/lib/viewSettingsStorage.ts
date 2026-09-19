@@ -7,6 +7,7 @@
  * to keep stored state resilient.
  */
 import { useState, useCallback, useEffect } from 'react'
+import { LocalStore } from '@/services/storage/LocalStore'
 import {
   type EntityLevel,
   getFieldsForLevel,
@@ -37,9 +38,11 @@ const LEGACY_ROUTE_ALIASES: Record<string, string> = {
   '/sessions': '/results',
 }
 
+export const viewSettingsStore = new LocalStore(VIEW_SETTINGS_STORAGE_PREFIX)
+
 export function getRouteStorageKey(route: string): string {
   const cleanRoute = route.startsWith('/') ? route : `/${route}`
-  return `${VIEW_SETTINGS_STORAGE_PREFIX}${cleanRoute}`
+  return viewSettingsStore.qualify(cleanRoute)
 }
 
 export function getDefaultViewSettings(level: EntityLevel): ViewSettings {
@@ -51,29 +54,13 @@ export function getDefaultViewSettings(level: EntityLevel): ViewSettings {
   }
 }
 
-export function readViewSettings(route: string, level: EntityLevel): ViewSettings {
+export function readViewSettings(route: string, level: EntityLevel, store: LocalStore = viewSettingsStore): ViewSettings {
   const defaults = getDefaultViewSettings(level)
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return defaults
-  }
-
-  const readRaw = (r: string): string | null => {
-    try {
-      return window.localStorage.getItem(getRouteStorageKey(r))
-    } catch {
-      return null
-    }
-  }
-  let raw = readRaw(route)
-  if (!raw) {
-    const legacyRoute = LEGACY_ROUTE_ALIASES[route]
-    if (legacyRoute) raw = readRaw(legacyRoute)
-  }
-  if (!raw) return defaults
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<ViewSettings>
-    const rawLayout = typeof parsed.layout === 'string' ? parsed.layout : ''
+  const cleanRoute = route.startsWith('/') ? route : `/${route}`
+  const legacyRoute = LEGACY_ROUTE_ALIASES[cleanRoute]
+  const parsed = store.get<Partial<ViewSettings>>(cleanRoute, { alias: legacyRoute })
+  if (!parsed) return defaults
+  const rawLayout = typeof parsed.layout === 'string' ? parsed.layout : ''
     const layout: LayoutMode =
       rawLayout === 'cards' || rawLayout === 'rows' || rawLayout === 'feed'
         ? rawLayout
@@ -92,42 +79,23 @@ export function readViewSettings(route: string, level: EntityLevel): ViewSetting
       visibleFields: visibleFields.length > 0 ? visibleFields : defaults.visibleFields,
       groupBy,
     }
-  } catch {
-    return defaults
-  }
 }
 
-export function writeViewSettings(route: string, settings: ViewSettings): void {
-  if (typeof window === 'undefined' || !window.localStorage) return
-
-  try {
-    window.localStorage.setItem(
-      getRouteStorageKey(route),
-      JSON.stringify({
-        level: settings.level,
-        layout: settings.layout,
-        visibleFields: settings.visibleFields,
-        groupBy: settings.groupBy,
-      }),
-    )
-  } catch {
-    // Non-fatal if quota exceeded
-  }
+export function writeViewSettings(route: string, settings: ViewSettings, store: LocalStore = viewSettingsStore): void {
+  const cleanRoute = route.startsWith('/') ? route : `/${route}`
+  store.set(cleanRoute, {
+    level: settings.level,
+    layout: settings.layout,
+    visibleFields: settings.visibleFields,
+    groupBy: settings.groupBy,
+  })
 }
 
-export function resetViewSettings(route: string, level: EntityLevel): ViewSettings {
-  const defaults = getDefaultViewSettings(level)
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      // A reset must also drop the legacy key, or the read alias resurrects it.
-      const legacyRoute = LEGACY_ROUTE_ALIASES[route]
-      const keys = legacyRoute ? [route, legacyRoute] : [route]
-      keys.forEach(k => window.localStorage.removeItem(getRouteStorageKey(k)))
-    } catch {
-      // Non-fatal
-    }
-  }
-  return defaults
+export function resetViewSettings(route: string, level: EntityLevel, store: LocalStore = viewSettingsStore): ViewSettings {
+  const cleanRoute = route.startsWith('/') ? route : `/${route}`
+  const legacyRoute = LEGACY_ROUTE_ALIASES[cleanRoute]
+  store.remove(cleanRoute, legacyRoute)
+  return getDefaultViewSettings(level)
 }
 
 /**

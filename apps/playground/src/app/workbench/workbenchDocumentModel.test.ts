@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
+import { parseDocumentSections } from '@bitcobblers/wod-wiki-core';
 import { deriveWorkbenchDocumentState } from './workbenchDocumentModel';
 
 describe('deriveWorkbenchDocumentState', () => {

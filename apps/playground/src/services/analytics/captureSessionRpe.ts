@@ -8,7 +8,7 @@
 import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { IndexedDBNotePersistence } from '@/services/persistence/IndexedDBNotePersistence';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import { NotePersistenceError, type NotePersistenceStorage } from '@/services/persistence/types';
 
 export type CaptureSessionRpeOutcome = 'captured' | 'captured-no-rederive' | 'not-found';
@@ -39,7 +39,7 @@ export async function captureSessionRpe(
   rpe: number,
   deps: CaptureSessionRpeDeps = {},
 ): Promise<CaptureSessionRpeOutcome> {
-  const storage = deps.storage ?? indexedDBService;
+  const storage = deps.storage ?? storageService;
   const persistence = deps.persistence ?? new IndexedDBNotePersistence(storage);
 
   const result = await storage.getResultById(resultId);

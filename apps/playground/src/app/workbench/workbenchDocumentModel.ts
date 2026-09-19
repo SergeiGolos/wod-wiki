@@ -1,8 +1,8 @@
-import { parseDocumentSections, matchSectionIds } from '@/components/Editor/utils/sectionParser';
+import { parseDocumentSections, matchSectionIds } from '@bitcobblers/wod-wiki-core';
 import { parseScriptBlock } from '@/components/Editor/utils/parseScriptBlock';
 import { appError } from '@/lib/log';
-import type { ScriptBlock, Section } from '@/components/Editor/types';
-import { isWorkoutSectionType, type Section as EditorSection } from '@/components/Editor/types/section';
+import type { ScriptBlock, Section } from '@bitcobblers/wod-wiki-core';
+import { isWorkoutSectionType } from '@bitcobblers/wod-wiki-core';
 export interface WorkbenchDocumentState {
   readonly sections: Section[];
   readonly blocks: ScriptBlock[];

@@ -18,16 +18,12 @@ import { describe, expect, it } from 'bun:test';
 
 import { IndexedDBNotePersistence } from './IndexedDBNotePersistence';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
-import { isWorkoutSectionType } from '@/components/Editor/types/section';
+import { parseDocumentSections, isWorkoutSectionType } from '@bitcobblers/wod-wiki-core';
 import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
-import type { IndexedDBService } from '@/services/db/IndexedDBService';
+import { InMemoryStorage, StorageService } from '@/services/storage';
 
-// @ts-expect-error — bun-only '?real' specifier: bypasses the shared
-// mock.module registry (sibling files stub this module process-globally).
-const { IndexedDBService: RealIndexedDBService } = await import('@/services/db/IndexedDBService?real') as typeof import('@/services/db/IndexedDBService');
-
-const service: IndexedDBService = new RealIndexedDBService();
+const storage = new InMemoryStorage();
+const service = new StorageService(storage);
 const persistence = new IndexedDBNotePersistence(service, new IndexedDBContentProvider(service));
 
 const RAW_CONTENT = [

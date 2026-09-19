@@ -6,7 +6,7 @@
  */
 
 import { v7 as uuidv7 } from 'uuid';
-import { indexedDBService } from './IndexedDBService';
+import { storageService } from '@/services/storage';
 import { Note, NoteSegment, Session } from '../../types/storage';
 import { HistoryEntry } from '../../types/history';
 
@@ -80,11 +80,11 @@ export const migrationService = {
                             data: legacyResult,
                             createdAt: legacyResult.createdAt || legacyResult.endTime || Date.now()
                         };
-                        await indexedDBService.saveResult(result);
+                        await storageService.saveResult(result);
                     }
 
-                    await indexedDBService.saveNote(note);
-                    await indexedDBService.saveSegment(segment);
+                    await storageService.saveNote(note);
+                    await storageService.saveSegment(segment as NoteSegment);
                     count++;
 
                 } catch (err) {

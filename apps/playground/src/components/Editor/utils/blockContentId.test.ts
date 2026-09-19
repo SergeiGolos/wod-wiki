@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { blockContentId } from './sectionParser';
+import { blockContentId } from '@bitcobblers/wod-wiki-core';
 
 describe('blockContentId', () => {
   it('is deterministic for identical content', () => {

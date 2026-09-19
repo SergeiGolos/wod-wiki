@@ -52,12 +52,6 @@ mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
   CastButtonRpc: () => null,
 }))
 
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getFactsByTimeRange: mock(async () => []),
-    getFactsByMetric: mock(async () => []),
-  },
-}))
 
 mock.module('../hooks/useQuickStartAutoComplete', () => ({
   useQuickStartAutoComplete: () => {},

@@ -5,12 +5,6 @@ import type { IndexedDBContentProvider } from '@/services/content/IndexedDBConte
 import type { Note, NoteSegment, EventRecord, Session } from '@/types/storage';
 import { normalizeSummaryFacts } from '@/services/analytics/workoutDerivation';
 
-const indexedDBService = {};
-
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService,
-}));
-
 const persistenceModule = import('./IndexedDBNotePersistence');
 
 const note: Note = {

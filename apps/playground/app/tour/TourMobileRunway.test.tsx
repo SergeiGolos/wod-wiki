@@ -51,12 +51,6 @@ mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
   CastButtonRpc: () => null,
 }))
 
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getFactsByTimeRange: mock(async () => []),
-    getFactsByMetric: mock(async () => []),
-  },
-}))
 
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
 

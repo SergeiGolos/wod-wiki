@@ -8,14 +8,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import type { Session } from '@/types/storage'
-import { indexedDBService } from '@/services/db/IndexedDBService'
+import { storageService } from '@/services/storage'
 
 export function useRecentResults(limit = 20): Session[] {
   const [results, setResults] = useState<Session[]>([])
   const { pathname } = useLocation()
 
   const refresh = useCallback(() => {
-    indexedDBService
+    storageService
       .getRecentResults(limit)
       .then(setResults)
       .catch(() => {})

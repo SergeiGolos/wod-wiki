@@ -14,37 +14,32 @@ import type { Note, NoteSegment } from '../../../types/storage';
 const notes: Note[] = [];
 const savedSegments: NoteSegment[] = [];
 
-mock.module('../../db/IndexedDBService', () => ({
-  indexedDBService: {
-    getNote: async (id: string) => notes.find((n) => n.id === id),
-    getAllNotes: async () => notes,
-    getTagsForNote: async () => [],
-    getPage: async () => undefined,
-    getAllSegments: async () => [],
-    getResultsForNote: async () => [],
-    saveNote: async (note: Note) => note.id,
-    saveSegment: async (segment: NoteSegment) => {
-      const index = savedSegments.findIndex(
-        (s) => s.id === segment.id && s.version === segment.version,
-      );
-      if (index >= 0) savedSegments[index] = segment;
-      else savedSegments.push(segment);
-      return segment.id;
-    },
-    getLatestSegmentsForNote: async (noteId: string, opts?: { includeHistory?: boolean }) => {
-      const latest = new Map<string, NoteSegment>();
-      for (const segment of savedSegments.filter((s) => s.noteId === noteId)) {
-        const current = latest.get(segment.id);
-        if (!current || segment.version > current.version) latest.set(segment.id, segment);
-      }
-      return [...latest.values()]
-        .filter((s) => opts?.includeHistory || !s.isHistory)
-        .sort(
-          (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
-        );
-    },
-  },
-}));
+import { storageService } from '@/services/storage';
+storageService.getNote = async (id: string) => notes.find((n) => n.id === id);
+storageService.getAllNotes = async () => notes;
+storageService.getTagsForNote = async () => [];
+storageService.getPage = async () => undefined;
+storageService.getAllSegments = async () => [];
+storageService.getResultsForNote = async () => [];
+storageService.saveNote = async (note: Note) => note.id;
+storageService.saveSegment = async (segment: NoteSegment) => {
+  const index = savedSegments.findIndex(
+    (s) => s.id === segment.id && s.version === segment.version,
+  );
+  if (index >= 0) savedSegments[index] = segment;
+  else savedSegments.push(segment);
+  return segment.id;
+};
+storageService.getLatestSegmentsForNote = async (noteId: string, opts?: { includeHistory?: boolean }) => {
+  const latest = new Map<string, NoteSegment>();
+  for (const segment of savedSegments.filter((s) => s.noteId === noteId)) {
+    const current = latest.get(segment.id);
+    if (!current || segment.version > current.version) latest.set(segment.id, segment);
+  }
+  return [...latest.values()]
+    .filter((s) => opts?.includeHistory || !s.isHistory)
+    .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt));
+};
 
 const providerModule = import('../IndexedDBContentProvider');
 

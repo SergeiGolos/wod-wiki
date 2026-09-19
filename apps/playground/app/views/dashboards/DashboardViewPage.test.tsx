@@ -77,9 +77,8 @@ mock.module('@/services/queryService', () => ({
   },
 }));
 
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: { countEvents: mock(async () => 1) },
-}));
+import { storageService } from '@/services/storage';
+storageService.countEvents = mock(async () => 1);
 
 mock.module('@/services/analytics/sample', () => ({
   loadSampleData: mock(async () => ({ facts: 0 })),

@@ -32,12 +32,6 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
   },
 }))
 
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getFactsByTimeRange: mock(async () => []),
-    getFactsByMetric: mock(async () => []),
-  },
-}))
 
 import { TourMobileStack } from './TourMobileStack'
 

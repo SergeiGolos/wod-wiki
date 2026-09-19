@@ -10,13 +10,10 @@ import type { BlockIndexRow } from '@/types/storage';
 
 // The corpus plane reads the shared `block_index` store — mock the service
 // before importing the module under test.
+import { storageService } from '@/services/storage';
 const blockRows: BlockIndexRow[] = [];
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getAllBlockIndex: async () => blockRows,
-    getAllTags: async () => [],
-  },
-}));
+storageService.getAllBlockIndex = async () => blockRows;
+storageService.getAllTags = async () => [];
 import {
   feedDateToCreatedAt,
   staticTagIndexFromBlocks,

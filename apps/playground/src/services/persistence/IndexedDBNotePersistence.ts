@@ -2,7 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment, EventRecord, Note, Session } from '@/types/storage';
 
@@ -38,8 +38,8 @@ function limitResults(results: Session[], limit?: number): Session[] {
 
 export class IndexedDBNotePersistence implements INotePersistence {
   constructor(
-    private readonly storage: NotePersistenceStorage = indexedDBService,
-    private readonly contentProvider = new IndexedDBContentProvider(),
+    private readonly storage: NotePersistenceStorage = storageService,
+    private readonly contentProvider = new IndexedDBContentProvider(storageService),
   ) {}
 
   async createNote(input: CreateNoteInput): Promise<HistoryEntry> {

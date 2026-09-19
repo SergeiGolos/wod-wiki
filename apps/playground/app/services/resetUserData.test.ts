@@ -10,10 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
  * tests/run-isolated.ts. The real close+deleteDatabase behaviour of wipe() is
  * covered by src/services/db/IndexedDBService.test.ts in the library suite.
  */
+import { storageService } from '@/services/storage';
 const wipeMock = mock(() => Promise.resolve());
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: { wipe: wipeMock },
-}));
+storageService.wipe = wipeMock;
 
 import { resetUserData } from './resetUserData';
 

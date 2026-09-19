@@ -1,5 +1,5 @@
 import type { AnalyticsDataPoint, EventRecord } from '@/types/storage';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
 import { getMetricDirection, isBetterValue } from './directionOfBetter';
 
@@ -25,7 +25,7 @@ export async function detectPRsForSession(
   targetResultId: string,
   options?: PRDetectionOptions,
 ): Promise<PRMetricStatus[]> {
-  const store = options?.eventsStore ?? indexedDBService;
+  const store = options?.eventsStore ?? storageService;
   const events = await store.getEventsByContent(blockContentId);
   const facts = events
     .filter((event) => event.grain === 'summary')

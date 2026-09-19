@@ -12,14 +12,14 @@ import type { BlockIndexRow, Note } from '@/types/storage';
 import type { NoteQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { setSuggestionBinding, catalogIdsFromBlocks } from '@bitcobblers/wod-wiki-ui';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 
 let corpusBlocksPromise: Promise<BlockIndexRow[]> | null = null;
 
 /** Memoized corpus (`isStatic`) block rows from the block_index store. */
 export function loadCorpusBlocks(): Promise<BlockIndexRow[]> {
     if (!corpusBlocksPromise) {
-        corpusBlocksPromise = indexedDBService
+        corpusBlocksPromise = storageService
             .getAllBlockIndex()
             .then((rows) => rows.filter((row) => row.isStatic === true))
             .catch((err) => {
@@ -145,7 +145,7 @@ setSuggestionBinding('tag', {
         const staticTags = Array.from(tagIndex.keys());
         let userTags: string[] = [];
         try {
-            userTags = (await indexedDBService.getAllTags()).map((t) => t.label);
+            userTags = (await storageService.getAllTags()).map((t) => t.label);
         } catch {
             // IndexedDB not ready in isolated test environments
         }

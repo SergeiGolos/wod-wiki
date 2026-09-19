@@ -18,7 +18,7 @@
  * skip the others. The caller reloads the page after this resolves so the
  * singleton services reinitialise against the now-empty state.
  */
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 
 export async function resetUserData(): Promise<void> {
   // 1. Primary store — close the live connection, then drop the whole DB.
@@ -26,7 +26,7 @@ export async function resetUserData(): Promise<void> {
   //    failure can't abort the secondary-store cleanup below. The reload that
   //    follows re-creates the DB either way.
   try {
-    await indexedDBService.wipe();
+    await storageService.wipe();
   } catch {
     /* best-effort; secondary stores still cleared, reload re-inits */
   }

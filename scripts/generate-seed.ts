@@ -40,8 +40,7 @@ import { Glob } from 'bun';
 import { BLOCK_INDEX_CHUNK_PREFIX, SEED_SCHEMA } from '@/types/seed';
 import type { ChunkKind, ManifestChunk, SeedManifest, SeedRow } from '@/types/seed';
 import type { BlockIndexRow, SegmentDataType } from '@/types/storage';
-import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
-import type { Section } from '@/components/Editor/types/section';
+import { parseDocumentSections, type Section } from '@bitcobblers/wod-wiki-core';
 import { fileToDisplayName } from '@/repositories/groupings';
 import { createHash } from 'node:crypto';
 import {

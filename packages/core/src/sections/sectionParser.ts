@@ -1,8 +1,12 @@
-import { blockContentId } from '@bitcobblers/wod-wiki-core';
-import type { Section, SectionType, FenceDialect, FrontMatterSubtype } from '../types/section';
-import type { ScriptBlock } from '../types';
+import { blockContentId } from '../models/blockContentId';
+import type {
+  FenceDialect,
+  FrontMatterSubtype,
+  ScriptBlock,
+  Section,
+  SectionType,
+} from '../types/section';
 import { detectScriptBlocks } from './blockDetection';
-import { detectUrlSubtype } from '@/lib/frontmatter';
 
 /** Metadata regex: <!-- section-metadata id:UUID version:N created:TS --> */
 const METADATA_REGEX = /<!--\s*section-metadata\s+id:(\S+)\s+version:(\d+)\s+created:(\d+)\s*-->/i;
@@ -39,11 +43,10 @@ export function serializeMetadata(metadata: SectionMetadata): string {
 }
 
 /**
- * Generate a deterministic section ID from type, startLine, and a content hash.
+ * Generate a deterministic section ID from type, startLine (0-indexed), and a content hash.
  * Stable across re-parses when structure doesn't change.
  */
-function generateSectionId(type: SectionType, startLine: number, content: string): string {
-  // Simple hash: sum of char codes modulo a large prime, hex-encoded
+export function generateSectionId(type: SectionType | string, startLine: number, content: string): string {
   let hash = 0;
   for (let i = 0; i < content.length && i < 64; i++) {
     hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
@@ -54,52 +57,45 @@ function generateSectionId(type: SectionType, startLine: number, content: string
 
 export { blockContentId };
 
-/**
- * Detect front matter blocks delimited by `---` lines.
- * Returns an array of { startLine, endLine } ranges (0-indexed, inclusive).
- */
-interface FrontMatterRange {
-  startLine: number;
-  endLine: number;
+export function detectUrlSubtype(url: string): FrontMatterSubtype | null {
+  if (!url) return null;
+  const withoutScheme = url.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  const host = withoutScheme.split(/[/?#:]/, 1)[0].toLowerCase();
+  if (host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be') return 'youtube';
+  if (host === 'strava.com' || host.endsWith('.strava.com')) return 'strava';
+  if (host === 'amazon.com' || host.endsWith('.amazon.com') || host === 'amzn.to') return 'amazon';
+  return null;
 }
 
-function detectFrontMatterBlocks(lines: string[], scriptBlocks: ScriptBlock[]): FrontMatterRange[] {
-  const ranges: FrontMatterRange[] = [];
-  let i = 0;
+export function resolveFrontMatterSubtype(props: Record<string, string>): FrontMatterSubtype {
+  const typeValue = (props['type'] || '').toLowerCase();
+  if (typeValue === 'youtube') return 'youtube';
+  if (typeValue === 'strava') return 'strava';
+  if (typeValue === 'amazon') return 'amazon';
+  if (typeValue === 'file') return 'file';
+  if (typeValue === 'effort') return 'effort';
 
-  while (i < lines.length) {
-    // Skip lines that are inside a WOD block
-    const inScript = scriptBlocks.some(b => i >= b.startLine && i <= b.endLine);
-    if (inScript) { i++; continue; }
-
-    if (lines[i].trim() === '---') {
-      const openLine = i;
-      // Look for closing ---
-      let j = i + 1;
-      while (j < lines.length) {
-        const inScriptInner = scriptBlocks.some(b => j >= b.startLine && j <= b.endLine);
-        if (inScriptInner) { j++; continue; }
-        if (lines[j].trim() === '---') {
-          ranges.push({ startLine: openLine, endLine: j });
-          i = j + 1;
-          break;
-        }
-        j++;
-      }
-      if (j >= lines.length) {
-        // Unclosed --- block, skip
-        i++;
-      }
-    } else {
-      i++;
-    }
+  const url = props['url'] || props['link'] || '';
+  if (url) {
+    const detected = detectUrlSubtype(url);
+    if (detected) return detected;
   }
-  return ranges;
+
+  if (
+    props['baseAttributes'] !== undefined ||
+    props['discipline'] !== undefined ||
+    props['effortType'] !== undefined ||
+    props['targetRPE'] !== undefined ||
+    props['equipment'] !== undefined ||
+    props['aliases'] !== undefined ||
+    props['derivation'] !== undefined
+  ) {
+    return 'effort';
+  }
+
+  return 'default';
 }
 
-/**
- * Parse YAML-like key: value pairs from front matter lines.
- */
 export function parseFrontMatterProperties(innerLines: string[]): Record<string, string> {
   const props: Record<string, string> = {};
   for (const line of innerLines) {
@@ -111,45 +107,12 @@ export function parseFrontMatterProperties(innerLines: string[]): Record<string,
   return props;
 }
 
-/**
- * Determine the front matter subtype from its properties.
- */
-export function resolveFrontMatterSubtype(props: Record<string, string>): FrontMatterSubtype {
-  const typeValue = (props['type'] || '').toLowerCase();
-  if (typeValue === 'youtube') return 'youtube';
-  if (typeValue === 'strava') return 'strava';
-  if (typeValue === 'amazon') return 'amazon';
-  if (typeValue === 'file') return 'file';
-  if (typeValue === 'effort') return 'effort';
-
-  // Auto-detect from url patterns
-  const url = props['url'] || props['link'] || '';
-  const urlSubtype = detectUrlSubtype(url);
-  if (urlSubtype) return urlSubtype;
-
-  // Effort pages expose either a nested baseAttributes block or flat effort
-  // metadata at the root. The flat parser captures nested keys as empty-string
-  // placeholders, so checking for the known root fields is enough here.
-  if (
-    props['baseAttributes'] !== undefined ||
-    props['registrySource'] !== undefined ||
-    props['met'] !== undefined ||
-    props['discipline'] !== undefined ||
-    props['intensityTier'] !== undefined ||
-    props['aliases'] !== undefined ||
-    props['derivation'] !== undefined
-  ) {
-    return 'effort';
-  }
-
-  return 'default';
-}
-
-/**
- * Detect single-line Markdown embeds: ![label](url) or [label](url).
- */
-function matchMarkdownEmbed(trimmed: string) {
-  // Pattern: Optional ! for image, then [label](url)
+export function matchMarkdownEmbed(trimmed: string): {
+  type: 'image' | 'link' | 'youtube';
+  label: string;
+  url: string;
+  isImage: boolean;
+} | null {
   const match = trimmed.match(/^(!)?\[([^\]]*)\]\(([^)]+)\)$/);
   if (!match) return null;
 
@@ -165,21 +128,48 @@ function matchMarkdownEmbed(trimmed: string) {
   return { type, label, url, isImage };
 }
 
-/**
- * Parse a markdown document into an ordered list of sections.
- *
- * Section model (simplified):
- *  - title:    First heading-like or text row becomes the title section.
- *  - markdown: All non-fenced text (headings, paragraphs, blanks) are
- *              grouped into contiguous markdown sections.
- *  - time/log: Each fenced workout block (```time / ```log, optional :sport)
- *              becomes its own section — the type IS the fence tag.
- *  - embed:    Single-line markdown links/images ![label](url) or [label](url).
- * 
- * @param content - Full markdown content
- * @param scriptBlocks - Pre-detected WOD blocks (optional; will be detected if omitted)
- * @returns Ordered array of Section objects
- */
+interface FrontMatterRange {
+  startLine: number;
+  endLine: number;
+}
+
+function detectFrontMatterBlocks(lines: string[], scriptBlocks: ScriptBlock[]): FrontMatterRange[] {
+  const ranges: FrontMatterRange[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const inScript = scriptBlocks.some((b) => i >= b.startLine && i <= b.endLine);
+    if (inScript) {
+      i++;
+      continue;
+    }
+
+    if (lines[i].trim() === '---') {
+      const openLine = i;
+      let j = i + 1;
+      while (j < lines.length) {
+        const inScriptInner = scriptBlocks.some((b) => j >= b.startLine && j <= b.endLine);
+        if (inScriptInner) {
+          j++;
+          continue;
+        }
+        if (lines[j].trim() === '---') {
+          ranges.push({ startLine: openLine, endLine: j });
+          i = j + 1;
+          break;
+        }
+        j++;
+      }
+      if (j >= lines.length) {
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  return ranges;
+}
+
 export function parseDocumentSections(content: string, scriptBlocks?: ScriptBlock[]): Section[] {
   if (!content) return [];
 
@@ -192,76 +182,66 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
   let currentLine = 0;
   let isFirstTextBlock = true;
 
-  /** Helper: flush accumulated markdown lines into a section */
   function flushMarkdownLines(mdLines: string[], startLine: number) {
     if (mdLines.length === 0) return;
 
-    // Split accumulated markdown at blank-line boundaries
     let currentGroup: string[] = [];
     let groupStartLine = startLine;
 
-    /** Flush the accumulated non-blank group into a section. */
     const flushGroup = () => {
-        if (currentGroup.length > 0) {
-          const raw = currentGroup.join('\n');
-          const { metadata, cleanText } = extractMetadata(raw);
-          const trimmed = cleanText.trim();
-          
-          // Check for single-line embed
-          const embed = currentGroup.length === 1 ? matchMarkdownEmbed(trimmed) : null;
+      if (currentGroup.length > 0) {
+        const raw = currentGroup.join('\n');
+        const { metadata, cleanText } = extractMetadata(raw);
+        const trimmed = cleanText.trim();
+        const embed = currentGroup.length === 1 ? matchMarkdownEmbed(trimmed) : null;
 
-          if (embed) {
-            sections.push({
-              id: metadata?.id || generateSectionId('embed', groupStartLine, trimmed),
-              type: 'embed',
-              rawContent: cleanText,
-              displayContent: cleanText,
-              startLine: groupStartLine,
-              endLine: groupStartLine,
-              lineCount: 1,
-              embed,
-              version: metadata?.version || 1,
-              createdAt: metadata?.createdAt || now,
-            });
-          } else if (isFirstTextBlock) {
-            isFirstTextBlock = false;
-            sections.push({
-              id: metadata?.id || generateSectionId('title', groupStartLine, cleanText),
-              type: 'title',
-              rawContent: cleanText,
-              displayContent: cleanText,
-              startLine: groupStartLine,
-              endLine: groupStartLine + currentGroup.length - 1,
-              lineCount: currentGroup.length,
-              version: metadata?.version || 1,
-              createdAt: metadata?.createdAt || now,
-            });
-          } else {
-            sections.push({
-              id: metadata?.id || generateSectionId('markdown', groupStartLine, cleanText),
-              type: 'markdown',
-              rawContent: cleanText,
-              displayContent: cleanText,
-              startLine: groupStartLine,
-              endLine: groupStartLine + currentGroup.length - 1,
-              lineCount: currentGroup.length,
-              version: metadata?.version || 1,
-              createdAt: metadata?.createdAt || now,
-            });
-          }
+        if (embed) {
+          sections.push({
+            id: metadata?.id || generateSectionId('embed', groupStartLine, trimmed),
+            type: 'embed',
+            rawContent: cleanText,
+            displayContent: cleanText,
+            startLine: groupStartLine,
+            endLine: groupStartLine,
+            lineCount: 1,
+            embed,
+            version: metadata?.version || 1,
+            createdAt: metadata?.createdAt || now,
+          });
+        } else if (isFirstTextBlock) {
+          isFirstTextBlock = false;
+          sections.push({
+            id: metadata?.id || generateSectionId('title', groupStartLine, cleanText),
+            type: 'title',
+            rawContent: cleanText,
+            displayContent: cleanText,
+            startLine: groupStartLine,
+            endLine: groupStartLine + currentGroup.length - 1,
+            lineCount: currentGroup.length,
+            version: metadata?.version || 1,
+            createdAt: metadata?.createdAt || now,
+          });
+        } else {
+          sections.push({
+            id: metadata?.id || generateSectionId('markdown', groupStartLine, cleanText),
+            type: 'markdown',
+            rawContent: cleanText,
+            displayContent: cleanText,
+            startLine: groupStartLine,
+            endLine: groupStartLine + currentGroup.length - 1,
+            lineCount: currentGroup.length,
+            version: metadata?.version || 1,
+            createdAt: metadata?.createdAt || now,
+          });
         }
-
-        currentGroup = [];
+      }
+      currentGroup = [];
     };
 
-    // Iterate real lines only; a final flush after the loop handles the
-    // trailing group (avoids indexing mdLines past its end).
     for (let i = 0; i < mdLines.length; i++) {
       const line = mdLines[i];
-
       if (line.trim().length === 0) {
         flushGroup();
-        // Blank line itself becomes its own empty section
         sections.push({
           id: generateSectionId('markdown', startLine + i, ''),
           type: 'markdown',
@@ -279,24 +259,19 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
       }
     }
 
-    // Flush a trailing group not terminated by a blank line
     flushGroup();
   }
 
-  // Accumulate markdown (non-workout) lines between workout blocks
   let mdBuffer: string[] = [];
   let mdBufferStart = 0;
 
   while (currentLine < lines.length) {
-    // Check if current line is start of a WOD block
-    const scriptBlock = blocks.find(b => b.startLine === currentLine);
+    const scriptBlock = blocks.find((b) => b.startLine === currentLine);
 
     if (scriptBlock) {
-      // Flush any accumulated markdown before this workout block
       flushMarkdownLines(mdBuffer, mdBufferStart);
       mdBuffer = [];
 
-      // Workout section — includes fence lines; the type IS the fence tag
       const dialect: FenceDialect = scriptBlock.dialect ?? 'time';
       const { metadata, cleanText } = extractMetadata(scriptBlock.content);
       const fenceTag = scriptBlock.sport ? `${dialect}:${scriptBlock.sport}` : dialect;
@@ -318,7 +293,7 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
         lineCount: cleanLineCount,
         scriptBlock: {
           ...scriptBlock,
-          id: sectionId, // Ensure ScriptBlock ID matches Section ID
+          id: sectionId,
           contentId,
           content: cleanText,
           dialect,
@@ -334,11 +309,9 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
       continue;
     }
 
-    // Check if current line is start of a front matter block
-    const fmRange = fmRanges.find(r => r.startLine === currentLine);
+    const fmRange = fmRanges.find((r) => r.startLine === currentLine);
 
     if (fmRange) {
-      // Flush any accumulated markdown before this front matter block
       flushMarkdownLines(mdBuffer, mdBufferStart);
       mdBuffer = [];
 
@@ -369,7 +342,6 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
       continue;
     }
 
-    // Not a workout-block or front-matter line — accumulate for markdown
     if (mdBuffer.length === 0) {
       mdBufferStart = currentLine;
     }
@@ -377,41 +349,27 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
     currentLine++;
   }
 
-  // Flush any trailing markdown
   flushMarkdownLines(mdBuffer, mdBufferStart);
 
   return sections;
 }
 
-/**
- * Rebuild the full rawContent from a section list.
- * This is the inverse of parseDocumentSections.
- * Skips soft-deleted sections.
- */
 export function buildRawContent(sections: Section[]): string {
   return sections
-    .filter(s => !s.deleted)
-    .map(s => s.rawContent)
+    .filter((s) => !s.deleted)
+    .map((s) => s.rawContent)
     .join('\n');
 }
 
-/**
- * Calculate the total line count from a section list (visible only).
- */
 export function calculateTotalLines(sections: Section[]): number {
-  const visible = sections.filter(s => !s.deleted);
+  const visible = sections.filter((s) => !s.deleted);
   if (visible.length === 0) return 0;
   const last = visible[visible.length - 1];
   return last.endLine + 1;
 }
 
-/**
- * Match old section IDs to new sections after a re-parse.
- * Preserves IDs for structurally equivalent sections to avoid React key thrashing.
- */
 export function matchSectionIds(oldSections: Section[], newSections: Section[]): Section[] {
   return newSections.map((newSec) => {
-    // If new section already has a metadata ID from content, that wins
     const { metadata } = extractMetadata(newSec.rawContent);
     if (metadata) {
       const updated = { ...newSec, id: metadata.id, version: metadata.version, createdAt: metadata.createdAt };
@@ -421,9 +379,11 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
       return updated;
     }
 
-    // First try: exact match by type + startLine + content hash
     const exactMatch = oldSections.find(
-      old => old.type === newSec.type && old.startLine === newSec.startLine && old.displayContent === newSec.displayContent
+      (old) =>
+        old.type === newSec.type &&
+        old.startLine === newSec.startLine &&
+        old.displayContent === newSec.displayContent
     );
     if (exactMatch) {
       const updated = { ...newSec, id: exactMatch.id, version: exactMatch.version, createdAt: exactMatch.createdAt };
@@ -433,18 +393,16 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
       return updated;
     }
 
-    // Second try: match by type + startLine only (content changed but position same)
     const positionMatch = oldSections.find(
-      old => old.type === newSec.type && old.startLine === newSec.startLine
+      (old) => old.type === newSec.type && old.startLine === newSec.startLine
     );
     if (positionMatch) {
-      // Content changed, so bump version
       const newVersion = (positionMatch.version || 1) + 1;
       const updated = {
         ...newSec,
         id: positionMatch.id,
         version: newVersion,
-        createdAt: positionMatch.createdAt
+        createdAt: positionMatch.createdAt,
       };
       if (updated.scriptBlock) {
         updated.scriptBlock = { ...updated.scriptBlock, id: positionMatch.id, version: newVersion };
@@ -452,7 +410,6 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
       return updated;
     }
 
-    // No match — keep new ID (which was generated in parseDocumentSections)
     return newSec;
   });
 }

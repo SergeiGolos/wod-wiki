@@ -371,9 +371,6 @@ describe('ContentProviderNotePersistence > deleteNote', () => {
 
 describe('ContentProviderNotePersistence > createNotePersistence factory', () => {
   it('returns ContentProviderNotePersistence for a non-IndexedDB provider', async () => {
-    // Mock IndexedDBService before importing the factory to avoid openDB at module eval
-    const { mock } = await import('bun:test');
-    mock.module('@/services/db/IndexedDBService', () => ({ indexedDBService: {} }));
 
     const { createNotePersistence } = await import('./index');
     const { StaticContentProvider } = await import('@/services/content/StaticContentProvider');

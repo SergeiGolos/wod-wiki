@@ -1,3 +1,4 @@
+import { LocalStore, InMemoryBackend } from '@/services/storage/LocalStore'
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import {
   readRouteWqlConfig,
@@ -159,5 +160,15 @@ describe('routeWqlConfig — type shape', () => {
       'groupByOptions',
       'typeOptions',
     ])
+  })
+})
+
+describe('routeWqlConfig — dependency inversion', () => {
+  it('operates against an injected InMemoryBackend without window globals', () => {
+    const inMemory = new LocalStore(ROUTE_WQL_STORAGE_PREFIX, new InMemoryBackend())
+    writeRouteWqlConfig('/custom', { defaultWql: 'find:note{source:feeds}' }, inMemory)
+    expect(readRouteWqlConfig('/custom', inMemory).defaultWql).toBe('find:note{source:feeds}')
+    clearRouteWqlConfig('/custom', inMemory)
+    expect(readRouteWqlConfig('/custom', inMemory)).toEqual({})
   })
 })

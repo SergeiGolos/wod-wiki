@@ -10,23 +10,18 @@
 
 import { v7 as uuidv7 } from 'uuid';
 import type { Notebook } from '../types/notebook';
+import { LocalStore } from './storage/LocalStore';
 
-const NOTEBOOKS_KEY = 'wodwiki:notebooks';
-const ACTIVE_KEY = 'wodwiki:active-notebook';
+const NOTEBOOKS_KEY = 'notebooks';
+const ACTIVE_KEY = 'active-notebook';
 
 const DEFAULT_ICONS = ['📓', '🏋️', '🔥', '💪', '⭐', '🎯', '🏃', '🧘', '🥊', '🚴'];
 
 export class NotebookService {
+    constructor(private store: LocalStore = new LocalStore('wodwiki:')) {}
 
     getAll(): Notebook[] {
-        try {
-            const raw = localStorage.getItem(NOTEBOOKS_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Notebook[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
+        return this.store.get<Notebook[]>(NOTEBOOKS_KEY) ?? [];
     }
 
     getById(id: string): Notebook | null {
@@ -80,15 +75,11 @@ export class NotebookService {
     }
 
     getActiveId(): string | null {
-        return localStorage.getItem(ACTIVE_KEY);
+        return this.store.getRaw(ACTIVE_KEY);
     }
 
     setActiveId(id: string | null): void {
-        if (id === null) {
-            localStorage.removeItem(ACTIVE_KEY);
-        } else {
-            localStorage.setItem(ACTIVE_KEY, id);
-        }
+        this.store.setRaw(ACTIVE_KEY, id);
     }
 
     /**
@@ -132,7 +123,7 @@ export class NotebookService {
     static readonly ICONS = DEFAULT_ICONS;
 
     private saveAll(notebooks: Notebook[]): void {
-        localStorage.setItem(NOTEBOOKS_KEY, JSON.stringify(notebooks));
+        this.store.set(NOTEBOOKS_KEY, notebooks);
     }
 }
 
