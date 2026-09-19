@@ -22,8 +22,35 @@ Crosswalk mapping domain models (`docs/domain-model/`) to application screens (`
 | **FieldCatalog*** | `fieldCatalog`, `fieldValues`, `fieldSources` | `/dashboards`<br>WQL Autocompleter | `useExplorerVocabulary()`<br>`startFieldCatalogBackfill()` | Background pipeline scans `events` and backfills field catalog entries |
 
 ---
+## 2. Screen Architecture Documents
 
-## 2. Screen Outlines & Data Sources
+Detailed component breakdowns, service dependencies, responsive desktop vs mobile layouts, and composable behaviors are documented in their own dedicated files:
+
+| Screen Document | Route | Canonical Host Component | Primary Concerns |
+|---|---|---|---|
+| [Universal Note Editor](./note-editor.md) | `/notes/:noteId` | `NoteByIdPage.tsx` | Single-note authoring, CodeMirror 6 extensions, inline block runtime. |
+| [Journal Date Stack](./journal-date-stack.md) | `/journal/:date` | `JournalDatePage.tsx` | Calendar date grouping, multi-note stacked editors, auto-start timer. |
+| [Journal Stream](./journal-stream.md) | `/journal` | `QueriableStreamView.tsx` | Chronological feed, date scroll-spy, header query bar vs mobile thumb footer. |
+| [Collections Stream & Library](./collections-library.md) | `/collections`, `/library` | `QueriableStreamView.tsx` | Catalog browsing, category facets, WQL filtering. |
+| [Collection Landing](./collection-landing.md) | `/c/:slug` | `MarkdownCanvasPage.tsx` | Split-pane canvas, collection README, interactive workout selection. |
+| [Collection Date View](./collection-date-view.md) | `/c/:slug/:date` | `CollectionDatePage.tsx` | Scoped collection date view, direct routing to universal editor. |
+| [Named Workout Editor](./workout-editor.md) | `/c/:slug/:page-slug` | `WorkoutEditorPage.tsx` | Named workout authoring, seed protection, direct scheduling flow. |
+| [Playgrounds Stream](./playgrounds-stream.md) | `/playgrounds` | `QueriableStreamView.tsx` | User scratchpad listing, date sorting, instant note minting. |
+| [Playground Note Editor](./playground-note-editor.md) | `/playground/:noteId` | `PlaygroundNotePage.tsx` | Ephemeral scratchpad, cursor effort insertion, migration to journal. |
+| [Efforts Stream](./efforts-stream.md) | `/efforts` | `QueriableStreamView.tsx` | Movement registry catalog, MET and discipline facets, search. |
+| [Effort Detail](./effort-detail.md) | `/e/:slug` | `EffortDetailPage.tsx` | Movement properties, derivation rules, performance cross-joins. |
+| [Sessions Stream](./sessions-stream.md) | `/sessions` | `QueriableStreamView.tsx` | Execution history log, duration/round filters, WQL query composer. |
+| [Session Execution Detail](./session-detail.md) | `/sessions/:sessionId` | `SessionDetailPage.tsx` | Outcome summary, round splits, reconstructed event statement stream. |
+| [Analytics Explorer](./analytics-explorer.md) | `/dashboards` | `AnalyticsExplorerPage.tsx` | WQL command bar, dynamic chart frame, AST pipeline inspector. |
+| [Dashboard View](./dashboard-view.md) | `/dashboard/:dashboardId`, `/d/:slug` | `DashboardViewPage.tsx` | Multi-widget responsive grid, note-backed query fences, composer dialog. |
+| [Note-Built / Syntax Page](./canvas-page.md) | `/p/:slug`, `/guide/*` | `ScrollCanvasPage.tsx` | Staged tutorial runways, interactive code challenges, quest ledgers. |
+| [Wall Clock / Runtime Tracker](./wall-clock.md) | `/run/:runtimeId` | `WallClockPage.tsx` | Full-screen HUD, oversized touch targets, direct session recording. |
+| [Settings & Intake](./settings-intake.md) | `/settings/*`, `/load` | `SettingsPage.tsx` | User preferences, theme/audio/FAB alignment, ZIP intake parsing. |
+
+---
+
+
+## 3. Screen Outlines & Data Sources
 
 ### 1. Universal Note Editor (`/notes/:noteId`)
 - **Host Component:** `NoteByIdPage.tsx`
