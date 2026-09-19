@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 
 /**
  * Unit tests for paletteDataSources.ts
@@ -41,7 +41,7 @@ global.indexedDB = {
   })),
 } as any;
 
-const mockGetRecentResults = mock((): Promise<WorkoutResult[]> => Promise.resolve([]));
+const mockGetRecentResults = mock((): Promise<Session[]> => Promise.resolve([]));
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
     getRecentResults: mockGetRecentResults,
@@ -437,7 +437,7 @@ describe('collectionItemsSource', () => {
 });
 
 describe('globalSearchSource', () => {
-  const createResult = (overrides: Partial<WorkoutResult> & { id: string; noteId: string }): WorkoutResult => ({
+  const createResult = (overrides: Partial<Session> & { id: string; noteId: string }): Session => ({
     createdAt: Date.now(),
     data: { startTime: 0, endTime: 60_000, duration: 60_000, completed: true, logs: [] },
     ...overrides,

@@ -13,8 +13,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Note, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
-import type { NoteQueryStore, UnifiedEventStore } from '../../src/stores';
+import type { Note, EventRecord } from '@bitcobblers/wod-wiki-core';
+import type { NoteQueryStore, EventStore } from '../../src/stores';
 
 export interface JournalNote extends Note {}
 
@@ -25,7 +25,7 @@ export interface CorpusJournal {
   title: string;
   description: string;
   notes: JournalNote[];
-  records: UnifiedEventRecord[];
+  records: EventRecord[];
 }
 
 export const CORPUS_DIR = join(__dirname, '../../fixtures/corpus');
@@ -48,13 +48,13 @@ export function loadJournal(file: string): CorpusJournal {
 
 /** In-memory store pair over one journal — event rows + note tags. */
 export function journalStores(journal: CorpusJournal): {
-  eventStore: UnifiedEventStore;
+  eventStore: EventStore;
   noteStore: NoteQueryStore;
 } {
   const rows = [...journal.records];
   const tagsByNote = new Map(journal.notes.map((n) => [n.id, n.tags ?? []]));
 
-  const eventStore: UnifiedEventStore = {
+  const eventStore: EventStore = {
     getEventsByTimeRange: (start, end) =>
       Promise.resolve(rows.filter((r) => r.timestamp >= start && r.timestamp <= end)),
     getEventsByResult: (resultId) => Promise.resolve(rows.filter((r) => r.resultId === resultId)),

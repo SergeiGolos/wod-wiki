@@ -27,7 +27,7 @@
  * ```
  */
 
-import type { ScriptBlock, WorkoutResults } from '../components/Editor/types';
+import type { ScriptBlock, Sessions } from '../components/Editor/types';
 import { SimpleEventBus } from './events/SimpleEventBus';
 import type { IServiceEventBus } from './events/IServiceEventBus';
 
@@ -39,7 +39,7 @@ import type { IServiceEventBus } from './events/IServiceEventBus';
  */
 export type WorkoutEvent =
   | { type: 'start-workout'; block: ScriptBlock }
-  | { type: 'stop-workout'; results: WorkoutResults }
+  | { type: 'stop-workout'; results: Sessions }
   | { type: 'pause-workout' }
   | { type: 'resume-workout' }
   | { type: 'next-segment' };

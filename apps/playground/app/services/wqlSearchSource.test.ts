@@ -11,7 +11,7 @@
  *   6. withWqlText delegates with the extracted text, never raw WQL.
  *   7. searchPaletteClauses compiles to the unbounded global default.
  */
-import { describe, expect, it, mock } from 'bun:test'
+import { describe, expect, it, mock, afterEach } from 'bun:test'
 
 import { parseQuery } from '@bitcobblers/wod-wiki-engine'
 import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
@@ -39,7 +39,7 @@ import {
   searchPaletteQuery,
   navigatePaletteResult,
 } from './wqlSearchSource'
-import type { PaletteDataSource } from '@/components/organisms/command-palette/palette-types'
+import { writeRouteWqlConfig, clearRouteWqlConfig, PALETTE_ROUTE_ID } from '../lib/routeWqlConfig'
 
 const JOURNAL_NOTE: Note = {
   id: 'journal/2026-07-30',
@@ -198,7 +198,7 @@ describe('navigatePaletteResult', () => {
       { id: 'entry:girl-wods/fran', label: 'Fran', type: 'entry', payload: entry },
       to => visited.push(to),
     )
-    expect(visited).toEqual(['/collections/girl-wods/fran'])
+    expect(visited).toEqual(['/c/girl-wods/fran'])
   })
 
   it('ignores item types the global palette does not produce', () => {
@@ -209,7 +209,21 @@ describe('navigatePaletteResult', () => {
 })
 
 describe('searchPaletteQuery', () => {
+  afterEach(() => {
+    clearRouteWqlConfig(PALETTE_ROUTE_ID)
+  })
+
   it('is the unbounded global default (all notes, no window)', () => {
+    expect(searchPaletteQuery()).toBe('find:note')
+  })
+
+  it('uses the configured palette default when one is stored', () => {
+    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: 'find:note{source:journal} last 4w' })
+    expect(searchPaletteQuery()).toBe('find:note{source:journal} last 4w')
+  })
+
+  it('falls back to the system seed when the stored default is only options', () => {
+    writeRouteWqlConfig(PALETTE_ROUTE_ID, { typeOptions: ['notes'] })
     expect(searchPaletteQuery()).toBe('find:note')
   })
 })

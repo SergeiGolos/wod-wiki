@@ -223,7 +223,7 @@ export {
 export {
   // QueryService
   QueryService,
-  type UnifiedEventStore,
+  type EventStore,
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,
@@ -318,7 +318,7 @@ export {
 } from './pack';
 
 // 6. In-Memory Store Seam (#967, #969)
-export { factRowsToEventRows, inMemoryEventStore, inMemoryEventStoreFromFacts, inMemoryFactStore } from './store';
+export { inMemoryEventStore } from './store';
 
 // 7. Universal JSON Intermediate Representation (#955, #967)
 export {

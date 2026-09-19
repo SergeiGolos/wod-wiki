@@ -9,8 +9,8 @@
  */
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
-import type { ResultOrigin, WorkoutResult } from '@/types/storage';
-import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
+import type { ResultOrigin, Session } from '@/types/storage';
+import type { Sessions, ScriptBlock } from '@/components/Editor/types';
 import { parseNoteId } from '@/lib/noteIdentity';
 import { appError } from '@/lib/log';
 
@@ -27,7 +27,7 @@ export interface ResultMutation {
     blockContentId?: string;
     segmentId?: string;
     origin?: ResultOrigin;
-    data: WorkoutResults;
+    data: Sessions;
     createdAt?: number;
   };
   /** Note kind applied only when the note is lazily created by this write. */
@@ -52,7 +52,7 @@ export interface RecordResultInput {
   /** Stable id for this result (the runtimeId). */
   resultId: string;
   /** The outcome data. */
-  data: WorkoutResults;
+  data: Sessions;
   /** Completion timestamp (Unix ms). */
   createdAt: number;
   /**
@@ -64,9 +64,9 @@ export interface RecordResultInput {
 }
 
 export interface ResultRecorder {
-  record(input: RecordResultInput): Promise<WorkoutResult>;
+  record(input: RecordResultInput): Promise<Session>;
 }
-type ResultSavedListener = (result: WorkoutResult) => void;
+type ResultSavedListener = (result: Session) => void;
 const resultSavedListeners = new Set<ResultSavedListener>();
 
 export function onResultSaved(listener: ResultSavedListener): () => void {
@@ -76,7 +76,7 @@ export function onResultSaved(listener: ResultSavedListener): () => void {
   };
 }
 
-export function notifyResultSaved(result: WorkoutResult): void {
+export function notifyResultSaved(result: Session): void {
   for (const listener of resultSavedListeners) {
     try {
       listener(result);
@@ -119,14 +119,20 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
         },
       );
 
-      const result: WorkoutResult = {
+      const result: Session = {
         id: resultId,
         noteId,
         segmentId,
         blockId,
         blockContentId,
         origin: resolvedOrigin,
-        data,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        duration: data.duration ?? 0,
+        roundsCompleted: data.roundsCompleted,
+        totalRounds: data.totalRounds,
+        repsCompleted: data.repsCompleted,
+        completed: data.completed,
         createdAt,
       };
       notifyResultSaved(result);

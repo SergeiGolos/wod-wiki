@@ -30,7 +30,7 @@ import React, { useEffect, useMemo } from 'react';
 import type { IContentProvider } from '@/types/content-provider';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import type { IScriptRuntime, UseRuntimeExecutionReturn, SubscriptionManager } from '@/hooks/useRuntimeTimer';
-import type { ScriptBlock, Section, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, Section, Sessions } from '@/components/Editor/types';
 import type { PanelLayoutState } from '@/panels/panel-system/types';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
@@ -113,7 +113,7 @@ export interface WorkbenchSessionState {
   loadedRouteId: string | null;
 
   // --- Results & History (S1b: migrated from WorkbenchContext) ---
-  results: WorkoutResults[];
+  results: Sessions[];
   currentEntry: HistoryEntry | null;
   historyEntries: HistoryEntry[];
 
@@ -181,7 +181,7 @@ export interface WorkbenchSessionActions {
   markSaved: (content: string) => void;
 
   // --- Results & History (S1b) ---
-  setResults: (results: WorkoutResults[]) => void;
+  setResults: (results: Sessions[]) => void;
   resetResults: () => void;
   setCurrentEntry: (entry: HistoryEntry | null) => void;
   setHistoryEntries: (entries: HistoryEntry[]) => void;
@@ -205,13 +205,13 @@ export interface WorkbenchSessionActions {
    * generated resultId so callers can navigate synchronously before the
    * persistence promise resolves.
    */
-  completeWorkout: (result: WorkoutResults, explicitResultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId"> | null) => Promise<string>;
+  completeWorkout: (result: Sessions, explicitResultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId"> | null) => Promise<string>;
   /** Patch the loaded entry's `results` slice (used by route-result loading). */
-  patchCurrentEntryResults: (results: WorkoutResults) => void;
+  patchCurrentEntryResults: (results: Sessions) => void;
   /**
    * `loadEntry` — route-driven entry loader. Pulls a note from persistence,
    * hydrates `currentEntry` + `content`, and (for review routes) patches the
-   * entry's `results` slice from the matching WorkoutResult. Single home for
+   * entry's `results` slice from the matching Session. Single home for
    * what was previously the 4-source loadContent effect in WorkbenchContext.
    */
   loadEntry: (params: {
@@ -219,7 +219,7 @@ export interface WorkbenchSessionActions {
     routeView: ViewMode | 'history' | 'analyze';
     routeSectionId?: string;
     routeResultId?: string;
-    resultFromLocationState?: WorkoutResults;
+    resultFromLocationState?: Sessions;
     initialActiveEntryId?: string;
     propInitialContent?: string;
     onLoaded?: (entry: HistoryEntry) => void;
@@ -743,14 +743,14 @@ export function createWorkbenchSessionStore(
        * `loadEntry` — the route-driven entry loader. Pulls a note from
        * persistence, hydrates `currentEntry` + `content`, and (for review
        * routes) patches the entry's `results` slice from the matching
-       * WorkoutResult. The single migration of the 4-source read.
+       * Session. The single migration of the 4-source read.
        */
       loadEntry: async (params: {
         routeId: string | undefined;
         routeView: ViewMode | 'history' | 'analyze';
         routeSectionId?: string;
         routeResultId?: string;
-        resultFromLocationState?: WorkoutResults;
+        resultFromLocationState?: Sessions;
         initialActiveEntryId?: string;
         propInitialContent?: string;
         onLoaded?: (entry: HistoryEntry) => void;

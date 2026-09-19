@@ -10,7 +10,7 @@ import type { FindQueryResult, ParsedRowsQuery, RowsQueryResult } from '@bitcobb
 import type { BlockIndexRow } from '@/types/storage'
 import { parseQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import type { IEffort, RowsRun } from '@bitcobblers/wod-wiki-wql'
-import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core'
+import type { EventRecord } from '@bitcobblers/wod-wiki-core'
 function makeBlock(i: number, createdAt = i): BlockIndexRow {
   return {
     id: `static:note-${i % 5}:seg-${i}:1`,
@@ -294,7 +294,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
         effortSlug: 'thruster',
         timeSpan: { started: timestamp, ended: timestamp + 100_000 },
         metrics: [{ type: 'rep', value: 21 }, { type: 'weight', value: 95 }],
-      } as UnifiedEventRecord,
+      } as EventRecord,
       {
         id: 'res-42:1',
         resultId: 'res-42',
@@ -305,7 +305,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
         effortSlug: 'pull-up',
         timeSpan: { started: timestamp + 100_000, ended: timestamp + 180_000 },
         metrics: [{ type: 'rep', value: 21 }, { type: 'tis', value: 8.5 }],
-      } as UnifiedEventRecord,
+      } as EventRecord,
     ],
   }
 
@@ -354,6 +354,25 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
     const entries = await engine.query('rows:all{result:res-42}')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.title).toBe('Custom Fran Title')
+  })
+})
+
+describe('StreamQueryEngine — tag hydration (find:note)', () => {
+  it('hydrates tags via noteTagsResolver in StreamQueryEngine options', async () => {
+    runFindImpl = async () => ({
+      parsed: {} as never,
+      notes: [{ id: 'note-1', title: 'Fran', createdAt: 1000, type: 'note' } as Note],
+      blocks: [],
+      stages: { selected: 1, matched: 1 },
+    })
+
+    const engine = new StreamQueryEngine({
+      noteTagsResolver: async (noteId) => (noteId === 'note-1' ? ['benchmark', 'crossfit'] : []),
+    })
+
+    const entries = await engine.query('find:note in all')
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.tags).toEqual(['benchmark', 'crossfit'])
   })
 })
 

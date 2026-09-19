@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { parseNoteId } from '@/lib/noteIdentity';
 import { noteRefToPath } from './noteIdentity';
-import { journalEntryPath, playgroundPath, workoutPath } from './routes';
+import { journalEntryPath, playgroundPath, workoutPath, effortPath } from './routes';
 
 describe('noteRefToPath', () => {
   it('routes journal → /journal/:id', () => {
@@ -12,8 +12,14 @@ describe('noteRefToPath', () => {
     expect(noteRefToPath(parseNoteId('playground/my-note'))).toBe(playgroundPath('my-note'));
   });
 
-  it('routes a workout id → /collections/:cat/:name', () => {
+  it('routes a workout id → /c/:cat/:name', () => {
     expect(noteRefToPath(parseNoteId('crossfit-girls/fran'))).toBe(workoutPath('crossfit-girls', 'fran'));
+  });
+
+  it('routes an effort-backed result id → /e/:slug (the flagged mis-routing fix)', () => {
+    // Effort runs record noteId `effort/<slug>` (EffortDetailPage, useEffortContent).
+    expect(noteRefToPath(parseNoteId('effort/grace'))).toBe(effortPath('grace'));
+    expect(noteRefToPath(parseNoteId('effort/heavy grace'))).toBe(effortPath('heavy grace'));
   });
 
   it('routes a bare id → / (preserves the prior fallback)', () => {

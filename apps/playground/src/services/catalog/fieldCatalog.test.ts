@@ -5,15 +5,20 @@ import {
   extractContributionsFromNote,
   fieldSourceId,
 } from './fieldCatalog';
-import type { FieldContribution, WorkoutResult, Note } from '@bitcobblers/wod-wiki-core';
+import type { FieldContribution, Session, Note } from '@bitcobblers/wod-wiki-core';
 
-function result(logs: unknown[]): WorkoutResult {
+function result(logs: unknown[]): Session & { data?: { logs?: unknown } } {
   return {
     id: 'r1',
     noteId: 'n1',
     origin: 'journal',
-    data: { logs } as WorkoutResult['data'],
-  } as unknown as WorkoutResult;
+    startTime: 0,
+    endTime: 0,
+    duration: 0,
+    completed: true,
+    createdAt: 0,
+    data: { logs },
+  };
 }
 
 describe('field catalog — contribution extraction (ticket 14)', () => {

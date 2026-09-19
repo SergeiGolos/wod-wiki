@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EditorView } from '@codemirror/view';
-import { EditorSelection } from '@codemirror/state';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
 import { playgroundRecorder } from '@/services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link, Navigate } from 'react-router-dom';
+import { noteByIdPath } from '../lib/routes';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { ResponsiveActions } from '../nav/ResponsiveActions'
@@ -16,7 +16,6 @@ import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentPro
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { sessionQueryInsert, sessionQueryWql } from '@bitcobblers/wod-wiki-ui/extensions';
 import { resolveCompletionTargets } from '../lib/workoutCompletion';
-import { useEditorSave } from '../hooks/useEditorSave';
 
 import { JournalPageShell } from '@/panels/page-shells';
 const journalContentProvider = new IndexedDBContentProvider();
@@ -27,47 +26,37 @@ interface JournalDatePageProps {
   onViewCreated?: (view: EditorView) => void;
 }
 
-interface NoteBoundary {
-  uuid: string;
-  startLine: number; // 0-indexed
-}
 
 export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDatePageProps) {
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
-  const [viewMode, setViewMode] = useState<'read' | 'edit'>('read');
-  const [content, setContent] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'read' | 'edit'>('edit');
   const [searchParams, setSearchParams] = useSearchParams();
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
-  const boundariesRef = useRef<NoteBoundary[]>([]);
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
+  const editorViewsRef = useRef<Map<string, EditorView>>(new Map());
   const editorViewRef = useRef<EditorView | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
-  const handleViewCreated = useCallback((view: EditorView) => {
-    editorViewRef.current = view;
-    setEditorView(view);
-    onViewCreated?.(view);
+  const handleViewCreatedForNote = useCallback((noteId: string, view: EditorView) => {
+    editorViewsRef.current.set(noteId, view);
+    if (!editorViewRef.current) {
+      editorViewRef.current = view;
+      setEditorView(view);
+      onViewCreated?.(view);
+    }
   }, [onViewCreated]);
-  // ?note=<uuid> — UI-level sub-selection within the date page. Scrolls the
-  // editor to the selected note's first line once both the notes and the
-  // editor view are ready (whichever arrives last retriggers the effect).
+
   const selectedNoteId = searchParams.get('note');
   useEffect(() => {
-    if (!selectedNoteId || !notes || !editorView) return;
-    const boundary = boundariesRef.current.find(b => b.uuid === selectedNoteId);
-    if (!boundary) return;
-    const line = Math.min(boundary.startLine + 1, editorView.state.doc.lines);
-    const pos = editorView.state.doc.line(line).from;
-    editorView.dispatch({
-      selection: EditorSelection.cursor(pos),
-      effects: EditorView.scrollIntoView(pos, { y: 'start', yMargin: 96 }),
-    });
-    editorView.focus();
-  }, [selectedNoteId, notes, editorView]);
-
+    if (!selectedNoteId || !notes) return;
+    const el = document.getElementById(`note-${selectedNoteId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedNoteId, notes]);
   useEffect(() => {
     const autoStartId = searchParams.get('autoStart');
     if (!autoStartId) return;
@@ -85,56 +74,33 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const resolveNoteUuid = useCallback((startLine: number): string => {
-    const boundaries = boundariesRef.current;
-    let uuid = boundaries[0]?.uuid ?? journalDate;
-    for (const b of boundaries) {
-      if (b.startLine <= startLine) uuid = b.uuid;
-      else break;
-    }
-    return uuid;
-  }, [journalDate]);
-
-  const save = useCallback((value: string) => {
-    const boundaries = boundariesRef.current;
-    if (!boundaries.length) return;
-    const lines = value.split('\n');
-    for (let i = 0; i < boundaries.length; i++) {
-      const start = boundaries[i].startLine;
-      const end = i + 1 < boundaries.length ? boundaries[i + 1].startLine - 1 : lines.length;
-      const noteContent = lines.slice(start, end).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
-      journalNotes.update(boundaries[i].uuid, noteContent).catch(() => {});
-    }
+  const handleNoteContentChange = useCallback((noteId: string, newContent: string) => {
+    setNotes((prev) => prev?.map((n) => (n.id === noteId ? { ...n, rawContent: newContent } : n)) ?? prev);
+    journalNotes.update(noteId, newContent).catch(() => {});
   }, []);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">) => {
-    // Map the completed run back to its block + note + result id in one place
-    // (see workoutCompletion.ts): the result MUST record under the same id the
-    // query:table references, or the inline table renders empty.
+  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">, targetNoteId?: string) => {
+    const noteId = targetNoteId ?? activeNoteId ?? notes?.[0]?.id ?? journalDate;
     const targets = resolveCompletionTargets({
       blockId,
       editorRunBlock,
       blocks,
-      activeNoteId,
+      activeNoteId: noteId,
       timerBlock,
       activeRuntimeId,
       editorResultId,
-      resolveNoteUuid,
+      resolveNoteUuid: () => noteId,
     });
     if (!targets) return;
-    const { runBlock, noteId, resultId } = targets;
+    const { runBlock, resultId } = targets;
 
-    // Page-level runs (?autoStart / note Play button) bypass NoteEditor's own
-    // completion hook, so no query:table was inserted — do it here so the
-    // note still presents the run as a table.
-    const view = editorViewRef.current ?? editorView;
+    const view = editorViewsRef.current.get(noteId) ?? editorViewRef.current ?? editorView;
     if (!editorRunBlock && view) {
       const insert = sessionQueryInsert(view.state, blockId, resultId, runBlock);
       if (insert) {
         view.dispatch({ changes: insert });
         const updatedContent = view.state.doc.toString();
-        setContent(updatedContent);
-        save(updatedContent);
+        handleNoteContentChange(noteId, updatedContent);
       }
     } else if (!editorRunBlock && noteId) {
       const qWql = sessionQueryWql(resultId);
@@ -143,11 +109,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
         const updatedContent = entry.rawContent.trim() + `\n\n\`\`\`query:table\n${qWql}\n\`\`\``;
         journalNotes.update(noteId, updatedContent).then(() => {
           journalNotes.listByDate(journalDate).then((entries) => {
-            if (entries.length) {
-              setNotes(entries);
-              const pieces = entries.map((e) => e.rawContent.trim());
-              setContent(pieces.join('\n\n'));
-            }
+            if (entries.length) setNotes(entries);
           });
         });
       }).catch(() => {});
@@ -163,48 +125,26 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
-  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, save, journalDate]);
+  }, [blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, journalDate, notes, handleNoteContentChange]);
 
   useEffect(() => {
     let cancelled = false;
-    journalNotes.listByDate(journalDate).then(async (entries) => {
+    journalNotes.listByDate(journalDate).then((entries) => {
       if (cancelled) return;
       setNotes(entries);
-
-      const pieces: string[] = [];
-      const boundaries: NoteBoundary[] = [];
-      let currentLine = 0;
-      for (const entry of entries) {
-        const trimmed = entry.rawContent.trim();
-        if (currentLine > 0) {
-          pieces.push('');
-          currentLine += 1;
-        }
-        boundaries.push({ uuid: entry.id, startLine: currentLine });
-        const lineCount = trimmed.split('\n').length;
-        pieces.push(trimmed);
-        currentLine += lineCount;
-      }
-      boundariesRef.current = boundaries;
-      setContent(pieces.join('\n'));
     }).catch(() => {
       if (!cancelled) setNotes([]);
     });
     return () => { cancelled = true; };
   }, [journalDate]);
 
-
-  const { onChange: editorSaveOnChange, onBlur } = useEditorSave({
-    onSave: save,
-    lineIdleMs: 500,
-  });
-
-  const onChange = useCallback((value: string) => {
-    setContent(value);
-    editorSaveOnChange(value);
-  }, [editorSaveOnChange]);
-
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
+
+  // Legacy deep links: /journal/:date?note=<uuid> now opens the canonical
+  // single-note editor (#link-crosswalk).
+  if (selectedNoteId) {
+    return <Navigate to={noteByIdPath(selectedNoteId)} replace />;
+  }
 
   const editToggle = notes.length > 0 ? (
     <Button
@@ -221,26 +161,64 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       <JournalPageShell
           title={journalDate}
           subtitle={`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
-          actions={<ResponsiveActions primary={editToggle} />}
+          actions={<ResponsiveActions navbar={editToggle} />}
           editor={
         <div className="flex flex-col gap-8 px-4 py-6 sm:px-6">
+          {notes.length > 1 && (
+            <nav aria-label="Notes on this date" className="flex flex-wrap gap-2">
+              {notes.map((note) => (
+                <Link
+                  key={note.id}
+                  to={noteByIdPath(note.id)}
+                  className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  {note.title}
+                </Link>
+              ))}
+            </nav>
+          )}
           {notes.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
+          ) : notes.length === 1 ? (
+            <NoteEditor
+              key={notes[0].id}
+              value={notes[0].rawContent}
+              onChange={(val) => handleNoteContentChange(notes[0].id, val)}
+              noteId={notes[0].id}
+              readonly={viewMode === 'read'}
+              theme={theme}
+              showLineNumbers={false}
+              onBlocksChange={setBlocks}
+              onCompleteWorkout={(bId, res, resId, runB) => handleCompleteWorkout(bId, res, resId, runB, notes[0].id)}
+              onViewCreated={(view) => handleViewCreatedForNote(notes[0].id, view)}
+            />
           ) : (
-          /* Reconfigure read-only state without discarding cursor or undo history. */
-          <NoteEditor
-            value={content}
-            onChange={onChange}
-            onBlur={onBlur}
-            noteId={journalDate}
-            readonly={viewMode === 'read'}
-            theme={theme}
-            showLineNumbers={false}
-            onBlocksChange={setBlocks}
-            onCompleteWorkout={handleCompleteWorkout}
-            onViewCreated={handleViewCreated}
-          />
-        )}
+            <div className="space-y-6">
+              {notes.map((note, index) => (
+                <div key={note.id} id={`note-${note.id}`} className="rounded-lg border border-border/60 p-4 space-y-2">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <Link
+                      to={noteByIdPath(note.id)}
+                      className="text-sm font-semibold hover:underline text-foreground"
+                    >
+                      {note.title || `Note ${index + 1}`}
+                    </Link>
+                  </div>
+                  <NoteEditor
+                    value={note.rawContent}
+                    onChange={(val) => handleNoteContentChange(note.id, val)}
+                    noteId={note.id}
+                    readonly={viewMode === 'read'}
+                    theme={theme}
+                    showLineNumbers={false}
+                    onBlocksChange={setBlocks}
+                    onCompleteWorkout={(bId, res, resId, runB) => handleCompleteWorkout(bId, res, resId, runB, note.id)}
+                    onViewCreated={(view) => handleViewCreatedForNote(note.id, view)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
       </div>
           }
       />

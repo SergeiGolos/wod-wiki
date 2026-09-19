@@ -36,6 +36,10 @@ export interface QueryBlockViewProps {
   attributes?: Record<string, string>;
   /** Optional RPE capture handler. */
   onCaptureRpe?: (resultId: string, rpe: number) => Promise<void>;
+  /** Optional click handler for opening a note from find:note results. */
+  onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
+  /** Optional resolver returning the destination href for an item in find:note results. */
+  noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
 }
 
 export function QueryBlockView({
@@ -50,6 +54,8 @@ export function QueryBlockView({
   tokenValues,
   attributes,
   onCaptureRpe,
+  onOpenNote,
+  noteHref,
 }: QueryBlockViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -59,8 +65,22 @@ export function QueryBlockView({
   const { query: effectiveQuery, missing } = useMemo(() => {
     const raw = extracted.length > 0 ? extracted[0].query : query;
     const subQuery = substituteTokens(raw, tokenValues ?? {});
-    return { query: subQuery.query, missing: subQuery.missing };
-  }, [extracted, query, tokenValues]);
+    // Fence-tag attributes (`goal=$token`) resolve against the same values;
+    // a missing token blocks the widget rather than rendering a NaN target.
+    const missingSet = new Set(subQuery.missing);
+    for (const value of Object.values(attributes ?? {})) {
+      for (const m of substituteTokens(value, tokenValues ?? {}).missing) missingSet.add(m);
+    }
+    return { query: subQuery.query, missing: [...missingSet] };
+  }, [extracted, query, tokenValues, attributes]);
+
+  const resolvedAttributes = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(attributes ?? {})) {
+      out[key] = substituteTokens(value, tokenValues ?? {}).query;
+    }
+    return out;
+  }, [attributes, tokenValues]);
 
   const parsed = useMemo(() => parseQuery(effectiveQuery), [effectiveQuery]);
   const unknownType =
@@ -201,7 +221,12 @@ export function QueryBlockView({
         </QueryBlockShell>
       ) : isFindQuery(parsed) ? (
         <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>
-          <FindResultList parsed={parsed} result={findResult} />
+          <FindResultList
+            parsed={parsed}
+            result={findResult}
+            onOpenNote={onOpenNote}
+            noteHref={noteHref}
+          />
         </QueryBlockShell>
       ) : (
         <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>
@@ -209,11 +234,10 @@ export function QueryBlockView({
             result={result}
             metric={parsed.metric}
             widgetType={widgetType}
-            attributes={attributes}
+            attributes={resolvedAttributes}
           />
         </QueryBlockShell>
       )}
-
       {canEdit && (
         <WqlQueryInspectorModal
           isOpen={isModalOpen}
@@ -258,7 +282,17 @@ function AnalyticsChart({
   return <WqlEmptyState result={result} />;
 }
 
-function FindResultList({ parsed, result }: { parsed: FindQueryResult['parsed']; result: FindQueryResult | undefined }) {
+function FindResultList({
+  parsed,
+  result,
+  onOpenNote,
+  noteHref,
+}: {
+  parsed: FindQueryResult['parsed'];
+  result: FindQueryResult | undefined;
+  onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
+  noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
+}) {
   if (!result) {
     return <div className="text-xs text-muted-foreground py-2">Loading…</div>;
   }
@@ -279,11 +313,41 @@ function FindResultList({ parsed, result }: { parsed: FindQueryResult['parsed'];
         {items.length} {parsed.target}{items.length === 1 ? '' : 's'} matched
       </div>
       <ul className="space-y-0.5 max-h-48 overflow-y-auto font-mono text-xs">
-        {items.map((item) => (
-          <li key={item.id} className="py-0.5 px-1.5 rounded hover:bg-muted/50 truncate">
-            {isBlock ? (item as unknown as { title?: string; blockContentId?: string }).title || (item as unknown as { blockContentId?: string }).blockContentId || item.id : (item as unknown as { title?: string }).title || item.id}
-          </li>
-        ))}
+        {items.map((item) => {
+          const typedItem = item as unknown as { id: string; title?: string; blockContentId?: string };
+          const title = isBlock
+            ? typedItem.title || typedItem.blockContentId || item.id
+            : typedItem.title || item.id;
+          const href = noteHref ? noteHref(typedItem) : undefined;
+          return (
+            <li key={item.id} className="rounded hover:bg-muted/50 truncate">
+              {href ? (
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    if (onOpenNote) {
+                      e.preventDefault();
+                      onOpenNote(typedItem);
+                    }
+                  }}
+                  className="block py-0.5 px-1.5 text-primary hover:underline truncate"
+                >
+                  {title}
+                </a>
+              ) : onOpenNote ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenNote(typedItem)}
+                  className="w-full text-left py-0.5 px-1.5 text-primary hover:underline truncate"
+                >
+                  {title}
+                </button>
+              ) : (
+                <span className="block py-0.5 px-1.5 text-foreground truncate">{title}</span>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

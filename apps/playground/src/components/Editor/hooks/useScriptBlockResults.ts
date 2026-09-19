@@ -7,13 +7,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 
 export interface UseScriptBlockResultsReturn {
   /** All results for this section, sorted most recent first */
-  results: WorkoutResult[];
+  results: Session[];
   /** Whether the initial load is in progress */
   loading: boolean;
 }
@@ -31,10 +31,10 @@ export interface UseScriptBlockResultsReturn {
 export function useScriptBlockResults(
   noteId: string | undefined,
   sectionId: string | undefined,
-  extendedResultsOverride?: WorkoutResult[],
+  extendedResultsOverride?: Session[],
   contentId?: string,
 ): UseScriptBlockResultsReturn {
-  const [results, setResults] = useState<WorkoutResult[]>([]);
+  const [results, setResults] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Read the in-memory `currentEntry` from the Workbench Session (Static

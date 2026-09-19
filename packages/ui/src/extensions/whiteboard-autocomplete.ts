@@ -60,6 +60,7 @@ export function fenceCompletion(context: CompletionContext): CompletionResult | 
 }
 
 export function wrapInTimeFence(view: EditorView): boolean {
+  if (view.state.readOnly) return false;
   const { from, to } = view.state.selection.main;
   const selected = view.state.doc.sliceString(from, to);
 
@@ -81,6 +82,7 @@ export function wrapInTimeFence(view: EditorView): boolean {
 }
 
 export function handleFenceAutoWrap(event: InputEvent, view: EditorView): boolean {
+  if (view.state.readOnly) return false;
   if (event.data !== "`") return false;
   const { from, to } = view.state.selection.main;
   if (from === to) return false;

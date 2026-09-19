@@ -10,12 +10,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function createView(innerContent: string): EditorView {
+if (!('mocked' in vi)) {
+  (vi as Record<string, unknown>).mocked = (fn: unknown) => fn;
+}
+
+function createView(innerContent: string, readOnly = false): EditorView {
   return {
     state: {
       doc: {
         sliceString: vi.fn(() => innerContent),
       },
+      readOnly,
       facet: vi.fn(() => false),
     },
     dispatch: vi.fn(),
@@ -299,6 +304,52 @@ describe('FrontmatterCompanion — desktop active mode', () => {
     expect(view.dispatch).toHaveBeenCalledTimes(1);
     const dispatchArg = vi.mocked(view.dispatch).mock.calls[0][0] as { changes: { insert: string } };
     expect(dispatchArg.changes.insert).toContain('aliases: []');
+  });
+
+  it('does not write back when view.state.readOnly is true', () => {
+    const view = createView(NESTED_EFFORT_CONTENT, true);
+    render(
+      <FrontmatterCompanion
+        sectionId="frontmatter-effort-1"
+        section={createEffortSection()}
+        view={view}
+        isActive
+        widthPercent={35}
+        docVersion={1}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'New Label' } });
+    expect(view.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('preserves custom frontmatter fields and tags during updates', () => {
+    const contentWithCustom = [
+      NESTED_EFFORT_CONTENT,
+      'tags:',
+      '  - benchmark',
+      '  - girl',
+      'coach: Greg',
+    ].join('\n');
+    const view = createView(contentWithCustom);
+
+    render(
+      <FrontmatterCompanion
+        sectionId="frontmatter-effort-1"
+        section={createEffortSection()}
+        view={view}
+        isActive
+        widthPercent={35}
+        docVersion={1}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Rowing V2' } });
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    const dispatchArg = vi.mocked(view.dispatch).mock.calls[0][0] as { changes: { insert: string } };
+    expect(dispatchArg.changes.insert).toContain('tags:');
+    expect(dispatchArg.changes.insert).toContain('  - benchmark');
+    expect(dispatchArg.changes.insert).toContain('coach: Greg');
   });
 });
 

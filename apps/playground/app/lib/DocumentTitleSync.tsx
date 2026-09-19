@@ -3,8 +3,10 @@ import { useLocation } from 'react-router-dom'
 
 /**
  * Route-level document title sync. Sets a base page title from the current
- * route, leaving leaf routes such as /effort/:slug and /playground/:id alone
- * so their own effects can set a dynamic title.
+ * route, leaving leaf routes such as /effort/, /e/:slug and /playground/:id
+ * alone so their own effects can set a dynamic title. Section titles use
+ * prefix matching on purpose: deep routes (/journal/:date, /feeds/:slug)
+ * belong to their section, which a profile-exact lookup cannot express.
  */
 export function DocumentTitleSync() {
   const location = useLocation()
@@ -12,16 +14,23 @@ export function DocumentTitleSync() {
   useEffect(() => {
     const pathname = location.pathname
 
-    if (pathname.startsWith('/effort/') || pathname.startsWith('/playground/')) {
+    if (
+      pathname.startsWith('/effort/')
+      || pathname.startsWith('/e/')
+      || pathname.startsWith('/playground/')
+    ) {
       return
     }
 
     let title = 'Wod.Wiki'
     if (pathname.startsWith('/journal')) title = 'Wod.Wiki - Journal'
     else if (pathname.startsWith('/feeds') || pathname.startsWith('/feed')) title = 'Wod.Wiki - Feeds'
-    else if (pathname.startsWith('/collections')) title = 'Wod.Wiki - Collections'
+    else if (pathname.startsWith('/collections') || pathname.startsWith('/c/')) title = 'Wod.Wiki - Collections'
     else if (pathname.startsWith('/library')) title = 'Wod.Wiki - Library'
     else if (pathname.startsWith('/efforts')) title = 'Wod.Wiki - Efforts'
+    else if (pathname.startsWith('/sessions') || pathname.startsWith('/session/') || pathname.startsWith('/results')) title = 'Wod.Wiki - Sessions'
+    else if (pathname.startsWith('/dashboards') || pathname === '/dashboard' || pathname.startsWith('/dashboard/') || pathname.startsWith('/d/')) title = 'Wod.Wiki - Dashboards'
+    else if (pathname.startsWith('/playgrounds')) title = 'Wod.Wiki - Playgrounds'
     else if (pathname.startsWith('/analytics')) title = 'Wod.Wiki - Analytics'
 
     document.title = title

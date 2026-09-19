@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { playgroundPath } from '../lib/routes'
-import { playgroundContent } from '../services/playgroundContent'
 import { createPlaygroundPage } from '../services/createPlaygroundPage'
-import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 
 /**
  * Shared in-flight promise so that StrictMode double-mount (and rapid remounts)
@@ -17,18 +15,9 @@ async function resolvePlaygroundId(attempt: number): Promise<string> {
   if (!pendingPlaygroundId || pendingPlaygroundId.attempt !== attempt) {
     pendingPlaygroundId = {
       attempt,
-      promise: (async () => {
-        const pages = await playgroundContent.getPagesByCategory('playground')
-        const latest = pages.sort((a, b) => b.updatedAt - a.updatedAt)[0]
-        if (latest) {
-          // PlaygroundNotePage treats the route param as the NAME within the
-          // playground category (note id = `playground/<param>`), so hand it
-          // the route id with the category prefix stripped.
-          const routeId = latest.slug ?? latest.id
-          return routeId.startsWith('playground/') ? routeId.slice('playground/'.length) : routeId
-        }
-        return createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
-      })(),
+      // /playground is the "new empty playground note" entry — every visit
+      // mints a fresh note; the list at /playgrounds is how you resume.
+      promise: createPlaygroundPage(''),
     }
   }
 
@@ -42,12 +31,11 @@ async function resolvePlaygroundId(attempt: number): Promise<string> {
 }
 
 /**
- * Canonical entry route for `/playground`.
- *
- * Resumes the most recently updated playground note when one exists; creates
- * a fresh empty playground note only when none exists yet. The first-note
- * wizard is unaffected: it gates on profile state and opens on the note page
- * itself, not on whether the note was freshly minted.
+ * Canonical entry route for `/playground` — mints a fresh EMPTY playground
+ * note on every visit and opens it. Resuming existing notes happens through
+ * the `/playgrounds` list. The dedup promise keeps StrictMode double-mounts
+ * from minting two notes; the first-note wizard is unaffected (it gates on
+ * profile state, not on freshness).
  */
 export function PlaygroundRedirect() {
   const navigate = useNavigate()

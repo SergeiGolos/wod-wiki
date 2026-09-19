@@ -33,13 +33,14 @@ import { createAnalyticsEngineForBlock } from '@bitcobblers/wod-wiki-engine';
 import type { CalculationDefinition } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { OutputStatement, type IOutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { eventsToStoredLogs } from '@bitcobblers/wod-wiki-wql';
 import type { IEffortResolver } from '@bitcobblers/wod-wiki-lang';
 import {
   toStoredOutputStatement,
   type ScriptBlock,
   type StoredOutputStatement,
 } from '@/components/Editor/types';
-import type { AnalyticsDataPoint, ResultOrigin, WorkoutResult } from '@/types/storage';
+import type { AnalyticsDataPoint, ResultOrigin, Session, EventRecord } from '@/types/storage';
 
 export interface DeriveWorkoutOptions {
   /** Block the workout was run from — supplies dialect + statements for the
@@ -110,11 +111,11 @@ export function deriveWorkoutFromLogs(
  * result's NoteSegment — see IndexedDBNotePersistence.rederiveResultAnalytics).
  */
 export function replayResultAnalytics(
-  result: WorkoutResult,
   block: ScriptBlock,
+  events: EventRecord[],
   options?: Omit<DeriveWorkoutOptions, 'block'>,
 ): StoredOutputStatement[] {
-  return deriveWorkoutFromLogs(result.data.logs ?? [], { block, ...options });
+  return deriveWorkoutFromLogs(eventsToStoredLogs(events), { block, ...options });
 }
 
 /**
@@ -152,7 +153,7 @@ export interface SummaryFactIdentity {
   /** FK to the `page` store (copied from the parent note). */
   pageId?: string;
   /**
-   * Canonical workout time — WorkoutResult.createdAt (true workout end).
+   * Canonical workout time — Session.createdAt (true workout end).
    * Every fact row carries it as `timestamp` so time-range queries mean
    * "when the workout happened", never "when the metric was derived".
    */
@@ -190,12 +191,12 @@ function readGroupTags(metadata: Record<string, unknown> | undefined): Record<st
 }
 
 /**
- * Convert Tier-2 summary outputs (outputType 'analytics') in a result's logs
- * into persisted fact rows — one row per result × Canonical Metric Key.
+ * Convert Tier-2 summary outputs (outputType 'analytics') in a statement
+ * stream into persisted fact rows — one row per result × Canonical Metric Key.
  *
  * The analytics store holds SUMMARY FACTS ONLY (CONTEXT.md, 2026-07-20):
- * per-segment data (Tier 0 + Tier 1) is not denormalized here — it stays in
- * WorkoutResult.data.logs, the authoritative source for a single workout.
+ * per-segment data (Tier 0 + Tier 1) is not denormalized here — it lives as
+ * event rows, the authoritative store for a single workout (V21).
  *
  * These rows exist for cross-workout queries ("compare total volume across my
  * last 30 Fran runs"). If this write fails or is skipped, the workout result
@@ -204,7 +205,7 @@ function readGroupTags(metadata: Record<string, unknown> | undefined): Record<st
  * V12: effort identity (effortSlug / discipline / intensityTier) is carried
  * from the summary processor's metadata onto the row, populating the
  * by-effort / by-discipline indexes; `timestamp` is the canonical workout
- * time (identity.workoutTimestamp = WorkoutResult.createdAt), not the
+ * time (identity.workoutTimestamp = Session.createdAt), not the
  * derivation-time stamp the engine puts on the output's timeSpan.
  */
 export function normalizeSummaryFacts(

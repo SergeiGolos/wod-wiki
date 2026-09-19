@@ -1,4 +1,4 @@
-import type { StoredOutputStatement, WorkoutResults } from './results';
+import type { StoredOutputStatement } from './results';
 
 // ---------------------------------------------------------------------------
 // Segment data types
@@ -101,11 +101,11 @@ export interface BlockIndexRow {
 }
 
 // ---------------------------------------------------------------------------
-// WorkoutResult — execution log
+// Session — execution log (renamed from WorkoutResult; table results -> sessions in DB V20)
 // ---------------------------------------------------------------------------
 export type ResultOrigin = 'journal' | 'playground' | 'user';
 
-export interface WorkoutResult {
+export interface Session {
   id: string;
   segmentId?: string;
   segmentVersion?: number;
@@ -119,7 +119,28 @@ export interface WorkoutResult {
    *  start, flipped to 'completed' at finalize. Absent = 'completed'
    *  (legacy rows predate streaming). */
   status?: 'in-progress' | 'completed';
-  data: WorkoutResults;
+
+  /** When workout started */
+  startTime: number;
+
+  /** When workout ended */
+  endTime: number;
+
+  /** Total elapsed time (ms) */
+  duration: number;
+
+  /** Rounds completed (for rounds-based workouts) */
+  roundsCompleted?: number;
+
+  /** Total rounds (for rounds-based workouts) */
+  totalRounds?: number;
+
+  /** Reps completed (for rep-based workouts) */
+  repsCompleted?: number;
+
+  /** Whether workout was completed or stopped early */
+  completed: boolean;
+
   createdAt: number;
 }
 
@@ -155,6 +176,10 @@ export interface AnalyticsDataPoint {
   discipline?: string;
   intensityTier?: string;
   grade?: string;
+  /** User-authored categorical dims (custom property metrics and grouped
+   *  partitions) — normalized key → value, resolved by factTagValue after
+   *  the structural switch so `by {coach}` / `{coach:greg}` work. */
+  dimensions?: Record<string, string>;
   segmentId: string;
   segmentVersion: number;
   resultId: string;
@@ -183,9 +208,9 @@ export interface AnalyticsDataPoint {
 
 
 // ---------------------------------------------------------------------------
-// UnifiedEventRecord — THE single stored record for all workout data
-// (wayfinder ticket 002). Replaces AnalyticsDataPoint as the stored/query
-// shape; results.data.logs stay the archival source of truth (ticket 005).
+// EventRecord — THE single stored record for all workout data (V21).
+// Statement rows are the archival source: sessions hold execution metadata
+// only, and display/replay shapes are reconstructed from these rows.
 // ---------------------------------------------------------------------------
 
 /** Store-row kind: 'event' = raw statement row, 'summary' = folded row.
@@ -206,8 +231,9 @@ export const KNOWN_OUTPUT_TYPES = [
   'analytics',
   'wellness',
 ] as const;
-
-export interface UnifiedEventRecord {
+// EventRecord — THE single stored record for all workout data (renamed from UnifiedEventRecord)
+// ---------------------------------------------------------------------------
+export interface EventRecord {
   /**
    * Event rows:    `${resultId}:${seq}` — immutable, append-only.
    * Summary rows:  `${resultId}:summary:${metricKey}[:k=v…]` — deterministic
@@ -348,7 +374,7 @@ export interface CatalogBackfillState {
   id: 'backfill';
   status: 'initializing' | 'complete';
   /** Last processed source key per source store (resume cursor). */
-  cursor?: { results?: string; notes?: string };
+  cursor?: { results?: string; notes?: string; events?: string };
   revision: number;
   updatedAt: number;
 }

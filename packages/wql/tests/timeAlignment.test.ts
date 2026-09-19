@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 import { toEventRows, projectEventToFacts } from '../src/derivation';
 import { captureContext } from '../src/calendar';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import { QueryService, type EventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const day0 = Date.UTC(2026, 8, 7, 4); // Mon Sep 7 2026 00:00 EDT = 04:00Z
 
-type Metrics = UnifiedEventRecord['metrics'];
+type Metrics = EventRecord['metrics'];
 
 function statement(timeSpan: { started: number; ended?: number } | undefined): StoredOutputStatement {
   return {
@@ -18,7 +18,7 @@ function statement(timeSpan: { started: number; ended?: number } | undefined): S
   } as unknown as StoredOutputStatement;
 }
 
-function summaryRow(id: string, resultId: string, timestamp: number, temporal?: UnifiedEventRecord['metricTemporal']): UnifiedEventRecord {
+function summaryRow(id: string, resultId: string, timestamp: number, temporal?: EventRecord['metricTemporal']): EventRecord {
   return {
     id,
     resultId,
@@ -35,7 +35,7 @@ function summaryRow(id: string, resultId: string, timestamp: number, temporal?: 
   };
 }
 
-function store(rows: UnifiedEventRecord[]): UnifiedEventStore {
+function store(rows: EventRecord[]): EventStore {
   return {
     getEventsByTimeRange: async (start, end) => rows.filter((r) => r.timestamp >= start && r.timestamp <= end),
     getEventsByResult: async () => [],
@@ -83,7 +83,7 @@ describe('ticket 12 — engine-level time alignment', () => {
     // Date-only wellness observation recorded as civil 2026-09-05; its fetch
     // timestamp is the New-York midnight hint. Grouping under a Tokyo-system
     // capture must still use civil 2026-09-05.
-    const rows: UnifiedEventRecord[] = [
+    const rows: EventRecord[] = [
       {
         id: 'wellness:n1:hrv', resultId: 'wellness:n1', noteId: 'n1',
         timestamp: Date.UTC(2026, 8, 5, 4), // Sep 5 00:00 EDT hint

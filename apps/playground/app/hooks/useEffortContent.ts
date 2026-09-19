@@ -14,6 +14,7 @@ import { useEditorSave } from './useEditorSave';
 import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
+import { indexedDBService } from '@/services/db/IndexedDBService';
 import { toast } from '@/hooks/use-toast';
 
 export interface UseEffortContentResult {
@@ -123,6 +124,31 @@ export function useEffortContent(slug: string | undefined): UseEffortContentResu
 
     try {
       await registry.upsert(parsed);
+      const noteId = `effort/${parsed.slug}`;
+      try {
+        const existingNote = await indexedDBService.getNote(noteId);
+        const now = Date.now();
+        await indexedDBService.saveNote({
+          id: existingNote?.id ?? noteId,
+          title: parsed.label,
+          slug: noteId,
+          createdAt: existingNote?.createdAt ?? now,
+          type: 'note',
+          sourceId: 'effort',
+        });
+        await indexedDBService.saveSegment({
+          id: `seg-${existingNote?.id ?? noteId}`,
+          version: 1,
+          noteId: existingNote?.id ?? noteId,
+          position: 0,
+          dataType: 'markdown',
+          rawContent: value,
+          createdAt: now,
+          updatedAt: now,
+        });
+      } catch {
+        // IDB note sync fallback
+      }
       await refresh();
       setEffort(parsed);
     } catch (err) {

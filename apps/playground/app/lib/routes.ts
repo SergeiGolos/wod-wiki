@@ -7,8 +7,6 @@
  *
  */
 
-import { Navigate, useParams, useLocation } from 'react-router-dom'
-import type { ReactNode } from 'react'
 
 // ---------------------------------------------------------------------------
 // React-Router path patterns (used by <Route path="...">)
@@ -23,11 +21,10 @@ export const ROUTE_PATTERNS = {
   journal: '/journal',
   journalEntry: '/journal/:identity',
   journalNote: '/journal/:date/:uuid',
+  noteById: '/notes/:noteId',
   plan: '/plan',
   guideGettingStarted: '/guide/getting-started',
   guideSyntax: '/guide/syntax',
-  guideBehaviors: '/guide/behaviors',
-  guideAnalytics: '/guide/analytics',
   aiFirst: '/ai-first',
   feeds: '/feeds',
   feed: '/feed',
@@ -36,6 +33,24 @@ export const ROUTE_PATTERNS = {
   collections: '/collections',
   collectionDetail: '/collections/:slug',
   collectionWorkout: '/collections/:collection/:workout',
+  /** /c/:slug — the canonical collection landing (single-letter item prefix). */
+  collection: '/c/:slug',
+  /** /c/:collection/:workout — named editor by page slug; a date target scopes the collection. */
+  collectionTarget: '/c/:collection/:workout',
+  /** /e/:slug — effort detail (single-letter item prefix). */
+  effortSlug: '/e/:slug',
+  /** /sessions, /sessions/:sessionId, /session/:date — the sessions family. */
+  sessions: '/sessions',
+  sessionDetail: '/sessions/:sessionId',
+  sessionDate: '/session/:date',
+  /** /dashboards — dashboard list / WQL explorer landing. */
+  dashboards: '/dashboards',
+  /** /d/:slug — a dashboard addressed by its page slug. */
+  dashboardSlug: '/d/:slug',
+  /** /p/* — the generic render for any note-built page (slug = declared route minus leading slash and optional guide/ prefix). */
+  pages: '/p/*',
+  /** /playgrounds — list of all created playground entries. */
+  playgrounds: '/playgrounds',
   tracker: '/tracker/:runtimeId',
   run: '/run/:runtimeId',
   load: '/load',
@@ -43,19 +58,15 @@ export const ROUTE_PATTERNS = {
   loadJournalDate: '/load/journal/:date',
   efforts: '/efforts',
   effort: '/effort/:slug',
-  effortDetail: '/effort/:slug',
-  results: '/results',
-  resultsSegments: '/results/segments',
-  resultDetail: '/results/:resultId',
   analytics: '/analytics',
   analyticsExplorer: '/analytics/explorer',
-  analyticsDashboard: '/analytics/dashboard',
   dashboard: '/dashboard',
   dashboardView: '/dashboard/:slug',
   library: '/library',
   settings: '/settings',
   settingsAppearance: '/settings/appearance',
   settingsSystem: '/settings/system',
+  settingsQueries: '/settings/queries',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -67,29 +78,30 @@ export function playgroundPath(id: string): string {
   return `/playground/${encodeURIComponent(id)}`;
 }
 
-/** /note/:category/:name */
-export function notePath(category: string, name: string): string {
-  return `/note/${encodeURIComponent(category)}/${encodeURIComponent(name)}`;
-}
-
 /** /journal/:date/ */
 export function journalDatePath(date: string): string {
   return `/journal/${encodeURIComponent(date)}/`;
 }
 
 /**
- * Sub-selection of a single note within a date page.
- * Notes are stored by UUID, but the user only ever sees the whole date page —
- * note selection is UI-level state carried in the ?note= query param.
- * /journal/:date?note=<uuid>
+ * Sub-selection of a single note within a date page — RETIRED.
+ * Note selection opens the canonical editor via {@link noteByIdPath};
+ * `/journal/:date?note=` and `/journal/:date/:noteId` redirect there.
  */
-export function journalNotePath(date: string, uuid: string): string {
-  return `/journal/${encodeURIComponent(date)}?note=${encodeURIComponent(uuid)}`;
-}
 
 /** Legacy single-segment journal route (date, UUID alias, or slug alias). */
 export function journalEntryPath(identity: string): string {
   return `/journal/${encodeURIComponent(identity)}`;
+}
+
+/** /notes/:noteId — the canonical single-note route (any note kind). */
+export function noteByIdPath(noteId: string): string {
+  return `/notes/${encodeURIComponent(noteId)}`;
+}
+
+/** /c/:slug/:date — a date-scoped view of a collection, journal-style. */
+export function collectionDatePath(slug: string, date: string): string {
+  return `/c/${encodeURIComponent(slug)}/${encodeURIComponent(date)}`;
 }
 
 /** /journal/:id?autoStart=<runtimeId> */
@@ -107,29 +119,19 @@ export function feedItemPath(feedSlug: string, feedDate: string, feedItem: strin
   return `/feeds/${encodeURIComponent(feedSlug)}/${encodeURIComponent(feedDate)}/${encodeURIComponent(feedItem)}`;
 }
 
-/** /collections/:slug */
-export function collectionDetailPath(slug: string): string {
-  return `/collections/${encodeURIComponent(slug)}`;
+/** /c/:slug — the canonical collection landing. */
+export function collectionPath(slug: string): string {
+  return `/c/${encodeURIComponent(slug)}`;
 }
 
-/** /collections/:collection/:workout */
+/** /c/:collection/:workout — the named workout editor by page slug. */
 export function workoutPath(collection: string, workout: string): string {
-  return `/collections/${encodeURIComponent(collection)}/${encodeURIComponent(workout)}`;
-}
-
-/** /tracker/:runtimeId (legacy redirect alias — preserved for external links) */
-export function trackerPath(runtimeId: string): string {
-  return `/tracker/${encodeURIComponent(runtimeId)}`;
+  return `/c/${encodeURIComponent(collection)}/${encodeURIComponent(workout)}`;
 }
 
 /** /run/:runtimeId (canonical runtime seam for WOD-505) */
 export function runPath(runtimeId: string): string {
   return `/run/${encodeURIComponent(runtimeId)}`;
-}
-
-/** /load */
-export function loadPath(): string {
-  return '/load';
 }
 
 export interface PlaygroundLoadUrlOptions {
@@ -141,15 +143,29 @@ export function buildPlaygroundLoadUrl({ zip }: PlaygroundLoadUrlOptions): strin
   return `/load?zip=${encodeURIComponent(zip)}`;
 }
 
-export interface JournalLoadUrlOptions {
-  zip: string;
-  date?: string;
+/** /sessions — the sessions listing. */
+export function sessionsPath(): string {
+  return '/sessions';
 }
 
-/** /load/journal?zip=<encoded> or /load/journal/:date?zip=<encoded> */
-export function buildJournalLoadUrl({ zip, date }: JournalLoadUrlOptions): string {
-  const basePath = date ? `/load/journal/${encodeURIComponent(date)}` : '/load/journal';
-  return `${basePath}?zip=${encodeURIComponent(zip)}`;
+/** /sessions/:sessionId — one session's execution detail. */
+export function sessionDetailPath(sessionId: string): string {
+  return `/sessions/${encodeURIComponent(sessionId)}`;
+}
+
+/** /session/:date — the sessions from a given date. */
+export function sessionDatePath(date: string): string {
+  return `/session/${encodeURIComponent(date)}`;
+}
+
+/** /p/:slug — the generic render for a note-built page. */
+export function pagePath(slug: string): string {
+  return `/p/${slug}`;
+}
+
+/** /playgrounds — the list of all created playground entries. */
+export function playgroundsPath(): string {
+  return '/playgrounds';
 }
 
 export function effortsPath(): string {
@@ -157,27 +173,32 @@ export function effortsPath(): string {
 }
 
 /** /analytics/explorer with an optional pre-filled WQL query and range.
- * The explorer now lives at /dashboard; this builder keeps deep links (?q=)
+ * The explorer lives at /dashboards; this builder keeps deep links (?q=)
  * working by pointing at the new home. */
 export function analyticsExplorerPath(options?: { q?: string; weeks?: number }): string {
   const params = new URLSearchParams();
   if (options?.q) params.set('q', options.q);
   if (options?.weeks) params.set('weeks', String(options.weeks));
   const qs = params.toString();
-  return `/dashboard${qs ? `?${qs}` : ''}`;
+  return `/dashboards${qs ? `?${qs}` : ''}`;
 }
 
-/** /dashboard — the WQL explorer (the dashboard namespace landing). */
+/** /dashboards — the dashboard list (the WQL explorer landing). */
 export function dashboardPath(): string {
-  return '/dashboard';
+  return '/dashboards';
 }
 
-/** /dashboard/:slug — a saved or prebuilt dashboard. */
+/** /dashboard/:slug — a saved or prebuilt dashboard, addressed by id. */
 export function dashboardViewPath(slug: string): string {
   return `/dashboard/${encodeURIComponent(slug)}`;
 }
 
-/** /effort/:slug with optional modifiers and page controls */
+/** /d/:slug — a dashboard addressed by its page slug. */
+export function dashboardSlugPath(slug: string): string {
+  return `/d/${encodeURIComponent(slug)}`;
+}
+
+/** /e/:slug with optional modifiers and page controls */
 export function effortPath(
   slug: string,
   modifiers?: Record<string, string>,
@@ -192,7 +213,7 @@ export function effortPath(
   if (options?.mode) params.set('mode', options.mode);
   if (options?.tab) params.set('tab', options.tab);
   const query = params.toString();
-  return query ? `/effort/${encodeURIComponent(slug)}?${query}` : `/effort/${encodeURIComponent(slug)}`;
+  return query ? `/e/${encodeURIComponent(slug)}?${query}` : `/e/${encodeURIComponent(slug)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,76 +257,9 @@ export function parseEffortRouteOptions(searchParams: URLSearchParams): {
 }
 
 /** /settings or /settings/:section */
-export function settingsPath(section?: 'appearance' | 'system'): string {
+export function settingsPath(section?: 'appearance' | 'system' | 'queries'): string {
   return section ? `/settings/${section}` : '/settings/appearance';
 }
-// ---------------------------------------------------------------------------
-// Legacy-alias redirect components
-// ---------------------------------------------------------------------------
-
-/** Redirect /note/playground/:name → /playground/:name */
-export function NotePlaygroundRedirect(): ReactNode {
-  const { name } = useParams<{ name: string }>()
-  return <Navigate to={playgroundPath(name!)} replace />
-}
-
-/** Redirect /workout/:category/:name → /collections/:category/:name */
-export function WorkoutRedirect(): ReactNode {
-  const { category, name } = useParams<{ category: string; name: string }>()
-  return <Navigate to={workoutPath(category!, name!)} replace />
-}
-
-/** Redirect /tracker/:runtimeId → /run/:runtimeId */
-export function TrackerRedirect(): ReactNode {
-  const { runtimeId } = useParams<{ runtimeId: string }>()
-  return <Navigate to={runPath(runtimeId!)} replace />
-}
-
-/**
- * Retired review routes (#946, Ticket 005): dedicated execution telemetry routes
- * live on `/results` and `/results/:resultId`. Bookmarks land directly on
- * `/results/:resultId` (or note-scoped `/results?q=...`) instead of `/dashboard`:
- *   /review/:runtimeId                              → /results/:runtimeId
- *   /note/:noteId/review/:sectionId/:resultId       → /results/:resultId
- *   /note/:noteId/review[/…]                        → /results?q=rows:all{note:…}
- */
-export function ReviewRedirect(): ReactNode {
-  const { runtimeId, noteId, resultId } = useParams<{
-    runtimeId?: string
-    noteId?: string
-    sectionId?: string
-    resultId?: string
-  }>()
-  const scope = resultId ?? runtimeId
-  if (scope) {
-    return <Navigate to={`/results/${encodeURIComponent(scope)}`} replace />
-  }
-  if (noteId) {
-    return <Navigate to={`/results?q=${encodeURIComponent(`rows:all{note:${noteId}}`)}`} replace />
-  }
-  return <Navigate to="/results" replace />
-}
-
-/** Redirect /getting-started → / (retired: content folded into home) */
-export function GettingStartedRedirect(): ReactNode {
-  return <Navigate to="/" replace />
-}
-
-/** Redirect /plan → /journal?mode=plan, preserving any caller-supplied query string. */
-export function PlanRedirect(): ReactNode {
-  const search = useLocation().search
-  // The plan-mode param is appended last; any caller `?zip=...` is preserved.
-  const suffix = search && search.startsWith('?') ? `${search}&mode=plan` : '?mode=plan'
-  return <Navigate to={`/journal${suffix}`} replace />
-}
-
-/** Redirect /syntax/* → /guide/syntax/* */
-export function SyntaxRedirect(): ReactNode {
-  const { '*': splat } = useParams()
-  return <Navigate to={splat ? `/guide/syntax/${splat}` : '/guide/syntax'} replace />
-}
-
-// ---------------------------------------------------------------------------
 // Legacy-alias → canonical redirect matrix
 // ---------------------------------------------------------------------------
 
@@ -355,29 +309,29 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: () => '/',
   },
-  // /chapters/basics  →  /guide/syntax/basics
+  // /chapters/basics  →  /p/syntax/basics
   {
     match: (p) => {
       if (p !== '/chapters/basics') return false;
       return {};
     },
-    to: () => '/guide/syntax/basics',
+    to: () => '/p/syntax/basics',
   },
-  // /chapters/sequences  →  /guide/syntax (split content; no single canonical page)
+  // /chapters/sequences  →  /p/syntax (split content; no single canonical page)
   {
     match: (p) => {
       if (p !== '/chapters/sequences') return false;
       return {};
     },
-    to: () => '/guide/syntax',
+    to: () => '/p/syntax',
   },
-  // /chapters/protocols  →  /guide/syntax/protocols
+  // /chapters/protocols  →  /p/syntax/protocols
   {
     match: (p) => {
       if (p !== '/chapters/protocols') return false;
       return {};
     },
-    to: () => '/guide/syntax/protocols',
+    to: () => '/p/syntax/protocols',
   },
   // /challenge  →  / (retired: quick-start challenge chain now lives on home)
   {
@@ -387,14 +341,23 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: () => '/',
   },
-  // /syntax/*  →  /guide/syntax/* (covers old /syntax/custom-metrics route)
+  // /syntax/*  →  /p/syntax/* (pages carry the slug, not the namespace)
   {
     match: (p) => {
       const m = p.match(/^\/syntax(\/.+)?$/);
       if (!m) return false;
       return { rest: m[1] ?? '' };
     },
-    to: ({ rest }) => `/guide/syntax${rest}`,
+    to: ({ rest }) => `/p/syntax${rest}`,
+  },
+  // /note/:category/:name  →  /c/:category/:name (legacy workout alias)
+  {
+    match: (p) => {
+      const m = p.match(/^\/note\/(?!playground\/)([^/]+)\/([^/]+)$/);
+      if (!m) return false;
+      return { category: decodeURIComponent(m[1]!), name: decodeURIComponent(m[2]!) };
+    },
+    to: ({ category, name }) => workoutPath(category, name),
   },
   // /tracker/:runtimeId  →  /run/:runtimeId
   {
@@ -456,17 +419,18 @@ export function isTrackerPath(pathname: string): boolean {
 
 /** Detect whether a location pathname belongs to the collection workout family. */
 export function isCollectionWorkoutPath(pathname: string): boolean {
+  if (pathname.startsWith('/c/')) return pathname.split('/').length >= 4 && pathname.split('/')[3] !== '';
   return pathname.startsWith('/collections/') && pathname.split('/').length >= 4 && pathname.split('/')[3] !== '';
 }
 
 /** Detect whether a location pathname belongs to the efforts family. */
 export function isEffortsPath(pathname: string): boolean {
-  return pathname === '/efforts' || pathname.startsWith('/effort/');
+  return pathname === '/efforts' || pathname.startsWith('/effort/') || pathname.startsWith('/e/');
 }
 
 /** Detect whether a location pathname belongs to the effort family. */
 export function isEffortPath(pathname: string): boolean {
-  return pathname.startsWith('/effort/') || pathname === '/efforts';
+  return pathname.startsWith('/effort/') || pathname.startsWith('/e/') || pathname === '/efforts';
 }
 
 /** Detect whether a location pathname belongs to the ai-first family. */

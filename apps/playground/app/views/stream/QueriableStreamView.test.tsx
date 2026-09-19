@@ -12,7 +12,7 @@ import {
   EFFORTS_STREAM_PROFILE,
   JOURNAL_STREAM_PROFILE,
   LIBRARY_STREAM_PROFILE,
-  RESULTS_STREAM_PROFILE,
+  SESSIONS_STREAM_PROFILE,
   createResultDetailProfile,
 } from './streamProfile'
 import { journalNotes } from '../../services/journalNotes'
@@ -200,7 +200,7 @@ describe('QueriableStreamView component', () => {
 
     render(
       <MemoryRouter initialEntries={['/results']}>
-        <QueriableStreamView profile={RESULTS_STREAM_PROFILE} queryEngine={engine} />
+        <QueriableStreamView profile={SESSIONS_STREAM_PROFILE} queryEngine={engine} />
       </MemoryRouter>,
     )
 
@@ -267,7 +267,7 @@ describe('QueriableStreamView component', () => {
     render(
       <MemoryRouter initialEntries={['/results']}>
         <QueriableStreamView
-          profile={RESULTS_STREAM_PROFILE}
+          profile={SESSIONS_STREAM_PROFILE}
           queryEngine={engine}
           onAddToToday={handleAdd}
         />
@@ -316,7 +316,7 @@ describe('QueriableStreamView component', () => {
 
       render(
         <MemoryRouter initialEntries={['/results']}>
-          <QueriableStreamView profile={RESULTS_STREAM_PROFILE} queryEngine={engine} />
+          <QueriableStreamView profile={SESSIONS_STREAM_PROFILE} queryEngine={engine} />
         </MemoryRouter>,
       )
 

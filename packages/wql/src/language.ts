@@ -144,6 +144,15 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     return values.map((v) => ({ label: v.value, type: 'constant' }));
   };
 
+  /** Discovered categorical field paths as dim/filter keys (ticket 15) —
+  *  custom dims are first-class in WQL, so discovered fields complete
+  *  alongside the structural tag keys. */
+  const catalogKeyOptions = async (): Promise<Completion[]> => {
+    if (!catalog) return [];
+    const entries = await catalog.listByPrefix('', 20);
+    return entries.map((entry) => ({ label: entry.path, detail: entry.kind, type: 'property' }));
+  };
+
   const metricOptions = (): Completion[] => {
     const efforts = effortNames?.() ?? [];
     return [
@@ -180,7 +189,12 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       const colonIndex = filterText.indexOf(':');
       if (colonIndex === -1) {
         const keyWord = context.matchBefore(/[\w-]*/)!;
-        return { from: keyWord.from, options: options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })), validFor: /^[\w-]*$/ };
+        return {
+          from: keyWord.from,
+          options: options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })),
+          validFor: /^[\w-]*$/,
+          ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
+        };
       }
       const key = filterText.slice(0, colonIndex).replace(/^!/, '').trim();
       const valueOptions = tagValueOptions(key);
@@ -199,10 +213,15 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     // Inside Filters braces but not in a parsed Filter yet (e.g. `{` + cursor).
     if (ancestor(node, 'Filters')) {
       const keyWord = context.matchBefore(/[\w-]*/)!;
-      return { from: keyWord.from, options: options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })), validFor: /^[\w-]*$/ };
+      return {
+        from: keyWord.from,
+        options: options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })),
+        validFor: /^[\w-]*$/,
+        ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
+      };
     }
 
-    // Inside GroupBy: virtual dims + tag keys.
+    // Inside GroupBy: virtual dims + tag keys + discovered custom dims.
     if (ancestor(node, 'GroupBy')) {
       const dimWord = context.matchBefore(/[\w-]*/)!;
       return {
@@ -212,6 +231,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
           ...options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })),
         ],
         validFor: /^[\w-]*$/,
+        ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
       };
     }
 

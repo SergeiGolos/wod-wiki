@@ -133,6 +133,8 @@ describe('serialize (C6 structured interface)', () => {
   it('round-trips generated ASTs of every family (property)', () => {
     const BARE_VALUES = ['pr', 'strength', 'back', '2026-01-12', 'hero', 'wod'];
     const KEYS = ['tags', 'discipline', 'effort', 'text', 'category'] as const;
+    // Aggregate filter sides only accept fact-resolvable tag keys (parse validates).
+    const AGG_KEYS = ['tags', 'discipline', 'effort', 'intensity', 'grade'] as const;
     const SOURCES = ['journal', 'collections', 'feeds', 'all', 'collection:crossfit-girls', 'feed:x/2026-01-12'];
     const METRICS = ['totalVolume', 'tis', 'calc.acwr', 'maxHeartRate'];
     const DIMS = ['week', 'day', 'session', 'round', 'effort'];
@@ -150,8 +152,8 @@ describe('serialize (C6 structured interface)', () => {
       return { value: pick(rng, BARE_VALUES), wildcard: maybe(rng, 0.3) };
     }
 
-    function genFilters(rng: () => number, count: number, negate = true): TagFilter[] {
-      const keys = [...KEYS].sort(() => rng() - 0.5).slice(0, count);
+    function genFilters(rng: () => number, count: number, negate = true, pool: readonly string[] = KEYS): TagFilter[] {
+      const keys = [...pool].sort(() => rng() - 0.5).slice(0, count);
       return keys.map((key) => ({
         key,
         negate: negate && maybe(rng, 0.25),
@@ -171,7 +173,7 @@ describe('serialize (C6 structured interface)', () => {
         family: 'aggregate', raw: '',
         agg: pick(rng, WQL_AGGREGATORS),
         metric: pick(rng, METRICS),
-        filters: genFilters(rng, int(rng, 0, 3)),
+        filters: genFilters(rng, int(rng, 0, 3), true, AGG_KEYS),
         groupBy: maybe(rng, 0.4) ? [...KEYS].sort(() => rng() - 0.5).slice(0, int(rng, 1, 2)) : [],
       };
       if (maybe(rng, 0.4)) a.rollup = { size: pick(rng, [1, 2, 7]), unit: maybe(rng, 0.5) ? 'd' : 'w' };
@@ -200,7 +202,7 @@ describe('serialize (C6 structured interface)', () => {
         f.join = {
           agg: pick(rng, WQL_AGGREGATORS),
           metric: pick(rng, METRICS),
-          filters: genFilters(rng, int(rng, 0, 2)),
+          filters: genFilters(rng, int(rng, 0, 2), true, AGG_KEYS),
           operator: pick(rng, WQL_COMPARISON_OPS),
           threshold: pick(rng, THRESHOLDS),
         };

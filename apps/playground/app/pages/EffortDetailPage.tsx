@@ -25,14 +25,15 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
 import type { ScriptBlock } from '@/components/Editor/types';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { EffortResolver, type IEffort, type ResolvedEffort } from '@bitcobblers/wod-wiki-lang';
-import { effortsPath, parseEffortRouteOptions } from '../lib/routes';
+import { effortsPath, parseEffortRouteOptions, effortPath, noteByIdPath } from '../lib/routes';
 import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/atoms/primitives/toast';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 import { shareBlock } from '../services/openInPlayground';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
@@ -106,7 +107,7 @@ export function EffortDetailPage() {
   } = useEffortContent(slug);
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([]);
-  const [results] = useState<WorkoutResult[]>([]);
+  const [results] = useState<Session[]>([]);
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
   const [showResolved, setShowResolved] = useState(false);
 
@@ -154,7 +155,7 @@ export function EffortDetailPage() {
     try {
       await registry.upsert(parsed);
       await refresh();
-      navigate(`/effort/${parsed.slug}`, { replace: true });
+      navigate(effortPath(parsed.slug), { replace: true });
     } catch (err) {
       toast({
         title: 'Save failed',
@@ -188,11 +189,11 @@ export function EffortDetailPage() {
     const d = String(date.getDate()).padStart(2, '0');
     const dateKey = `${y}-${m}-${d}`;
     try {
-      await createJournalNoteFromWorkout({
+      const journalNote = await createJournalNoteFromWorkout({
         workoutName: effort.label,
         category: 'effort',
         sourceNoteLabel: effort.label,
-        sourceNotePath: `/effort/${effort.slug}`,
+        sourceNotePath: effortPath(effort.slug),
         wodContent: block.content,
         date,
       });
@@ -200,11 +201,16 @@ export function EffortDetailPage() {
       toast({
         title: 'Scheduled',
         description: `Added to journal for ${dateKey}`,
+        action: (
+          <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
+            Open
+          </ToastAction>
+        ),
       });
     } catch {
       toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' });
     }
-  }, [effort]);
+  }, [effort, navigate]);
 
   // ── L3 nav from document content ─────────────────────────────────────────
   useNotePageNav({
@@ -348,6 +354,7 @@ export function EffortDetailPage() {
               showLineNumbers={true}
               enablePreview={true}
               enableLinting={true}
+              enableOverlay={true}
               mode="edit"
               commands={commands}
               onBlocksChange={setScriptBlocks}

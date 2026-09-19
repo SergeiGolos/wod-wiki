@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'bun:test'
 import type { BlockIndexRow, Note } from '@/types/storage'
 import type { IEffort, RowsRun, RowsQueryResult, ParsedRowsQuery } from '@bitcobblers/wod-wiki-wql'
-import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core'
+import type { EventRecord } from '@bitcobblers/wod-wiki-core'
 import {
   toEntry,
   blockToEntry,
@@ -66,6 +66,16 @@ describe('toEntry — playground entries', () => {
   })
 })
 
+describe('toEntry — tag preservation', () => {
+  it('preserves tags from Note onto Entry', () => {
+    const entry = toEntry(makeNote({
+      id: 'note-with-tags',
+      tags: ['pr', 'benchmark'],
+    }))
+    expect(entry.tags).toEqual(['pr', 'benchmark'])
+  })
+})
+
 describe('toEntry — guide entries', () => {
   it('classifies a canvas-corpus note (guides: sourceId) as a guide Note carrying the route path', () => {
     const entry = toEntry(makeNote({
@@ -76,6 +86,17 @@ describe('toEntry — guide entries', () => {
     expect(entry.sourceCatalog).toBe('guides')
     expect(entry.sourceItem).toBe('guide/syntax/basics')
     expect(entry.date).toBeNull()
+  })
+
+  it('derives the page id — the /p slug — from the declared route (#link-crosswalk)', () => {
+    const entry = toEntry(makeNote({
+      id: 'guide/syntax/basics',
+      sourceId: 'guides:guide/syntax/basics',
+    }))
+    expect(entry.pageId).toBe('syntax/basics')
+
+    // Non-guide notes have no page render target
+    expect(toEntry(makeNote({ id: 'uuid-1' })).pageId).toBeUndefined()
   })
 })
 
@@ -273,7 +294,7 @@ describe('rowsRunToEntry — session level (Mode A)', () => {
           { type: 'rep', value: 21 },
           { type: 'weight', value: 95, unit: 'lbs' },
         ],
-      } as UnifiedEventRecord,
+      } as EventRecord,
       {
         id: 'res-123:1',
         resultId: 'res-123',
@@ -287,7 +308,7 @@ describe('rowsRunToEntry — session level (Mode A)', () => {
           { type: 'rep', value: 21 },
           { type: 'tis', value: 12.5 },
         ],
-      } as UnifiedEventRecord,
+      } as EventRecord,
     ],
   }
 
@@ -315,7 +336,7 @@ describe('rowsRunToEntry — session level (Mode A)', () => {
 
 describe('unifiedEventToEntry — segment level (Mode B)', () => {
   const timestamp = new Date('2026-08-15T10:00:00Z').getTime()
-  const event: UnifiedEventRecord = {
+  const event: EventRecord = {
     id: 'res-123:0',
     resultId: 'res-123',
     noteId: 'crossfit-girls/fran',
@@ -330,7 +351,7 @@ describe('unifiedEventToEntry — segment level (Mode B)', () => {
     ],
   }
 
-  it('maps a segment UnifiedEventRecord to kind "segment"', () => {
+  it('maps a segment EventRecord to kind "segment"', () => {
     const entry = unifiedEventToEntry(event, { index: 0 })
     expect(entry.kind).toBe('segment')
     expect(entry.id).toBe('res-123:0')
@@ -367,7 +388,7 @@ describe('rowsQueryResultToEntries', () => {
         outputType: 'segment',
         effortSlug: 'thruster',
         metrics: [{ type: 'rep', value: 21 }],
-      } as UnifiedEventRecord,
+      } as EventRecord,
     ],
   }
 

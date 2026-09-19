@@ -17,7 +17,7 @@
 import type {
   FieldContribution,
   Note,
-  WorkoutResult,
+  Session,
 } from '@bitcobblers/wod-wiki-core';
 import { fieldRefKey } from '@bitcobblers/wod-wiki-core';
 
@@ -105,8 +105,15 @@ function contributionOfMetric(m: LooseMetric): FieldContribution | undefined {
   };
 }
 
-export function extractContributionsFromResult(result: WorkoutResult): Array<FieldContribution & { rowId: string }> {
-  const data: unknown = result.data;
+/**
+ * Contributions of a LEGACY `results`-store row (pre-V21): those rows carried
+ * the statement stream inline under `data.logs`. Live sessions hold metadata
+ * only — their contributions come from `extractContributionsFromEventRows`.
+ */
+export function extractContributionsFromResult(
+  result: Session & { data?: { logs?: unknown } },
+): Array<FieldContribution & { rowId: string }> {
+  const data = result.data;
   const logs: unknown = data && typeof data === 'object' && 'logs' in data ? data.logs : undefined;
   const contributions: Array<FieldContribution & { rowId: string }> = [];
   if (!Array.isArray(logs)) return contributions;

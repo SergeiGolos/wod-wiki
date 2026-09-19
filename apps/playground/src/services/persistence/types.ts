@@ -1,6 +1,6 @@
-import type { WorkoutResults } from '@/components/Editor/types';
+import type { Sessions } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
-import type { Attachment, AnalyticsDataPoint, Note, NoteKind, NoteSegment, ResultOrigin, UnifiedEventRecord, WorkoutResult } from '@/types/storage';
+import type { Attachment, AnalyticsDataPoint, Note, NoteKind, NoteSegment, ResultOrigin, EventRecord, Session } from '@/types/storage';
 
 export type NoteLocator =
   | string
@@ -108,7 +108,7 @@ export interface NoteMutation {
     version?: number;        // LEGACY — content generation from the retired computeVersion path
     segmentId?: string;     // NoteSegment FK (positional section id)
     origin?: ResultOrigin;  // Which surface produced the result; default filters exclude 'playground'
-    data: WorkoutResults;
+    data: Sessions;
     createdAt?: number;
   };
   /** Note kind applied ONLY when the mutation lazily creates a missing note;
@@ -144,27 +144,29 @@ export interface NotePersistenceStorage {
   getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined>;
   /** Compound-key read: the exact segment incarnation recorded for a result. */
   getSegment?(segmentId: string, version: number): Promise<NoteSegment | undefined>;
-  getResultsForNote(noteId: string): Promise<WorkoutResult[]>;
-  saveResult(result: WorkoutResult): Promise<string>;
+  getResultsForNote(noteId: string): Promise<Session[]>;
+  saveResult(result: Session): Promise<string>;
   /** V6 — cross-note collection aggregation: every result for one blockContentId, across all notes. */
-  getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]>;
-  getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]>;
-  getResultById(resultId: string): Promise<WorkoutResult | undefined>;
+  getResultsByContentId(blockContentId: string): Promise<Session[]>;
+  getResultsForSection(noteId: string, sectionId: string): Promise<Session[]>;
+  getResultById(resultId: string): Promise<Session | undefined>;
   getAttachmentsForNote(noteId: string): Promise<Attachment[]>;
   saveAttachment(attachment: Attachment): Promise<string>;
   deleteAttachment(id: string): Promise<void>;
   /**
-   * V16 unified event store write surface (engine `UnifiedEventStore`,
+   * V16 unified event store write surface (engine `EventStore`,
    * tickets 003/005). Event rows are non-load-bearing — data.logs stays
    * canonical — so narrow test fakes may omit these and skip event capture.
    */
-  appendEvents?(rows: UnifiedEventRecord[]): Promise<void>;
+  appendEvents?(rows: EventRecord[]): Promise<void>;
   /** Atomic finalize: clear the result's engine-authored summaries, write finals. */
-  finalizeSummaries?(resultId: string, rows: UnifiedEventRecord[]): Promise<void>;
+  finalizeSummaries?(resultId: string, rows: EventRecord[]): Promise<void>;
   /** Reconcile deletes (wellness note-save) + GC sweeps. */
   deleteEvents?(ids: string[]): Promise<void>;
   /** Note-scoped event reads for wellness reconcile. */
-  getEventsForNote?(noteId: string): Promise<UnifiedEventRecord[]>;
+  getEventsForNote?(noteId: string): Promise<EventRecord[]>;
+  /** Session-scoped event reads for RPE capture and review. */
+  getEventsByResult?(resultId: string): Promise<EventRecord[]>;
 }
 
-export type { HistoryEntry, Attachment, AnalyticsDataPoint, WorkoutResult, UnifiedEventRecord };
+export type { HistoryEntry, Attachment, AnalyticsDataPoint, Session, EventRecord };

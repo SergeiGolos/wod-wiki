@@ -21,7 +21,7 @@ import { EditorDialog } from '@bitcobblers/wod-wiki-ui'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { pendingRuntimes } from '../runtimeStore'
-import { journalDatePath, journalNotePath, runPath } from '../lib/routes'
+import { noteByIdPath, runPath, workoutPath, journalEntryAutoStartPath } from '../lib/routes'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
@@ -80,7 +80,7 @@ export function WorkoutEditorPage({
 
     return {
       label: `${category}-${name}`,
-      path: `/collections/${encodeURIComponent(category)}/${encodeURIComponent(name)}`,
+      path: workoutPath(category, name),
     }
   }, [category, isCollection, name])
 
@@ -106,7 +106,7 @@ export function WorkoutEditorPage({
           wodContent: block.content,
         })
         pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id })
-        navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`)
+        navigate(journalEntryAutoStartPath(journalNote.journalDate ?? '', runtimeId))
       } catch {
         // IndexedDB unavailable — fall back to the fullscreen tracker route
         pendingRuntimes.set(runtimeId, { block, noteId })
@@ -142,7 +142,7 @@ export function WorkoutEditorPage({
         return
       }
       navigate(`/journal?s=${journalDate}`)
-      const journalRoute = journalNotePath(journalDate, journalNoteId)
+      const journalRoute = noteByIdPath(journalNoteId)
       toast({
         title: `Added to ${dateLabel}`,
         description: `"${name}" was added to your journal.`,
@@ -177,7 +177,7 @@ export function WorkoutEditorPage({
     </Button>
   )
   const headerActions = (
-    <ResponsiveActions primary={editToggle}>
+    <ResponsiveActions navbar={editToggle}>
       <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
     </ResponsiveActions>
   )

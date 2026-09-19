@@ -37,6 +37,7 @@ interface EffortFrontmatterData {
     coefficients?: Record<string, string>;
     hardOverrides?: Record<string, string>;
   };
+  customLines?: string[];
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -106,60 +107,79 @@ function parseAliases(raw: string): string[] {
 function parseEffortFrontmatter(innerContent: string): EffortFrontmatterData {
   const data: EffortFrontmatterData = {
     aliases: [],
+    customLines: [],
   };
 
-  let context: "root" | "aliases" | "baseAttributes" | "derivation" | "coefficients" | "hardOverrides" = "root";
+  let context: "root" | "aliases" | "baseAttributes" | "derivation" | "coefficients" | "hardOverrides" | "custom" = "root";
 
   for (const line of innerContent.split(/\r?\n/)) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
+    if (!trimmed) continue;
 
     const indent = line.length - line.trimStart().length;
     if (indent === 0) {
-      context = "root";
-      if (trimmed === "aliases:") {
-        context = "aliases";
+      if (trimmed.startsWith("#")) {
+        data.customLines!.push(line);
         continue;
       }
-      if (trimmed === "baseAttributes:") {
+      const match = trimmed.match(/^([^:]+):\s*(.*)$/);
+      if (!match) {
+        data.customLines!.push(line);
+        context = "custom";
+        continue;
+      }
+      const key = match[1].trim();
+      const value = parseYamlScalar(match[2]);
+      if (key === "aliases") {
+        context = "aliases";
+        if (value === "[]") data.aliases = [];
+        continue;
+      }
+      if (key === "baseAttributes") {
         context = "baseAttributes";
         continue;
       }
-      if (trimmed === "derivation:") {
+      if (key === "derivation") {
         context = "derivation";
         data.derivation ??= {};
         continue;
       }
 
-      const match = trimmed.match(/^([^:]+):\s*(.*)$/);
-      if (!match) continue;
-      const key = match[1].trim();
-      const value = parseYamlScalar(match[2]);
       switch (key) {
         case "id":
           data.id = value;
+          context = "root";
           break;
         case "slug":
           data.slug = value;
+          context = "root";
           break;
         case "label":
           data.label = value;
-          break;
-        case "aliases":
-          if (value === "[]") data.aliases = [];
+          context = "root";
           break;
         case "registrySource":
           data.registrySource = value;
+          context = "root";
           break;
         case "createdAt":
           data.createdAt = value;
+          context = "root";
           break;
         case "updatedAt":
           data.updatedAt = value;
+          context = "root";
           break;
         default:
+          context = "custom";
+          data.customLines!.push(line);
           break;
       }
+      continue;
+    }
+
+    if (context === "custom") {
+      data.customLines!.push(line);
       continue;
     }
 
@@ -279,6 +299,11 @@ function serializeEffortFrontmatter(data: EffortFrontmatterData): string {
   if (data.createdAt) lines.push(`createdAt: ${quoteYaml(data.createdAt)}`);
   if (data.updatedAt) lines.push(`updatedAt: ${quoteYaml(data.updatedAt)}`);
 
+  if (data.customLines && data.customLines.length > 0) {
+    for (const customLine of data.customLines) {
+      lines.push(customLine);
+    }
+  }
   return lines.join("\n");
 }
 
@@ -288,6 +313,7 @@ function replaceFrontmatterContent(
   nextInnerContent: string,
 ): void {
   if (section.contentFrom === undefined || section.contentTo === undefined) return;
+  if (view.state.readOnly) return;
   view.dispatch({
     changes: {
       from: section.contentFrom,
@@ -322,13 +348,17 @@ const EffortFrontmatterCompanion: React.FC<{
 }> = ({ section, view, isActive, widthPercent, rawContent }) => {
   const effort = useMemo(() => parseEffortFrontmatter(rawContent), [rawContent]);
 
+  const isReadOnly = Boolean(view.state.readOnly);
+
   const commitEffort = useCallback(
     (patch: Partial<EffortFrontmatterData>) => {
+      if (view.state.readOnly) return;
       const next = serializeEffortFrontmatter({
         ...effort,
         ...patch,
         aliases: patch.aliases ?? effort.aliases,
         derivation: patch.derivation ?? effort.derivation,
+        customLines: effort.customLines,
       });
       replaceFrontmatterContent(view, section, next);
     },
@@ -369,7 +399,8 @@ const EffortFrontmatterCompanion: React.FC<{
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             <Field label="Slug">
               <input
-                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
+                disabled={isReadOnly}
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary disabled:opacity-50"
                 value={effort.slug || ""}
                 onChange={(e) => commitEffort({ slug: e.target.value })}
                 spellCheck={false}
@@ -377,17 +408,19 @@ const EffortFrontmatterCompanion: React.FC<{
             </Field>
             <Field label="Label">
               <input
-                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
+                disabled={isReadOnly}
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary disabled:opacity-50"
                 value={effort.label || ""}
                 onChange={(e) => commitEffort({ label: e.target.value })}
               />
             </Field>
             <Field label="MET">
               <input
+                disabled={isReadOnly}
                 type="number"
                 step="0.1"
                 inputMode="decimal"
-                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary disabled:opacity-50"
                 value={effort.met || ""}
                 onChange={(e) => {
                   const value = e.target.value.trim();
@@ -399,7 +432,8 @@ const EffortFrontmatterCompanion: React.FC<{
             </Field>
             <Field label="Intensity tier">
               <select
-                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
+                disabled={isReadOnly}
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary disabled:opacity-50"
                 value={effort.intensityTier || ""}
                 onChange={(e) => commitEffort({ intensityTier: e.target.value || undefined })}
               >
@@ -411,7 +445,8 @@ const EffortFrontmatterCompanion: React.FC<{
             </Field>
             <Field label="Discipline" className="xl:col-span-2">
               <select
-                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
+                disabled={isReadOnly}
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary disabled:opacity-50"
                 value={effort.discipline || ""}
                 onChange={(e) => commitEffort({ discipline: e.target.value || undefined })}
               >
@@ -423,7 +458,8 @@ const EffortFrontmatterCompanion: React.FC<{
             </Field>
             <Field label="Aliases" className="xl:col-span-2">
               <input
-                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
+                disabled={isReadOnly}
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary disabled:opacity-50"
                 value={effort.aliases.join(", ")}
                 onChange={(e) => commitEffort({ aliases: parseAliases(e.target.value) })}
                 placeholder="comma-separated aliases"

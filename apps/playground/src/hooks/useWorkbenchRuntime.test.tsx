@@ -3,7 +3,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { act, renderHook } from '@testing-library/react';
 
 import { RuntimeLifecycleContext } from '@/contexts/RuntimeLifecycleContext';
-import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
+import type { Sessions, ScriptBlock } from '@/components/Editor/types';
 import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 // Preserve all original exports while overriding audioService for this test.
@@ -27,7 +27,7 @@ describe('useWorkbenchRuntime', () => {
             disposeRuntime: mock(() => { })
         };
 
-        const completeWorkout = mock((_results: WorkoutResults) => { });
+        const completeWorkout = mock((_results: Sessions) => { });
         const startWorkout = mock((_block: ScriptBlock) => { });
         const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <RuntimeLifecycleContext.Provider value={lifecycle}>
@@ -100,7 +100,7 @@ describe('useWorkbenchRuntime', () => {
             disposeRuntime: mock(() => { })
         };
 
-        const completeWorkout = mock((_results: WorkoutResults) => { });
+        const completeWorkout = mock((_results: Sessions) => { });
         const startWorkout = mock((_block: ScriptBlock) => { });
         const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <RuntimeLifecycleContext.Provider value={lifecycle}>
@@ -174,7 +174,7 @@ describe('useWorkbenchRuntime', () => {
             disposeRuntime: mock(() => { })
         };
 
-        const completeWorkout = mock((_results: WorkoutResults) => { });
+        const completeWorkout = mock((_results: Sessions) => { });
         const startWorkout = mock((_block: ScriptBlock) => { });
         const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <RuntimeLifecycleContext.Provider value={lifecycle}>
@@ -198,7 +198,7 @@ describe('useWorkbenchRuntime', () => {
         // Same finalize + logs contract as the formal completion paths.
         expect(finalizeAnalytics).toHaveBeenCalledTimes(1);
         expect(completeWorkout).toHaveBeenCalledTimes(1);
-        const saved = completeWorkout.mock.calls[0]?.[0] as WorkoutResults;
+        const saved = completeWorkout.mock.calls[0]?.[0] as Sessions;
         expect(saved.completed).toBe(false);
         expect(saved.logs).toHaveLength(1);
         expect(saved.logs?.[0]).toMatchObject({ outputType: 'analytics', sourceBlockKey: 'block-1' });

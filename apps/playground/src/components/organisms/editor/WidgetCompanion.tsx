@@ -25,6 +25,7 @@ export interface WidgetCompanionProps {
   widgetName: string;
   view: EditorView;
   registry: WidgetRegistry;
+  docVersion?: number;
 }
 
 export const WidgetCompanion: React.FC<WidgetCompanionProps> = ({
@@ -32,6 +33,7 @@ export const WidgetCompanion: React.FC<WidgetCompanionProps> = ({
   widgetName,
   view,
   registry,
+  docVersion,
 }) => {
   const { rawContent, config } = useMemo(() => {
     const state = view.state.field(sectionField);
@@ -51,7 +53,7 @@ export const WidgetCompanion: React.FC<WidgetCompanionProps> = ({
     }
 
     return { rawContent: raw, config: parsed };
-  }, [view, sectionId]);
+  }, [view, sectionId, docVersion]);
 
   const WidgetComponent = registry.get(widgetName);
 

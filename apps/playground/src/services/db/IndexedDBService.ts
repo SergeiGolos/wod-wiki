@@ -26,9 +26,9 @@ import {
     NoteTag,
     Page,
     Tag,
-    WorkoutResult,
+    Session,
     Attachment,
-    UnifiedEventRecord,
+    EventRecord,
     SegmentDataType,
     CatalogBackfillState,
     FieldCatalogEntry,
@@ -39,7 +39,6 @@ import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import {
     extractContributionsFromEventRows,
     extractContributionsFromNote,
-    extractContributionsFromResult,
     fieldSourceId,
 } from '../catalog/fieldCatalog';
 import {
@@ -54,9 +53,9 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import {
+    deriveWorkoutFromLogs,
     normalizeAllMetrics,
     normalizeSummaryFacts,
-    replayResultAnalytics,
     type LegacyFactRow,
 } from '@/services/analytics/workoutDerivation';
 
@@ -106,7 +105,7 @@ export interface WodWikiDB extends DBSchema {
     };
     results: {
         key: string;
-        value: WorkoutResult;
+        value: Session;
         indexes: {
             'by-segment': string; // segmentId — per-block journal queries (live since identity fix)
             'by-note': string;
@@ -115,6 +114,19 @@ export interface WodWikiDB extends DBSchema {
             'by-block': string;   // V6 — blockId; efficient per-clone journal queries
             'by-page': string;    // V10 — pageId
             'by-origin': string;  // V10 — origin; default exclusion of playground rows
+        };
+    };
+    sessions: {
+        key: string;
+        value: Session;
+        indexes: {
+            'by-segment': string;
+            'by-note': string;
+            'by-completed': number;
+            'by-content': string;
+            'by-block': string;
+            'by-page': string;
+            'by-origin': string;
         };
     };
     attachments: {
@@ -158,7 +170,7 @@ export interface WodWikiDB extends DBSchema {
      */
     events: {
         key: string;
-        value: UnifiedEventRecord;
+        value: EventRecord;
         indexes: {
             'by-timestamp': number;              // the one proven culling index
             'by-result-grain': [string, string]; // finalize clear, per-result fetch, orphan GC
@@ -218,7 +230,7 @@ export interface WodWikiDB extends DBSchema {
         indexes: {};
     };
 }
-const DB_VERSION = 19; // V19 — meta kv store (seed import checkpoint); V18 — dashboard bodies rewritten to Query Documents (decision 22); V17 — field catalog stores + events.by-metric-date (ticket 14)
+const DB_VERSION = 21; // V21 — flattened sessions (data.logs removed); V20 — sessions store (renamed from results); V19 — meta kv store
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -326,7 +338,7 @@ async function backfillV11(tx: V10Tx): Promise<void> {
     // 1. Results: createdAt rename.
     const resultsStore = tx.objectStore('results');
     for await (const cursor of resultsStore) {
-        const row = cursor.value as WorkoutResult & { completedAt?: number };
+        const row = cursor.value as Session & { completedAt?: number };
         if (row.completedAt != null && row.createdAt == null) {
             row.createdAt = row.completedAt;
         }
@@ -429,7 +441,7 @@ async function backfillV11(tx: V10Tx): Promise<void> {
  *     that reached execution but never got facts (the pre-V12 partial-save
  *     path) gain them here.
  *  2. Fact rows are written with the canonical workout time
- *     (WorkoutResult.createdAt) as `timestamp` — the new by-timestamp index
+ *     (Session.createdAt) as `timestamp` — the new by-timestamp index
  *     makes time-range queries IDBKeyRange scans.
  *  3. Frontmatter `tags:` sweep: every note's latest frontmatter segments
  *     contribute their tags to note_tags (additive — existing links kept).
@@ -493,7 +505,7 @@ export async function backfillV12(tx: V10Tx): Promise<void> {
                 ? scriptBlock
                 : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
-            const derivedLogs = replayResultAnalytics(result, block);
+            const derivedLogs = deriveWorkoutFromLogs(logs, { block });
             await resultsStore.put({ ...result, data: { ...result.data, logs: derivedLogs } });
             points = normalizeSummaryFacts(derivedLogs, identity);
             replayed++;
@@ -793,7 +805,7 @@ export async function backfillV16(tx: V10Tx): Promise<void> {
             const block = scriptBlock.statements?.length
                 ? scriptBlock
                 : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
-            logs = replayResultAnalytics(result, block);
+            logs = deriveWorkoutFromLogs(storedLogs, { block });
             if (logs !== storedLogs) {
                 await resultsStore.put({ ...result, data: { ...result.data, logs } });
             }
@@ -1021,6 +1033,18 @@ export class IndexedDBService {
                     db.createObjectStore('meta', { keyPath: 'key' });
                 }
 
+                // ---- Sessions (V20 — renamed from results) ----
+                if (!db.objectStoreNames.contains('sessions')) {
+                    const store = db.createObjectStore('sessions', { keyPath: 'id' });
+                    store.createIndex('by-segment', 'segmentId');
+                    store.createIndex('by-note', 'noteId');
+                    store.createIndex('by-completed', 'createdAt');
+                    store.createIndex('by-content', 'blockContentId');
+                    store.createIndex('by-block', 'blockId');
+                    store.createIndex('by-page', 'pageId');
+                    store.createIndex('by-origin', 'origin');
+                }
+
                 // ---- Page / Tags / NoteTags (V10 — additive) ----
                 if (!db.objectStoreNames.contains('page')) {
                     const store = db.createObjectStore('page', { keyPath: 'id' });
@@ -1122,6 +1146,64 @@ export class IndexedDBService {
                 }
                 if (db.objectStoreNames.contains('analytics')) {
                     db.deleteObjectStore('analytics');
+                }
+
+                // ---- V20: copy results to sessions ----
+                if (oldVersion < 20 && db.objectStoreNames.contains('results') && db.objectStoreNames.contains('sessions')) {
+                    const resultsStore = tx.objectStore('results');
+                    const sessionsStore = tx.objectStore('sessions');
+                    for await (const cursor of resultsStore) {
+                        await sessionsStore.put(cursor.value as Session);
+                    }
+                }
+
+                // ---- V21: flatten sessions, drop data.logs, project legacy logs idempotently ----
+                if (oldVersion < 21 && db.objectStoreNames.contains('sessions')) {
+                    const sessionsStore = tx.objectStore('sessions');
+                    const eventsStore = tx.objectStore('events');
+                    for await (const cursor of sessionsStore) {
+                        const legacy = cursor.value as Session & { data?: { logs?: unknown[]; startTime?: number; endTime?: number; duration?: number; completed?: boolean; roundsCompleted?: number; totalRounds?: number; repsCompleted?: number } };
+                        const logs = legacy.data?.logs ?? [];
+                        // Idempotent event projection: only project if no events exist for this result
+                        let alreadyProjected = false;
+                        for await (const evCursor of eventsStore.index('by-result-grain').iterate(IDBKeyRange.bound([legacy.id, ''], [legacy.id, []]))) {
+                            alreadyProjected = true;
+                            break;
+                        }
+                        if (!alreadyProjected && logs.length > 0) {
+                            const identity = {
+                                noteId: legacy.noteId,
+                                resultId: legacy.id,
+                                segmentId: legacy.segmentId,
+                                segmentVersion: legacy.segmentVersion,
+                                blockContentId: legacy.blockContentId,
+                                origin: legacy.origin,
+                                pageId: legacy.pageId,
+                                workoutTimestamp: legacy.data?.endTime ?? legacy.createdAt,
+                            };
+                            const eventRows = toEventRows(logs as any, identity);
+                            const summaryRows = toSummaryEventRows(logs as any, identity);
+                            for (const row of eventRows) {
+                                await eventsStore.put(row);
+                            }
+                            for (const row of summaryRows) {
+                                await eventsStore.put(row);
+                            }
+                        }
+                        // Flatten legacy data.* fields onto the session record
+                        const flat: Session = {
+                            ...legacy,
+                            startTime: legacy.data?.startTime ?? legacy.createdAt,
+                            endTime: legacy.data?.endTime ?? legacy.createdAt,
+                            duration: legacy.data?.duration ?? 0,
+                            completed: legacy.data?.completed ?? true,
+                            roundsCompleted: legacy.data?.roundsCompleted,
+                            totalRounds: legacy.data?.totalRounds,
+                            repsCompleted: legacy.data?.repsCompleted,
+                        };
+                        delete (flat as any).data;
+                        await cursor.update(flat);
+                    }
                 }
             },
             // Another tab is waiting on a schema upgrade this connection
@@ -1320,26 +1402,26 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('notes', 'by-page', pageId);
     }
 
-    async getResultsForPage(pageId: string): Promise<WorkoutResult[]> {
+    async getResultsForPage(pageId: string): Promise<Session[]> {
         return (await this.dbPromise).getAllFromIndex('results', 'by-page', pageId);
     }
 
     // =======================================================================
     // Events (V16 — unified event store; implements the engine's
-    // UnifiedEventStore contract, tickets 003/005)
+    // EventStore contract, tickets 003/005)
     // =======================================================================
 
     /** Windowed fetch — the one proven culling index (ticket 001/003). */
-    async getEventsByTimeRange(start: number, end: number): Promise<UnifiedEventRecord[]> {
+    async getEventsByTimeRange(start: number, end: number): Promise<EventRecord[]> {
         return (await this.dbPromise).getAllFromIndex('events', 'by-timestamp', IDBKeyRange.bound(start, end));
     }
 
     /** Ticket 12/14 complete fetch — union over the by-metric-date
      *  multiEntry index (`d:YYYY-MM-DD` keys): rows whose metric date is in
      *  range even when their fetch-hint timestamp is not. */
-    async getEventsByMetricDates(dates: readonly string[]): Promise<UnifiedEventRecord[]> {
+    async getEventsByMetricDates(dates: readonly string[]): Promise<EventRecord[]> {
         const db = await this.dbPromise;
-        const out: UnifiedEventRecord[] = [];
+        const out: EventRecord[] = [];
         for (const date of dates) {
             const rows = await db.getAllFromIndex('events', 'by-metric-date', IDBKeyRange.bound(`d:${date}`, `d:${date}\uFFFF`, false, true));
             out.push(...rows);
@@ -1348,7 +1430,7 @@ export class IndexedDBService {
     }
 
     /** Per-result fetch (rows:{result:…}, re-finalize, orphan inspection). */
-    async getEventsByResult(resultId: string): Promise<UnifiedEventRecord[]> {
+    async getEventsByResult(resultId: string): Promise<EventRecord[]> {
         return (await this.dbPromise).getAllFromIndex(
             'events', 'by-result-grain', IDBKeyRange.bound([resultId, ''], [resultId, []]),
         );
@@ -1356,7 +1438,7 @@ export class IndexedDBService {
 
     /** Note-scoped fetch (rows:{note:…}) — join through the results store;
      *  the events schema has no by-note index (ticket 002: six indexes only). */
-    async getEventsForNote(noteId: string): Promise<UnifiedEventRecord[]> {
+    async getEventsForNote(noteId: string): Promise<EventRecord[]> {
         const resultIds = (await this.getResultsForNote(noteId)).map((r) => r.id);
         // Wellness rows live under the synthetic per-note resultId (ticket 005).
         resultIds.push(`wellness:${noteId}`);
@@ -1365,14 +1447,14 @@ export class IndexedDBService {
     }
 
     /** Content-scoped fetch — the cross-store join hot path (indexed). */
-    async getEventsByContent(blockContentId: string): Promise<UnifiedEventRecord[]> {
+    async getEventsByContent(blockContentId: string): Promise<EventRecord[]> {
         return (await this.dbPromise).getAllFromIndex(
             'events', 'by-content-grain', IDBKeyRange.bound([blockContentId, ''], [blockContentId, []]),
         );
     }
 
     /** Full scan — all-time SELECT leg (ticket 001: scan beats non-selective indexes). */
-    async scanAll(): Promise<UnifiedEventRecord[]> {
+    async scanAll(): Promise<EventRecord[]> {
         return (await this.dbPromise).getAll('events');
     }
 
@@ -1386,7 +1468,7 @@ export class IndexedDBService {
      * a replaced row (wellness upsert) removes its previous row-scoped
      * contributions before the new ones land.
      */
-    async appendEvents(rows: UnifiedEventRecord[]): Promise<void> {
+    async appendEvents(rows: EventRecord[]): Promise<void> {
         if (rows.length === 0) return;
         const db = await this.dbPromise;
         const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
@@ -1412,7 +1494,7 @@ export class IndexedDBService {
      * contributions are reversed in the same transaction — stale coverage
      * never survives beside its replacement.
      */
-    async finalizeSummaries(resultId: string, rows: UnifiedEventRecord[]): Promise<void> {
+    async finalizeSummaries(resultId: string, rows: EventRecord[]): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(['events', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
         const now = Date.now();
@@ -1571,7 +1653,7 @@ export class IndexedDBService {
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(
-            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values'],
+            ['notes', 'segments', 'results', 'sessions', 'attachments', 'events', 'note_tags', 'field_catalog', 'field_sources', 'field_values', 'block_index'],
             'readwrite',
         );
 
@@ -1594,14 +1676,27 @@ export class IndexedDBService {
             await segCursor.delete();
             segCursor = await segCursor.continue();
         }
+        const blockIdx = tx.objectStore('block_index').index('by-note');
+        let blockCursor = await blockIdx.openCursor(IDBKeyRange.only(id));
+        while (blockCursor) {
+            await blockCursor.delete();
+            blockCursor = await blockCursor.continue();
+        }
 
+        const deletedResultIds: string[] = [];
         const resIdx = tx.objectStore('results').index('by-note');
         let resCursor = await resIdx.openCursor(IDBKeyRange.only(id));
-        const deletedResultIds: string[] = [];
         while (resCursor) {
             deletedResultIds.push(resCursor.value.id);
             await resCursor.delete();
             resCursor = await resCursor.continue();
+        }
+        const sessIdx = tx.objectStore('sessions').index('by-note');
+        let sessCursor = await sessIdx.openCursor(IDBKeyRange.only(id));
+        while (sessCursor) {
+            deletedResultIds.push(sessCursor.value.id);
+            await sessCursor.delete();
+            sessCursor = await sessCursor.continue();
         }
 
         const attIdx = tx.objectStore('attachments').index('by-note');
@@ -1666,7 +1761,7 @@ export class IndexedDBService {
         };
 
         const db = await this.dbPromise;
-        const tx = db.transaction(['notes', 'segments', 'results', 'attachments', 'events'], 'readwrite');
+        const tx = db.transaction(['notes', 'segments', 'results', 'sessions', 'attachments', 'events'], 'readwrite');
         const migratedExisting = await tx.objectStore('notes').index('by-slug').get(oldId);
         if (migratedExisting) {
             await tx.done;
@@ -1676,7 +1771,7 @@ export class IndexedDBService {
         await tx.objectStore('notes').put(migrated);
 
         // Re-key noteId-keyed dependents via by-note cursors.
-        for (const storeName of ['segments', 'results', 'attachments'] as const) {
+        for (const storeName of ['segments', 'results', 'sessions', 'attachments'] as const) {
             const store = tx.objectStore(storeName);
             let cursor = await store.index('by-note').openCursor(IDBKeyRange.only(oldId));
             while (cursor) {
@@ -1765,74 +1860,76 @@ export class IndexedDBService {
     // Results
     // ======================================================================
 
-    /** Save a result; ticket 14 — the result's catalog contribution set is
-     *  replaced in the same transaction (identical re-save = empty delta). */
-    async saveResult(result: WorkoutResult): Promise<string> {
+    // ======================================================================
+    // Sessions (V20 — renamed from results)
+    // ======================================================================
+
+    /** Session rows are metadata only (V21): statement contributions are
+     *  maintained by the event-row write paths (appendEvents/finalize/delete). */
+    async saveSession(session: Session): Promise<string> {
+        return (await this.dbPromise).put('sessions', session);
+    }
+
+    async saveResult(result: Session): Promise<string> {
+        return this.saveSession(result);
+    }
+
+    async getSessionsForNote(noteId: string): Promise<Session[]> {
+        return (await this.dbPromise).getAllFromIndex('sessions', 'by-note', noteId);
+    }
+
+    async getResultsForNote(noteId: string): Promise<Session[]> {
+        return this.getSessionsForNote(noteId);
+    }
+
+    async getSessionsForSection(noteId: string, sectionId: string): Promise<Session[]> {
+        const noteSessions = await this.getSessionsForNote(noteId);
+        return noteSessions.filter(r => r.blockContentId === sectionId);
+    }
+
+    async getResultsForSection(noteId: string, sectionId: string): Promise<Session[]> {
+        return this.getSessionsForSection(noteId, sectionId);
+    }
+
+    async getSessionById(sessionId: string): Promise<Session | undefined> {
+        return (await this.dbPromise).get('sessions', sessionId);
+    }
+
+    async getResultById(resultId: string): Promise<Session | undefined> {
+        return this.getSessionById(resultId);
+    }
+
+    async getRecentSessions(limit = 20): Promise<Session[]> {
         const db = await this.dbPromise;
-        const tx = db.transaction(['results', 'field_catalog', 'field_sources', 'field_values'], 'readwrite');
-        const now = Date.now();
-        const rowIds: string[] = [];
-        tx.objectStore('results').put(result);
-        const contributions = extractContributionsFromResult(result);
-        // One replacement per ROW with the row's FULL next set — per-
-        // contribution calls would reverse earlier metrics' support
-        // (multi-metric statements must keep every metric's contribution).
-        const nextByRow = new Map<string, typeof contributions>();
-        for (const c of contributions) {
-            rowIds.push(c.rowId);
-            const bucket = nextByRow.get(c.rowId);
-            if (bucket) bucket.push(c);
-            else nextByRow.set(c.rowId, [c]);
-        }
-        for (const [rowId, set] of nextByRow) {
-            await replaceRowContributionsTx(tx, 'result', result.id, rowId, set, now);
-        }
-        // Log statements removed by this save reverse their contributions.
-        const record = await tx.objectStore('field_sources').get(fieldSourceId('result', result.id));
-        if (record) {
-            const stale = record.contributions.filter((c) => !rowIds.includes(c.rowId));
-            const seen = new Set(stale.map((c) => c.rowId));
-            await removeRowSetContributionsTx(tx, 'result', result.id, [...seen]);
-        }
-        await tx.done;
-        this.signalCatalogChanged();
-        return result.id;
-    }
-
-    async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
-    }
-
-    async getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]> {
-        const noteResults = await this.getResultsForNote(noteId);
-        return noteResults.filter(r => r.blockContentId === sectionId);
-    }
-
-    async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
-        return (await this.dbPromise).get('results', resultId);
-    }
-
-    async getRecentResults(limit = 20): Promise<WorkoutResult[]> {
-        const db = await this.dbPromise;
-        const tx = db.transaction('results', 'readonly');
-        const idx = tx.objectStore('results').index('by-completed');
-        const results: WorkoutResult[] = [];
+        const tx = db.transaction('sessions', 'readonly');
+        const idx = tx.objectStore('sessions').index('by-completed');
+        const sessions: Session[] = [];
         let cursor = await idx.openCursor(null, 'prev');
-        while (cursor && results.length < limit) {
-            results.push(cursor.value);
+        while (cursor && sessions.length < limit) {
+            sessions.push(cursor.value);
             cursor = await cursor.continue();
         }
-        return results;
+        return sessions;
     }
 
-    /** V6 — cross-note collection aggregation. */
-    async getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-content', blockContentId);
+    async getRecentResults(limit = 20): Promise<Session[]> {
+        return this.getRecentSessions(limit);
     }
 
-    /** V6 — per-clone journal history. */
-    async getResultsForBlock(blockId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-block', blockId);
+    async getSessionsByContentId(blockContentId: string): Promise<Session[]> {
+        return (await this.dbPromise).getAllFromIndex('sessions', 'by-content', blockContentId);
+    }
+
+    async getResultsByContentId(blockContentId: string): Promise<Session[]> {
+        return this.getSessionsByContentId(blockContentId);
+    }
+
+    async getSessionsForBlock(blockId: string): Promise<Session[]> {
+        return (await this.dbPromise).getAllFromIndex('sessions', 'by-block', blockId);
+    }
+
+    async getResultsForBlock(blockId: string): Promise<Session[]> {
+        return this.getSessionsForBlock(blockId);
     }
 
     // =======================================================================

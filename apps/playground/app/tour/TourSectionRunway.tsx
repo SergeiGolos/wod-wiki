@@ -20,7 +20,7 @@ import {
   type ReactNode,
 } from 'react'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
@@ -57,7 +57,7 @@ export interface TourSectionTimerWiring {
   autoStart: boolean
   externalPause: boolean
   onClose: () => void
-  onComplete: (blockId: string, results: WorkoutResults) => void
+  onComplete: (blockId: string, results: Sessions) => void
   onRuntimeReady: (runtime: IScriptRuntime) => void
   onReset: () => void
 }

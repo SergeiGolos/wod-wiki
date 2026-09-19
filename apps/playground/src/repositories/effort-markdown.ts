@@ -208,10 +208,10 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
         const val = match[2].trim();
         switch (key) {
           case 'id':
-            result.id = val;
+            result.id = unquoteYaml(val);
             break;
           case 'slug':
-            result.slug = val;
+            result.slug = unquoteYaml(val);
             break;
           case 'label':
             result.label = unquoteYaml(val);

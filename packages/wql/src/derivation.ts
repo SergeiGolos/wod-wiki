@@ -5,11 +5,13 @@
 import {
   MetricType,
   fieldRefKey,
+  normalizeFieldPath,
+  valueKindOf,
   type AnalyticsDataPoint,
   type FieldRef,
   type ResultOrigin,
   type StoredOutputStatement,
-  type UnifiedEventRecord,
+  type EventRecord,
 } from '@bitcobblers/wod-wiki-core';
 
 /**
@@ -226,7 +228,7 @@ function firstEffortSlug(metrics: StoredOutputStatement['metrics']): string | un
 export function toEventRows(
   logs: readonly StoredOutputStatement[],
   identity: SummaryFactIdentity,
-): UnifiedEventRecord[] {
+): EventRecord[] {
   return logs.map((output, seq) => ({
     id: `${identity.resultId}:${seq}`,
     resultId: identity.resultId,
@@ -262,7 +264,7 @@ export function toEventRows(
 export function toSummaryEventRows(
   logs: readonly StoredOutputStatement[],
   identity: SummaryFactIdentity,
-): UnifiedEventRecord[] {
+): EventRecord[] {
   const now = Date.now();
   return Array.from(foldSummaryOutputs(logs).values(), (f) => ({
     id: `${identity.resultId}:summary:${f.rowKey}`,
@@ -318,7 +320,7 @@ export function toSummaryEventRows(
  * from the row's label metric as fallback. Deterministic fact ids:
  * `${record.id}:${factOrdinal}`.
  */
-export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPoint[] {
+export function projectEventToFacts(record: EventRecord): AnalyticsDataPoint[] {
   const metrics = record.metrics as readonly {
     type?: string; value?: unknown; unit?: string; image?: string;
     metadata?: Record<string, unknown>;
@@ -337,6 +339,9 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
     // (never a fabricated midnight instant); instant facts group under the
     // anchor instant's civil date in the execution timezone at query time.
     const temporal = record.metricTemporal?.[0];
+    // Partition identity (groupTags metadata) is a queryable dim set —
+    // `{coach:greg}` / `by {coach}` resolve through factTagValue's fallback.
+    const dims = readGroupTags(m.metadata);
     return [{
       id: `${record.id}:0`,
       noteId: record.noteId,
@@ -368,6 +373,7 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
       grade: metadataString(m.metadata, 'grade'),
+      ...(dims ? { dimensions: dims } : {}),
       timestamp: record.timestamp,
       createdAt: record.timestamp,
     }];
@@ -379,8 +385,28 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   const effortSlug = metadataString(metrics[0]?.metadata, 'effortSlug')
     ?? record.effortSlug
     ?? (effortMetric && typeof effortMetric.value === 'string' ? effortMetric.value : undefined);
+  // A grade-typed metric (user-authored `grade: V8` or catalog-stamped)
+  // names the observation's climb grade — the dim/filter twin of effortSlug.
+  const gradeMetric = metrics.find(m => m.type === MetricType.Grade || m.type === 'grade');
+  const rowGrade = metadataString(metrics[0]?.metadata, 'grade')
+    ?? (gradeMetric && typeof gradeMetric.value === 'string' ? gradeMetric.value : undefined);
 
   const facts: AnalyticsDataPoint[] = [];
+  // User-authored categorical dims: a property metric with a typed field
+  // identity and a non-numeric value (e.g. `coach: greg`) projects no fact
+  // of its own but names a dimension of every fact the statement emits —
+  // queryable as `{coach:greg}` / `by {coach}` after factTagValue's switch.
+  const dims: Record<string, string> = {};
+  for (const m of metrics) {
+    // Structural markers are display/compile-time plumbing, not user dims.
+    if (m.type === MetricType.Label || m.type === 'label' || m.type === MetricType.Hint || m.type === 'hint') continue;
+    const valueKind = valueKindOf(m.value);
+    if (valueKind !== 'string' && valueKind !== 'boolean') continue;
+    const ref = readFieldRef(m.metadata);
+    const dimKey = ref?.path ?? normalizeFieldPath(m.type ?? '');
+    if (dimKey) dims[dimKey] = String(m.value);
+  }
+  const rowDims = Object.keys(dims).length > 0 ? dims : undefined;
   metrics.forEach((m) => {
     if (m.type === MetricType.Label || m.type === 'label' || typeof m.value !== 'number') return;
     // Ticket 11 key resolution: explicitly-stamped canonicalKey first, then
@@ -431,10 +457,34 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
-      grade: metadataString(m.metadata, 'grade'),
+      grade: metadataString(m.metadata, 'grade') ?? rowGrade,
+      ...(rowDims ? { dimensions: rowDims } : {}),
       timestamp: factTimestamp,
       createdAt: record.timestamp,
     });
   });
   return facts;
+}
+
+/**
+ * Inverse of {@link toEventRows}/{@link toSummaryEventRows}: rebuild the
+ * statement stream a session's event rows represent. Event rows keep their
+ * recorded order (id `${resultId}:${seq}`); summary rows follow in fold
+ * order. Consumers that need the statement shape (replay, review display)
+ * read events and call this — the store keeps only event rows.
+ */
+export function eventsToStoredLogs(events: readonly EventRecord[]): StoredOutputStatement[] {
+  const ordered = [...events].sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    return a.id.localeCompare(b.id);
+  });
+  return ordered.map((row, index) => ({
+    id: index,
+    outputType: row.outputType as StoredOutputStatement['outputType'],
+    timeSpan: row.timeSpan ?? { started: row.timestamp },
+    metrics: row.metrics,
+    sourceBlockKey: row.sourceBlockKey,
+    stackLevel: row.stackLevel,
+    completionReason: row.completionReason,
+  }));
 }

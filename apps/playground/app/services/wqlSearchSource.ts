@@ -16,9 +16,13 @@ import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { entryOpenHref } from '../lib/entryActions';
 import { searchEntries } from '../lib/entrySearch';
 import type { Entry, EntryKind } from '../lib/entryMapper';
+import { readRouteWqlConfig, PALETTE_ROUTE_ID } from '../lib/routeWqlConfig';
 
 const MAX_RESULTS = 20;
 
+/** The palette's in-code system default query — the single source of truth;
+ *  the Settings palette card displays it as the read-only fallback. */
+export const PALETTE_SEED_QUERY = 'find:note';
 const KIND_CATEGORY: Record<EntryKind, string> = {
   note: 'Journal',
   session: 'Collections',
@@ -91,12 +95,12 @@ export function withWqlText(source: PaletteDataSource): PaletteDataSource {
 /**
  * Palette-specific slot defaults (issue #834): whole-note results across all
  * sources with no time window — the fuzzy palette this replaces searched
- * everything, unbounded by date.
+ * everything, unbounded by date. A stored Route WQL Config default overrides
+ * the seed; the secondary `find:block` companion dispatch is unchanged.
  */
 export function searchPaletteQuery(): string {
-  return 'find:note';
+  return readRouteWqlConfig(PALETTE_ROUTE_ID).defaultWql ?? PALETTE_SEED_QUERY;
 }
-
 /** Stage-count executor for the palette's diagnostics strip, wired at the
  *  service layer so the generic PaletteShell stays decoupled from analytics.
  *  Dispatches on query kind: find queries run the find engine, aggregate

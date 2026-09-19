@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { AnalyticsDataPoint, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import type { AnalyticsDataPoint, EventRecord } from '@bitcobblers/wod-wiki-core';
+import { QueryService, type EventStore } from '../src/QueryService';
 import { resolveContextualPath, type ContextualAssignment } from '../src/context';
 
 /** A stored summary row (post-V14 shape: calculated, with proof stats). */
 function summaryRow(id: string, resultId: string, metricKey: string, value: number, extra: {
   effortSlug?: string; representationKind?: 'direct' | 'calculated'; withoutStats?: boolean;
-} = {}): UnifiedEventRecord {
+} = {}): EventRecord {
   return {
     id, resultId, noteId: 'n1', timestamp: 1_700_000_000_000,
     grain: 'summary', outputType: 'analytics', segmentId: '', segmentVersion: 0,
@@ -17,11 +17,11 @@ function summaryRow(id: string, resultId: string, metricKey: string, value: numb
       type: metricKey, value,
       metadata: { canonicalKey: metricKey },
     }],
-  } as unknown as UnifiedEventRecord;
+  } as unknown as EventRecord;
 }
 
 /** A stored event row (detail observation). */
-function detailRow(id: string, resultId: string, metricKey: string, value: number, effortSlug?: string): UnifiedEventRecord {
+function detailRow(id: string, resultId: string, metricKey: string, value: number, effortSlug?: string): EventRecord {
   return {
     id, resultId, noteId: 'n1', timestamp: 1_700_000_000_000,
     grain: 'event', outputType: 'segment', segmentId: '', segmentVersion: 0,
@@ -29,10 +29,10 @@ function detailRow(id: string, resultId: string, metricKey: string, value: numbe
       type: metricKey, value,
       ...(effortSlug ? { metadata: { canonicalKey: metricKey, effortSlug } } : { metadata: { canonicalKey: metricKey } }),
     }],
-  } as unknown as UnifiedEventRecord;
+  } as unknown as EventRecord;
 }
 
-function store(rows: UnifiedEventRecord[]): UnifiedEventStore {
+function store(rows: EventRecord[]): EventStore {
   return {
     getEventsByTimeRange: async () => rows,
     getEventsByResult: async () => [],

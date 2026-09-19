@@ -16,6 +16,12 @@ import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { parseFrontmatter, type ParsedFrontmatter } from '@/lib/frontmatter'
+import { QueryBlockView } from '@bitcobblers/wod-wiki-ui'
+import { parseQueryWidgetSuffix } from '@bitcobblers/wod-wiki-wql'
+import { queryService } from '@/services/queryService'
+import { entryOpenHref } from '../lib/entryActions'
+import { toEntry, blockToEntry } from '../lib/entryMapper'
+import type { Note } from '@/types/storage'
 
 // ── File-type helpers ─────────────────────────────────────────────────────────
 
@@ -136,6 +142,34 @@ const components: Components = {
         <code className="px-1.5 py-0.5 rounded-md bg-muted font-mono text-[0.85em] text-foreground">
           {children}
         </code>
+      )
+    }
+    if (language === 'query' || language.startsWith('query:') || language.startsWith('query ')) {
+      const queryText = (typeof children === 'string'
+        ? children
+        : Array.isArray(children)
+          ? children.join('')
+          : String(children ?? '')
+      ).trim()
+      const rawSuffix = language.replace(/^query[:\s]?/, '').trim()
+      const parsedSuffix = rawSuffix ? parseQueryWidgetSuffix(rawSuffix) : undefined
+      return (
+        <div className="my-5 not-prose">
+          <QueryBlockView
+            query={queryText}
+            widgetType={parsedSuffix?.type}
+            widgetError={parsedSuffix?.error}
+            executor={queryService}
+            readOnly={true}
+            noteHref={(item) => {
+              const isBlock = 'blockContentId' in item || 'dataType' in item
+              const entry = isBlock
+                ? blockToEntry(item as unknown as Parameters<typeof blockToEntry>[0])
+                : toEntry(item as unknown as Parameters<typeof toEntry>[0])
+              return entryOpenHref(entry)
+            }}
+          />
+        </div>
       )
     }
     return (

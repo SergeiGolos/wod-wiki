@@ -12,10 +12,10 @@
  */
 
 
-import type { WorkoutResults, Section } from '../components/Editor/types';
-import type { Attachment, NoteKind, WorkoutResult } from './storage';
+import type { Sessions, Section } from '../components/Editor/types';
+import type { Attachment, NoteKind, Session } from './storage';
 
-export type { WorkoutResults, Section };
+export type { Sessions, Section };
 
 /**
  * A stored workout entry in the history.
@@ -32,10 +32,10 @@ export interface HistoryEntry {
   rawContent: string;                  // Original markdown
 
   // Execution results (optional — present after completion)
-  results?: WorkoutResults;
+  results?: Sessions;
 
   // Extended results (optional — collection of completions)
-  extendedResults?: WorkoutResult[];
+  extendedResults?: Session[];
 
   // Metadata
   tags: string[];
@@ -49,7 +49,9 @@ export interface HistoryEntry {
   // Note Management
   type?: NoteKind;                     // Default to 'note' if undefined
   sourceId?: string;                   // N-10 — the entry this one was created from (template/collection source; renamed from templateId)
+  catalog?: string;                    // Bundled-source catalog id (collection directory) for seed corpus notes
   slug?: string;                        // V8 — route slug (e.g. 'journal/2026-07-13'); UUID-keyed notes carry their original route id here
+  pageId?: string;                      // Dual-ID projection: generic page render target (/p/:slug)
 }
 
 /**

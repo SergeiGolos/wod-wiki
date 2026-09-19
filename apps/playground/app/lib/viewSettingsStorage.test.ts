@@ -6,6 +6,7 @@ import {
   resetViewSettings,
   useViewSettings,
   VIEW_SETTINGS_STORAGE_PREFIX,
+  getRouteStorageKey,
   type ViewSettings,
 } from './viewSettingsStorage'
 import { getDefaultVisibleFieldIds } from './fieldProjection'
@@ -40,6 +41,30 @@ describe('viewSettingsStorage — pure read/write/reset', () => {
     const read = readViewSettings('/journal', 'note')
     expect(read.layout).toBe('rows')
     expect(read.visibleFields).toEqual(['title', 'date'])
+  })
+
+  it('resolves settings saved under pre-rename /results for /sessions', () => {
+    // Layout a user customized on the pre-rebrand sessions listing must survive.
+    writeViewSettings('/results', { level: 'result', layout: 'feed', visibleFields: ['title'] })
+
+    const read = readViewSettings('/sessions', 'result')
+    expect(read.layout).toBe('feed')
+  })
+
+  it('the current route key wins over the legacy alias', () => {
+    writeViewSettings('/results', { level: 'result', layout: 'feed', visibleFields: ['title'] })
+    writeViewSettings('/sessions', { level: 'result', layout: 'rows', visibleFields: ['title'] })
+
+    expect(readViewSettings('/sessions', 'result').layout).toBe('rows')
+  })
+
+  it('resetViewSettings clears the legacy key too — a reset must not resurrect', () => {
+    writeViewSettings('/results', { level: 'result', layout: 'feed', visibleFields: ['title'] })
+
+    resetViewSettings('/sessions', 'result')
+
+    expect(window.localStorage.getItem(getRouteStorageKey('/results'))).toBeNull()
+    expect(readViewSettings('/sessions', 'result').layout).toBe('cards')
   })
 
   it('persists groupBy across reload', () => {

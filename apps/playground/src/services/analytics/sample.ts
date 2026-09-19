@@ -1,7 +1,7 @@
 /**
  * Sample analytics dataset (PRD #767 §5).
  *
- * Persistence mechanism: each session is written as a WorkoutResult with
+ * Persistence mechanism: each session is written as a Session with
  * synthetic runtime logs, then flushed to the unified event store via
  * `appendEvents(toEventRows(...))` + `finalizeSummaries(resultId,
  * toSummaryEventRows(...))`. Every session is backed by a Note tagged `sample`
@@ -15,7 +15,7 @@
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import { MetricType } from '@bitcobblers/wod-wiki-core';
 import type { StoredOutputStatement } from '@/components/Editor/types';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDBService';
 
 /**
@@ -307,7 +307,7 @@ function buildSessionLogs(session: SampleSession): StoredOutputStatement[] {
   return logs;
 }
 
-function buildSampleResult(session: SampleSession, logs: StoredOutputStatement[]): WorkoutResult {
+function buildSampleResult(session: SampleSession, logs: StoredOutputStatement[]): Session {
   const baseId = `sample-${session.noteId}`;
   const resultId = `${baseId}-result`;
   const startTime = session.timestamp;

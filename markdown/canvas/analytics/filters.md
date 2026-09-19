@@ -16,9 +16,12 @@ Tag filters use key-value syntax inside curly braces `{}`.
 | Syntax | Filter Type | Description |
 |---|---|---|
 | `{effort:thruster}` | Exact tag match | Filter facts or notes containing `thruster` effort |
-| `{-discipline:recovery}` | Negation | Exclude recovery sessions from results |
-| `{discipline:strength|gymnastics}` | OR filter | Match either `strength` OR `gymnastics` |
+| `{!discipline:recovery}` | Negation | Exclude recovery sessions from results |
+| `{discipline:strength\|gymnastics}` | OR filter | Match either `strength` OR `gymnastics` |
 | `{text:fran}` | Substring match | Match content containing the phrase "fran" |
+| `{coach:greg}` | Custom property dim | Facts from statements carrying the property `coach: greg`; group with `by {coach}` |
+
+Custom dimensions: any property you author on a workout statement (`coach: greg`, `Sleep Quality: good`) becomes a queryable dimension on every fact that statement produces. Keys are camelCase-normalized — `Sleep Quality` answers to `sleepQuality`. Content-plane keys (`text:`, `source:`) are for `find:`/notes only; using them on an aggregate is a parse error.
 
 ## Content Source Filters {sticky}
 
@@ -34,8 +37,8 @@ The `source:` filter key narrows content discovery across Catalog sources:
 
 Specify relative or absolute time ranges:
 
-* Relative relative window syntax: `last 4w`, `last 12w`, `last 7d`.
-* Custom date parameter: Panel-controlled start/end dates.
+* Relative window syntax: `last 4w`, `last 12w`, `last 7d`.
+* Absolute range: `from 2026-01-01 to 2026-03-31` — both named dates are included in full; an open `to` stays unbounded.
 
 ## Tri-State Source Toggles in Library {sticky}
 

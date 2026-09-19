@@ -25,9 +25,9 @@ import {
   type EffortQueryStore,
   type IEffort as WqlEffort,
 } from '@bitcobblers/wod-wiki-wql';
-import { factRowsToEventRows, inMemoryEventStore } from '../store';
+import { inMemoryEventStore } from '../store';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, Session, EventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { WorkoutResults } from '@bitcobblers/wod-wiki-core';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { bundledEfforts } from '@bitcobblers/wod-wiki-lang';
@@ -51,42 +51,19 @@ export interface QueryCliOptions {
 }
 
 interface LoadedData {
-  eventRecords: UnifiedEventRecord[];
+  eventRecords: EventRecord[];
   facts: AnalyticsDataPoint[];
-  results: WorkoutResult[];
+  results: Session[];
   notes: Note[];
   blocks: BlockIndexRow[];
   efforts: IEffort[];
   noteTags: Record<string, string[]>;
 }
 
-function factsFromExecutionLog(log: ExecutionLog, resultId: string = 'stdin-result-1'): AnalyticsDataPoint[] {
-  const facts: AnalyticsDataPoint[] = [];
-  for (const s of log.logs) {
-    const started = s.timeSpan?.started ?? s.timestamp ?? Date.now();
-    for (const m of s.metrics) {
-      const mType = m.type || 'metric';
-      const numVal = typeof m.value === 'number' ? m.value : Number(m.value);
-      facts.push({
-        id: `fact-${s.id ?? 0}-${mType}-${facts.length + 1}`,
-        noteId: 'stdin-note-1',
-        blockContentId: s.sourceBlockKey || 'stdin-block-1',
-        segmentId: s.sourceBlockKey || 'stdin-seg-1',
-        segmentVersion: 1,
-        resultId,
-        grain: s.outputType === 'analytics' ? 'summary' : 'event',
-        type: mType,
-        value: Number.isNaN(numVal) ? 0 : numVal,
-        unit: m.unit,
-        label: (m as unknown as { label?: string }).label || mType,
-        metricKey: mType,
-        metricLabel: (m as unknown as { label?: string }).label || mType,
-        timestamp: started,
-        createdAt: started,
-      });
-    }
-  }
-  return facts;
+/** Pre-V21 corpus rows carried the statement stream inline under `data`. */
+function legacyLogsOf(result: Session): StoredOutputStatement[] {
+  const legacy = result as Session & { data?: { logs?: StoredOutputStatement[] } };
+  return legacy.data?.logs ?? [];
 }
 
 function extractPayload(rawJson: string): unknown {
@@ -116,9 +93,28 @@ function buildStoresFromData(data: LoadedData) {
   });
   const events = [
     ...data.eventRecords,
-    ...factRowsToEventRows(data.facts),
+    ...data.facts.map((f, i) => ({
+      id: `fact:${f.resultId ?? 'stdin'}:${f.metricKey ?? f.type}:${i}`,
+      resultId: f.resultId ?? 'stdin-result-1',
+      noteId: f.noteId ?? 'stdin-note-1',
+      blockContentId: f.blockContentId,
+      pageId: f.pageId,
+      origin: f.origin,
+      timestamp: f.timestamp,
+      grain: f.grain === 'event' ? 'event' : 'summary',
+      outputType: 'analytics',
+      effortSlug: f.effortSlug,
+      metrics: [{
+        type: f.metricKey ?? f.type,
+        value: f.value,
+        ...(f.unit ? { unit: f.unit } : {}),
+        origin: 'engine',
+      }],
+      segmentId: f.segmentId,
+      segmentVersion: f.segmentVersion,
+    } as EventRecord)),
     ...data.results.flatMap((r) => {
-      const logs = r.data.logs ?? [];
+      const logs = legacyLogsOf(r);
       return [...toEventRows(logs, identity(r)), ...toSummaryEventRows(logs, identity(r))];
     }),
   ];
@@ -173,7 +169,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
       const obj = payload as Record<string, unknown>;
       if (obj.kind === 'event-journal' || Array.isArray(obj.records)) {
         if (Array.isArray(obj.records)) {
-          data.eventRecords = obj.records as UnifiedEventRecord[];
+          data.eventRecords = obj.records as EventRecord[];
         }
         if (Array.isArray(obj.notes)) {
           data.notes = obj.notes as Note[];
@@ -194,19 +190,16 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
 
         // If logs are provided without separate results, synthesize results
         if (corpus.logs && (!corpus.results || corpus.results.length === 0)) {
-          const syntheticResult: WorkoutResult = {
+          const syntheticResult: Session = {
             id: 'corpus-result-1',
             noteId: 'corpus-note-1',
             blockContentId: 'corpus-block-1',
             origin: 'journal',
             createdAt: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
-            data: {
-              startTime: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
-              endTime: corpus.logs[corpus.logs.length - 1]?.timeSpan?.ended ?? Date.now(),
-              duration: 0,
-              completed: true,
-              logs: corpus.logs,
-            },
+            startTime: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
+            endTime: corpus.logs[corpus.logs.length - 1]?.timeSpan?.ended ?? Date.now(),
+            duration: 0,
+            completed: true,
           };
           data.results = [syntheticResult];
         }
@@ -225,19 +218,28 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
     }
 
     const resultId = 'stdin-result-1';
-    const workoutResult: WorkoutResult = {
+    const workoutResult: Session = {
       id: resultId,
       noteId: 'stdin-note-1',
       blockContentId: 'stdin-block-1',
       origin: 'journal',
       createdAt: executionLog.results.startTime,
-      data: {
-        ...executionLog.results,
-        logs: executionLog.logs,
-      },
+      startTime: executionLog.results.startTime,
+      endTime: executionLog.results.endTime,
+      duration: executionLog.results.duration ?? 0,
+      completed: executionLog.results.completed,
     };
     data.results = [workoutResult];
-    data.facts = factsFromExecutionLog(executionLog, resultId);
+    data.eventRecords = toEventRows(executionLog.logs, {
+      noteId: workoutResult.noteId,
+      resultId: workoutResult.id,
+      segmentId: workoutResult.segmentId,
+      segmentVersion: workoutResult.segmentVersion,
+      blockContentId: workoutResult.blockContentId,
+      origin: workoutResult.origin,
+      pageId: workoutResult.pageId,
+      workoutTimestamp: workoutResult.createdAt,
+    });
   } else if (options.stdinFacts) {
     const payload = extractPayload(options.stdinFacts);
     if (Array.isArray(payload)) {

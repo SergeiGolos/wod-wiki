@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { EventRecord } from '@bitcobblers/wod-wiki-core';
 import { buildDrillDownQuery, parseQuery, isRowsQuery } from '../src/wql';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import { QueryService, type EventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const T0 = Date.UTC(2026, 8, 7, 4); // Mon Sep 7 2026 00:00 EDT
 
 function segmentRow(id: string, resultId: string, outputType: string, metricKey: string, value: number, extra: {
   effortSlug?: string; timestamp?: number;
-} = {}): UnifiedEventRecord {
+} = {}): EventRecord {
   return {
     id,
     resultId,
@@ -24,10 +24,10 @@ function segmentRow(id: string, resultId: string, outputType: string, metricKey:
       value,
       metadata: { canonicalKey: metricKey, ...(extra.effortSlug ? { effortSlug: extra.effortSlug } : {}) },
     }],
-  } as unknown as UnifiedEventRecord;
+  } as unknown as EventRecord;
 }
 
-function store(rows: UnifiedEventRecord[]): UnifiedEventStore {
+function store(rows: EventRecord[]): EventStore {
   return {
     getEventsByTimeRange: async (start, end) => rows.filter((r) => r.timestamp >= start && r.timestamp <= end),
     getEventsByResult: async () => [],

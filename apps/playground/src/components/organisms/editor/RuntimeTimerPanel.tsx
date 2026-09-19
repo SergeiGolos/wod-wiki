@@ -33,12 +33,12 @@ import {
   ChromecastRuntimeSubscription,
   type IRpcTransport,
 } from "@/hooks/useCastSignaling";
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, Sessions } from '@/components/Editor/types';
 import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { dispatchGutterHighlights } from '@bitcobblers/wod-wiki-ui/extensions';
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
-import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
+import { buildSessions, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
 // PROTOTYPE — throwaway import; delete with proto-timer/
@@ -59,7 +59,7 @@ export interface RuntimeTimerPanelProps {
   /** Called when the user presses Stop (which also closes the panel). */
   onClose: () => void;
   /** Called when a workout is completed or stopped with results. */
-  onComplete?: (blockId: string, results: WorkoutResults) => void;
+  onComplete?: (blockId: string, results: Sessions) => void;
   /** Whether the slot is currently in full-height expanded mode. */
   isExpanded?: boolean;
   /** Toggle between expanded and compact runtime view. */
@@ -306,7 +306,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtime.finalizeAnalytics();
     const allOutputs = runtime.getOutputStatements();
 
-    const results: WorkoutResults = buildWorkoutResults(allOutputs, {
+    const results: Sessions = buildSessions(allOutputs, {
       startTime: execution.startTime ?? undefined,
       elapsedTime: execution.elapsedTime,
       completed,

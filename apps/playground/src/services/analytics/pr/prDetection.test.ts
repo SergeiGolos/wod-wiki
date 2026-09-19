@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { AnalyticsDataPoint } from '@/types/storage';
-import { inMemoryEventStore, factRowsToEventRows } from '@bitcobblers/wod-wiki-engine';
-import { detectPRsForWorkoutResult } from './prDetection';
+import type { AnalyticsDataPoint, EventRecord } from '@/types/storage';
+import { inMemoryEventStore } from '@bitcobblers/wod-wiki-engine';
+import { detectPRsForSession } from './prDetection';
 
 function mockFact(
   id: string,
@@ -28,7 +28,19 @@ function mockFact(
 }
 
 function eventsStoreFromFacts(facts: AnalyticsDataPoint[]) {
-  return inMemoryEventStore(factRowsToEventRows(facts));
+  const rows: EventRecord[] = facts.map((f) => ({
+    id: `${f.resultId}:summary:${f.metricKey ?? f.type}`,
+    resultId: f.resultId,
+    noteId: f.noteId,
+    blockContentId: f.blockContentId,
+    segmentId: f.segmentId,
+    segmentVersion: f.segmentVersion,
+    timestamp: f.timestamp,
+    grain: 'summary',
+    outputType: 'analytics',
+    metrics: [{ type: f.metricKey ?? f.type, value: f.value, unit: f.unit, origin: 'engine' }],
+  }));
+  return inMemoryEventStore(rows);
 }
 
 describe('prDetection', () => {
@@ -41,7 +53,7 @@ describe('prDetection', () => {
 
     const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-3', { eventsStore });
+    const prs = await detectPRsForSession('bc-fran', 'res-3', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0]).toEqual({
       metricKey: 'totalVolume',
@@ -63,7 +75,7 @@ describe('prDetection', () => {
 
     const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-2', { eventsStore });
+    const prs = await detectPRsForSession('bc-fran', 'res-2', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0].isPR).toBe(false);
     expect(prs[0].previousBest).toBe(5000);
@@ -77,7 +89,7 @@ describe('prDetection', () => {
 
     const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-2', { eventsStore });
+    const prs = await detectPRsForSession('bc-fran', 'res-2', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0].isPR).toBe(true);
     expect(prs[0].previousBest).toBe(180);
@@ -91,7 +103,7 @@ describe('prDetection', () => {
 
     const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-1', { eventsStore });
+    const prs = await detectPRsForSession('bc-fran', 'res-1', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0].isPR).toBe(true);
     expect(prs[0].previousBest).toBeUndefined();

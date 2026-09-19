@@ -30,6 +30,13 @@ export interface ViewSettings {
 
 export const VIEW_SETTINGS_STORAGE_PREFIX = 'wodwiki.viewSettings.v1'
 
+/** Storage keys that moved during the route rebrand (#link-crosswalk):
+ *  view settings saved under the old surface id still resolve under the
+ *  new one. The current key always wins when both exist. */
+const LEGACY_ROUTE_ALIASES: Record<string, string> = {
+  '/sessions': '/results',
+}
+
 export function getRouteStorageKey(route: string): string {
   const cleanRoute = route.startsWith('/') ? route : `/${route}`
   return `${VIEW_SETTINGS_STORAGE_PREFIX}${cleanRoute}`
@@ -50,10 +57,21 @@ export function readViewSettings(route: string, level: EntityLevel): ViewSetting
     return defaults
   }
 
-  try {
-    const raw = window.localStorage.getItem(getRouteStorageKey(route))
-    if (!raw) return defaults
+  const readRaw = (r: string): string | null => {
+    try {
+      return window.localStorage.getItem(getRouteStorageKey(r))
+    } catch {
+      return null
+    }
+  }
+  let raw = readRaw(route)
+  if (!raw) {
+    const legacyRoute = LEGACY_ROUTE_ALIASES[route]
+    if (legacyRoute) raw = readRaw(legacyRoute)
+  }
+  if (!raw) return defaults
 
+  try {
     const parsed = JSON.parse(raw) as Partial<ViewSettings>
     const rawLayout = typeof parsed.layout === 'string' ? parsed.layout : ''
     const layout: LayoutMode =
@@ -101,7 +119,10 @@ export function resetViewSettings(route: string, level: EntityLevel): ViewSettin
   const defaults = getDefaultViewSettings(level)
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      window.localStorage.removeItem(getRouteStorageKey(route))
+      // A reset must also drop the legacy key, or the read alias resurrects it.
+      const legacyRoute = LEGACY_ROUTE_ALIASES[route]
+      const keys = legacyRoute ? [route, legacyRoute] : [route]
+      keys.forEach(k => window.localStorage.removeItem(getRouteStorageKey(k)))
     } catch {
       // Non-fatal
     }

@@ -15,6 +15,7 @@
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import { EditorState, StateEffect, type Extension } from "@codemirror/state";
+import type { ViewUpdate } from "@codemirror/view";
 import {
   EditorView,
   keymap,
@@ -65,6 +66,8 @@ import type { INotePersistence } from "@/services/persistence";
 import { queryService, onResultSaved } from "@/hooks/useCastSignaling";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
+import { entryOpenHref } from '../../../../app/lib/entryActions';
+import { toEntry, blockToEntry } from '../../../../app/lib/entryMapper';
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
 import { useOverlayWidthState } from "@/components/Editor/overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "@/components/organisms/editor/OverlayTrack";
@@ -93,6 +96,8 @@ export interface NoteEditorProps {
   value: string;
   /** Called on every document change */
   onChange: (value: string) => void;
+  /** Called on document change with the full ViewUpdate for tracking edits and coordinate changes */
+  onDocUpdate?: (update: ViewUpdate) => void;
   /** Called when cursor position changes */
   onCursorPositionChange?: (line: number, column: number) => void;
   /** Called when the editor loses focus */
@@ -119,7 +124,7 @@ export interface NoteEditorProps {
   /** Note persistence seam used for result and attachment projections */
   notePersistence?: INotePersistence;
   /** Optional in-memory workout results override */
-  results?: WorkoutResult[];
+  results?: Session[];
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */
@@ -173,6 +178,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   noteId,
   value,
   onChange,
+  onDocUpdate,
   onCursorPositionChange,
   onBlur,
   theme = "vs",
@@ -465,10 +471,18 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // onResultSaved re-runs rows:{result:…} blocks when a workout result
       // lands — without either, every query block spins "Loading…" forever
       // (the UI package is store-free; the app owns persistence).
-      queryBlockPreview({ executor: queryService, onResultSaved }),
-
-      // Inline button decorations ([Label]{.button action=...})
-      ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
+      queryBlockPreview({
+        executor: queryService,
+        onResultSaved,
+        readOnly: readonly,
+        noteHref: (item) => {
+          const isBlock = 'blockContentId' in item || 'dataType' in item;
+          const entry = isBlock
+            ? blockToEntry(item as unknown as Parameters<typeof blockToEntry>[0])
+            : toEntry(item as unknown as Parameters<typeof toEntry>[0]);
+          return entryOpenHref(entry);
+        },
+      }),
 
       // File drop handler
       createFileDropHandler(noteId, notePersistence),
@@ -482,6 +496,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
+          onDocUpdate?.(update);
           notifyBlockChanges(update.state, onBlocksChange, lastBlocksJsonRef);
         }
         if (update.selectionSet || update.docChanged) {
@@ -506,6 +521,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       onChange,
       onCursorPositionChange,
       onBlur,
+      onDocUpdate,
       onBlocksChange,
       readonly,
       openNavigationPalette,
@@ -701,6 +717,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           widgetName={props.widgetName}
           view={props.view}
           registry={widgetComponents ?? new Map()}
+          docVersion={props.docVersion}
         />
       );
     }

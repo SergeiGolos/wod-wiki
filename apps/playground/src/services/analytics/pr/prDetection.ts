@@ -1,4 +1,4 @@
-import type { AnalyticsDataPoint, UnifiedEventRecord } from '@/types/storage';
+import type { AnalyticsDataPoint, EventRecord } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
 import { getMetricDirection, isBetterValue } from './directionOfBetter';
@@ -16,11 +16,11 @@ export interface PRMetricStatus {
 
 export interface PRDetectionOptions {
   eventsStore?: {
-    getEventsByContent: (blockContentId: string) => Promise<UnifiedEventRecord[]>;
+    getEventsByContent: (blockContentId: string) => Promise<EventRecord[]>;
   };
 }
 
-export async function detectPRsForWorkoutResult(
+export async function detectPRsForSession(
   blockContentId: string,
   targetResultId: string,
   options?: PRDetectionOptions,

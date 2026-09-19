@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 
 import { toSummaryEventRows } from '../src/derivation';
 import { AnalyticsInvalidationBus, coalescingEventStore, computeCacheKey } from '../src/queryCache';
-import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import { QueryService, type EventStore } from '../src/QueryService';
 import { QueryDocumentRunner } from '../src/queryDocumentRunner';
 import { parseQuery, isRowsQuery } from '../src/wql';
 
 /** Review-fix regression tests (datadog-analytics findings): each test was a
  *  runtime-confirmed defect before its fix. */
 
-const store = (rows: UnifiedEventRecord[]): UnifiedEventStore => ({
+const store = (rows: EventRecord[]): EventStore => ({
   scanAll: async () => rows,
   getEventsByTimeRange: async (start, end) => rows.filter((r) => r.timestamp >= start && r.timestamp <= end),
   getEventsByMetricDates: async (dates) => rows.filter((r) => (r.metricTemporal ?? []).some((t) => t.temporalKind === 'civil-date' && dates.includes(t.civilDate ?? ''))),
@@ -30,7 +30,7 @@ describe('ticket 13 — unit-normalized chronological delta', () => {
       timestamp: 1_700_000_000_000 + index * 1000,
       grain: 'event', outputType: 'segment', segmentId: 's1', segmentVersion: 1,
       metrics: [{ type: 'distance', value, unit: 'km', origin: 'parser', metadata: { canonicalKey: 'distance' } }],
-    })) as unknown as UnifiedEventRecord[];
+    })) as unknown as EventRecord[];
     const result = await new QueryService({ eventStore: store(rows) }).runQuery('delta:distance{}');
     expect(result.unit).toBe('m');
     expect(result.scalar).toBe(1000); // 5 km − 4 km = 1000 m, never 1
@@ -39,10 +39,10 @@ describe('ticket 13 — unit-normalized chronological delta', () => {
 
 describe('ticket 12/14 — metric-date complete selection', () => {
   it('a date-only observation is selected when its civil date is in range', async () => {
-    const row: UnifiedEventRecord = {
+    const row: EventRecord = {
       id: 'wellness:n1:hrv', resultId: 'wellness:n1', noteId: 'n1',
       timestamp: Date.UTC(2026, 8, 5, 4), grain: 'summary', outputType: 'wellness', segmentId: '', segmentVersion: 0,
-      metrics: [{ type: 'hrv', value: 48, origin: 'parser', metadata: { canonicalKey: 'hrv' } }] as unknown as UnifiedEventRecord['metrics'],
+      metrics: [{ type: 'hrv', value: 48, origin: 'parser', metadata: { canonicalKey: 'hrv' } }] as unknown as EventRecord['metrics'],
       metricTemporal: [{ temporalKind: 'civil-date', civilDate: '2026-09-05' }],
     };
     const service = new QueryService({ eventStore: store([row]) });
@@ -115,7 +115,7 @@ describe('ticket 18 — rows filtering over every projected fact', () => {
         { type: 'reps', value: 10, metadata: { canonicalKey: 'reps' } },
         { type: 'weight', value: 75, unit: 'kg', metadata: { canonicalKey: 'weight' } },
       ],
-    } as unknown as UnifiedEventRecord;
+    } as unknown as EventRecord;
     const parsed = parseQuery('rows:segment{metric:weight}');
     expect(parsed.error).toBeUndefined();
     if (!isRowsQuery(parsed)) throw new Error('expected rows query');

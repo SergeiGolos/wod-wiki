@@ -6,7 +6,7 @@
  * `segments` store and adds `attachments` + `analytics` stores.
  */
 
-import type { WorkoutResults, ScriptBlock } from '../components/Editor/types';
+import type { Sessions, ScriptBlock } from '../components/Editor/types';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources
@@ -40,6 +40,7 @@ export interface Note {
 
     // Metadata
     createdAt: number;
+    tags?: string[];
 
     // Note Management
     type?: NoteKind;
@@ -155,19 +156,20 @@ export interface BlockIndexRow {
 }
 
 // ---------------------------------------------------------------------------
-// WorkoutResult — execution log (mostly unchanged)
+// Session — execution log (mostly unchanged)
 // ---------------------------------------------------------------------------
 /**
- * ResultOrigin: which app surface produced a WorkoutResult / AnalyticsDataPoint.
+ * ResultOrigin: which app surface produced a Session / AnalyticsDataPoint.
  * 'playground' rows are recorded and viewable but excluded from default
  * journal/progress list filters. Absent on legacy rows — treated as 'journal'.
  */
 export type ResultOrigin = 'journal' | 'playground' | 'user';
 
 /**
- * WorkoutResult: The outcome of running a specific segment version.
+ * Session: A pure execution metadata record (renamed from Session; table results -> sessions in DB V20, flattened in V21).
+ * Statements and metrics stream directly to `EventRecord` rows in the `events` table.
  */
-export interface WorkoutResult {
+export interface Session {
     id: string;           // UUID
 
     /** Positional identity — FK to NoteSegment.id (the section id of the block run). */
@@ -194,7 +196,26 @@ export interface WorkoutResult {
     /** V10 — FK to the `page` store (copied from the parent note). */
     pageId?: string;
 
-    data: WorkoutResults; // The actual results data
+    /** When workout started */
+    startTime: number;
+
+    /** When workout ended */
+    endTime: number;
+
+    /** Total elapsed time (ms) */
+    duration: number;
+
+    /** Rounds completed (for rounds-based workouts) */
+    roundsCompleted?: number;
+
+    /** Total rounds (for rounds-based workouts) */
+    totalRounds?: number;
+
+    /** Reps completed (for rep-based workouts) */
+    repsCompleted?: number;
+
+    /** Whether workout was completed or stopped early */
+    completed: boolean;
 
     createdAt: number;  // When the workout was finished
 }
@@ -208,7 +229,7 @@ export interface Attachment {
     noteId: string;       // Parent Note
     /** V10 — FK to the `page` store (copied from the parent note). */
     pageId?: string;
-    /** V10 — the WorkoutResult this blob belongs to, when known. */
+    /** V10 — the Session this blob belongs to, when known. */
     resultId?: string;
     mimeType: string;     // e.g. 'application/gpx+xml', 'application/json'
     label: string;        // Human-readable label (e.g. "Garmin HR stream")
@@ -227,10 +248,10 @@ export interface Attachment {
  * AnalyticsDataPoint is owned by `@bitcobblers/wod-wiki-core` (0.6.36): the
  * flat per-metric projection the WQL four-stage plan consumes. It is no
  * longer a storage schema row — the unified `events` store holds
- * UnifiedEventRecord rows (grain 'event' | 'summary') and
+ * EventRecord rows (grain 'event' | 'summary') and
  * `projectEventToFacts` folds them into this shape at query time.
  */
-export type { AnalyticsDataPoint, UnifiedEventRecord, EventGrain, } from '@bitcobblers/wod-wiki-core';
+export type { AnalyticsDataPoint, EventRecord, EventGrain, } from '@bitcobblers/wod-wiki-core';
 export { KNOWN_OUTPUT_TYPES } from '@bitcobblers/wod-wiki-core';
 
 // ---------------------------------------------------------------------------

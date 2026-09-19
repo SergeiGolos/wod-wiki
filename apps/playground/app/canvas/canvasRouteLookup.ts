@@ -40,3 +40,33 @@ export function findRouteIn<T>(
   }
   return null
 }
+
+/**
+ * Candidate keys a pathname may resolve to, absorbing the rebranded route
+ * prefixes (#link-crosswalk): `/p/<slug>` addresses a canvas page by its slug
+ * (the declared route minus the leading slash and optional `guide/` prefix).
+ * The declared route itself always wins first.
+ */
+export function lookupCandidates(pathname: string): string[] {
+  const normalized = normalizePathname(pathname)
+  const candidates = [normalized]
+  const pMatch = normalized.match(/^\/p\/(.+)$/)
+  if (pMatch) {
+    const splat = pMatch[1]!
+    candidates.push(`/${splat}`)
+    candidates.push(`/guide/${splat}`)
+  }
+  return candidates
+}
+
+/** First route whose key matches any lookup candidate of the pathname. */
+export function findRouteWithCandidatesIn<T>(
+  routes: ReadonlyArray<{ route: string; page: T }>,
+  pathname: string,
+): T | null {
+  for (const candidate of lookupCandidates(pathname)) {
+    const hit = findRouteIn(routes, candidate)
+    if (hit !== null) return hit
+  }
+  return null
+}

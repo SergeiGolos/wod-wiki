@@ -2,46 +2,13 @@
  * In-memory UnifiedEventStore — the state-free store seam for QueryService,
  * the CLI query runner, and the Storybook workbench.
  *
- * Two adapters over one in-memory row list:
- *  - factRowsToEventRows: legacy flat fact fixtures → summary event rows
+ * One adapter over an in-memory row list:
  *  - inMemoryEventStore:  the UnifiedEventStore contract (ticket 003)
  */
-import type { AnalyticsDataPoint, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
-import type { UnifiedEventStore } from '@bitcobblers/wod-wiki-wql';
+import type { EventRecord } from '@bitcobblers/wod-wiki-core';
+import type { EventStore } from '@bitcobblers/wod-wiki-wql';
 
-/** Wrap legacy flat fact fixtures into summary event rows — the inverse of
- *  QueryService's projectEventToFacts, so golden fixtures keep working. */
-export function factRowsToEventRows(facts: readonly AnalyticsDataPoint[]): UnifiedEventRecord[] {
-  return facts.map((f, i) => {
-    const metricKey = f.metricKey ?? f.type;
-    return {
-      id: `fact:${f.resultId}:${metricKey}:${i}`,
-      resultId: f.resultId,
-      noteId: f.noteId,
-      blockContentId: f.blockContentId,
-      pageId: f.pageId,
-      origin: f.origin,
-      timestamp: f.timestamp,
-      grain: f.grain === 'event' ? 'event' : 'summary',
-      outputType: 'analytics',
-      effortSlug: f.effortSlug,
-      metrics: [{
-        type: metricKey,
-        value: f.value,
-        ...(f.unit ? { unit: f.unit } : {}),
-        metadata: {
-          canonicalKey: metricKey,
-          ...(f.effortSlug ? { effortSlug: f.effortSlug } : {}),
-          ...(f.discipline ? { effortDiscipline: f.discipline } : {}),
-          ...(f.intensityTier ? { effortIntensityTier: f.intensityTier } : {}),
-        },
-      }],
-      segmentId: f.segmentId,
-      segmentVersion: f.segmentVersion,
-    };
-  });
-}
-export function inMemoryEventStore(events: readonly UnifiedEventRecord[]): UnifiedEventStore {
+export function inMemoryEventStore(events: readonly EventRecord[]): EventStore {
   const rows = [...events];
   return {
     getEventsByTimeRange: async (start: number, end: number) =>
@@ -72,12 +39,3 @@ export function inMemoryEventStore(events: readonly UnifiedEventRecord[]): Unifi
     },
   };
 }
-
-/** Convenience: build the store directly from legacy flat fact fixtures.
- *  Note tags are a NoteQueryStore concern under the unified seam (ticket 003). */
-export function inMemoryEventStoreFromFacts(facts: readonly AnalyticsDataPoint[]): UnifiedEventStore {
-  return inMemoryEventStore(factRowsToEventRows(facts));
-}
-
-/** Backward-compatible alias for inMemoryEventStoreFromFacts. */
-export const inMemoryFactStore = inMemoryEventStoreFromFacts;

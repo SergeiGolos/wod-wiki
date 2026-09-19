@@ -9,6 +9,8 @@
  *     (Auto / English / 中文 / Español / Deutsch / Français).
  *   - /settings/system: Audio feedback (sound effects & test chime), developer
  *     debug mode toggle, and "Reset & Clear Cache" danger zone.
+ *   - /settings/queries: per-surface landing query and source / Group-By
+ *     option overrides (routeWqlConfig).
  */
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
@@ -35,6 +37,7 @@ import {
   Search,
   PanelRight,
   PanelLeft,
+  ListFilter,
 } from 'lucide-react'
 import { StickyPageHeader } from '@/panels/page-shells/StickyPageHeader'
 import { useTheme } from '@/contexts/ThemeProvider'
@@ -46,18 +49,29 @@ import { useStartPage, START_PAGE_OPTIONS } from '../lib/startPage'
 import { readSeedStatus, runSeedSync, type SeedStatus } from '@/services/seed/seedSync'
 import { toast } from '@/hooks/use-toast'
 import { resetUserData } from '../services/resetUserData'
+import { QueryDefaultsSection } from './QueryDefaultsSection'
 import { Switch } from '@/components/atoms/primitives/switch'
 import { Button } from '@/components/atoms/primitives/button'
 import { cn } from '@/lib/utils'
 
-type SettingsTab = 'appearance' | 'system'
+const SETTINGS_TABS = [
+  { id: 'appearance', label: 'Appearance', icon: Paintbrush, content: <AppearanceSection /> },
+  { id: 'system', label: 'System', icon: Sliders, content: <SystemSection /> },
+  { id: 'queries', label: 'Query Defaults', icon: ListFilter, content: <QueryDefaultsSection /> },
+] as const
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
 
 export function SettingsPage() {
   const location = useLocation()
   const navigate = useNavigate()
 
   // Determine active tab based on route; default to appearance
-  const activeTab: SettingsTab = location.pathname.endsWith('/system') ? 'system' : 'appearance'
+  const activeTab: SettingsTab = location.pathname.endsWith('/system')
+    ? 'system'
+    : location.pathname.endsWith('/queries')
+      ? 'queries'
+      : 'appearance'
 
   const handleTabChange = (tab: SettingsTab) => {
     navigate(`/settings/${tab}`)
@@ -73,42 +87,30 @@ export function SettingsPage() {
       {/* Subroute Navigation Tabs */}
       <div className="border-b border-border/50 bg-card/40 px-4 sm:px-6 lg:px-8 py-3">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleTabChange('appearance')}
-            data-testid="settings-tab-appearance"
-            className={cn(
-              'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              activeTab === 'appearance'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
-            )}
-          >
-            <Paintbrush className="size-4" />
-            <span>Appearance</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleTabChange('system')}
-            data-testid="settings-tab-system"
-            className={cn(
-              'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              activeTab === 'system'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
-            )}
-          >
-            <Sliders className="size-4" />
-            <span>System</span>
-          </button>
+          {SETTINGS_TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => handleTabChange(id)}
+              data-testid={`settings-tab-${id}`}
+              className={cn(
+                'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                activeTab === id
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+              )}
+            >
+              <Icon className="size-4" />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Page Content */}
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          {activeTab === 'appearance' ? <AppearanceSection /> : <SystemSection />}
+        {SETTINGS_TABS.find(tab => tab.id === activeTab)?.content}
         </div>
       </main>
     </div>

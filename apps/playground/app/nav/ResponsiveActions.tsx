@@ -12,6 +12,9 @@
  *     on mobile, where its children surface in the dock's overflow sheet
  *     (mounted lazily, only while the sheet is open). Page-only: the sheet
  *     never carries global chrome.
+ *   - `navbar={…}` pins an action to the app navbar on mobile (beside the
+ *     cast button, surfaced via `<NavbarActions />`); it still renders
+ *     inline on desktop. For mode toggles that must never hide in the dock.
  *   - GLOBAL chrome (cast, page options with the L3 index) does NOT ride the
  *     dock — it lives in the header at every breakpoint: the page's
  *     PageActions bar on desktop, the app navbar cluster on mobile (see
@@ -48,6 +51,7 @@ import { SearchFab } from './SearchFab'
 interface ActionsRegistration {
   id: string
   primary?: ReactNode
+  navbar?: ReactNode
   children?: ReactNode
   label: string
   fallback: boolean
@@ -60,6 +64,8 @@ interface ActionsRegistry {
 
 const RegistryContext = createContext<ActionsRegistry | null>(null)
 const InsideActionsContext = createContext(false)
+/** The active page's navbar-pinned action, rendered by `<NavbarActions />`. */
+const NavbarActionsContext = createContext<ReactNode>(null)
 
 /** True when rendered inside a ResponsiveActionsProvider (app shell). */
 export function useInResponsiveActionsProvider(): boolean {
@@ -69,6 +75,9 @@ export function useInResponsiveActionsProvider(): boolean {
 export interface ResponsiveActionsProps {
   /** The page's single primary action — dock FAB on mobile, inline on desktop. */
   primary?: ReactNode
+  /** Action pinned to the app navbar on mobile (beside cast) instead of
+   *  the thumb dock; renders inline on desktop. */
+  navbar?: ReactNode
   /** Remaining page actions — dock overflow sheet on mobile, inline on desktop. */
   children?: ReactNode
   /** Accessible name for the mobile overflow group (defaults to 'Page options'). */
@@ -83,6 +92,7 @@ export interface ResponsiveActionsProps {
 }
 export function ResponsiveActions({
   primary,
+  navbar,
   children,
   label,
   fallback = false,
@@ -106,7 +116,7 @@ export function ResponsiveActions({
 
   useEffect(() => {
     if (!registers && !fallbackRegisters) return
-    registry!.register({ id, primary, children: registeredChildren, label: label ?? 'Page options', fallback })
+    registry!.register({ id, primary, navbar, children: registeredChildren, label: label ?? 'Page options', fallback })
     return () => registry!.unregister(id)
   }, [registers, fallbackRegisters, registry, id, primary, registeredChildren, label, fallback])
 
@@ -119,6 +129,7 @@ export function ResponsiveActions({
   return (
     <InsideActionsContext.Provider value={true}>
       <div className="flex items-center gap-2">
+        {navbar}
         {primary}
         {children}
       </div>
@@ -147,21 +158,43 @@ export function ResponsiveActionsProvider({ onSearch, children }: ResponsiveActi
   )
   const registry = useMemo(() => ({ register, unregister }), [register, unregister])
 
+  // Most recent page registration wins (mirrors the dock's `active` rule).
+  const activeNav = useMemo(() => {
+    for (let i = registrations.length - 1; i >= 0; i -= 1) {
+      if (!registrations[i].fallback) return registrations[i].navbar ?? null
+    }
+    return null
+  }, [registrations])
+
   return (
     <RegistryContext.Provider value={registry}>
-      {children}
-      <ResponsiveActionsDock registrations={registrations} onSearch={onSearch} />
+      <NavbarActionsContext.Provider value={activeNav}>
+        {children}
+        <ResponsiveActionsDock registrations={registrations} onSearch={onSearch} />
+      </NavbarActionsContext.Provider>
     </RegistryContext.Provider>
   )
 }
 
 /**
+ * Navbar mount point for page-pinned actions — render beside the cast
+ * button in the app header. Surfaces the active page's `navbar` action
+ * below lg; renders nothing on desktop, where page headers own actions.
+ */
+export function NavbarActions() {
+  const action = useContext(NavbarActionsContext)
+  return action ? <>{action}</> : null
+}
+
+/**
  * The single mounted mobile dock. Fixed thumb-zone cluster anchored to the
  * fabAlignment corner; rises with the on-screen keyboard via visualViewport.
- * Renders nothing on desktop — page headers own actions there. The ⋮ trigger
- * only appears for registrations whose children actually render content;
- * pages contributing nothing on mobile (their generic controls are
- * dock/navbar-owned) leave just the primary FAB + search FAB.
+ * Renders nothing on desktop — page headers own actions there. Stack, top to
+ * bottom: page primary, search FAB, overflow sheet (slides up from the ⋮,
+ * underneath the buttons), ⋮ trigger at the very corner. The ⋮ renders only
+ * when the sheet has real rows — measured live from the always-mounted
+ * (hidden while closed) sheet — so empty pages never show it, matching the
+ * sticky header's ⋮.
  */
 function ResponsiveActionsDock({
   registrations,
@@ -177,6 +210,8 @@ function ResponsiveActionsDock({
   const sheetRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
 
+  const activeContentRef = useRef<HTMLDivElement>(null)
+  const globalContentRef = useRef<HTMLDivElement>(null)
   // Most recent page registration wins; the most recent fallback supplies
   // the global Page options rows merged into every page's sheet.
   const active = useMemo(() => {
@@ -203,27 +238,20 @@ function ResponsiveActionsDock({
     if (sheetOpen) sheetRef.current?.focus()
   }, [sheetOpen])
 
-  // Sheets whose content renders nothing (shell-owned generic bars
-  // suppressed on mobile) must not be offered: measured on open, remembered
-  // per registration, trigger suppressed.
-  const [emptySheetIds, setEmptySheetIds] = useState<ReadonlySet<string>>(() => new Set())
+  // The sheet stays mounted (hidden while closed) so its rows are countable
+  // live: the ⋮ trigger must never appear for sheets with no rows — same
+  // rule as the sticky header's ⋮, without the old open-then-flash
+  // measurement. `display:contents` wrappers keep the registrations
+  // layout-neutral while making each countable.
+  const [rowCounts, setRowCounts] = useState({ active: 0, global: 0 })
   useLayoutEffect(() => {
-    if (!sheetOpen) return
-    const empty = sheetRef.current !== null && sheetRef.current.childElementCount === 0
-    if (empty) {
-      setEmptySheetIds(prev => {
-        const next = new Set(prev)
-        if (active) next.add(active.id)
-        if (globalActions) next.add(globalActions.id)
-        return next
-      })
-      setSheetOpen(false)
-    }
-  }, [sheetOpen, active, globalActions])
-
-  const hasContent = (reg?: { id: string; children?: ReactNode }) =>
-    !!reg?.children && !emptySheetIds.has(reg.id)
-  const showOverflow = hasContent(active) || hasContent(globalActions)
+    const activeRows = activeContentRef.current?.childElementCount ?? 0
+    const globalRows = globalContentRef.current?.childElementCount ?? 0
+    setRowCounts(prev =>
+      prev.active === activeRows && prev.global === globalRows ? prev : { active: activeRows, global: globalRows },
+    )
+  }, [active, globalActions])
+  const showOverflow = rowCounts.active > 0 || rowCounts.global > 0
 
   if (!isMobile) return null
   if (!onSearch && !active && !globalActions) return null
@@ -231,58 +259,63 @@ function ResponsiveActionsDock({
   return (
     <div
       className={cn(
-        'lg:hidden fixed z-40 flex flex-col items-center gap-3',
+        'lg:hidden fixed z-40 flex flex-col items-center gap-2',
         alignment === 'left' ? 'left-4 items-start' : 'right-4 items-end',
       )}
       style={{ bottom: `calc(1rem + var(--thumb-dock-lift, 0px) + ${viewport.offsetBottom}px + env(safe-area-inset-bottom))` }}
     >
-      {/* Overflow sheet — mounts its contents lazily, only while open, so
-          page controls are never double-mounted. Page rows stack first at
-          ≥44px touch targets; the global Page options rows (secondary nav,
-          On this page, download) follow under a rule as stacked
-          buttons. Cast lives in the navbar, never here. */}
-      {sheetOpen && showOverflow && (
-        <>
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-hidden="true"
-            className="fixed inset-0 z-30 cursor-default"
-            onClick={() => setSheetOpen(false)}
-          />
-          <div
-            ref={sheetRef}
-            role="dialog"
-            aria-label={active?.label ?? globalActions?.label ?? 'Page options'}
-            tabIndex={-1}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.stopPropagation()
-                setSheetOpen(false)
-              }
-            }}
-            className={cn(
-              'relative z-40 mb-1 flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-2xl bg-card p-3 shadow-xl ring-1 ring-foreground/5 outline-none',
-              '[&_button]:min-h-11 [&_button]:min-w-11',
-            )}
-            style={{ maxHeight: `calc(${viewport.height === null ? '100dvh' : `${viewport.height}px`} - 6rem - env(safe-area-inset-bottom))` }}
-          >
-            {active?.children}
-            {active?.children && globalActions?.children && (
-              <div className="my-1 border-t border-border/60" aria-hidden="true" />
-            )}
-            {globalActions?.children}
-          </div>
-        </>
-      )}
-
-      {/* Buttons stack vertically, rising from the thumb corner — the
-          search FAB stays lowest (the corner position it held in the old
-          horizontal row); the page primary sits on top. */}
+      {/* Page primary on top, search FAB under it. */}
       <div className="relative z-40 flex flex-col items-center gap-2">
         {active?.primary && (
           <div className="[&_button]:min-h-11 [&_button]:min-w-11">{active.primary}</div>
         )}
+        {onSearch && <SearchFab onOpen={() => { setSheetOpen(false); onSearch() }} />}
+      </div>
+
+      {/* Overflow sheet slides up from the ⋮: rows sit underneath the
+          buttons, directly above the trigger. Always mounted (hidden while
+          closed) so the trigger's visibility is measured live — pages with
+          no rows never get a ⋮, matching the sticky header. Page rows stack
+          first at ≥44px touch targets; the global Page options rows
+          (secondary nav, On this page, download) follow under a rule. Cast
+          lives in the navbar, never here. */}
+      {sheetOpen && showOverflow && (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          className="fixed inset-0 z-30 cursor-default"
+          onClick={() => setSheetOpen(false)}
+        />
+      )}
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-label={active?.label ?? globalActions?.label ?? 'Page options'}
+        tabIndex={-1}
+        hidden={!sheetOpen || !showOverflow}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            setSheetOpen(false)
+          }
+        }}
+        className={cn(
+          'relative z-40 flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-2xl bg-card p-3 shadow-xl ring-1 ring-foreground/5 outline-none',
+          '[&_button]:min-h-11 [&_button]:min-w-11',
+        )}
+        style={{ maxHeight: `calc(${viewport.height === null ? '100dvh' : `${viewport.height}px`} - 6rem - env(safe-area-inset-bottom))` }}
+      >
+        <div ref={activeContentRef} className="contents">
+          {active?.children}
+        </div>
+        {rowCounts.active > 0 && rowCounts.global > 0 && (
+          <div className="my-1 border-t border-border/60" aria-hidden="true" />
+        )}
+        <div ref={globalContentRef} className="contents">
+          {globalActions?.children}
+        </div>
+      </div>
 
       {showOverflow && (
         <button
@@ -292,7 +325,7 @@ function ResponsiveActionsDock({
           aria-expanded={sheetOpen}
           data-testid="actions-overflow"
           className={cn(
-            'flex size-12 items-center justify-center rounded-full',
+            'relative z-40 flex size-12 items-center justify-center rounded-full',
             'bg-card text-foreground shadow-lg ring-1 ring-foreground/10',
             'hover:bg-muted active:scale-95 transition-all',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
@@ -301,9 +334,6 @@ function ResponsiveActionsDock({
           {sheetOpen ? <XMarkIcon className="size-6" /> : <EllipsisVerticalIcon className="size-6" />}
         </button>
       )}
-
-        {onSearch && <SearchFab onOpen={() => { setSheetOpen(false); onSearch() }} />}
-      </div>
     </div>
   )
 }

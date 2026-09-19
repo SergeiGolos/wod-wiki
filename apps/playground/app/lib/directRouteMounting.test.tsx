@@ -82,7 +82,7 @@ describe('Route-aware stream profile resolution', () => {
     expect(resolveStreamProfile('/feeds').defaultWql).toBe('find:note{source:feeds} last 2w')
 
     expect(resolveStreamProfile('/library')).toBe(LIBRARY_STREAM_PROFILE)
-    expect(resolveStreamProfile('/library').defaultWql).toBe('find:note last 2w')
+    expect(resolveStreamProfile('/library').defaultWql).toBe('find:note{source:collections} last 4w')
 
     expect(resolveStreamProfile('/efforts')).toBe(EFFORTS_STREAM_PROFILE)
     expect(resolveStreamProfile('/efforts').defaultWql).toBe('find:effort')

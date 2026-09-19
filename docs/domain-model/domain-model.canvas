@@ -1,0 +1,36 @@
+{
+	"nodes":[
+		{"id":"202cdeaf5091796b","type":"group","x":-40,"y":-40,"width":1660,"height":720,"color":"4","label":"Content"},
+		{"id":"6ef3e1f5db43e6f4","type":"group","x":-40,"y":780,"width":1660,"height":560,"color":"5","label":"Execution & Events"},
+		{"id":"e74ec42aa1716780","type":"group","x":-40,"y":1440,"width":1660,"height":540,"color":"6","label":"Field Catalog (derived)"},
+		{"id":"1edce5a390c40eca","type":"group","x":-40,"y":2080,"width":400,"height":720,"label":"System"},
+		{"id":"9d26f2e67075ea3e","type":"file","file":"domain-model/BlockIndexRow.md","x":1260,"y":60,"width":340,"height":320},
+		{"id":"063b90b3a0488151","type":"file","file":"domain-model/FieldSourceRecord.md","x":20,"y":1520,"width":340,"height":260},
+		{"id":"cf808f110813faf9","type":"file","file":"domain-model/FieldCatalogEntry.md","x":440,"y":1520,"width":340,"height":280},
+		{"id":"70a10d56a8252469","type":"file","file":"domain-model/FieldValueRecord.md","x":860,"y":1520,"width":340,"height":240},
+		{"id":"8251ffa3d4baef5d","type":"file","file":"domain-model/CatalogBackfillState.md","x":1280,"y":1520,"width":320,"height":220},
+		{"id":"b6755d218d5f4e1c","type":"file","file":"domain-model/Configuration.md","x":20,"y":2160,"width":300,"height":580},
+		{"id":"ef933d5554cd75b1","type":"file","file":"domain-model/Session.md","x":-2040,"y":1200,"width":340,"height":320},
+		{"id":"3b0649c72650c313","type":"file","file":"domain-model/Note.md","x":-2020,"y":535,"width":300,"height":190},
+		{"id":"152e22186fc04c8a","type":"file","file":"domain-model/NoteSegment.md","x":-1540,"y":928,"width":360,"height":205},
+		{"id":"c101058e7ea21bbb","type":"file","file":"domain-model/Tag.md","x":-3400,"y":515,"width":300,"height":210},
+		{"id":"193cfc9be3b99583","type":"file","file":"domain-model/Page.md","x":-2650,"y":130,"width":300,"height":180},
+		{"id":"035b9ae578574cdf","type":"file","file":"domain-model/Effort.md","x":-1540,"y":130,"width":320,"height":180},
+		{"id":"dbe70a9a93533944","type":"file","file":"domain-model/NoteTag.md","x":-2650,"y":925,"width":300,"height":210},
+		{"id":"e9cb217697088a98","type":"file","file":"domain-model/Attachment.md","x":-2650,"y":1220,"width":320,"height":280},
+		{"id":"63b36e57b704ff6a","type":"file","file":"domain-model/EventRecord.md","x":-1540,"y":1440,"width":380,"height":340}
+	],
+	"edges":[
+		{"id":"92fd4b61d014c70e","fromNode":"063b90b3a0488151","fromSide":"right","toNode":"cf808f110813faf9","toSide":"left","label":"contributions[].fieldId"},
+		{"id":"02014767f7312532","fromNode":"70a10d56a8252469","fromSide":"left","toNode":"cf808f110813faf9","toSide":"right","label":"fieldId"},
+		{"id":"a06a5d312c1b907b","fromNode":"ef933d5554cd75b1","fromSide":"top","toNode":"3b0649c72650c313","toSide":"bottom"},
+		{"id":"e975ebb4992ad201","fromNode":"ef933d5554cd75b1","fromSide":"top","toNode":"152e22186fc04c8a","toSide":"left"},
+		{"id":"d53339d993c3ff5d","fromNode":"152e22186fc04c8a","fromSide":"top","toNode":"3b0649c72650c313","toSide":"bottom"},
+		{"id":"bc194c25b95d3d19","fromNode":"193cfc9be3b99583","fromSide":"bottom","toNode":"3b0649c72650c313","toSide":"left"},
+		{"id":"f507081f5e1e27d5","fromNode":"035b9ae578574cdf","fromSide":"bottom","toNode":"3b0649c72650c313","toSide":"right"},
+		{"id":"b51a1f48c3f68e95","fromNode":"dbe70a9a93533944","fromSide":"right","toNode":"3b0649c72650c313","toSide":"left"},
+		{"id":"49ea77b73dce69b9","fromNode":"c101058e7ea21bbb","fromSide":"right","toNode":"dbe70a9a93533944","toSide":"top"},
+		{"id":"ffdb1957f1d7837e","fromNode":"e9cb217697088a98","fromSide":"right","toNode":"ef933d5554cd75b1","toSide":"left"},
+		{"id":"fdf397f02bd10302","fromNode":"ef933d5554cd75b1","fromSide":"right","toNode":"63b36e57b704ff6a","toSide":"left"}
+	]
+}

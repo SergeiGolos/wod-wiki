@@ -10,10 +10,11 @@ import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { parseNoteId } from '@/lib/noteIdentity'
 import { noteRefToPath } from '../lib/noteIdentity'
+import { sessionDetailPath } from '../lib/routes'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { playgroundRecorder } from '@/services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
-import type { WorkoutResults } from '@/components/Editor/types'
+import type { Sessions } from '@/components/Editor/types'
 
 export function WallClockPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
@@ -28,7 +29,7 @@ export function WallClockPage() {
   const pending = pendingRef.current
 
   const handleComplete = useCallback(
-    (_blockId: string, results: WorkoutResults | undefined) => {
+    (_blockId: string, results: Sessions | undefined) => {
       if (!results || !runtimeId || !pending) return
       playgroundRecorder.record({
         runBlock: pending.block,
@@ -40,8 +41,7 @@ export function WallClockPage() {
         ...(pending.origin ? { origin: pending.origin } : {}),
       }).then(() => {
         if (results.completed) {
-          // Ticket 005: post-session completion lands on the dedicated result detail route.
-          navigate(`/results/${encodeURIComponent(runtimeId)}`, { replace: true })
+          navigate(sessionDetailPath(runtimeId), { replace: true })
         }
       }).catch(() => {})
     },

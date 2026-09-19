@@ -1,9 +1,9 @@
 import type { HistoryEntry } from '@/types/history';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 
 export interface JournalDateProjectionNote {
   note: HistoryEntry;
-  results: WorkoutResult[];
+  results: Session[];
 }
 
 export interface JournalDateProjection {
@@ -11,11 +11,11 @@ export interface JournalDateProjection {
   notes: JournalDateProjectionNote[];
 }
 
-export function projectJournalDate(journalDate: string, notes: HistoryEntry[], results: WorkoutResult[]): JournalDateProjection {
+export function projectJournalDate(journalDate: string, notes: HistoryEntry[], results: Session[]): JournalDateProjection {
   const journalNotes = notes
     .filter(note => note.journalDate === journalDate && note.type === 'journal')
     .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
-  const resultByNote = new Map<string, WorkoutResult[]>();
+  const resultByNote = new Map<string, Session[]>();
   for (const result of results) {
     const existing = resultByNote.get(result.noteId) ?? [];
     existing.push(result);

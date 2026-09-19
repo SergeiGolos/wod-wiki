@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { usePageQuests, type Quest } from './usePageQuests';
-import type { WorkoutResults } from '@/components/Editor/types';
+import type { Sessions } from '@/components/Editor/types';
 
 export interface UseCompletionChallengeArgs {
   pageRoute: string;
   quests: Quest[];
   /** Results of the last finished workout, if any (#945: completion no longer
    * opens a review overlay, so the quest signal rides the results directly). */
-  completedResults: WorkoutResults | null;
+  completedResults: Sessions | null;
   enabled?: boolean;
 }
 

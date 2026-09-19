@@ -19,7 +19,7 @@ import { v7 as uuidv7 } from 'uuid'
 import type { NavigateFunction } from 'react-router-dom'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { pendingRuntimes } from '../runtimeStore'
-import { runPath, journalDatePath } from './routes'
+import { runPath, journalEntryAutoStartPath } from './routes'
 import { journalNotes } from '../services/journalNotes'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { extractScriptBlocks } from '../services/paletteDataSources'
@@ -94,5 +94,5 @@ export async function startEntryRun(entry: Entry, navigate: NavigateFunction): P
     wodContent: content,
   })
   pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id })
-  navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`)
+  navigate(journalEntryAutoStartPath(journalNote.journalDate ?? '', runtimeId))
 }

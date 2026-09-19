@@ -5,7 +5,7 @@ import { useRuntimeExecution, NextEvent, RegisterEventHandlerAction, UnregisterE
 import type { IEventHandler, IEvent, IScriptRuntime } from './useRuntimeTimer';
 import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
-import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
+import type { Sessions, ScriptBlock } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
 import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 
@@ -15,7 +15,7 @@ import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock | null>(
     _viewMode: string,
     _selectedBlock: T,
-    completeWorkout: (results: WorkoutResults, resultId?: string) => void,
+    completeWorkout: (results: Sessions, resultId?: string) => void,
     startWorkout: (block: ScriptBlock) => void
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();

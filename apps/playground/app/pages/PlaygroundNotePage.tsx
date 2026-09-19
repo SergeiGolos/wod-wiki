@@ -20,12 +20,12 @@ import {
   createSyntaxGroupWidgetWrapper,
 } from '../components/widgets/widgetWrappers'
 import type { ScriptBlock } from '@/components/Editor/types'
-import type { WorkoutResult } from '@/types/storage'
+import type { Session } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
-import { journalNotePath, runPath } from '../lib/routes'
+import { noteByIdPath, runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
@@ -103,7 +103,7 @@ export function PlaygroundNotePage({
     if (completed) refreshPinnedEffort()
   }, [rawHandleClose, refreshPinnedEffort])
 
-  const [results, setResults] = useState<WorkoutResult[]>([])
+  const [results, setResults] = useState<Session[]>([])
 
   const refreshResults = useCallback(() => {
     indexedDBService.getResultsForNote(runtimeNoteId)
@@ -159,7 +159,7 @@ export function PlaygroundNotePage({
           title: 'Added to journal',
           description: journalNote.journalDate === today ? "Added to today's journal" : `Added to ${journalNote.journalDate}`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
+            <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
               Open
             </ToastAction>
           ),
@@ -190,12 +190,12 @@ export function PlaygroundNotePage({
           title: 'Moved to journal',
           description: `This playground now lives on ${dateKey}.`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(dateKey, runtimeNoteId))}>
+            <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(runtimeNoteId))}>
               Open
             </ToastAction>
           ),
         })
-        navigate(journalNotePath(dateKey, runtimeNoteId))
+        navigate(noteByIdPath(runtimeNoteId))
       } catch {
         toast({ title: 'Error', description: 'Could not move to journal', variant: 'destructive' })
       }
@@ -210,7 +210,7 @@ export function PlaygroundNotePage({
       const d = String(date.getDate()).padStart(2, '0')
       const dateKey = `${y}-${m}-${d}`
       try {
-        await createJournalNoteFromWorkout({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: pageTitle,
           category: 'playground',
           sourceNoteLabel: pageTitle,
@@ -223,7 +223,7 @@ export function PlaygroundNotePage({
           title: 'Scheduled',
           description: `Added to journal for ${dateKey}`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+            <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
               Open
             </ToastAction>
           ),

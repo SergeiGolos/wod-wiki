@@ -173,15 +173,15 @@ describe('result identity (real IndexedDB stack)', () => {
     await record(noteB, 'playground', 3000);
 
     // Cross-note: both journal results, newest first, playground hidden.
-    const similar = await persistence.getSimilarWorkoutResults(section.contentId!);
+    const similar = await persistence.getSimilarSessions(section.contentId!);
     expect(similar.map(r => r.id)).toEqual([`r-journal-${noteB}`, `r-journal-${noteA}`]);
 
     // Playground toggle reveals the playground run.
-    const withPlayground = await persistence.getSimilarWorkoutResults(section.contentId!, { includePlayground: true });
+    const withPlayground = await persistence.getSimilarSessions(section.contentId!, { includePlayground: true });
     expect(withPlayground.map(r => r.id)).toEqual([`r-playground-${noteB}`, `r-journal-${noteB}`, `r-journal-${noteA}`]);
 
     // excludeNoteId scopes to other notes only.
-    const othersOnly = await persistence.getSimilarWorkoutResults(section.contentId!, { excludeNoteId: noteA });
+    const othersOnly = await persistence.getSimilarSessions(section.contentId!, { excludeNoteId: noteA });
     expect(othersOnly.map(r => r.id)).toEqual([`r-journal-${noteB}`]);
   });
 });

@@ -35,7 +35,7 @@ import { useWorkbenchRuntime } from '@/hooks/useWorkbenchRuntime';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { parseDocumentStructure } from '@/components/Editor/utils/documentStructure';
 import { useWorkbenchSession, getActiveWorkbenchSessionStore } from '@/stores/workbenchSessionStore'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, Sessions } from '@/components/Editor/types';
 
 /**
  * Inputs the adapter reads from the React tree. The session is the canonical
@@ -51,7 +51,7 @@ export interface UseWorkbenchSessionLifecycleDeps {
   selectedBlock: ScriptBlock | null;
   /** Workspace-level completion callback; the adapter forwards it to
    * `useWorkbenchRuntime` which calls it on auto-stop. */
-  completeWorkout: (results: WorkoutResults, resultId?: string) => void;
+  completeWorkout: (results: Sessions, resultId?: string) => void;
   /** Workspace-level start callback; the adapter forwards it. */
   startWorkout: (block: ScriptBlock) => void;
 }

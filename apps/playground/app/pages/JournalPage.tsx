@@ -10,7 +10,7 @@ import { useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { resolveJournalRoute } from '../lib/journalRoute'
-import { journalNotePath } from '../lib/routes'
+import { noteByIdPath } from '../lib/routes'
 import { journalNotes } from '../services/journalNotes'
 import { JournalDatePage } from './JournalDatePage'
 
@@ -28,7 +28,7 @@ function JournalAliasRedirect({ identity }: { identity: string }) {
     let cancelled = false
     journalNotes.resolve(identity).then((note) => {
       if (!cancelled && note.journalDate) {
-        navigate(journalNotePath(note.journalDate, note.id), { replace: true })
+        navigate(noteByIdPath(note.id), { replace: true })
       }
     }).catch(() => {
       if (!cancelled) navigate('/journal', { replace: true })
@@ -51,7 +51,7 @@ export function JournalPage(props: JournalPageProps) {
     return <JournalDatePage journalDate={route.journalDate} theme={props.theme} onViewCreated={props.onViewCreated} />
   }
   if (route.kind === 'note') {
-    return <Navigate to={journalNotePath(route.journalDate, route.noteId)} replace />
+    return <Navigate to={noteByIdPath(route.noteId)} replace />
   }
   if (route.kind === 'uuid-alias') {
     return <JournalAliasRedirect identity={route.noteId} />

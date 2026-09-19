@@ -10,7 +10,7 @@
  */
 import type { BlockIndexRow, Note } from '@/types/storage'
 import type { IEffort, RowsRun, RowsQueryResult } from '@bitcobblers/wod-wiki-wql'
-import type { UnifiedEventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-core'
+import type { EventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-core'
 import { formatDateKey } from '../services/dateUtils'
 import { parseNoteId } from '@/lib/noteIdentity'
 
@@ -40,7 +40,7 @@ export interface EntryExecutionData {
   distanceMeters?: number
   tis?: number
   segmentCount?: number
-  events?: UnifiedEventRecord[]
+  events?: EventRecord[]
   metrics?: StoredOutputStatement['metrics']
 }
 
@@ -85,6 +85,10 @@ export interface Entry {
   block?: EntryBlock
   execution?: EntryExecutionData
   effort?: EntryEffortData
+  /** The note's page id — the /p/:slug page-render target (#link-crosswalk).
+   *  Present when the note publishes a page; lists link the editor
+   *  (/notes/:noteId) and the page render (/p/:pageId) from the same row. */
+  pageId?: string
 }
 
 function isCollection(sourceId: string | undefined): boolean {
@@ -125,6 +129,7 @@ function feedDate(noteId: string): string | null {
 export function toEntry(note: Note): Entry {
   const id = note.id
   const title = note.title
+  const tags = note.tags && note.tags.length > 0 ? note.tags : undefined
 
   if (isPlaygroundNote(note)) {
     return {
@@ -136,6 +141,7 @@ export function toEntry(note: Note): Entry {
       title,
       date: null,
       createdAt: note.createdAt,
+      ...(tags ? { tags } : {}),
     }
   }
 
@@ -147,10 +153,12 @@ export function toEntry(note: Note): Entry {
       sourceCatalog: catalog!,
       sourceItem: rest.join('/'),
       sourceId: note.sourceId,
+      pageId: (note as Note & { pageId?: string; slug?: string }).pageId ?? (note as Note & { pageId?: string; slug?: string }).slug,
       title,
       date: null,
       createdAt: note.createdAt,
       subtitle: (note as Note & { catalog?: string }).catalog ?? catalog,
+      ...(tags ? { tags } : {}),
     }
   }
 
@@ -165,11 +173,13 @@ export function toEntry(note: Note): Entry {
       date: feedDate(id),
       createdAt: note.createdAt,
       subtitle: (note as Note & { catalog?: string }).catalog ?? id.split('/')[1]!,
+      ...(tags ? { tags } : {}),
     }
   }
 
   // Guide (canvas-corpus) note: sourceId `guides:<route-without-slash>` —
-  // sourceItem IS the deep-link path (see entryOpenHref).
+  // the page id is the /p/ slug (declared route minus the leading slash and
+  // optional guide/ prefix); sourceItem stays the declared path.
   if (note.sourceId?.startsWith('guides:')) {
     return {
       id,
@@ -177,22 +187,36 @@ export function toEntry(note: Note): Entry {
       sourceCatalog: 'guides',
       sourceItem: id,
       sourceId: note.sourceId,
+      pageId: id.replace(/^\//, '').replace(/^guide\//, ''),
       title,
       date: null,
       createdAt: note.createdAt,
+      ...(tags ? { tags } : {}),
     }
   }
 
   // Journal note
+  let journalDate: string | null = null
+  if ('journalDate' in note && typeof note.journalDate === 'string') {
+    journalDate = note.journalDate
+  } else if ('date' in note && typeof note.date === 'string') {
+    journalDate = note.date
+  } else if ('targetDate' in note && (typeof note.targetDate === 'number' || typeof note.targetDate === 'string')) {
+    journalDate = formatDateKey(new Date(note.targetDate))
+  } else if (note.createdAt) {
+    journalDate = formatDateKey(new Date(note.createdAt))
+  }
   return {
     id,
     kind: 'note',
     sourceCatalog: 'journal',
     sourceItem: id,
     sourceId: note.sourceId,
+    pageId: (note as Note & { pageId?: string; slug?: string }).pageId ?? (note as Note & { pageId?: string; slug?: string }).slug,
     title,
-    date: null,
+    date: journalDate,
     createdAt: note.createdAt,
+    ...(tags ? { tags } : {}),
   }
 }
 
@@ -429,7 +453,7 @@ export function rowsRunToEntry(run: RowsRun, options?: { noteTitle?: string }): 
 }
 
 export function unifiedEventToEntry(
-  event: UnifiedEventRecord,
+  event: EventRecord,
   options?: { index?: number },
 ): Entry {
   let elapsedMs: number | undefined

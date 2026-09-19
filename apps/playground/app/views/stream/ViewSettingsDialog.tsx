@@ -4,6 +4,7 @@ import { EditorDialog } from '@bitcobblers/wod-wiki-ui'
 import { Button } from '@/components/atoms/primitives/button'
 import { type EntityLevel, getFieldsForLevel } from '../../lib/fieldProjection'
 import type { ViewSettings, LayoutMode } from '../../lib/viewSettingsStorage'
+import { readRouteWqlConfig } from '../../lib/routeWqlConfig'
 
 export interface ViewSettingsDialogProps {
   open: boolean
@@ -17,6 +18,16 @@ export interface ViewSettingsDialogProps {
   onToggleField: (fieldId: string) => void
   onReset: () => void
 }
+
+const DEFAULT_GROUP_BY_OPTIONS: { id: string; label: string }[] = [
+  { id: 'date', label: 'Date' },
+  { id: 'week', label: 'Week' },
+  { id: 'month', label: 'Month' },
+  { id: 'year', label: 'Year' },
+  { id: 'discipline', label: 'Discipline' },
+  { id: 'tag', label: 'Tags' },
+  { id: 'source', label: 'Source' },
+]
 
 export function ViewSettingsDialog({
   open,
@@ -32,6 +43,15 @@ export function ViewSettingsDialog({
 }: ViewSettingsDialogProps) {
   const availableFields = useMemo(() => getFieldsForLevel(level), [level])
   const visibleSet = useMemo(() => new Set(settings.visibleFields), [settings.visibleFields])
+  // Group-By vocabulary: the route's stored Route WQL Config wins; unknown
+  // configured ids fall back to a capitalized label.
+  const groupOptions = useMemo<{ id: string; label: string }[]>(() => {
+    const configured = readRouteWqlConfig(route).groupByOptions
+    if (!configured) return DEFAULT_GROUP_BY_OPTIONS
+    return configured.map(
+      id => DEFAULT_GROUP_BY_OPTIONS.find(o => o.id === id) ?? { id, label: id.charAt(0).toUpperCase() + id.slice(1) },
+    )
+  }, [route])
   const levelLabel = level.charAt(0).toUpperCase() + level.slice(1)
 
   return (
@@ -91,15 +111,7 @@ export function ViewSettingsDialog({
         <fieldset>
           <legend className="text-xs font-semibold text-muted-foreground mb-2">Group By</legend>
           <div className="flex flex-wrap gap-1.5 p-1 bg-muted/40 rounded-lg border border-border/60">
-            {[
-              { id: 'date', label: 'Date' },
-              { id: 'week', label: 'Week' },
-              { id: 'month', label: 'Month' },
-              { id: 'year', label: 'Year' },
-              { id: 'discipline', label: 'Discipline' },
-              { id: 'tag', label: 'Tags' },
-              { id: 'source', label: 'Source' },
-            ].map(opt => {
+            {groupOptions.map(opt => {
               const currentGroup = (activeGroupBy || settings.groupBy || (level === 'effort' ? 'discipline' : 'date')).toLowerCase()
               const isSelected = currentGroup === opt.id
               return (

@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 
 import type { HistoryEntry } from '@/types/history';
 import type { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import type { Note, NoteSegment, UnifiedEventRecord, WorkoutResult } from '@/types/storage';
+import type { Note, NoteSegment, EventRecord, Session } from '@/types/storage';
 import { normalizeSummaryFacts } from '@/services/analytics/workoutDerivation';
 
 const indexedDBService = {};
@@ -19,26 +19,35 @@ const note: Note = {
   createdAt: 1,
 };
 
-const olderSectionResult: WorkoutResult = {
+const olderSectionResult: Session = {
   id: 'older',
   noteId: note.id,
   blockContentId: 'wod-a',
-  data: { startTime: 100, endTime: 200, duration: 100, logs: [], completed: true },
+  startTime: 100,
+  endTime: 200,
+  duration: 100,
+  completed: true,
   createdAt: 200,
 };
 
-const latestSectionResult: WorkoutResult = {
+const latestSectionResult: Session = {
   id: 'latest',
   noteId: note.id,
   blockContentId: 'wod-a',
-  data: { startTime: 300, endTime: 450, duration: 150, logs: [], completed: true },
+  startTime: 300,
+  endTime: 450,
+  duration: 150,
+  completed: true,
   createdAt: 450,
 };
-const otherResult: WorkoutResult = {
+const otherResult: Session = {
   id: 'other',
   noteId: note.id,
   blockContentId: 'wod-b',
-  data: { startTime: 500, endTime: 700, duration: 200, logs: [], completed: true },
+  startTime: 500,
+  endTime: 700,
+  duration: 200,
+  completed: true,
   createdAt: 700,
 };
 
@@ -46,8 +55,8 @@ function createHarness(latestSegments: NoteSegment[] = []) {
   const results = [olderSectionResult, latestSectionResult, otherResult];
   const savedNotes: Note[] = [];
   const savedAttachments: import('@/types/storage').Attachment[] = [];
-  const appendedEvents: UnifiedEventRecord[][] = [];
-  const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
+  const appendedEvents: EventRecord[][] = [];
+  const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
   const deletedEventIds: string[] = [];
   const storage = {
     getNote: async (id: string) => id === note.id ? note : undefined,
@@ -57,7 +66,7 @@ function createHarness(latestSegments: NoteSegment[] = []) {
       latestSegments.find(segment => segment.id === segmentId),
     getResultsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
     getResultsByContentId: async (blockContentId: string) => results.filter(result => result.blockContentId === blockContentId),
-    saveResult: async (result: WorkoutResult) => result.id,
+    saveResult: async (result: Session) => result.id,
     getResultsForSection: async (_noteId: string, blockContentId: string) =>
       results.filter(result => result.blockContentId === blockContentId),
     getResultById: async (resultId: string) => results.find(result => result.id === resultId),
@@ -67,16 +76,17 @@ function createHarness(latestSegments: NoteSegment[] = []) {
       return attachment.id;
     },
     deleteAttachment: async () => undefined,
-    appendEvents: async (rows: UnifiedEventRecord[]) => {
+    appendEvents: async (rows: EventRecord[]) => {
       appendedEvents.push(rows);
     },
-    finalizeSummaries: async (resultId: string, rows: UnifiedEventRecord[]) => {
+    finalizeSummaries: async (resultId: string, rows: EventRecord[]) => {
       finalizedSummaries.push({ resultId, rows });
     },
     deleteEvents: async (ids: string[]) => {
       deletedEventIds.push(...ids);
     },
     getEventsForNote: async (_noteId: string) => [],
+    getEventsByResult: async (_resultId: string) => [],
   };
   const contentProvider = {
     getEntry: async (): Promise<HistoryEntry> => ({
@@ -406,10 +416,10 @@ describe('IndexedDBNotePersistence', () => {
     }
   });
 
-  it('getSimilarWorkoutResults filters by note and origin, sorts newest first', async () => {
+  it('getSimilarSessions filters by note and origin, sorts newest first', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const crossNote: WorkoutResult[] = [
+    const crossNote: Session[] = [
       { id: 'x1', noteId: 'other-note', blockContentId: 'wod-a', origin: 'journal', data: { startTime: 1, endTime: 2, duration: 1, logs: [], completed: true }, createdAt: 500 },
       { id: 'x2', noteId: note.id, blockContentId: 'wod-a', origin: 'journal', data: { startTime: 1, endTime: 2, duration: 1, logs: [], completed: true }, createdAt: 900 },
       { id: 'x3', noteId: 'pg-note', blockContentId: 'wod-a', origin: 'playground', data: { startTime: 1, endTime: 2, duration: 1, logs: [], completed: true }, createdAt: 700 },
@@ -422,23 +432,23 @@ describe('IndexedDBNotePersistence', () => {
     const persistence = new IndexedDBNotePersistence(harnessStorage, contentProvider as unknown as IndexedDBContentProvider);
 
     // Default: playground excluded, newest first, only matching content.
-    const all = await persistence.getSimilarWorkoutResults('wod-a');
+    const all = await persistence.getSimilarSessions('wod-a');
     expect(all.map(r => r.id)).toEqual(['x2', 'x1']);
 
     // excludeNoteId removes the current note's own results.
-    const others = await persistence.getSimilarWorkoutResults('wod-a', { excludeNoteId: note.id });
+    const others = await persistence.getSimilarSessions('wod-a', { excludeNoteId: note.id });
     expect(others.map(r => r.id)).toEqual(['x1']);
 
     // includePlayground reveals playground rows, still newest first.
-    const withPlayground = await persistence.getSimilarWorkoutResults('wod-a', { includePlayground: true });
+    const withPlayground = await persistence.getSimilarSessions('wod-a', { includePlayground: true });
     expect(withPlayground.map(r => r.id)).toEqual(['x2', 'x3', 'x1']);
 
     // limit applies after filtering.
-    const limited = await persistence.getSimilarWorkoutResults('wod-a', { includePlayground: true, limit: 2 });
+    const limited = await persistence.getSimilarSessions('wod-a', { includePlayground: true, limit: 2 });
     expect(limited.map(r => r.id)).toEqual(['x2', 'x3']);
   });
 
-  it('rederiveResultAnalytics replays logs headlessly and rewrites result + events', async () => {
+  it('rederiveResultAnalytics replays events headlessly and rewrites event rows', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const T0 = 1_700_000_000_000;
     const scriptBlock = {
@@ -462,67 +472,77 @@ describe('IndexedDBNotePersistence', () => {
       rawContent: '21 Deadlift 60kg',
       createdAt: 1,
     };
-    const staleResult: WorkoutResult = {
+    const staleResult: Session = {
       id: 'result-replay',
       noteId: note.id,
       segmentId: 'wod-a',
       segmentVersion: 1,
       blockContentId: 'bc-a',
       origin: 'journal',
-      data: {
-        startTime: T0,
-        endTime: T0 + 60_000,
-        duration: 60_000,
-        completed: true,
-        logs: [
-          {
-            id: 1,
-            outputType: 'segment',
-            timeSpan: { started: T0, ended: T0 + 60_000 },
-            metrics: [
-              { type: 'rep', value: 21, image: '21', origin: 'runtime' },
-              { type: 'effort', value: 'Deadlift', image: 'Deadlift', origin: 'parser' },
-              { type: 'elapsed', value: 60_000, origin: 'runtime' },
-            ],
-            sourceBlockKey: 'block-1',
-            stackLevel: 0,
-          },
-          {
-            id: 99,
-            outputType: 'analytics',
-            timeSpan: { started: T0, ended: T0 },
-            metrics: [{ type: 'label', value: 'Stale', image: 'Stale', origin: 'analyzed' }],
-            sourceBlockKey: 'analytics-summary',
-            stackLevel: 0,
-          },
-        ],
-      },
+      startTime: T0,
+      endTime: T0 + 60_000,
+      duration: 60_000,
+      completed: true,
       createdAt: T0 + 60_000,
     };
+    const initialEvents: EventRecord[] = [
+      {
+        id: 'result-replay:0',
+        resultId: 'result-replay',
+        noteId: note.id,
+        blockContentId: 'bc-a',
+        timestamp: T0,
+        grain: 'event',
+        outputType: 'segment',
+        metrics: [
+          { type: 'rep', value: 21, image: '21', origin: 'runtime' },
+          { type: 'effort', value: 'Deadlift', image: 'Deadlift', origin: 'parser' },
+          { type: 'elapsed', value: 60_000, origin: 'runtime' },
+        ],
+        sourceBlockKey: 'block-1',
+        stackLevel: 0,
+      },
+      {
+        id: 'result-replay:99',
+        resultId: 'result-replay',
+        noteId: note.id,
+        blockContentId: 'bc-a',
+        timestamp: T0,
+        grain: 'summary',
+        outputType: 'analytics',
+        metrics: [{ type: 'label', value: 'Stale', image: 'Stale', origin: 'analyzed' }],
+        sourceBlockKey: 'analytics-summary',
+        stackLevel: 0,
+      },
+    ];
 
-    const savedResults: WorkoutResult[] = [];
-    const appendedEvents: UnifiedEventRecord[][] = [];
-    const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
+    const savedResults: Session[] = [];
+    const appendedEvents: EventRecord[][] = [];
+    const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
+    const deletedEventIds: string[] = [];
     const storage = {
       getNote: async () => note,
       getResultById: async () => staleResult,
       getSegment: async () => segment,
       getLatestSegmentVersion: async () => segment,
-      saveResult: async (r: WorkoutResult) => { savedResults.push(r); return r.id; },
-      appendEvents: async (rows: UnifiedEventRecord[]) => { appendedEvents.push(rows); },
-      finalizeSummaries: async (resultId: string, rows: UnifiedEventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
-      deleteEvents: async () => {},
+      saveResult: async (r: Session) => { savedResults.push(r); return r.id; },
+      appendEvents: async (rows: EventRecord[]) => { appendedEvents.push(rows); },
+      finalizeSummaries: async (resultId: string, rows: EventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
+      deleteEvents: async (ids: string[]) => { deletedEventIds.push(...ids); },
       getEventsForNote: async () => [],
+      getEventsByResult: async () => initialEvents,
     };
     const persistence = new IndexedDBNotePersistence(storage as never, {} as never);
 
     const updated = await persistence.rederiveResultAnalytics('result-replay');
 
-    // Result rewritten: stale Tier-2 discarded, fresh Tier-2 regenerated
-    // into the SAME logs stream (no data.analytics split).
-    expect(savedResults).toHaveLength(1);
-    expect(updated.data.logs?.some(o => o.id === 99)).toBe(false);
-    expect((updated.data.logs?.filter(o => o.outputType === 'analytics').length ?? 0)).toBeGreaterThan(0);
+    // The sessions row is untouched under V21 — the replay rewrites events only.
+    expect(savedResults).toHaveLength(0);
+    expect(updated.id).toBe('result-replay');
+
+    // The previous projection is purged before the replayed rows are written,
+    // so re-running converges to exactly one row set.
+    expect(deletedEventIds).toEqual(initialEvents.map(r => r.id));
 
     // Event projection re-written: event rows + finalized summary rows carry
     // the result identity and block identity.
@@ -530,6 +550,7 @@ describe('IndexedDBNotePersistence', () => {
     expect(summaryRows.some(r => r.grain === 'summary')).toBe(true);
     const eventRows = appendedEvents.flat();
     expect(eventRows.some(r => r.grain === 'event')).toBe(true);
+    expect(eventRows.some(r => r.metrics.some(m => m.type === 'label' && m.value === 'Stale'))).toBe(false);
 
     const projected = [...eventRows, ...summaryRows];
     expect(projected.every(r => r.resultId === 'result-replay')).toBe(true);
@@ -546,7 +567,7 @@ describe('IndexedDBNotePersistence', () => {
         noteId: note.id,
         data: { startTime: 0, endTime: 1, duration: 1, completed: true, logs: [] },
         createdAt: 1,
-      } as WorkoutResult),
+      } as Session),
     };
     const persistence = new IndexedDBNotePersistence(storage as never, {} as never);
 

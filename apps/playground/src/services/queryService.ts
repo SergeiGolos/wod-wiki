@@ -7,7 +7,7 @@
  * singleton (or factory) from here.
  *
  * Unified event store (0.6.36, tickets 003/005): the old FactQueryStore +
- * ResultLogStore seam collapsed into the single UnifiedEventStore, served by
+ * ResultLogStore seam collapsed into the single EventStore, served by
  * IndexedDBService's `events` store. The content plane (notes / blocks /
  * efforts) is unchanged.
  */
@@ -17,7 +17,7 @@ import {
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,
-  type UnifiedEventStore,
+  type EventStore,
 } from '@bitcobblers/wod-wiki-engine';
 // wql's own IEffort — the engine umbrella re-exports lang's IEffort under the
 // same name, and the two differ on baseAttributes' index signature (0.6.36).
@@ -27,7 +27,7 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
 import { staticNoteStore } from '@/services/content/staticBlockIndex';
 
 /** Unified event store over IndexedDB — the `events` object store (V16). */
-export const indexedDbEventStore: UnifiedEventStore = {
+export const indexedDbEventStore: EventStore = {
   getEventsByTimeRange: (start: number, end: number) => indexedDBService.getEventsByTimeRange(start, end),
   // Ticket 12/14 complete fetch — the V17 by-metric-date multiEntry index.
   getEventsByMetricDates: (dates) => indexedDBService.getEventsByMetricDates(dates),

@@ -84,4 +84,16 @@ describe('@bitcobblers/wod-wiki-ui/extensions and editorPreset suite', () => {
     view.destroy();
     container.remove();
   });
+
+  it('parses query fences with attributes into query sections', () => {
+    const state = EditorState.create({
+      doc: '```query:goal-rings-2 goal=$hangGoal\nsum:reps{}\n```\n',
+      extensions: [sectionField],
+    });
+
+    const sections = state.field(sectionField).sections;
+    const querySection = sections.find((s) => s.type === 'query');
+    expect(querySection).toBeDefined();
+    expect(querySection?.queryType).toBe('goal-rings');
+  });
 });

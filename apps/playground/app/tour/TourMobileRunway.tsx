@@ -18,7 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
-import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import {
@@ -55,7 +55,7 @@ export interface TourMobileTimerProps {
   /** Scroll-out stop (#885): halt without resetting when off the timer cards. */
   externalPause: boolean
   onClose: () => void
-  onComplete: (blockId: string, results: WorkoutResults) => void
+  onComplete: (blockId: string, results: Sessions) => void
   onRuntimeReady: (runtime: IScriptRuntime) => void
   onReset: () => void
 }

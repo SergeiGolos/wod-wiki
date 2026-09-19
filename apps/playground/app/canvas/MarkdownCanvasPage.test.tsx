@@ -10,14 +10,14 @@ import type {
   NoteMutation,
   NoteQuery,
 } from '@/services/persistence'
-import type { WorkoutResult } from '@/types/storage'
+import type { Session } from '@/types/storage'
 
 import type { PanelActions } from './MarkdownCanvasPage'
 import type { ParsedCanvasPage } from './parseCanvasMarkdown'
 
 const editorSnapshots: Array<{ noteId?: string; resultCount: number; source?: string }> = []
-const storedResults: WorkoutResult[] = []
-const saveResultCalls: WorkoutResult[] = []
+const storedResults: Session[] = []
+const saveResultCalls: Session[] = []
 const editorFocusCalls: string[] = []
 
 const playgroundNoteId = '01990e80-0000-7000-8000-000000000001'
@@ -25,7 +25,7 @@ const playgroundNoteId = '01990e80-0000-7000-8000-000000000001'
 mock.module('../services/createPlaygroundPage', () => ({
   ensurePlaygroundEntry: async () => ({ noteId: playgroundNoteId, routeId: 'playground/canvas-home' }),
 }))
-const sampleWorkoutResults = {
+const sampleSessions = {
   completed: true,
   startTime: 1_700_000_000_000,
   endTime: 1_700_000_030_000,
@@ -77,7 +77,7 @@ const fakeNotePersistence: INotePersistence = {
     const workoutResult = mutation.workoutResult
     if (workoutResult) {
       const noteId = typeof locator === 'string' ? locator : locator.id
-      const saved: WorkoutResult = {
+      const saved: Session = {
         ...workoutResult,
         id: workoutResult.id ?? crypto.randomUUID(),
         createdAt: workoutResult.createdAt ?? 0,
@@ -145,8 +145,8 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
 }))
 
 mock.module('@/components/organisms/review/FullscreenTimer', () => ({
-  FullscreenTimer: (props: { onCompleteWorkout: (blockId: string, results: typeof sampleWorkoutResults) => void }) => (
-    <button data-testid="complete-fullscreen" onClick={() => props.onCompleteWorkout('block-1', sampleWorkoutResults)}>
+  FullscreenTimer: (props: { onCompleteWorkout: (blockId: string, results: typeof sampleSessions) => void }) => (
+    <button data-testid="complete-fullscreen" onClick={() => props.onCompleteWorkout('block-1', sampleSessions)}>
       Complete fullscreen
     </button>
   ),
@@ -343,7 +343,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     expect(saveResultCalls[0]).toMatchObject({
       noteId: playgroundNoteId,
       blockContentId: 'block-1',
-      data: sampleWorkoutResults,
+      data: sampleSessions,
     })
 
     act(() => {

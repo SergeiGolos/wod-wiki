@@ -3,8 +3,8 @@
  *
  * Injects the URL params + data deps (workoutItems, canvasPage,
  * recentResults, selectWorkout) and memoises the result. `AppContent`
- * consumes the flags + workout + nav; the render ternary is unchanged
- * in Phase 1.
+ * consumes the flags + workout + nav and dispatches pages through its
+ * `renderInner` record.
  */
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'

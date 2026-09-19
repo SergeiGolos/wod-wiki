@@ -4,20 +4,20 @@
  * React mount and no IndexedDB.
  */
 import { describe, expect, it, mock } from 'bun:test'
-import type { WorkoutResult } from '@/types/storage'
-import type { WorkoutResults } from '@/components/Editor/types'
+import type { Session } from '@/types/storage'
+import type { Sessions } from '@/components/Editor/types'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import {
   resolveRouteView,
-  SYNTAX_LINKS,
   type RouteViewDeps,
   type RouteViewParams,
   type SelectWorkoutItem,
 } from './routeView'
+import { SYNTAX_LINKS } from './routeNav'
 
 /** Minimal result fixture — only `createdAt` matters to the nav derivation. */
-function makeResult(createdAt: number, id = `r-${createdAt}`): WorkoutResult {
-  return { id, noteId: 'note-1', data: {} as WorkoutResults, createdAt }
+function makeResult(createdAt: number, id = `r-${createdAt}`): Session {
+  return { id, noteId: 'note-1', data: {} as Sessions, createdAt }
 }
 
 function makeDeps(overrides: Partial<RouteViewDeps> = {}): RouteViewDeps {
@@ -282,5 +282,111 @@ describe('resolveRouteView — Library replaces the legacy list routes', () => {
     // The new namespace: /dashboard is the explorer, /dashboard/:slug a view.
     expect(resolveRouteView('/dashboard', NO_PARAMS, makeDeps()).page).toBe('dashboardExplorer')
     expect(resolveRouteView('/dashboard/training-block-review', NO_PARAMS, makeDeps()).page).toBe('dashboardView')
+  })
+})
+
+describe('resolveRouteView — single-note and collection-date routes', () => {
+  const UUID = '01990e80-0000-7000-8000-000000000001'
+
+  it('classifies /notes/:noteId as the single-note page', () => {
+    const view = resolveRouteView(`/notes/${UUID}`, NO_PARAMS, makeDeps())
+    expect(view.page).toBe('note')
+    expect(view.isNoteByIdRoute).toBe(true)
+    expect(view.noteById).toBe(UUID)
+    expect(view.workout.category).toBe('note')
+  })
+
+  it('classifies /collections/:slug/:noteId as the single-note page', () => {
+    const view = resolveRouteView(`/collections/girls/${UUID}`, { collection: 'girls', workout: UUID }, makeDeps())
+    expect(view.page).toBe('note')
+    expect(view.noteById).toBe(UUID)
+  })
+
+  it('classifies /collections/:slug/:date as the date-scoped collection page', () => {
+    const view = resolveRouteView('/collections/girls/2026-09-17', { collection: 'girls', workout: '2026-09-17' }, makeDeps())
+    expect(view.page).toBe('collectionDate')
+    expect(view.collectionDate).toEqual({ slug: 'girls', date: '2026-09-17' })
+    expect(view.workout.category).toBe('girls')
+  })
+
+  it('keeps /collections/:slug/:name on the workout page', () => {
+    const view = resolveRouteView('/collections/girls/Fran', { collection: 'girls', workout: 'Fran' }, makeDeps())
+    expect(view.page).toBe('workout')
+    expect(view.collectionDate).toBeNull()
+    expect(view.noteById).toBeUndefined()
+  })
+})
+
+describe('resolveRouteView — target-scheme routes (/c, /e, /sessions, /d, /p, /playgrounds)', () => {
+  const UUID = '01990e80-0000-7000-8000-000000000001'
+
+  it('classifies /c/:slug/:date as the date-scoped collection page', () => {
+    const view = resolveRouteView('/c/girls/2026-09-17', { collection: 'girls', workout: '2026-09-17' }, makeDeps())
+    expect(view.page).toBe('collectionDate')
+    expect(view.collectionDate).toEqual({ slug: 'girls', date: '2026-09-17' })
+    expect(view.workout.category).toBe('girls')
+  })
+
+  it('classifies /c/:slug/:noteId as the single-note page', () => {
+    const view = resolveRouteView(`/c/girls/${UUID}`, { collection: 'girls', workout: UUID }, makeDeps())
+    expect(view.page).toBe('note')
+    expect(view.noteById).toBe(UUID)
+  })
+
+  it('keeps /c/:slug/:name on the workout page', () => {
+    const view = resolveRouteView('/c/girls/Fran', { collection: 'girls', workout: 'Fran' }, makeDeps())
+    expect(view.page).toBe('workout')
+    expect(view.collectionDate).toBeNull()
+    expect(view.noteById).toBeUndefined()
+  })
+
+  it('wraps a /c/:slug canvas landing in the collection shell', () => {
+    const canvasPage = { route: '/collections/girls', sections: [] } as unknown as ParsedCanvasPage
+    const view = resolveRouteView('/c/girls', { collection: 'girls' }, makeDeps({ canvasPage }))
+    expect(view.page).toBe('canvas')
+    expect(view.shell.subheader).toBe('filter-collection-workouts')
+  })
+
+  it('classifies /e/:slug as the effort detail page', () => {
+    const view = resolveRouteView('/e/grace', NO_PARAMS, makeDeps())
+    expect(view.page).toBe('effortDetail')
+    expect(view.workout.name).toBe('grace')
+    expect(view.workout.category).toBe('effort')
+  })
+
+  it('classifies the sessions family as stream surfaces', () => {
+    const listing = resolveRouteView('/sessions', NO_PARAMS, makeDeps())
+    expect(listing.page).toBe('library')
+    expect(listing.workout.name).toBe('Sessions')
+
+    const detail = resolveRouteView('/sessions/res-42', NO_PARAMS, makeDeps())
+    expect(detail.page).toBe('library')
+    expect(detail.workout.name).toBe('Result')
+
+    const byDate = resolveRouteView('/session/2026-09-17', NO_PARAMS, makeDeps())
+    expect(byDate.page).toBe('library')
+    expect(byDate.workout.name).toBe('2026-09-17')
+  })
+
+  it('classifies /dashboards as the explorer and /d/:slug as a dashboard view', () => {
+    const landing = resolveRouteView('/dashboards', NO_PARAMS, makeDeps())
+    expect(landing.page).toBe('dashboardExplorer')
+
+    const bySlug = resolveRouteView('/d/strength-trends', NO_PARAMS, makeDeps())
+    expect(bySlug.page).toBe('dashboardView')
+    expect(bySlug.workout.name).toBe('strength-trends')
+  })
+
+  it('classifies /playgrounds as the playground listing stream', () => {
+    const view = resolveRouteView('/playgrounds', NO_PARAMS, makeDeps())
+    expect(view.page).toBe('library')
+    expect(view.workout.name).toBe('Playgrounds')
+  })
+
+  it('classifies /p/:slug canvas pages onto the canvas shell', () => {
+    const canvasPage = { route: '/guide/syntax/basics', sections: [] } as unknown as ParsedCanvasPage
+    const view = resolveRouteView('/p/syntax/basics', NO_PARAMS, makeDeps({ canvasPage }))
+    expect(view.page).toBe('canvas')
+    expect(view.shell.wrap).toBe('canvas')
   })
 })

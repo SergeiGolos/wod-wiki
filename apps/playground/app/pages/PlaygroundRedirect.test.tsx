@@ -53,13 +53,13 @@ beforeEach(() => {
 })
 
 describe('PlaygroundRedirect', () => {
-  it('creates an empty playground note when no pages exist', async () => {
+  it('mints a fresh empty playground note', async () => {
     const { PlaygroundRedirect } = await componentModule
 
     render(<PlaygroundRedirect />)
 
     await waitFor(() => {
-      expect(createPlaygroundPageCalls).toEqual(['# New playground\n'])
+      expect(createPlaygroundPageCalls).toEqual([''])
       expect(navigateCalls).toEqual([
         {
           to: '/playground/2026-05-19%2015.30',
@@ -69,7 +69,7 @@ describe('PlaygroundRedirect', () => {
     })
   })
 
-  it('navigates to the most recent existing playground page on a repeat visit', async () => {
+  it('still mints a fresh empty note when pages exist — /playgrounds is the resume surface', async () => {
     const { PlaygroundRedirect } = await componentModule
     existingPages = [
       { id: 'playground/older', updatedAt: 1000 },
@@ -79,10 +79,10 @@ describe('PlaygroundRedirect', () => {
     render(<PlaygroundRedirect />)
 
     await waitFor(() => {
-      expect(createPlaygroundPageCalls).toEqual([])
+      expect(createPlaygroundPageCalls).toEqual([''])
       expect(navigateCalls).toEqual([
         {
-          to: '/playground/newer',
+          to: '/playground/2026-05-19%2015.30',
           options: { replace: true },
         },
       ])
@@ -99,7 +99,7 @@ describe('PlaygroundRedirect', () => {
     )
 
     await waitFor(() => {
-      expect(createPlaygroundPageCalls).toEqual(['# New playground\n'])
+      expect(createPlaygroundPageCalls).toEqual([''])
       expect(navigateCalls.length).toBeGreaterThanOrEqual(1)
       expect(navigateCalls).toContainEqual({
         to: '/playground/2026-05-19%2015.30',
@@ -108,19 +108,19 @@ describe('PlaygroundRedirect', () => {
     })
   })
 
-  it('resumes the existing page even when the first-note wizard would still open', async () => {
+  it('mints exactly one note even when the first-note wizard would still open', async () => {
     // The wizard gates on profile state and opens on the note page itself —
-    // it must not force fresh-page creation here (that was the N8 multiply bug).
+    // it must not interact with fresh-page creation here (N8 multiply bug).
     const { PlaygroundRedirect } = await componentModule
     existingPages = [{ id: 'playground/existing', updatedAt: 2000 }]
 
     render(<PlaygroundRedirect />)
 
     await waitFor(() => {
-      expect(createPlaygroundPageCalls).toEqual([])
+      expect(createPlaygroundPageCalls).toEqual([''])
       expect(navigateCalls).toEqual([
         {
-          to: '/playground/existing',
+          to: '/playground/2026-05-19%2015.30',
           options: { replace: true },
         },
       ])
@@ -141,7 +141,7 @@ describe('PlaygroundRedirect', () => {
 
     await waitFor(() => {
       expect(createPlaygroundPageCalls.length).toBe(2)
-      expect(createPlaygroundPageCalls.every(content => content === '# New playground\n')).toBe(true)
+      expect(createPlaygroundPageCalls.every(content => content === '')).toBe(true)
       expect(navigateCalls).toContainEqual({
         to: '/playground/2026-05-19%2015.30',
         options: { replace: true },

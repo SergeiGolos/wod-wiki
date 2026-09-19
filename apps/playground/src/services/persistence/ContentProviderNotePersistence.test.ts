@@ -16,7 +16,7 @@ function rawContentOf(patch: unknown): string {
 }
 
 import type { HistoryEntry } from '@/types/history';
-import type { WorkoutResult } from '@/types/storage';
+import type { Session } from '@/types/storage';
 import { ContentProviderNotePersistence } from './ContentProviderNotePersistence';
 
 // ── Shared test data ──────────────────────────────────────────────────────────
@@ -32,19 +32,25 @@ const BASE_ENTRY: HistoryEntry = {
   schemaVersion: 1,
 };
 
-const WORKOUT_RESULT: WorkoutResult = {
+const WORKOUT_RESULT: Session = {
   id: 'result-001',
   noteId: BASE_ENTRY.id,
   blockContentId: 'wod-a',
-  data: { startTime: 1000, endTime: 1430, duration: 430, logs: [], completed: true },
+  startTime: 1000,
+  endTime: 1430,
+  duration: 430,
+  completed: true,
   createdAt: 1430,
 };
 
-const OLDER_RESULT: WorkoutResult = {
+const OLDER_RESULT: Session = {
   id: 'result-000',
   noteId: BASE_ENTRY.id,
   blockContentId: 'wod-a',
-  data: { startTime: 500, endTime: 1000, duration: 500, logs: [], completed: true },
+  startTime: 500,
+  endTime: 1000,
+  duration: 500,
+  completed: true,
   createdAt: 1000,
 };
 // ── Mock provider builder ─────────────────────────────────────────────────────
@@ -52,7 +58,7 @@ const OLDER_RESULT: WorkoutResult = {
 function makeMockProvider(overrides: Partial<{
   entry: HistoryEntry | null;
   entries: HistoryEntry[];
-  results: WorkoutResult[];
+  results: Session[];
   canWrite: boolean;
 }> = {}) {
   const entries = overrides.entries ?? (overrides.entry ? [overrides.entry] : [BASE_ENTRY]);

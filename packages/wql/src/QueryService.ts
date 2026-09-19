@@ -19,7 +19,8 @@
  * Fully inverted dependencies: zero IndexedDB/storage module-level imports.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, EventRecord } from '@bitcobblers/wod-wiki-core';
+import { normalizeFieldComponent } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,
@@ -53,7 +54,7 @@ import {
   type ResolvedRange,
 } from './calendar';
 import type {
-  UnifiedEventStore,
+  EventStore,
   NoteQueryStore,
   BlockQueryStore,
   EffortQueryStore,
@@ -62,7 +63,7 @@ import type {
 } from './stores';
 
 export type {
-  UnifiedEventStore,
+  EventStore,
   NoteQueryStore,
   BlockQueryStore,
   EffortQueryStore,
@@ -157,7 +158,7 @@ function effectiveTimeWindow(
   return inRange(createdAt, resolved);
 }
 
-const defaultEventStore: UnifiedEventStore = {
+const defaultEventStore: EventStore = {
   getEventsByTimeRange: async () => [],
   getEventsByResult: async () => [],
   getEventsForNote: async () => [],
@@ -235,7 +236,7 @@ export interface RowsRun {
   noteId: string;
   /** Canonical workout time (result.createdAt under the unified model). */
   timestamp: number;
-  events: UnifiedEventRecord[];
+  events: EventRecord[];
 }
 
 export interface RowsQueryResult {
@@ -308,6 +309,7 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
     case 'intensity': return row.intensityTier;
+    case 'grade': return row.grade;
     case 'note': return row.noteId;
     case 'page': return row.pageId;
     case 'origin': return row.origin;
@@ -316,7 +318,15 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
     case 'block': return row.blockContentId;
     case 'result': return row.resultId;
     case 'tags': return noteTags.get(row.noteId) ?? [];
-    default: return undefined;
+    default: {
+      // Custom dimensions: user-authored property metrics and grouped
+      // partitions live in row.dimensions under normalized (camelCase)
+      // keys — `{coach:greg}` and `by {coach}` resolve here. Facts without
+      // the dim group/filter as unassigned.
+      const dims = row.dimensions;
+      if (!dims) return undefined;
+      return dims[key] ?? dims[normalizeFieldComponent(key)];
+    }
   }
 }
 
@@ -450,14 +460,14 @@ function compareOp(value: number, op: ComparisonOp, threshold: number): boolean 
 }
 
 export class QueryService {
-  private readonly store: UnifiedEventStore;
+  private readonly store: EventStore;
   private readonly noteStore: NoteQueryStore;
   private readonly blockStore: BlockQueryStore;
   private readonly effortStore: EffortQueryStore;
   private readonly staticNoteStore?: NoteQueryStore;
 
   constructor(
-    storesOrEventStore?: QueryServiceStores | UnifiedEventStore,
+    storesOrEventStore?: QueryServiceStores | EventStore,
     noteStore?: NoteQueryStore,
     blockStore?: BlockQueryStore,
     effortStore?: EffortQueryStore,
@@ -479,7 +489,7 @@ export class QueryService {
       this.effortStore = stores.effortStore ?? defaultEffortStore;
       this.staticNoteStore = stores.staticNoteStore;
     } else {
-      this.store = (storesOrEventStore as UnifiedEventStore | undefined) ?? defaultEventStore;
+      this.store = (storesOrEventStore as EventStore | undefined) ?? defaultEventStore;
       this.noteStore = noteStore ?? defaultNoteStore;
       this.blockStore = blockStore ?? defaultBlockStore;
       this.effortStore = effortStore ?? defaultEffortStore;
@@ -535,8 +545,8 @@ export class QueryService {
     }
 
     // Scope → event rows, grouped per result (insertion order = first seen).
-    const byResult = new Map<string, UnifiedEventRecord[]>();
-    const collect = (rows: UnifiedEventRecord[]) => {
+    const byResult = new Map<string, EventRecord[]>();
+    const collect = (rows: EventRecord[]) => {
       for (const row of rows) {
         const bucket = byResult.get(row.resultId);
         if (bucket) bucket.push(row);
@@ -591,7 +601,7 @@ export class QueryService {
     // Eligible segment observations, deduped by stable record identity —
     // overlapping scope fetches contribute each segment exactly once.
     const seen = new Set<string>();
-    const segments: UnifiedEventRecord[] = [];
+    const segments: EventRecord[] = [];
     for (const row of eventRows) {
       if (row.grain !== 'event') continue;
       if (parsed.outputType && row.outputType !== parsed.outputType) continue;
@@ -615,7 +625,7 @@ export class QueryService {
     const totalCount = eligible.length;
     // Civil-date memo: one formatToParts per distinct instant per run.
     const civilDateCache = new Map<number, string>();
-    const dateOf = (row: UnifiedEventRecord): string => {
+    const dateOf = (row: EventRecord): string => {
       const temporal = row.metricTemporal?.[0];
       if (temporal?.temporalKind === 'civil-date' && temporal.civilDate) return temporal.civilDate;
       const cached = civilDateCache.get(row.timestamp);
@@ -779,6 +789,14 @@ export class QueryService {
         });
       }
     }
+
+    // Note filter — exact note id
+    for (const filter of parsed.filters) {
+      if (filter.key === 'note') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        notes = notes.filter(n => (filter.negate ? !wanted.has(n.id) : wanted.has(n.id)));
+      }
+    }
     // Time window (ticket 12 precedence): an explicit query window wins; the
     // host `range` option supplies the default when the query has none.
     if (parsed.window || options.range) {
@@ -844,6 +862,14 @@ export class QueryService {
           sIds.forEach(id => matchingNoteIds.add(id));
         }
         blocks = blocks.filter(b => matchingNoteIds.has(b.noteId));
+      }
+    }
+
+    // Note filter — exact parent note id
+    for (const filter of parsed.filters) {
+      if (filter.key === 'note') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        blocks = blocks.filter(b => (filter.negate ? !wanted.has(b.noteId) : wanted.has(b.noteId)));
       }
     }
 
@@ -1322,5 +1348,16 @@ export class QueryService {
     const noteIds = [...new Set(rows.map(r => r.noteId))];
     await Promise.all(noteIds.map(async (id) => noteTags.set(id, await this.noteStore.getNoteTagLabels(id))));
     return noteTags;
+  }
+
+  /** Look up tag labels for a note across user and static stores. */
+  async getNoteTagLabels(noteId: string): Promise<string[]> {
+    const userTags = await this.noteStore.getNoteTagLabels(noteId);
+    if (userTags && userTags.length > 0) return userTags;
+    if (this.staticNoteStore) {
+      const staticTags = await this.staticNoteStore.getNoteTagLabels(noteId);
+      if (staticTags && staticTags.length > 0) return staticTags;
+    }
+    return [];
   }
 }

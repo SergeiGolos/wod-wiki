@@ -5,7 +5,7 @@ import {
   toSummaryEventRows,
   type EventRowIdentity,
 } from '../src/derivation';
-import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
 const IDENTITY: EventRowIdentity = {
@@ -103,6 +103,72 @@ describe('toEventRows — logs → event rows, 1:1 per statement (ticket 002)', 
   });
 });
 
+describe('projectEventToFacts — grade dim promotion', () => {
+  it('promotes a grade-typed metric to every projected fact row', () => {
+    const rows = toEventRows(
+      [
+        statement({
+          metrics: [
+            { type: 'label', value: 'Send' },
+            { type: 'rep', value: 1 },
+            { type: 'grade', value: 'V8' },
+          ],
+        } as StoredOutputStatement),
+      ],
+      IDENTITY,
+    );
+    const facts = projectEventToFacts(rows[0]!);
+    expect(facts.length).toBeGreaterThan(0);
+    expect(facts.every((f) => f.grade === 'V8')).toBe(true);
+  });
+
+  it('keeps metadata-stamped grades ahead of the grade metric fallback', () => {
+    const rows = toEventRows(
+      [
+        statement({
+          metrics: [
+            { type: 'label', value: 'Send' },
+            { type: 'volume', value: 1, metadata: { grade: 'V5' } },
+            { type: 'grade', value: 'V8' },
+          ],
+        } as StoredOutputStatement),
+      ],
+      IDENTITY,
+    );
+    const facts = projectEventToFacts(rows[0]!);
+    expect(facts.find((f) => f.metricKey !== 'grade')!.grade).toBe('V5');
+  });
+});
+
+describe('projectEventToFacts — user-authored custom dims', () => {
+  it('promotes a string-valued property metric into every fact row dims', () => {
+    const rows = toEventRows(
+      [
+        statement({
+          metrics: [
+            { type: 'label', value: 'Send' },
+            { type: 'rep', value: 1 },
+            { type: 'custom', value: 'greg', metadata: { fieldRef: { path: 'coach', kind: 'string' } } },
+          ],
+        } as StoredOutputStatement),
+      ],
+      IDENTITY,
+    );
+    const facts = projectEventToFacts(rows[0]!);
+    expect(facts.length).toBeGreaterThan(0);
+    expect(facts.every((f) => f.dimensions?.coach === 'greg')).toBe(true);
+    expect(facts.every((f) => f.dimensions?.label === undefined)).toBe(true);
+  });
+
+  it('inherits grouped partition identity from summary metadata groupTags', () => {
+    const rows = toSummaryEventRows([
+      summaryStatement('Total Volume', 142, 'kg', { effortSlug: 'thruster', groupTags: { coach: 'greg' } }),
+    ], IDENTITY);
+    const facts = projectEventToFacts(rows[0]!);
+    expect(facts[0]?.dimensions?.coach).toBe('greg');
+  });
+});
+
 describe('toSummaryEventRows — analytics outputs → deterministic summary rows (tickets 002/004)', () => {
   it('emits one keep-last summary row per metricKey+groupTags with a deterministic id', () => {
     const logs: StoredOutputStatement[] = [
@@ -147,7 +213,7 @@ describe('toSummaryEventRows — analytics outputs → deterministic summary row
 
 describe('projectEventToFacts — event rows → flat fact currency (ticket 003 SELECT)', () => {
   it('flattens an event row to one fact per numeric metric, canonical key first', () => {
-    const row: UnifiedEventRecord = toEventRows(
+    const row: EventRecord = toEventRows(
       [
         statement({
           metrics: [

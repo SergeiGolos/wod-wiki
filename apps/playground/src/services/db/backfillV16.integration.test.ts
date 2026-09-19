@@ -15,7 +15,7 @@
 import { describe, expect, it } from 'bun:test';
 import { openDB, type IDBPDatabase } from 'idb';
 
-import type { Note, NoteSegment, WorkoutResult } from '@/types/storage';
+import type { Note, NoteSegment, Session } from '@/types/storage';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { IndexedDBService, WodWikiDB } from '@/services/db/IndexedDBService';
 
@@ -63,7 +63,7 @@ const WOD_SEGMENT: NoteSegment = {
 const NOTE: Note = { id: noteId, title: 'Fran', createdAt: T0 };
 
 /** Result with a recoverable segment and a stale Tier-2 output. */
-const REPLAY_RESULT: WorkoutResult = {
+const REPLAY_RESULT: Session = {
   id: resultId,
   noteId,
   segmentId: SCRIPT_BLOCK.id,
