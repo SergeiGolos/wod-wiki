@@ -81,6 +81,8 @@ Owner: [Decide collection-page membership: WQL segment vs pageId](https://github
 - **How do feeds fit?** Recommended answer: the same composition with explicit date selection, grouping and ordering. Preserve source/post dates; do not treat a seed-build timestamp as the publication date or rewrite source dates to the journal day.
 - **What WQL behavior is needed?** Use existing `find:note` filters for type/text/content/source/catalog/tags where supported. Require a navigable result preview, empty/error states and deterministic order. Decide exact ordering/limit/date requirements before declaring a grammar extension; this draft does not invent unsupported query syntax.
 - **Does this replace the corpus builder or `catalog`?** No. Retain current source loading, Library filters and deep links; add query-composed presentation without requiring a Page-store roll-up. The earlier mandatory `kind: collection`/`by-page` migration is not the recommendation.
+- **Feed convergence:** feeds are transitional collections with dates rather than an independent storage or routing family. Posts are notes in a dated collection; they open in the universal editor at `/notes/:noteId`. The feed stream (`/feeds`) and detail paths merge into dated collection routes (`/c/:slug` and `/c/:slug/:date`).
+- **Canonical collection routes:** browsing all collections lives at `/collections` (`find:note{source:collections} by {tag}`); collection landing lives at `/c/:slug` (specialized view of `/p/:slug`); date-scoped view lives at `/c/:slug/:date`; named workout editor lives at `/c/:slug/:page-slug` (disambiguated by shape: `YYYY-MM-DD` indicates date, other strings indicate page slug). Persisted collection items open directly at `/notes/:noteId`.
 
 ### Ownership and interaction
 

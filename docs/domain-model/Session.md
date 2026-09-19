@@ -83,6 +83,8 @@ These recommendations do not implement behavior or resolve a ticket; mode policy
 - Preserve the two identity axes: a specific recorded occurrence/version versus intentional same-content history. Identical blocks do not share edit targets merely because their content IDs match.
 - Keep result identity stable between completion, persistence and any inserted session-results query. Read-only source must not be mutated just to display results; the host needs a permitted presentation/destination.
 - Do not derive result `origin` solely from a newly named note type or silently reassign history when a note moves between pages. Existing journal/playground filtering remains a compatibility constraint.
+- **Canonical execution routes:** browsing execution sessions lives at `/sessions` (with optional WQL query); session detail lives at `/sessions/:sessionId`; sessions from a specific date live at `/session/:date`. Legacy `/results` and `/results/:resultId` redirect to these routes.
+- **Outgoing note links:** links from a session record to its parent workout target `/notes/:noteId` (or `/c/:slug/:page-slug` for corpus items without stored note rows).
 
 **Feedback case:** run the second of two identical workouts on a read-presented note. Where is the result stored and displayed if the source cannot accept a results-query insertion? The run must not overwrite seed content or attach to the first occurrence.
 

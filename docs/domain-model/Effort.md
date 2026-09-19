@@ -72,6 +72,8 @@ Owner: [Resolve effort linkage and indexable effort metadata](https://github.com
 - **Which properties need search?** Retain slug/label/aliases, MET, discipline, intensity tier and source semantics through the existing query/registry contracts. Keep `by-discipline` and `by-source`; add a physical index only for a required query operation or measured cost, not to satisfy a blanket “no scans” rule.
 - **How does workout code match?** Preserve slug/alias resolution, derivation and the existing unresolved policy. Keep this in the data/resolver layer, not an effort-specific editor or widget implementation.
 - **What about effort widgets?** Scope existing Query Documents and chart components to the selected effort. No effort-only graph renderer or new query grammar is justified without a concrete missing operation.
+- **Canonical effort routes:** list browsing lives at `/efforts` (`find:effort`); effort detail lives at `/e/:slug` (the specialized page view of generic `/p/:slug`). Legacy `/effort/:slug` routes redirect here.
+- **Effort-as-note transition:** the domain intent is that an effort is an authored note with parsed metadata. User effort creation and edits migrate toward writing an authoritative [[Note]] row while updating the `efforts` registry projection, reconciling `noteId` with `slug`.
 
 ### Save and ownership contract
 

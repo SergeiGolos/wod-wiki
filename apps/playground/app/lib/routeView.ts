@@ -5,10 +5,11 @@
  * the route-family flags, the current workout, and the page nav links. No React,
  * no I/O — so URL → view classification is unit-testable directly.
  *
- * Phase 1 (this file): the derivations move verbatim out of `AppContent`'s two
- * `useMemo` bodies; `AppContent`'s render ternary still consumes the flags.
- * Phase 2 collapses the flags into a `{ page, shell, props }` descriptor.
- * See docs/adr/app-route-view.md.
+ * Implementation (complete): the derivations moved verbatim out of
+ * `AppContent`'s two `useMemo` bodies; AppContent dispatches pages through the
+ * `renderInner: Record<PageKind, …>` record. The RouteFlags block is retained
+ * because pages still read their URL params (noteById, collectionDate,
+ * feedItemMatch) from the view. See docs/adr/app-route-view.md.
  */
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { Session } from '@/types/storage'
@@ -95,7 +96,8 @@ export interface RouteViewDeps {
   selectWorkout: (item: SelectWorkoutItem) => void
 }
 
-/** Classification flags — Phase 1 transitional; consumed by AppContent's render ternary. */
+/** Classification flags — consumed by AppContent when hydrating page props
+ *  (noteById, collectionDate, feedItemMatch). */
 export interface RouteFlags {
   isPlaygroundRoute: boolean
   effectivePlaygroundId: string | undefined

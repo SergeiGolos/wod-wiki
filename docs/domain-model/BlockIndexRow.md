@@ -65,6 +65,7 @@ Derived content-search projection for WQL `find:block`. The user-note rebuild em
 - Delete/re-key the owning note and reconcile its derived rows together. Current `deleteNote` omits `block_index`; legacy UUID re-key also omits tag/field stores. These are source-level gaps, not a runtime-tested stale-search report.
 - Keep content comparison distinct from occurrence/version identity. Do not introduce a second universal `NoteSegment.contentHash` merely to draw a shared link; the cross-path identity issue belongs in [[NoteSegment#Identity and round-trip questions]].
 - If query/widget source needs finer `find:block` recognition, extend this projection only for a required search contract. It does not automatically require a new persisted segment kind.
+- **Canonical deep link generation:** search results and library links generated from block index rows must emit `/notes/:noteId` for persisted notes (with `#<segmentId>` block anchor where appropriate) and `/c/:slug/:page-slug` for corpus items without stored note rows. Legacy `/collections/:cat/:name` link targets are retired.
 
 ### Questions owned by this datatype
 

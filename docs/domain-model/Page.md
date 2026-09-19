@@ -68,6 +68,9 @@ None.
 - A composed view must retain each note's identity, order and write target. Start with per-note editing; seamless whole-page editing needs transaction-mapped ownership boundaries before it is safe.
 - Do not extend `pageId` copying to more stores merely for reuse. Existing copies need a defined update policy when a note moves; this review does not prescribe an index-drop migration.
 - Keep journal `Page.date` separate from content creation/import time. Displaying a note on a date does not rewrite its source history.
+- **The `/p/:slug` universal page umbrella:** any slug is a page and renders generically at `/p/:slug`. Specialized prefix routes (`/c/:slug` for collections, `/e/:slug` for efforts, `/d/:slug` for dashboards) provide tailored interactions for those slug types, but resolve to the same underlying [[Page]] presentation model.
+- **Dual-ID navigation seam:** lists and query outputs expose both `pageId` (for `/p/:slug` page viewing) and `noteId` (for `/notes/:noteId` canonical editing).
+- **Per-note edit boundary preservation:** multi-note pages compose distinct notes rather than concatenating text into a single editable string. Each embedded note maintains its independent `noteId`, versioned segments, and save target.
 
 **Known implementation gap:** the review's isolated `JournalDatePage` slicing reproduction lost a line inserted near a note boundary. That is evidence about its fixed-offset algorithm, not a live browser/persistence test. It blocks extending concatenated editing, not read-only multi-note presentation.
 

@@ -46,6 +46,19 @@ Existing schema reference. The “New name” column records separate, unimpleme
 | [[CatalogBackfillState\|`field_catalog_meta`]] |                 | `id` (singleton `'backfill'`) | —                                                                                                                                                                                                                                                           | —                                                                                                                                                                                                                                          |           |
 | [[Configuration\|`meta`]]                     | `configuration` | `key`                         | —                                                                                                                                                                                                                                                           | —                                                                                                                                                                                                                                          | Renamed document to `Configuration.md`; live store remains `meta` |
 
+## Route & Unification Realignment Checklist
+
+Items in domain model plans requiring updates to align with [`link-crosswalk.md`](../link-crosswalk.md), [`typed-notes-unification-review.md`](../wayfinder/typed-notes-unification-review.md), and [`screens/README.md`](../screens/README.md):
+
+| Domain Model Plan | Current Plan Gap                                                                  | Alignment Required                                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [[Note]]          | Lacks dual-ID contract (`noteId` + `pageId`); assumes route-based slug addressing | Update to reflect dual IDs on query/provider output: `noteId` for editor (`/notes/:noteId`), `pageId` for page render (`/p/:slug`).                                 |
+| [[Page]]          | Defines only calendar date and custom slug; omits `/p/:slug` umbrella             | Formulate `/p/:slug` as generic render for any slug (`/c`, `/e`, `/d` are specialized views). Formalize multi-note composition preserving per-note edit boundaries. |
+| [[collection]]    | Treats feeds as permanent separate corpus; uses legacy `/collections/:slug`       | Mark feeds as transitional (converging into dated collections). Align routes with `/c/:slug`, `/c/:slug/:date`, and `/notes/:noteId` for post items.                |
+| [[Effort]]        | Uses legacy `/effort/:slug`; leaves effort-as-note persistence ambiguous          | Align route with `/e/:slug` (specialized `/p/:slug`). Document transition from standalone registry record (`efforts` store) to note-backed effort entity.           |
+| [[Session]]       | Carries legacy `/results` and `/results/:resultId` route references               | Replace all references with `/sessions`, `/sessions/:sessionId`, and `/session/:date`. Ensure outgoing links target `/notes/:noteId`.                               |
+| [[BlockIndexRow]] | Links deep results to legacy `/collections/:cat/:name` paths                      | Align deep link generation: emit `/notes/:noteId` for stored notes and `/c/:cat/:page-slug` for corpus items.                                                       |
+
 
 
 

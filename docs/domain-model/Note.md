@@ -89,6 +89,9 @@ Identity is not yet uniform across sources: seed import derives an ID from its p
 - Preserve `catalog` and current Library locators. Query-defined collection pages do not require replacing them with `pageId`; membership belongs in [[collection]].
 - Do not add note-level `contentHash` or a `by-content` index for this effort. Block-content comparison and occurrence identity are different concerns owned by [[NoteSegment]] and [[BlockIndexRow]]. Note deduplication is not a requirement here.
 - Tags classify content; they neither create page/effort ownership nor grant source-write access. Mode and write destinations belong in [[Page#Mode and write destinations]].
+- **Dual-ID contract on query/provider outputs:** queries and content providers return note records carrying both `noteId` (authoring/editor target) and `pageId` (composition/page render target). This enables list surfaces to link to either the canonical editor or the containing page.
+- **Universal editor route:** every stored note opens in the canonical editor at `/notes/:noteId`. Sub-selection in dates (`/journal/:date/:noteId`) and collection-scoped notes (`/collection/:slug/:noteId`) fold into `/notes/:noteId`.
+- **Slugs route to pages, not notes:** note slugs resolve to ownership IDs; a slug route (`/p/:slug` or specialized `/c/:slug`, `/e/:slug`, `/d/:slug`) addresses the composed [[Page]], while the underlying authored note is addressed by UUID at `/notes/:noteId`.
 
 ### Type-specific responsibilities
 
