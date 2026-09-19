@@ -59,7 +59,7 @@ export function DashboardsNavPanel(_props: NavPanelProps) {
             key={d.slug}
             label={d.title}
             badge={d.editable ? undefined : 'prebuilt'}
-            active={location.pathname === `/dashboard/${d.slug}`}
+            active={location.pathname === `/dashboard/${d.slug}` || location.pathname === `/d/${d.slug}`}
             onClick={() => navigate(dashboardViewPath(d.slug))}
           />
         ))

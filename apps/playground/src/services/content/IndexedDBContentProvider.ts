@@ -144,6 +144,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             id: note.id,
             title: note.title,
             slug: note.slug,
+            pageId: note.pageId ?? note.slug,
             createdAt: note.createdAt,
             updatedAt: note.createdAt,
             targetDate: note.createdAt,
@@ -237,6 +238,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             id: note.id,
             title: note.title,
             slug: note.slug,
+            pageId: note.pageId ?? note.slug,
+            catalog: note.catalog,
             createdAt: note.createdAt,
             updatedAt: note.createdAt, // V11 — note.updatedAt removed; derive
             targetDate: note.createdAt, // V11 — note.targetDate removed; derive

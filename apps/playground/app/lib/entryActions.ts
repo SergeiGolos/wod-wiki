@@ -20,7 +20,7 @@
  * (`entryCanAddToToday`) so the LibraryRow can render the button.
  */
 import type { Entry } from './entryMapper'
-import { noteByIdPath, sessionDetailPath } from './routes'
+import { noteByIdPath, sessionDetailPath, analyticsExplorerPath } from './routes'
 
 /** Open: the Entry's deep-link per its kind; block Entries anchor to their
  *  section within the parent note (#855 — honored wherever the target
@@ -73,7 +73,7 @@ export function entryIsPlayground(entry: Entry): boolean {
  *  dashboards list (the ?q= deep link pre-fills the query). */
 export function entryCompareHref(entry: Entry): string | null {
   if (!entry.blockContentId) return null
-  return `/dashboards?q=${encodeURIComponent(entry.blockContentId)}`
+  return analyticsExplorerPath({ q: entry.blockContentId })
 }
 
 /** Add to today: Note + Post (per spec), and Result + Segment when associated with a noteId. */

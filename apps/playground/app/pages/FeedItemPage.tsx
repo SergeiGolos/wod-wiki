@@ -132,7 +132,7 @@ export function FeedItemPage({
     const d = String(date.getDate()).padStart(2, '0');
     const dateKey = `${y}-${m}-${d}`;
     try {
-      await createJournalNoteFromWorkout({
+      const journalNote = await createJournalNoteFromWorkout({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,
@@ -145,7 +145,7 @@ export function FeedItemPage({
         title: 'Scheduled',
         description: `Added to journal for ${dateKey}`,
         action: (
-          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+          <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
             Open
           </ToastAction>
         ),

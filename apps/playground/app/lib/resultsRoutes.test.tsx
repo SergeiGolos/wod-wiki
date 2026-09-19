@@ -6,12 +6,15 @@
  * 2. ReviewRedirect cleanly redirects legacy review URLs into /sessions/:sessionId instead of /dashboard.
  * 3. /dashboard remains strictly decoupled from review routing as the user's permanent dashboard canvas.
  */
-import { describe, it, expect } from 'bun:test'
-import { render } from '@testing-library/react'
+import { describe, it, expect, afterEach } from 'bun:test'
+import { render, cleanup } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ROUTE_PATTERNS } from './routes'
 import { ReviewRedirect } from './routeRedirects'
 
+afterEach(() => {
+  cleanup()
+})
 function LocationDisplay() {
   const location = useLocation()
   return (

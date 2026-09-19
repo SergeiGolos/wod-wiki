@@ -210,7 +210,7 @@ export function PlaygroundNotePage({
       const d = String(date.getDate()).padStart(2, '0')
       const dateKey = `${y}-${m}-${d}`
       try {
-        await createJournalNoteFromWorkout({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: pageTitle,
           category: 'playground',
           sourceNoteLabel: pageTitle,
@@ -223,7 +223,7 @@ export function PlaygroundNotePage({
           title: 'Scheduled',
           description: `Added to journal for ${dateKey}`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+            <ToastAction altText="Open journal" onClick={() => navigate(noteByIdPath(journalNote.id))}>
               Open
             </ToastAction>
           ),

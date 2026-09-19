@@ -37,6 +37,7 @@ import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { executeNavAction, pipelineStepToNavAction, type NavActionDeps } from '../nav/navTypes'
 import { useStickyBoundaryOffset } from '@/panels/page-shells'
+import { workoutPath } from '../lib/routes'
 export interface MarkdownCanvasPageProps {
   page: ParsedCanvasPage
   wodFiles: Record<string, string>
@@ -75,7 +76,7 @@ export function MarkdownCanvasPage({
   const { sections, route, chapters } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
-  const isCollection = route.startsWith('/collections/')
+  const isCollection = route.startsWith('/collections/') || route.startsWith('/c/')
   const collectionSlug = isCollection ? (route.split('/').pop() ?? null) : null
 
   const handleSelectWorkout = useCallback(
@@ -84,7 +85,7 @@ export function MarkdownCanvasPage({
         onSelect(item)
         return
       }
-      navigate(`/collections/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}`)
+      navigate(workoutPath(item.category, item.name))
     },
     [navigate, onSelect],
   )
