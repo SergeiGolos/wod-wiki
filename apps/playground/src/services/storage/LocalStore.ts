@@ -54,7 +54,7 @@ export const browserLocalStorageBackend: StorageBackend = {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(key);
       }
-    } catch {}
+    } catch { /* silent — storage may be unavailable */ }
   },
 };
 
@@ -81,7 +81,7 @@ export class LocalStore {
   set<T>(key: string, value: T): void {
     try {
       this.backend.setItem(this.qualify(key), JSON.stringify(value));
-    } catch {}
+    } catch { /* silent — backend may be read-only */ }
   }
 
   getRaw(key: string, alias?: string): string | null {

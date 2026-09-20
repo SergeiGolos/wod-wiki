@@ -1,19 +1,6 @@
-import type { IMetric, MetricOrigin } from '../models/Metric';
+import type { IMetric, MetricOrigin, MetricOwnershipLayer } from '../models/Metric';
 
-/**
- * Canonical ownership vocabulary for metric visibility decisions.
- *
- * This is intentionally separate from {@link MetricOrigin}, which still carries
- * legacy producer/state detail used by existing callers.
- *
- * Ordered from lowest to highest ownership precedence.
- */
-export type MetricOwnershipLayer =
-  | 'parser'
-  | 'dialect'
-  | 'user-plan'
-  | 'runtime'
-  | 'user-entry';
+export type { MetricOwnershipLayer };
 
 /**
  * Canonical low->high ownership chain used by characterization tests and

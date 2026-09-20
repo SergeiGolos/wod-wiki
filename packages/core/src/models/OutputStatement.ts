@@ -1,9 +1,9 @@
-import { ICodeStatement } from './CodeStatement';
-import { IMetric, MetricType } from './Metric';
+import { ICodeStatement, CodeStatement } from './CodeStatement';
+import { IMetric } from './Metric';
 import { MetricContainer } from './MetricContainer';
 import { CodeMetadata } from './CodeMetadata';
 import { TimeSpan } from './TimeSpan';
-import type { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
+import type { IMetricSource } from '../contracts/IMetricSource';
 
 /**
  * Output statement types indicating what kind of result this represents.
@@ -86,7 +86,7 @@ export interface OutputStatementOptions {
 /**
  * Concrete implementation of IOutputStatement.
  */
-export class OutputStatement implements IOutputStatement, IMetricSource {
+export class OutputStatement extends CodeStatement implements IOutputStatement {
   private static nextId = 1000000;
 
   readonly id: number;
@@ -112,6 +112,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     metricsArg?: MetricContainer | IMetric[],
     timestamp?: number,
   ) {
+    super();
     if (
       optionsOrStatement &&
       'outputType' in optionsOrStatement &&
@@ -149,30 +150,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // IMetricSource implementation
-  // ═══════════════════════════════════════════════════════════════
-
-  getDisplayMetrics(filter?: MetricFilter): IMetric[] {
-    return this.metrics.getDisplayMetrics(filter);
-  }
-
-  getMetric(type: MetricType | string): IMetric | undefined {
-    return this.metrics.getMetric(type);
-  }
-
-  getAllMetricsByType(type: MetricType | string): IMetric[] {
-    return this.metrics.getAllMetricsByType(type);
-  }
-
-  hasMetric(type: MetricType | string): boolean {
-    return this.metrics.hasMetric(type);
-  }
-
-  get rawMetrics(): IMetric[] {
-    return this.metrics.rawMetrics;
-  }
-
+  // IMetricSource implementation is inherited from CodeStatement
   /**
    * Reset the ID counter (useful for testing)
    */

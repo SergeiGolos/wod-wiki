@@ -15,7 +15,6 @@ export { CONSUMED_HINTS, CONSUMED_HINT_KEYS, hintMetric, hasHint, getHints, hint
 // Core classes
 export { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
 export { BlockKey } from '@bitcobblers/wod-wiki-engine';
-export { Duration, SpanDuration } from '@bitcobblers/wod-wiki-engine';
 export { CodeStatement } from '@bitcobblers/wod-wiki-engine';
 export { OutputStatement } from '@bitcobblers/wod-wiki-engine';
 export type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';

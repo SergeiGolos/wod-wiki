@@ -21,7 +21,7 @@ export interface SectionMetadata {
  * Extract metadata from a string of text.
  * Returns the metadata and the text with metadata stripped.
  */
-export function extractMetadata(text: string): { metadata: SectionMetadata | null; cleanText: string } {
+function extractMetadata(text: string): { metadata: SectionMetadata | null; cleanText: string } {
   const match = text.match(METADATA_REGEX);
   if (!match) return { metadata: null, cleanText: text };
 
@@ -35,12 +35,6 @@ export function extractMetadata(text: string): { metadata: SectionMetadata | nul
   };
 }
 
-/**
- * Serialize metadata into an HTML comment.
- */
-export function serializeMetadata(metadata: SectionMetadata): string {
-  return `<!-- section-metadata id:${metadata.id} version:${metadata.version} created:${metadata.createdAt} -->`;
-}
 
 /**
  * Generate a deterministic section ID from type, startLine (0-indexed), and a content hash.
@@ -57,7 +51,7 @@ export function generateSectionId(type: SectionType | string, startLine: number,
 
 export { blockContentId };
 
-export function detectUrlSubtype(url: string): FrontMatterSubtype | null {
+function detectUrlSubtype(url: string): FrontMatterSubtype | null {
   if (!url) return null;
   const withoutScheme = url.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
   const host = withoutScheme.split(/[/?#:]/, 1)[0].toLowerCase();
@@ -67,7 +61,7 @@ export function detectUrlSubtype(url: string): FrontMatterSubtype | null {
   return null;
 }
 
-export function resolveFrontMatterSubtype(props: Record<string, string>): FrontMatterSubtype {
+function resolveFrontMatterSubtype(props: Record<string, string>): FrontMatterSubtype {
   const typeValue = (props['type'] || '').toLowerCase();
   if (typeValue === 'youtube') return 'youtube';
   if (typeValue === 'strava') return 'strava';
@@ -96,7 +90,7 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
   return 'default';
 }
 
-export function parseFrontMatterProperties(innerLines: string[]): Record<string, string> {
+function parseFrontMatterProperties(innerLines: string[]): Record<string, string> {
   const props: Record<string, string> = {};
   for (const line of innerLines) {
     const match = line.match(/^([^:]+):\s*(.*)$/);
@@ -107,7 +101,7 @@ export function parseFrontMatterProperties(innerLines: string[]): Record<string,
   return props;
 }
 
-export function matchMarkdownEmbed(trimmed: string): {
+function matchMarkdownEmbed(trimmed: string): {
   type: 'image' | 'link' | 'youtube';
   label: string;
   url: string;

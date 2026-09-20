@@ -195,3 +195,4 @@ apps/playground/public/seed/
 .ask/
 *-report.html
 diff-report.html
+.questions/history/

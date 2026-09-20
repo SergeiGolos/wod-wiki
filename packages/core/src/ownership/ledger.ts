@@ -1,4 +1,6 @@
-import type { IMetric } from '../models/Metric';
+import { MetricType, type IMetric } from '../models/Metric';
+import type { MetricFilter } from '../contracts/IMetricSource';
+import type { IMetricOwnershipResolver } from '../contracts/IMetricOwnershipResolver';
 import {
   getMetricOwnershipLayer,
   METRIC_OWNERSHIP_LAYER_CHAIN,
@@ -28,12 +30,17 @@ const LAYER_RANK: Record<MetricOwnershipLayer, number> = {
   'user-entry': 4,
 };
 
-function resolveLayer(metric: IMetric): MetricOwnershipLayer {
+export function resolveLayer(metric: IMetric): MetricOwnershipLayer {
   const maybeLayer = (metric as MetricWithOptionalOwnershipLayer).ownershipLayer;
   if (maybeLayer != null) {
     return maybeLayer;
   }
   return getMetricOwnershipLayer(metric.origin);
+}
+
+export function ownershipRank(metric: IMetric): number {
+  const layer = resolveLayer(metric);
+  return LAYER_RANK[layer] ?? 0;
 }
 
 function normalize(metrics: readonly IMetric[]): OwnershipContribution[] {
@@ -268,4 +275,41 @@ export function createMetricOwnershipLedger(metrics: readonly IMetric[]): Metric
       return explanations;
     },
   };
+}
+
+function applyFilter(metrics: readonly IMetric[], filter?: MetricFilter): IMetric[] {
+  let filtered = [...metrics];
+  const wantsHints = filter?.types?.includes(MetricType.Hint) ?? false;
+  if (!wantsHints) {
+    filtered = filtered.filter((m) => m.type !== MetricType.Hint);
+  }
+  if (!filter) return filtered;
+  if (filter.origins) {
+    filtered = filtered.filter((m) => filter.origins!.includes(m.origin ?? 'parser'));
+  }
+  if (filter.types) {
+    filtered = filtered.filter((m) => filter.types!.includes(m.type));
+  }
+  if (filter.excludeTypes) {
+    filtered = filtered.filter((m) => !filter.excludeTypes!.includes(m.type));
+  }
+  return filtered;
+}
+
+export class OwnershipResolver implements IMetricOwnershipResolver {
+  resolve(metrics: readonly IMetric[], filter?: MetricFilter): IMetric[] {
+    const filtered = applyFilter(metrics, filter);
+    const ledger = createMetricOwnershipLedger(filtered);
+    return ledger.visible();
+  }
+
+  resolveOne(metrics: readonly IMetric[], type: MetricType | string): IMetric | undefined {
+    return this.resolve(metrics, { types: [type] })[0];
+  }
+
+  resolveAll(metrics: readonly IMetric[], type: MetricType | string): IMetric[] {
+    const ofType = metrics.filter((m) => m.type === type);
+    if (ofType.length <= 1) return ofType;
+    return [...ofType].sort((a, b) => ownershipRank(b) - ownershipRank(a));
+  }
 }
