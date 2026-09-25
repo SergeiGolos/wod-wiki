@@ -7,6 +7,7 @@ import {
   linkOpen,
   navigationFacet,
   editorTheme,
+  previewDecorations,
 } from '../src/extensions';
 import { EditorView } from '@codemirror/view';
 
@@ -95,5 +96,32 @@ describe('@bitcobblers/wod-wiki-ui/extensions and editorPreset suite', () => {
     const querySection = sections.find((s) => s.type === 'query');
     expect(querySection).toBeDefined();
     expect(querySection?.queryType).toBe('goal-rings');
+  });
+
+  it('previewDecorations adds footer block widget when inactive, shifts space to active line when selected', () => {
+    const doc = '# Workout\n\n```time\n(21-15-9)\nThrusters\nPull-ups\n```\n';
+    const state = EditorState.create({
+      doc,
+      extensions: [sectionField, previewDecorations],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    // Inactive: closing fence has footer block widget
+    expect(container.querySelector('.cm-wod-block-footer')).not.toBeNull();
+    expect(container.querySelector('.cm-wod-insert-spacer')).toBeNull();
+
+    // Select Thrusters line (inside workout section)
+    const thrustersPos = doc.indexOf('Thrusters');
+    view.dispatch({ selection: { anchor: thrustersPos, head: thrustersPos } });
+
+    // Active line should now have insert-spacer widget and footer widget is removed
+    expect(container.querySelector('.cm-wod-insert-spacer')).not.toBeNull();
+    expect(container.querySelector('.cm-wod-block-footer')).toBeNull();
+
+    view.destroy();
+    container.remove();
   });
 });

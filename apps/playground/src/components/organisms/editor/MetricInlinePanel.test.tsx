@@ -184,4 +184,35 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
 
     expect(screen.getByText(/no metrics on this line/i)).toBeDefined();
   });
+
+  it('renders with insert styling (no full border or rounding, explicit 28px height)', () => {
+    const view = createMockView();
+    const statement = makeStatement([
+      { type: MetricType.Rep, value: 10, image: '10', origin: 'parser' } as IMetric,
+    ]);
+    const section = makeSection();
+
+    const getCursorFocusState = mock(() => ({
+      section,
+      statement,
+      cursorLine: 1,
+      lineFrom: 0,
+      lineTo: 10,
+      focusedMetric: null,
+    }));
+
+    const { container } = render(
+      <MetricInlinePanel
+        view={view as unknown as EditorView}
+        cursorVersion={1}
+        getCursorFocusState={getCursorFocusState}
+      />
+    );
+
+    const panel = container.querySelector('.cm-metric-inline-panel');
+    expect(panel).toBeDefined();
+    expect(panel?.className).toContain('h-[28px]');
+    expect(panel?.className).not.toContain('rounded-b-md');
+    expect(panel?.className).not.toContain('shadow-sm');
+  });
 });
