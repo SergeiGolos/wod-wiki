@@ -23,7 +23,12 @@ export function createAppEffortRegistry(): CompositeEffortRegistry {
 /** Load both tiers from IndexedDB: seed rows feed the read-only tier. */
 export async function hydrateAppEffortRegistry(registry: CompositeEffortRegistry): Promise<void> {
   const all = await storageService.getAllEfforts();
-  await registry.loadBundled(all.filter((effort) => effort.registrySource === 'bundled'));
+  const bundled = all.filter((effort) => effort.registrySource === 'bundled');
+  if (bundled.length > 0) {
+    await registry.loadBundled(bundled);
+  } else if (!registry.isInitialized()) {
+    await registry.loadBundled();
+  }
 }
 
 let appEffortRegistry: CompositeEffortRegistry | null = null;

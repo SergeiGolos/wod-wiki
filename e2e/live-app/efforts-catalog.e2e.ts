@@ -31,7 +31,7 @@ test.describe('Efforts catalog — /efforts', () => {
     await expect(efforts.createCustomButton()).toBeVisible();
     await expect(efforts.effortRow('burpee')).toBeVisible();
     await expect(efforts.effortRow('rowing')).toBeVisible();
-    expect(await efforts.effortRows().count()).toBeGreaterThan(10);
+    await expect.poll(() => efforts.effortRows().count(), { timeout: 15_000 }).toBeGreaterThan(10);
 
     errors.expectClean();
   });
