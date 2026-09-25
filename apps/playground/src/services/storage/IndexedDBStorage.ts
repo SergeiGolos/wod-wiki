@@ -32,26 +32,37 @@ class IDBReadOnlyStore<T> implements IReadOnlyStore<T> {
 
   async getAll(query?: IDBValidKey | IDBKeyRange, count?: number): Promise<T[]> {
     if (this.existingTx) {
-      return this.existingTx.objectStore(this.storeName).getAll(query, count);
+      const store = this.existingTx.objectStore(this.storeName);
+      return query !== undefined
+        ? (count !== undefined ? store.getAll(query, count) : store.getAll(query))
+        : (count !== undefined ? store.getAll(null, count) : store.getAll());
     }
     const db = await this.dbPromise;
-    return db.getAll(this.storeName, query, count);
+    return query !== undefined
+      ? (count !== undefined ? db.getAll(this.storeName, query, count) : db.getAll(this.storeName, query))
+      : (count !== undefined ? db.getAll(this.storeName, null, count) : db.getAll(this.storeName));
   }
 
   async getAllFromIndex(indexName: string, query?: IDBValidKey | IDBKeyRange, count?: number): Promise<T[]> {
     if (this.existingTx) {
-      return this.existingTx.objectStore(this.storeName).index(indexName).getAll(query, count);
+      const idx = this.existingTx.objectStore(this.storeName).index(indexName);
+      return query !== undefined
+        ? (count !== undefined ? idx.getAll(query, count) : idx.getAll(query))
+        : (count !== undefined ? idx.getAll(null, count) : idx.getAll());
     }
     const db = await this.dbPromise;
-    return db.getAllFromIndex(this.storeName, indexName, query, count);
+    return query !== undefined
+      ? (count !== undefined ? db.getAllFromIndex(this.storeName, indexName, query, count) : db.getAllFromIndex(this.storeName, indexName, query))
+      : (count !== undefined ? db.getAllFromIndex(this.storeName, indexName, null, count) : db.getAllFromIndex(this.storeName, indexName));
   }
 
   async count(query?: IDBValidKey | IDBKeyRange): Promise<number> {
     if (this.existingTx) {
-      return this.existingTx.objectStore(this.storeName).count(query);
+      const store = this.existingTx.objectStore(this.storeName);
+      return query !== undefined ? store.count(query) : store.count();
     }
     const db = await this.dbPromise;
-    return db.count(this.storeName, query);
+    return query !== undefined ? db.count(this.storeName, query) : db.count(this.storeName);
   }
 }
 
@@ -66,10 +77,13 @@ class IDBReadWriteStore<T> extends IDBReadOnlyStore<T> implements IReadWriteStor
 
   async put(value: T, key?: IDBValidKey): Promise<IDBValidKey> {
     if (this.activeTx) {
-      return this.activeTx.objectStore(this.writeStoreName).put(value, key);
+      const store = this.activeTx.objectStore(this.writeStoreName);
+      return key !== undefined ? store.put(value, key) : store.put(value);
     }
     const db = await this.dbPromiseRef;
-    return db.put(this.writeStoreName, value, key);
+    return key !== undefined
+      ? db.put(this.writeStoreName, value, key)
+      : db.put(this.writeStoreName, value);
   }
 
   async delete(key: IDBValidKey | IDBKeyRange): Promise<void> {
