@@ -11,6 +11,7 @@ import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIc
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref, entryCompareHref, entryCanAddToToday } from '../../lib/entryActions'
 import { entryCanRun } from '../../lib/entryRun'
+import { effortPath } from '../../lib/routes'
 
 export interface LibraryRowProps {
   entry: Entry
@@ -131,7 +132,7 @@ export function LibraryRow({
           </span>
           {entry.execution?.effortSlug && (
             <Link
-              to={`/effort/${encodeURIComponent(entry.execution.effortSlug)}`}
+              to={effortPath(entry.execution.effortSlug)}
               onClick={e => e.stopPropagation()}
               onKeyDown={e => e.stopPropagation()}
               data-testid="library-row-effort-link"

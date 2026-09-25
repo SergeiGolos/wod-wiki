@@ -83,7 +83,7 @@ describe('LibraryRow — field projection adaptation', () => {
     expect(screen.getByText('Effort')).toBeDefined()
   })
 
-  it('renders a clickable link to /effort/:slug for segment entries with effortSlug', () => {
+  it('renders a clickable link to /e/:slug for segment entries with effortSlug', () => {
     const segmentEntry: Entry = {
       id: 'res-123:0',
       kind: 'segment',
@@ -108,7 +108,7 @@ describe('LibraryRow — field projection adaptation', () => {
 
     const effortLink = screen.getByTestId('library-row-effort-link')
     expect(effortLink).toBeDefined()
-    expect(effortLink.getAttribute('href')).toBe('/effort/thruster')
+    expect(effortLink.getAttribute('href')).toBe('/e/thruster')
 
     let stopped = false
     const event = new MouseEvent('click', { bubbles: true, cancelable: true })

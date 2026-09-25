@@ -8,6 +8,7 @@ import { useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref } from '../../lib/entryActions'
+import { effortPath } from '../../lib/routes'
 import {
   type EntityLevel,
   type FieldDefinition,
@@ -139,7 +140,7 @@ export function PropertyTable({
                   >
                     {field.id === 'pacingTier' && entry.execution?.effortSlug ? (
                       <Link
-                        to={`/effort/${encodeURIComponent(entry.execution.effortSlug)}`}
+                        to={effortPath(entry.execution.effortSlug)}
                         onClick={e => e.stopPropagation()}
                         onKeyDown={e => e.stopPropagation()}
                         data-testid="property-table-effort-link"
