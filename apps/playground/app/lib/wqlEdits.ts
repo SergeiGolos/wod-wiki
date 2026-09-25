@@ -191,3 +191,35 @@ export function setTextFilter(query: string, text: string): string {
   };
   return serialize({ ...parsed, filters: [...filtersWithoutText, textFilter] } as AnyParsedQuery);
 }
+
+/** Add or update a filter clause, time window, or text search on a query. */
+export function addFilterClause(query: string, input: string): string {
+  const parsed = parseQuery(query);
+  if (parsed.error) return query;
+  const clean = input.trim();
+  if (!clean) return query;
+
+  // 1. Time window: e.g. "last 2w", "from 2026-01-01"
+  const windowParsed = parseQuery(`find:note ${clean}`);
+  if (!windowParsed.error && windowParsed.window) {
+    return serialize({ ...parsed, window: windowParsed.window } as AnyParsedQuery);
+  }
+
+  // 2. Structured filter: e.g. "tags:strength", "!tags:metcon", "text:foo"
+  const filterParsed = parseQuery(`find:note{${clean}}`);
+  if (!filterParsed.error && filterParsed.filters.length > 0) {
+    const newFilters = [...parsed.filters];
+    for (const newF of filterParsed.filters) {
+      const idx = newFilters.findIndex((f) => f.key === newF.key);
+      if (idx >= 0) {
+        newFilters[idx] = newF;
+      } else {
+        newFilters.push(newF);
+      }
+    }
+    return serialize({ ...parsed, filters: newFilters } as AnyParsedQuery);
+  }
+
+  // 3. Fallback: treat as text search filter (e.g. "deadlift", "snatch")
+  return setTextFilter(query, clean);
+}

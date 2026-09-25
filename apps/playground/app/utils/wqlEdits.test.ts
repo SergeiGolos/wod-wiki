@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'bun:test';
 import {
+  addFilterClause,
   pivotSourceQuery,
   setMetricQuery,
   sourceOfQuery,
@@ -114,5 +115,24 @@ describe('withoutWindow / withoutFilters', () => {
     expect(withoutFilters('find:note{source:journal,tags:pr,text:"fran"} last 8w')).toBe(
       'find:note{source:journal} last 8w',
     );
+  });
+});
+
+describe('addFilterClause', () => {
+  it('adds plain text as a text filter', () => {
+    expect(addFilterClause('find:note', 'deadlift')).toBe('find:note{text:deadlift}');
+    expect(addFilterClause('find:note{tags:strength}', 'deadlift')).toBe('find:note{tags:strength,text:deadlift}');
+  });
+
+  it('adds or updates structured filters', () => {
+    expect(addFilterClause('find:note', 'tags:strength')).toBe('find:note{tags:strength}');
+    expect(addFilterClause('find:note{tags:strength}', 'tags:metcon')).toBe('find:note{tags:metcon}');
+    expect(addFilterClause('find:note{tags:strength}', '!tags:metcon')).toBe('find:note{!tags:metcon}');
+    expect(addFilterClause('find:note{tags:strength}', 'difficulty:hard')).toBe('find:note{tags:strength,difficulty:hard}');
+  });
+
+  it('updates time window clauses', () => {
+    expect(addFilterClause('find:note{tags:strength}', 'last 2w')).toBe('find:note{tags:strength} last 2w');
+    expect(addFilterClause('find:note last 4w', 'last 2w')).toBe('find:note last 2w');
   });
 });

@@ -32,7 +32,7 @@ import {
 } from '@/components/atoms/primitives/dropdown-menu'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
-import { pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow, setTextFilter } from '../../lib/wqlEdits'
+import { addFilterClause, pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow } from '../../lib/wqlEdits'
 
 /** Semantic dot hue per source plane (Mineral Arctic metric hues). */
 const SOURCE_DOT: Record<string, string> = {
@@ -199,17 +199,10 @@ function DesktopBar({
   typeMenu: ReactNode
   className?: string
 }) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const chipsRef = useRef<HTMLDivElement>(null)
   const [hiddenCount, setHiddenCount] = useState(0)
-  const currentText = useMemo(() => {
-    if (parsed.error) return ''
-    return parsed.filters.find((f) => f.key === 'text')?.values[0]?.value ?? ''
-  }, [parsed])
-  const [draftText, setDraftText] = useState(currentText)
-  useEffect(() => {
-    setDraftText(currentText)
-  }, [currentText])
-
+  const [draftText, setDraftText] = useState('')
   const chips = useMemo<Chip[]>(() => {
     if (parsed.error) return []
     const out: Chip[] = parsed.filters.map((f, index) => ({
@@ -266,7 +259,7 @@ function DesktopBar({
   return (
     <div
       data-testid="stream-query-bar"
-      onClick={openEditor}
+      onClick={() => inputRef.current?.focus()}
       className={cn(
         'flex h-9 min-w-0 flex-1 cursor-text items-center gap-1 rounded-full border border-border/60 bg-muted/30 px-1 text-xs',
         className,
@@ -324,6 +317,7 @@ function DesktopBar({
         )}
       </div>
       <input
+        ref={inputRef}
         type="text"
         data-testid="wql-composer-input"
         placeholder="Filter or search…"
@@ -332,7 +326,14 @@ function DesktopBar({
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            onQueryChange(setTextFilter(query, draftText))
+            const trimmed = draftText.trim()
+            if (trimmed) {
+              onQueryChange(addFilterClause(query, trimmed))
+              setDraftText('')
+            }
+          } else if (e.key === 'Backspace' && !draftText && chips.length > 0) {
+            e.preventDefault()
+            chips[chips.length - 1].remove()
           }
         }}
         onClick={(e) => e.stopPropagation()}
