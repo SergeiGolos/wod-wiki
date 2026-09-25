@@ -745,10 +745,11 @@ export class QueryService {
     const isPageTarget = parsed.target === 'page';
     const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
     const hasPageSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'page' || v.value === 'pages'));
+    const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
     if (isPageTarget || hasPageSource) {
-      notes = notes.filter(n => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? '')));
+      notes = notes.filter(isPage);
     } else if (parsed.target === 'note' && !hasTypeFilter) {
-      notes = notes.filter(n => n.type === 'note' || !n.sourceId?.startsWith('page:'));
+      notes = notes.filter(n => !isPage(n));
     }
     const selectedCount = notes.length;
     const ctx = runContext(options);

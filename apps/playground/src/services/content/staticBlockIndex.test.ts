@@ -108,6 +108,7 @@ describe('staticNotesFromBlocks', () => {
     const notes = staticNotesFromBlocks(blocks);
     expect(notes.length).toBe(3);
     expect(notes[0]).toEqual({
+      id: 'crossfit-girls/fran',
       title: 'Fran',
       createdAt: 0,
       type: 'note',
