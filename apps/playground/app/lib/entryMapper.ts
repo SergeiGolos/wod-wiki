@@ -92,7 +92,7 @@ export interface Entry {
 }
 
 function isCollection(sourceId: string | undefined): boolean {
-  return !!sourceId?.startsWith('collection:')
+  return !!sourceId?.startsWith('collection:') || !!sourceId?.startsWith('page:collection:')
 }
 
 function isFeed(sourceId: string | undefined): boolean {
@@ -145,13 +145,15 @@ export function toEntry(note: Note): Entry {
     }
   }
 
-  if (isCollection(note.sourceId)) {
-    const [catalog, ...rest] = id.split('/')
+  if (isCollection(note.sourceId) || note.type === 'collection') {
+    const cleanId = id.replace(/^page:collection:/, '')
+    const [catalog, ...rest] = cleanId.split('/')
+    const isCollectionPage = note.type === 'collection' || note.type === 'page' || rest.length === 0 || !rest[0]
     return {
-      id,
+      id: cleanId,
       kind: 'session',
       sourceCatalog: catalog!,
-      sourceItem: rest.join('/'),
+      sourceItem: isCollectionPage ? '' : rest.join('/'),
       sourceId: note.sourceId,
       pageId: (note as Note & { pageId?: string; slug?: string }).pageId ?? (note as Note & { pageId?: string; slug?: string }).slug,
       title,

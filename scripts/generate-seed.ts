@@ -215,7 +215,7 @@ const BLOCK_INDEX_ROWS_PER_CHUNK = 4000;
 export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): BlockIndexRow[] {
   const index: BlockIndexRow[] = [];
 
-  // Collections: collections/{dir}/{file}.md (READMEs excluded).
+  // Collections: collections/{dir}/{file}.md (including collection READMEs as collection pages).
   const collectionsGlob = new Glob('collections/**/*.md');
   for (const file of collectionsGlob.scanSync({ cwd: markdownDir, onlyFiles: true })) {
     const rel = `markdown/${file}`;
@@ -223,12 +223,12 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
     if (parts.length < 4) continue;
     const dirName = parts[parts.length - 2];
     const fileNameExt = parts[parts.length - 1];
-    if (fileNameExt.toLowerCase() === 'readme.md') continue;
-
+    const isReadme = fileNameExt.toLowerCase() === 'readme.md';
     const fileName = fileNameExt.replace(/\.md$/, '');
-    const noteId = `${dirName}/${fileName}`;
-    const noteTitle = fileToDisplayName(fileNameExt);
+    const noteId = isReadme ? dirName : `${dirName}/${fileName}`;
     const content = readFileSync(join(corpusRoot, rel), 'utf8');
+    const headingMatch = isReadme ? content.match(/^#\s+(.+)$/m) : null;
+    const noteTitle = headingMatch?.[1]?.trim() || fileToDisplayName(isReadme ? dirName : fileNameExt);
     const createdAt = getFileCreatedAt(rel);
 
     const sections = parseDocumentSections(content);
@@ -247,7 +247,7 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
         noteTitle,
         createdAt,
         isStatic: true,
-        sourceId: `collection:${noteId}`,
+        sourceId: isReadme ? `collection:${dirName}` : `collection:${noteId}`,
       });
     }
   }

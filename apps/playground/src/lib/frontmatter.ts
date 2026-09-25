@@ -181,7 +181,7 @@ export function extractFrontmatterTags(raw: string): string[] {
   const meta = FRONTMATTER_RE.test(raw)
     ? parseFrontmatter(raw).meta
     : parseFrontmatterBody(raw);
-  const tags = meta['tags'];
+  const tags = meta['tags'] ?? meta['category'];
   const list = Array.isArray(tags)
     ? tags
     : typeof tags === 'string' && tags.trim()

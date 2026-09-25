@@ -31,6 +31,7 @@ const NOTES: Note[] = [
   makeNote('guide-1', 'guides:guide/syntax/basics'),
   { ...makeNote('pg-1', 'playground'), type: 'playground' },
   { ...makeNote('pg-legacy', undefined), id: 'pg-legacy', type: 'playground' },
+  { ...makeNote('page-1', 'collection:crossfit-girls'), type: 'page' },
 ];
 
 const BLOCKS: BlockIndexRow[] = [
@@ -105,6 +106,30 @@ describe('source: filter — runFind (Note[])', () => {
   it('parse-validates source:playground as a known source value', () => {
     const parsed = parseQuery('find:note{source:playground}');
     expect(parsed.error).toBeUndefined();
+  });
+
+  it('find:page targets notes with type page', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:page') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual(['page-1']);
+  });
+
+  it('find:note{type:page} targets notes with type page', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:note{type:page}') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual(['page-1']);
+  });
+
+  it('find:note{page:true} targets notes with type page', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:note{page:true}') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual(['page-1']);
+  });
+
+  it('find:page{source:collections} targets collection pages', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:page{source:collections}') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual(['page-1']);
   });
 });
 

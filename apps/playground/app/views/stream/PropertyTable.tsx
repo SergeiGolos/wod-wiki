@@ -7,7 +7,7 @@
 import { useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import type { Entry } from '../../lib/entryMapper'
-import { entryOpenHref } from '../../lib/entryActions'
+import { entryOpenHref, entryCollectionFeedHref } from '../../lib/entryActions'
 import { effortPath } from '../../lib/routes'
 import {
   type EntityLevel,
@@ -108,7 +108,10 @@ export function PropertyTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-border/60">
-          {entries.map(entry => (
+          {entries.map(entry => {
+            const feedHref = entryCollectionFeedHref(entry)
+            const openHref = entryOpenHref(entry)
+            return (
             <tr
               key={entry.id}
               role="button"
@@ -150,9 +153,31 @@ export function PropertyTable({
                         {formatted}
                       </Link>
                     ) : field.id === 'title' || field.id === 'label' ? (
-                      <span className="font-medium text-foreground group-hover:text-primary transition-colors">
-                        {formatted}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                          {formatted}
+                        </span>
+                        {feedHref && (
+                          <div className="flex items-center gap-1.5 ml-auto" onClick={e => e.stopPropagation()}>
+                            <Link
+                              to={openHref}
+                              data-testid="property-table-details-link"
+                              className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted border border-border transition-colors"
+                              title="View collection details"
+                            >
+                              Details
+                            </Link>
+                            <Link
+                              to={feedHref}
+                              data-testid="property-table-feed-link"
+                              className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
+                              title="View collection feed"
+                            >
+                              Feed
+                            </Link>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       formatted
                     )}
@@ -160,7 +185,8 @@ export function PropertyTable({
                 )
               })}
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </div>

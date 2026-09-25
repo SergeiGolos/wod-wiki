@@ -21,7 +21,7 @@ export type SegmentDataType =
 // ---------------------------------------------------------------------------
 // Note — root container
 // ---------------------------------------------------------------------------
-export type NoteKind = 'note' | 'template' | 'playground' | 'journal';
+export type NoteKind = 'note' | 'template' | 'playground' | 'journal' | 'collection' | 'syntax' | 'dashboard' | 'behavior' | 'analytics' | 'home' | 'page' | (string & {});
 
 export interface Note {
   id: string; // UUID — canonical storage identity

@@ -22,7 +22,7 @@ describe('streamProfile presets', () => {
 
   it('defines the Collections stream profile', () => {
     expect(COLLECTIONS_STREAM_PROFILE.route).toBe('/collections')
-    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} by {tag}')
+    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:page,type:collection} by {tag}')
     expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
     expect(COLLECTIONS_STREAM_PROFILE.typeOptions).toEqual(['collections'])
   })
@@ -31,7 +31,7 @@ describe('streamProfile presets', () => {
     expect(FEEDS_STREAM_PROFILE.route).toBe('/feeds')
     expect(FEEDS_STREAM_PROFILE.defaultWql).toBe('find:note{source:feeds} last 2w')
     expect(FEEDS_STREAM_PROFILE.level).toBe('note')
-    expect(FEEDS_STREAM_PROFILE.typeOptions).toEqual(['feeds'])
+    expect(FEEDS_STREAM_PROFILE.typeOptions).toEqual(['feeds', 'collections'])
   })
 
   it('defines the Library stream profile', () => {

@@ -98,11 +98,16 @@ describe('staticNotesFromBlocks', () => {
         sourceId: 'feed:feeds/dan-john/2026-01-12/day-01',
         createdAt: 1768176000000,
       }),
+      blockRow({
+        noteId: 'crossfit-girls',
+        noteTitle: 'Crossfit Girls',
+        sourceId: 'collection:crossfit-girls',
+        createdAt: 0,
+      }),
     ];
     const notes = staticNotesFromBlocks(blocks);
-    expect(notes.length).toBe(2);
+    expect(notes.length).toBe(3);
     expect(notes[0]).toEqual({
-      id: 'crossfit-girls/fran',
       title: 'Fran',
       createdAt: 0,
       type: 'note',
@@ -116,6 +121,14 @@ describe('staticNotesFromBlocks', () => {
       type: 'note',
       sourceId: 'feed:feeds/dan-john/2026-01-12/day-01',
       catalog: 'dan-john',
+    });
+    expect(notes[2]).toEqual({
+      id: 'crossfit-girls',
+      title: 'Crossfit Girls',
+      createdAt: 0,
+      type: 'collection',
+      sourceId: 'page:collection:crossfit-girls',
+      catalog: 'crossfit-girls',
     });
   });
 });

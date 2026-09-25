@@ -26,7 +26,7 @@ export type SegmentDataType =
  * clonedIds, createdFrom, updatedAt, targetDate, templateId) were removed in
  * V11 — see indexeddb-storage-and-page-queries.md.
  */
-export type NoteKind = 'note' | 'template' | 'playground' | 'journal';
+export type NoteKind = 'note' | 'template' | 'playground' | 'journal' | 'collection' | 'syntax' | 'dashboard' | 'behavior' | 'analytics' | 'home' | 'page' | (string & {});
 
 export interface Note {
     id: string;           // UUID — canonical storage identity (V8)

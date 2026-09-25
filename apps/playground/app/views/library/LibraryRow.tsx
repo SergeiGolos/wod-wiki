@@ -7,9 +7,9 @@
  * in the Library page, not the row.
  */
 import { useNavigate, Link } from 'react-router-dom'
-import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell } from 'lucide-react'
+import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell, Rss } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
-import { entryOpenHref, entryCompareHref, entryCanAddToToday } from '../../lib/entryActions'
+import { entryOpenHref, entryCompareHref, entryCanAddToToday, entryCollectionFeedHref } from '../../lib/entryActions'
 import { entryCanRun } from '../../lib/entryRun'
 import { effortPath } from '../../lib/routes'
 
@@ -82,6 +82,8 @@ export function LibraryRow({
   const navigate = useNavigate()
   const Icon = KIND_ICON[entry.kind]
   const isPrimary = tone === 'primary'
+  const feedHref = entryCollectionFeedHref(entry)
+  const openHref = entryOpenHref(entry)
   const visibleSet = visibleFieldIds ? new Set(visibleFieldIds) : null
   const showDate = !visibleSet || visibleSet.has('date')
   const showSubtitle =
@@ -142,6 +144,26 @@ export function LibraryRow({
               {entry.detail ?? entry.execution.effortSlug}
             </Link>
           )}
+          {feedHref && (
+            <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+              <Link
+                to={openHref}
+                data-testid="library-row-details-link"
+                className="text-[9px] font-bold tracking-wide text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted border border-border rounded-full px-2 py-0.5 transition-colors"
+                title="View collection details"
+              >
+                Details
+              </Link>
+              <Link
+                to={feedHref}
+                data-testid="library-row-feed-link"
+                className="text-[9px] font-bold tracking-wide text-primary/80 hover:text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-full px-2 py-0.5 transition-colors"
+                title="View collection feed"
+              >
+                Feed
+              </Link>
+            </div>
+          )}
           {entry.subtitle && showSubtitle && (
             <span className="text-[10px] text-muted-foreground/60 truncate">{entry.subtitle}</span>
           )}
@@ -177,14 +199,20 @@ interface RowActionsProps {
 function RowActions({ entry, onAddToToday, onRunStart }: RowActionsProps) {
   const navigate = useNavigate()
   const compareHref = entryCompareHref(entry)
+  const feedHref = entryCollectionFeedHref(entry)
   const canAdd = entryCanAddToToday(entry) && !!onAddToToday
   const canRun = entryCanRun(entry) && !!onRunStart
 
   return (
     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-      <ActionButton title="Open" testId="action-open" onClick={() => navigate(entryOpenHref(entry))}>
+      <ActionButton title={feedHref ? "Details" : "Open"} testId="action-open" onClick={() => navigate(entryOpenHref(entry))}>
         <PlayIcon className="size-3.5" />
       </ActionButton>
+      {feedHref && (
+        <ActionButton title="Feed" testId="action-feed" onClick={() => navigate(feedHref)}>
+          <Rss className="size-3.5" />
+        </ActionButton>
+      )}
       {canAdd && (
         <ActionButton title="Add to today" testId="action-add" onClick={() => onAddToToday?.(entry)}>
           <PlusIcon className="size-3.5" />

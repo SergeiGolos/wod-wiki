@@ -32,19 +32,35 @@ interface CarriedState {
 
 function carry(parsed: AnyParsedQuery): CarriedState {
   if (parsed.error) return { filters: [] };
-  const filters = parsed.filters.filter((f) => f.key !== 'source');
+  const filters = parsed.filters.filter((f) => f.key !== 'source' && !(f.key === 'type' && f.values.some((v) => v.value === 'collection')));
   if (isAggregateQuery(parsed)) return { filters, window: parsed.window, findJoin: parsed.join };
   if (isFindQuery(parsed)) return { filters, window: parsed.window, metricJoin: parsed.join };
   return { filters, window: parsed.window }; // rows: no joins (C4)
 }
 
-function sourceFilterFor(source: string): TagFilter | null {
-  if (source === 'notes' || source === 'blocks' || source === 'efforts') return null;
-  return {
-    key: 'source',
-    negate: false,
-    values: source.split('|').map((v) => ({ value: v, wildcard: false })),
-  };
+function sourceFilterFor(source: string): TagFilter[] {
+  if (source === 'notes' || source === 'blocks' || source === 'efforts') return [];
+  if (source === 'collections') {
+    return [
+      {
+        key: 'source',
+        negate: false,
+        values: [{ value: 'page', wildcard: false }],
+      },
+      {
+        key: 'type',
+        negate: false,
+        values: [{ value: 'collection', wildcard: false }],
+      },
+    ];
+  }
+  return [
+    {
+      key: 'source',
+      negate: false,
+      values: source.split('|').map((v) => ({ value: v, wildcard: false })),
+    },
+  ];
 }
 
 function contentTarget(source: string): string {
@@ -58,6 +74,8 @@ export function sourceOfQuery(query: string): string {
   if (isAggregateQuery(parsed)) return 'metrics';
   if (isRowsQuery(parsed)) return 'rows';
   const sf = parsed.filters.find((f) => f.key === 'source' && !f.negate);
+  const tf = parsed.filters.find((f) => f.key === 'type' && !f.negate);
+  if (tf?.values.some((v) => v.value === 'collection')) return 'collections';
   if (parsed.target === 'block') return 'blocks';
   if (parsed.target === 'effort') return 'efforts';
   if (!sf || sf.values.every((v) => v.value === 'all')) return 'notes';
@@ -99,12 +117,12 @@ export function pivotSourceQuery(query: string, source: string): string {
     });
   }
 
-  const sourceFilter = sourceFilterFor(source);
+  const sourceFilters = sourceFilterFor(source);
   return serialize({
     family: 'find',
     raw: '',
     target: contentTarget(source),
-    filters: sourceFilter ? [sourceFilter, ...filters] : filters,
+    filters: sourceFilters.length ? [...sourceFilters, ...filters] : filters,
     window,
     join: metricJoin,
   });

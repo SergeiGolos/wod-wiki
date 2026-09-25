@@ -59,6 +59,9 @@ const scriptBlockBaseTheme = EditorView.baseTheme({
   ".cm-wod-fence": {
     opacity: "0.5",
     fontSize: "0.85em",
+    color: "hsl(var(--metric-time))",
+    paddingLeft: "8px",
+    backgroundColor: "rgba(128, 128, 128, 0.05)",
   },
   ".cm-wod-fence-open": {
     borderRadius: "6px 6px 0 0",
