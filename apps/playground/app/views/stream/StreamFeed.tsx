@@ -32,11 +32,12 @@ import {
   Trophy,
   Layers,
   Dumbbell,
+  Rss,
 } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
 import { formatDuration } from '../../lib/entryMapper'
 import type { StreamGroup } from '../../lib/entryGrouping'
-import { entryOpenHref, entryIsPlayground } from '../../lib/entryActions'
+import { entryOpenHref, entryIsPlayground, entryCollectionFeedHref } from '../../lib/entryActions'
 import { entryCanRun } from '../../lib/entryRun'
 import type { BatchedItems } from '../../hooks/useBatchedItems'
 
@@ -163,6 +164,7 @@ export function StreamFeed({ groups, batch, onRunEntry, onSendToPlayground, stic
             {group.entries.map(entry => {
               const Icon = KIND_ICON[entry.kind]
               const openHref = entryOpenHref(entry)
+              const feedHref = entryCollectionFeedHref(entry)
               const sendToPlayground =
                 !entryIsPlayground(entry) &&
                 (entry.kind === 'note' || entry.kind === 'session' || entry.kind === 'post')
@@ -198,8 +200,18 @@ export function StreamFeed({ groups, batch, onRunEntry, onSendToPlayground, stic
                           data-testid="stream-feed-open"
                           className="inline-flex min-h-[44px] items-center rounded-full border border-border px-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
                         >
-                          Open
+                          {feedHref ? 'Details' : 'Open'}
                         </Link>
+                        {feedHref && (
+                          <Link
+                            to={feedHref}
+                            data-testid="stream-feed-collection-feed"
+                            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary/10 border border-primary/30 px-3 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-colors"
+                          >
+                            <Rss className="size-3" />
+                            Feed
+                          </Link>
+                        )}
                         {entryCanRun(entry) && (
                           <button
                             type="button"

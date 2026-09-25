@@ -8,7 +8,7 @@ import { EditorView } from '@codemirror/view';
 import { MemoryRouter } from 'react-router-dom';
 import { usePageScrollSync } from './usePageScrollSync';
 import { NavProvider } from '../nav/NavContext';
-import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
+import { parseDocumentSections } from '@bitcobblers/wod-wiki-core';
 
 if (typeof window !== 'undefined' && !window.requestAnimationFrame) {
   window.requestAnimationFrame = (cb: FrameRequestCallback) => setTimeout(cb, 0) as unknown as number;

@@ -41,6 +41,7 @@ import { defaultStreamQueryEngine, StreamQueryEngine } from '../../lib/entrySear
 import { useNav } from '../../nav/NavContext'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { ResponsiveActions } from '../../nav/ResponsiveActions'
+import { effortPath } from '../../lib/routes'
 import { useComposerQueryState } from '../../hooks/useComposerQueryState'
 import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useDateLocale } from '../../lib/dateLocale'
@@ -390,7 +391,7 @@ export function QueriableStreamView({
                 {profile.route === '/efforts' && (
                   <Button
                     size="sm"
-                    onClick={() => navigate('/effort/new?mode=create')}
+                    onClick={() => navigate(effortPath('new', undefined, { mode: 'create' }))}
                     className="h-8 px-2.5 text-xs gap-1.5"
                     data-testid="efforts-catalog-create-btn"
                   >

@@ -109,7 +109,10 @@ function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; 
     return !sourceId || sourceId === 'journal';
   }
   if (kind === 'collection' || kind === 'collections') {
-    return !!sourceId && sourceId.startsWith('collection:');
+    return !!sourceId && (sourceId.startsWith('collection:') || sourceId.startsWith('page:collection:'));
+  }
+  if (kind === 'page' || kind === 'pages') {
+    return !!sourceId && (sourceId === 'page' || sourceId.startsWith('page:') || sourceId.startsWith('guides:'));
   }
   if (kind === 'feed' || kind === 'feeds') {
     return !!sourceId && sourceId.startsWith('feed:');
@@ -739,6 +742,15 @@ export class QueryService {
       notes = notes.concat(await this.staticNoteStore.getAllNotes());
     }
     notes = applySourceFilter(notes, parsed.filters);
+    const isPageTarget = parsed.target === 'page';
+    const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
+    const hasPageSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'page' || v.value === 'pages'));
+    const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
+    if (isPageTarget || hasPageSource) {
+      notes = notes.filter(isPage);
+    } else if (parsed.target === 'note' && !hasTypeFilter) {
+      notes = notes.filter(n => !isPage(n));
+    }
     const selectedCount = notes.length;
     const ctx = runContext(options);
     // Tag filters — intersect note IDs across OR'd values within a key.
@@ -774,6 +786,15 @@ export class QueryService {
       if (filter.key === 'type' && !filter.negate) {
         const wanted = new Set(filter.values.map(v => v.value));
         notes = notes.filter(n => n.type && wanted.has(n.type));
+      }
+    }
+
+    // Page filter
+    for (const filter of parsed.filters) {
+      if (filter.key === 'page') {
+        const isTrue = filter.values.some(v => v.value === 'true' || v.value === '1');
+        const wantsPage = filter.negate ? !isTrue : isTrue;
+        notes = notes.filter(n => (wantsPage ? n.type === 'page' : n.type !== 'page'));
       }
     }
 
@@ -1352,9 +1373,9 @@ export class QueryService {
 
   /** Look up tag labels for a note across user and static stores. */
   async getNoteTagLabels(noteId: string): Promise<string[]> {
-    const userTags = await this.noteStore.getNoteTagLabels(noteId);
+    const userTags = this.noteStore.getNoteTagLabels ? await this.noteStore.getNoteTagLabels(noteId) : [];
     if (userTags && userTags.length > 0) return userTags;
-    if (this.staticNoteStore) {
+    if (this.staticNoteStore && this.staticNoteStore.getNoteTagLabels) {
       const staticTags = await this.staticNoteStore.getNoteTagLabels(noteId);
       if (staticTags && staticTags.length > 0) return staticTags;
     }

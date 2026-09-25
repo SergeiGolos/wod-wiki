@@ -7,8 +7,6 @@ import {
   OutputStatement,
   OwnershipResolver,
   createMetricOwnershipLedger,
-  Duration,
-  SpanDuration,
   BlockKey,
   runAffordance,
   isWorkoutSectionType,
@@ -74,26 +72,11 @@ describe('@bitcobblers/wod-wiki-core public API', () => {
     });
   });
 
-  describe('TimeSpan & Duration', () => {
+  describe('TimeSpan', () => {
     it('handles TimeSpan shape', () => {
       const span: TimeSpan = { started: 1000, ended: 5000 };
       expect(span.started).toBe(1000);
       expect(span.ended).toBe(5000);
-    });
-
-    it('Duration breaks milliseconds into components', () => {
-      const d = new Duration(125000); // 2m 5s
-      expect(d.minutes).toBe(2);
-      expect(d.seconds).toBe(5);
-    });
-
-    it('SpanDuration sums span durations', () => {
-      const spans: TimeSpan[] = [
-        { started: 1000, ended: 3000 },
-        { started: 5000, ended: 8000 },
-      ];
-      const sd = new SpanDuration(spans);
-      expect(sd.original).toBe(5000);
     });
   });
 

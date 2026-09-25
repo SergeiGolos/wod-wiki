@@ -44,6 +44,9 @@ export function entryOpenHref(entry: Entry): string {
         }
         return noteByIdPath(entry.id)
       case 'session':
+        if (!entry.sourceItem) {
+          return `/c/${encodeURIComponent(entry.sourceCatalog)}`
+        }
         return `/c/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
       case 'post': {
         const date = entry.date ?? ''
@@ -67,6 +70,14 @@ export function entryOpenHref(entry: Entry): string {
  *  action — the feed's "Playground" action targets non-playground content). */
 export function entryIsPlayground(entry: Entry): boolean {
   return entry.sourceCatalog === 'playground' || entry.sourceId === 'playground'
+}
+
+/** Feed deep link for collection definition entries. */
+export function entryCollectionFeedHref(entry: Entry): string | null {
+  if (entry.kind === 'session' && !entry.sourceItem) {
+    return `/feeds?q=${encodeURIComponent(`find:note{source:collections,catalog:${entry.sourceCatalog}}`)}`
+  }
+  return null
 }
 
 /** Compare: any row with a blockContentId; routes to the WQL explorer on the

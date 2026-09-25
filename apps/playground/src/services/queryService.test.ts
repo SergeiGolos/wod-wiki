@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import { queryService } from './queryService';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storage } from '@/services/storage';
 import type { BlockIndexRow } from '@/types/storage';
 
 function parseFindQuery(raw: string) {
@@ -34,15 +34,12 @@ function corpusRow(partial: Partial<BlockIndexRow>): BlockIndexRow {
 // materializes it. This fixture plays the importer: write corpus rows before
 // the first query so the derived projections have data to read.
 beforeAll(async () => {
-  const db = await indexedDBService.getDB();
   const rows: BlockIndexRow[] = [
     corpusRow({ id: 'static:crossfit-girls/fran:front:1', noteId: 'crossfit-girls/fran', sourceId: 'collection:crossfit-girls/fran', dataType: 'frontmatter', rawContent: 'tags: [benchmark]' }),
     corpusRow({ id: 'static:crossfit-girls/fran:body:1', noteId: 'crossfit-girls/fran', sourceId: 'collection:crossfit-girls/fran', noteTitle: 'Fran' }),
     corpusRow({ id: 'static:feeds/dan-john/2026-01-12/day-01:body:1', noteId: 'feeds/dan-john/2026-01-12/day-01', sourceId: 'feed:feeds/dan-john/2026-01-12/day-01', noteTitle: 'Day 01' }),
   ];
-  const tx = db.transaction('block_index', 'readwrite');
-  for (const row of rows) await tx.store.put(row);
-  await tx.done;
+  for (const row of rows) await storage.readwrite('block_index').put(row);
 });
 
 describe('queryService with the seeded corpus', () => {

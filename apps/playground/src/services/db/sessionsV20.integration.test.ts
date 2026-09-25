@@ -1,9 +1,10 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
-import { IndexedDBService } from './IndexedDBService';
+import { InMemoryStorage, StorageService } from '@/services/storage';
 import type { Session } from '@/types/storage';
 
-describe('IndexedDBService V20 sessions migration', () => {
-  const service = new IndexedDBService();
+describe('StorageService sessions operations', () => {
+  const storage = new InMemoryStorage();
+  const service = new StorageService(storage);
 
   beforeEach(async () => {
     await service.wipe();

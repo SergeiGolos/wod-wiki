@@ -12,14 +12,14 @@ import type { BlockIndexRow, Note } from '@/types/storage';
 import type { NoteQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { setSuggestionBinding, catalogIdsFromBlocks } from '@bitcobblers/wod-wiki-ui';
-import { indexedDBService } from '@/services/db/IndexedDBService';
-
+import { storageService } from '@/services/storage';
+import { getScriptCollections } from '@/repositories/script-collections';
 let corpusBlocksPromise: Promise<BlockIndexRow[]> | null = null;
 
 /** Memoized corpus (`isStatic`) block rows from the block_index store. */
 export function loadCorpusBlocks(): Promise<BlockIndexRow[]> {
     if (!corpusBlocksPromise) {
-        corpusBlocksPromise = indexedDBService
+        corpusBlocksPromise = storageService
             .getAllBlockIndex()
             .then((rows) => rows.filter((row) => row.isStatic === true))
             .catch((err) => {
@@ -33,6 +33,8 @@ export function loadCorpusBlocks(): Promise<BlockIndexRow[]> {
 /** Drop the memoized corpus read — call when a new seed lands. */
 export function invalidateCorpusBlocks(): void {
     corpusBlocksPromise = null;
+    staticNotesPromise = null;
+    staticTagIndexPromise = null;
 }
 
 /**
@@ -74,14 +76,20 @@ export function staticTagIndexFromBlocks(blocks: BlockIndexRow[]): Map<string, S
  */
 export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
     const map = new Map<string, Note>();
+    const tagsByNote = new Map<string, string[]>();
     for (const block of blocks) {
+        if (block.dataType === 'frontmatter') {
+            const tags = extractFrontmatterTags(block.rawContent);
+            if (tags.length > 0) tagsByNote.set(block.noteId, tags);
+        }
         if (!map.has(block.noteId)) {
+            const isCollectionPage = !block.noteId.includes('/') && (block.sourceId?.startsWith('page:collection:') || block.sourceId?.startsWith('collection:'));
             map.set(block.noteId, {
                 id: block.noteId,
                 title: block.noteTitle,
                 createdAt: block.createdAt,
-                type: 'note',
-                sourceId: block.sourceId,
+                type: isCollectionPage ? 'collection' : 'note',
+                sourceId: isCollectionPage ? `page:collection:${block.noteId}` : block.sourceId,
                 // Catalog: drop the `feeds/` wrapper for feed rows, then take the
                 // first path segment. For collections (`<dir>/<file>`) the first
                 // segment is the directory; for feeds (`feeds/<dir>/<date>/<file>`)
@@ -90,13 +98,39 @@ export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
             });
         }
     }
+    for (const [noteId, tags] of tagsByNote.entries()) {
+        const n = map.get(noteId);
+        if (n) n.tags = tags;
+    }
     return Array.from(map.values());
 }
 
 let staticNotesPromise: Promise<Note[]> | null = null;
 export function loadStaticNotes(): Promise<Note[]> {
     if (!staticNotesPromise) {
-        staticNotesPromise = loadCorpusBlocks().then(staticNotesFromBlocks);
+        staticNotesPromise = loadCorpusBlocks().then(async (blocks) => {
+            const notes = staticNotesFromBlocks(blocks);
+            const hasCollectionPages = notes.some(n => n.type === 'collection' && n.sourceId?.startsWith('page:collection:'));
+            if (!hasCollectionPages) {
+                try {
+                    const collections = await getScriptCollections();
+                    for (const col of collections) {
+                        notes.push({
+                            id: col.id,
+                            title: col.name,
+                            createdAt: 0,
+                            type: 'collection',
+                            sourceId: `page:collection:${col.id}`,
+                            catalog: col.id,
+                            tags: col.categories,
+                        });
+                    }
+                } catch {
+                    // test environment
+                }
+            }
+            return notes;
+        });
     }
     return staticNotesPromise;
 }
@@ -108,17 +142,34 @@ let staticTagIndexPromise: Promise<Map<string, Set<string>>> | null = null;
  */
 export function loadStaticTagIndex(): Promise<Map<string, Set<string>>> {
     if (!staticTagIndexPromise) {
-        staticTagIndexPromise = loadCorpusBlocks().then(staticTagIndexFromBlocks);
+        staticTagIndexPromise = loadCorpusBlocks().then(async (blocks) => {
+            const index = staticTagIndexFromBlocks(blocks);
+            try {
+                const collections = await getScriptCollections();
+                for (const col of collections) {
+                    for (const cat of col.categories) {
+                        const set = index.get(cat);
+                        if (set) set.add(col.id);
+                        else index.set(cat, new Set([col.id]));
+                    }
+                }
+            } catch {
+                // test environment
+            }
+            return index;
+        });
     }
     return staticTagIndexPromise;
 }
-
 export const staticNoteStore: NoteQueryStore = {
     getAllNotes: () => loadStaticNotes(),
     getNoteIdsForTag: async (label) =>
         (await loadStaticTagIndex()).get(label) ?? new Set<string>(),
     // The corpus notes' tags live on their frontmatter block rows.
     getNoteTagLabels: async (noteId) => {
+        const notes = await loadStaticNotes();
+        const note = notes.find((n) => n.id === noteId);
+        if (note?.tags && note.tags.length > 0) return note.tags;
         const blocks = await loadCorpusBlocks();
         return blocks
             .filter((b) => b.noteId === noteId && b.dataType === 'frontmatter')
@@ -145,7 +196,7 @@ setSuggestionBinding('tag', {
         const staticTags = Array.from(tagIndex.keys());
         let userTags: string[] = [];
         try {
-            userTags = (await indexedDBService.getAllTags()).map((t) => t.label);
+            userTags = (await storageService.getAllTags()).map((t) => t.label);
         } catch {
             // IndexedDB not ready in isolated test environments
         }

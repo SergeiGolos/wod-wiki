@@ -4,8 +4,8 @@ import {
   buildRawContent,
   calculateTotalLines,
   matchSectionIds,
-} from '../sectionParser';
-import { isWorkoutSectionType } from '../../types/section';
+  isWorkoutSectionType,
+} from '@bitcobblers/wod-wiki-core';
 
 describe('parseDocumentSections', () => {
   it('returns empty array for empty string', () => {

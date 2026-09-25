@@ -23,7 +23,7 @@ import type { ScriptBlock } from '@/components/Editor/types'
 import type { Session } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
-import { indexedDBService } from '@/services/db/IndexedDBService'
+import { storageService } from '@/services/storage'
 import { pendingRuntimes } from '../runtimeStore'
 import { noteByIdPath, runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
@@ -106,7 +106,7 @@ export function PlaygroundNotePage({
   const [results, setResults] = useState<Session[]>([])
 
   const refreshResults = useCallback(() => {
-    indexedDBService.getResultsForNote(runtimeNoteId)
+    storageService.getResultsForNote(runtimeNoteId)
       .then(results => setResults(results))
       .catch(() => {})
   }, [runtimeNoteId])

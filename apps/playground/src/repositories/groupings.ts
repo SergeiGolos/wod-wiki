@@ -89,7 +89,7 @@ export function buildGroupings(root: GroupingRoot, files: Record<string, string>
   for (const [path, content] of Object.entries(files)) {
     if (root === 'collections') {
       // One level deep: markdown/collections/{dir}/{file}.md
-      const match = path.match(/\/markdown\/collections\/([^/]+)\/([^/]+\.md)$/);
+      const match = path.match(/(?:^|\/)markdown\/collections\/([^/]+)\/([^/]+\.md)$/);
       if (!match) continue; // root-level files are intentionally ignored
       const [, dirName, fileName] = match;
       const grouping = ensureGrouping(dirName);
@@ -109,7 +109,7 @@ export function buildGroupings(root: GroupingRoot, files: Record<string, string>
     }
 
     // Feeds: README at feed root, dated items one level deeper.
-    const readmeMatch = path.match(/\/markdown\/feeds\/([^/]+)\/README\.md$/i);
+    const readmeMatch = path.match(/(?:^|\/)markdown\/feeds\/([^/]+)\/README\.md$/i);
     if (readmeMatch) {
       const grouping = ensureGrouping(readmeMatch[1]);
       grouping.readme = content;
@@ -117,7 +117,7 @@ export function buildGroupings(root: GroupingRoot, files: Record<string, string>
       continue;
     }
 
-    const itemMatch = path.match(/\/markdown\/feeds\/([^/]+)\/(\d{4}-\d{2}-\d{2})\/([^/]+\.md)$/);
+    const itemMatch = path.match(/(?:^|\/)markdown\/feeds\/([^/]+)\/(\d{4}-\d{2}-\d{2})\/([^/]+\.md)$/);
     if (itemMatch) {
       const [, slug, dateKey, fileName] = itemMatch;
       ensureGrouping(slug).items.push({

@@ -41,12 +41,9 @@ global.indexedDB = {
   })),
 } as any;
 
+import { storageService } from '@/services/storage';
 const mockGetRecentResults = mock((): Promise<Session[]> => Promise.resolve([]));
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getRecentResults: mockGetRecentResults,
-  },
-}));
+storageService.getRecentResults = mockGetRecentResults;
 
 mock.module('./playgroundContent', () => ({
   pageId: (category: string, name: string) => `${category}/${name}`,

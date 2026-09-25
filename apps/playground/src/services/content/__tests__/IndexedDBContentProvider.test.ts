@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
-import { parseDocumentSections } from '../../../components/Editor/utils/sectionParser';
+import { parseDocumentSections } from '@bitcobblers/wod-wiki-core';
 import { parseDashboardNote, buildDashboardDocument, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';
 
 const savedNotes: Note[] = [];
@@ -9,42 +9,38 @@ const notes: Note[] = [];
 // T4 bridge capture: noteId -> labels from the last setNoteTags call.
 const noteTagsByNote = new Map<string, string[]>();
 
-mock.module('../../db/IndexedDBService', () => ({
-  indexedDBService: {
-    getNote: async (id: string) => notes.find(note => note.id === id) ?? savedNotes.find(note => note.id === id),
-    getAllNotes: async () => [...notes, ...savedNotes],
-    getTagsForNote: async (noteId: string) =>
-      (noteTagsByNote.get(noteId) ?? []).map(label => ({ id: `tag-${label}`, label, createdAt: 0 })),
-    setNoteTags: async (noteId: string, labels: string[]) => {
-      noteTagsByNote.set(noteId, labels);
-    },
-    getPage: async (_id: string) => undefined,
-    getAllSegments: async () => savedSegments,
-    getResultsForNote: async () => [],
-    getAttachmentsForNote: async () => [],
-    saveNote: async (note: Note) => {
-      savedNotes.push(note);
-      return note.id;
-    },
-    saveSegment: async (segment: NoteSegment) => {
-      // IndexedDB put semantics: one row per [id, version].
-      const index = savedSegments.findIndex(s => s.id === segment.id && s.version === segment.version);
-      if (index >= 0) savedSegments[index] = segment;
-      else savedSegments.push(segment);
-      return segment.id;
-    },
-    getLatestSegmentsForNote: async (noteId: string) => {
-      const latest = new Map<string, NoteSegment>();
-      for (const segment of savedSegments.filter(s => s.noteId === noteId)) {
-        const current = latest.get(segment.id);
-        if (!current || segment.version > current.version) latest.set(segment.id, segment);
-      }
-      return [...latest.values()].sort(
-        (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
-      );
-    },
-  },
-}));
+import { storageService } from '@/services/storage';
+storageService.getNote = async (id: string) => notes.find(note => note.id === id) ?? savedNotes.find(note => note.id === id);
+storageService.getAllNotes = async () => [...notes, ...savedNotes];
+storageService.getTagsForNote = async (noteId: string) =>
+  (noteTagsByNote.get(noteId) ?? []).map(label => ({ id: `tag-${label}`, label, createdAt: 0 }));
+storageService.setNoteTags = async (noteId: string, labels: string[]) => {
+  noteTagsByNote.set(noteId, labels);
+};
+storageService.getPage = async (_id: string) => undefined;
+storageService.getAllSegments = async () => savedSegments;
+storageService.getResultsForNote = async () => [];
+storageService.getAttachmentsForNote = async () => [];
+storageService.saveNote = async (note: Note) => {
+  savedNotes.push(note);
+  return note.id;
+};
+storageService.saveSegment = async (segment: NoteSegment) => {
+  const index = savedSegments.findIndex(s => s.id === segment.id && s.version === segment.version);
+  if (index >= 0) savedSegments[index] = segment;
+  else savedSegments.push(segment);
+  return segment.id;
+};
+storageService.getLatestSegmentsForNote = async (noteId: string) => {
+  const latest = new Map<string, NoteSegment>();
+  for (const segment of savedSegments.filter(s => s.noteId === noteId)) {
+    const current = latest.get(segment.id);
+    if (!current || segment.version > current.version) latest.set(segment.id, segment);
+  }
+  return [...latest.values()].sort(
+    (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
+  );
+};
 
 const providerModule = import('../IndexedDBContentProvider');
 const originalDateNow = Date.now;

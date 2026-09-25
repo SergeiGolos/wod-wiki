@@ -4,7 +4,7 @@
  * The LibraryRow consumes this; the test seam is the URL.
  */
 import { describe, it, expect } from 'bun:test'
-import { entryOpenHref, entryCompareHref, entryCanAddToToday, entryIsPlayground } from './entryActions'
+import { entryOpenHref, entryCompareHref, entryCanAddToToday, entryIsPlayground, entryCollectionFeedHref } from './entryActions'
 import type { Entry } from './entryMapper'
 
 function makeEntry(overrides: Partial<Entry> = {}): Entry {
@@ -72,6 +72,15 @@ describe('entryOpenHref', () => {
     }))).toBe('/c/crossfit-girls/fran')
   })
 
+  it('routes a collection page Session to the /c collection landing', () => {
+    expect(entryOpenHref(makeEntry({
+      id: 'crossfit-girls',
+      kind: 'session',
+      sourceCatalog: 'crossfit-girls',
+      sourceItem: '',
+    }))).toBe('/c/crossfit-girls')
+  })
+
   it('routes an Effort to the /e slug editor', () => {
     expect(entryOpenHref(makeEntry({
       id: 'grace',
@@ -87,6 +96,28 @@ describe('entryOpenHref', () => {
       sourceItem: 'monday',
       date: '2026-01-12',
     }))).toBe('/feeds/crossfit-programming/2026-01-12/monday')
+  })
+})
+
+describe('entryCollectionFeedHref', () => {
+  it('routes a collection page Session to the /feeds route with collection filter', () => {
+    const entry = makeEntry({
+      id: 'crossfit-girls',
+      kind: 'session',
+      sourceCatalog: 'crossfit-girls',
+      sourceItem: '',
+    })
+    expect(entryCollectionFeedHref(entry)).toBe('/feeds?q=find%3Anote%7Bsource%3Acollections%2Ccatalog%3Acrossfit-girls%7D')
+  })
+
+  it('returns null for regular workouts', () => {
+    const entry = makeEntry({
+      id: 'crossfit-girls/fran',
+      kind: 'session',
+      sourceCatalog: 'crossfit-girls',
+      sourceItem: 'fran',
+    })
+    expect(entryCollectionFeedHref(entry)).toBeNull()
   })
 })
 

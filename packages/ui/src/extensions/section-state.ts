@@ -1,8 +1,10 @@
-import { blockContentId } from "@bitcobblers/wod-wiki-core";
+import {
+  blockContentId,
+  generateSectionId as coreGenerateSectionId,
+  matchDialectFence as coreMatchDialectFence,
+} from "@bitcobblers/wod-wiki-core";
 import { StateField, StateEffect, EditorState } from "@codemirror/state";
 import { parseQueryWidgetSuffix } from '@bitcobblers/wod-wiki-wql';
-import { hashCode } from "../utils/cn";
-
 export type EditorDialect = "time" | "log";
 const VALID_DIALECTS: EditorDialect[] = ["time", "log"];
 
@@ -53,8 +55,8 @@ export interface SectionState {
 
 export const forceSectionParse = StateEffect.define<null>();
 export { blockContentId };
-function generateSectionId(type: string, startLine: number, content: string): string {
-  return `${type}-${startLine}-${hashCode(content).toString(36)}`;
+function generateSectionId(type: string, cmStartLine: number, content: string): string {
+  return coreGenerateSectionId(type, cmStartLine - 1, content);
 }
 
 function mapIdentities(
@@ -70,11 +72,9 @@ function mapIdentities(
 }
 
 function matchDialectFence(trimmed: string): DialectFenceMatch | null {
-  const match = trimmed.match(/^```\s*(\w+)(?::(\w+))?\s*$/);
+  const match = coreMatchDialectFence(trimmed);
   if (!match) return null;
-  const tag = match[1].toLowerCase() as EditorDialect;
-  if (!VALID_DIALECTS.includes(tag)) return null;
-  return { dialect: tag, sport: match[2]?.toLowerCase() };
+  return { dialect: match.dialect as EditorDialect, sport: match.sport };
 }
 
 function matchWidgetFence(trimmed: string): string | null {

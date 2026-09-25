@@ -11,7 +11,7 @@
  * 2. Short title
  * 3. Long title (verifying text truncation)
  */
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta } from '@storybook/react-vite';
 import type { HistoryEntry } from '@/types/history';
 import { historyEntryToListItem } from '@/components/molecules/adapters/historyAdapter';
 import { DefaultListItem } from '@/components/molecules/DefaultListItem';

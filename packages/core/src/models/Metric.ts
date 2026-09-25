@@ -1,4 +1,13 @@
-import type { MetricOwnershipLayer } from '../ownership/types';
+/**
+ * Canonical ownership vocabulary for metric visibility decisions.
+ * Ordered from lowest to highest ownership precedence.
+ */
+export type MetricOwnershipLayer =
+  | 'parser'
+  | 'dialect'
+  | 'user-plan'
+  | 'runtime'
+  | 'user-entry';
 
 /**
  * Origin of a metric - where it was created and its current state.

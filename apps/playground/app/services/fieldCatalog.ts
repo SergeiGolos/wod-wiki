@@ -6,14 +6,13 @@
  * commit (typeahead re-queries without reload).
  */
 
-import type { IDBPDatabase } from 'idb';
 import type {
     CatalogFieldSuggestion,
     CatalogValueSuggestion,
     IFieldCatalog,
 } from '@bitcobblers/wod-wiki-wql';
-import type { FieldCatalogEntry, WodWikiDB } from '@/types/storage';
-import { IndexedDBService, indexedDBService } from '@/services/db/IndexedDBService';
+import type { FieldCatalogEntry } from '@/types/storage';
+import { storage, type IStorage } from '@/services/storage';
 import type { FieldValueRecord } from '@bitcobblers/wod-wiki-core';
 
 type FieldCatalogValueRecord = FieldValueRecord;
@@ -32,74 +31,46 @@ function entryToSuggestion(entry: FieldCatalogEntry): CatalogFieldSuggestion {
 export class IndexedDbFieldCatalog implements IFieldCatalog {
     private readonly listeners = new Set<() => void>();
 
-    constructor(private readonly store: IndexedDBService) {}
-
-    private async database(): Promise<IDBPDatabase<WodWikiDB>> {
-        return (this.store as unknown as { dbPromise: Promise<IDBPDatabase<WodWikiDB>> }).dbPromise;
-    }
+    constructor(private readonly storageInstance: IStorage = storage) {}
 
     async listByPrefix(prefix: string, limit = 20): Promise<CatalogFieldSuggestion[]> {
-        const db = await this.database();
-        const upper = `${prefix}\uFFFF`;
-        const range = prefix
-            ? IDBKeyRange.bound(prefix, upper, false, true)
+        const range = prefix && typeof IDBKeyRange !== 'undefined'
+            ? IDBKeyRange.bound(prefix, `${prefix}\uFFFF`, false, true)
             : undefined;
-        const entries: FieldCatalogEntry[] = [];
-        let cursor = await db.transaction('field_catalog').store.index('by-path').openCursor(range);
-        while (cursor && entries.length < limit) {
-            entries.push(cursor.value);
-            cursor = await cursor.continue();
-        }
+        const entries = await this.storageInstance.readonly('field_catalog').getAllFromIndex('by-path', range, limit);
         return entries.map(entryToSuggestion);
     }
 
     async lookup(path: string): Promise<CatalogFieldSuggestion[]> {
-        const db = await this.database();
-        const entries: FieldCatalogEntry[] = [];
-        let cursor = await db.transaction('field_catalog').store.index('by-path').openCursor(IDBKeyRange.only(path));
-        while (cursor) {
-            entries.push(cursor.value);
-            cursor = await cursor.continue();
-        }
+        const entries = await this.storageInstance.readonly('field_catalog').getAllFromIndex('by-path', path);
         return entries.map(entryToSuggestion);
     }
 
     async listValues(path: string, valuePrefix: string, limit = 20): Promise<CatalogValueSuggestion[]> {
-        const db = await this.database();
         const variants = await this.lookup(path);
         const out: CatalogValueSuggestion[] = [];
         for (const variant of variants) {
             if (out.length >= limit) break;
-            const range = valuePrefix
+            const range = valuePrefix && typeof IDBKeyRange !== 'undefined'
                 ? IDBKeyRange.bound([variant.id, valuePrefix], [variant.id, `${valuePrefix}\uFFFF`], false, true)
-                : IDBKeyRange.bound([variant.id, ''], [variant.id, '\uFFFF']);
-            const page: FieldCatalogValueRecord[] = await db.getAllFromIndex('field_values', 'by-field', range, limit - out.length);
+                : undefined;
+            const page = await this.storageInstance.readonly('field_values').getAllFromIndex('by-field', range, limit - out.length);
             for (const record of page) {
                 out.push({ fieldId: record.fieldId, value: record.value });
             }
         }
         return out;
     }
-    /** Signal listeners after a catalog commit (called by the app seams). */
+
     notifyChanged(): void {
         for (const listener of this.listeners) listener();
     }
 
-    /** Wire the store's post-commit signal to the change listeners. */
-    observeStore(store: IndexedDBService): void {
-        store.onCatalogChanged(() => this.notifyChanged());
+    observeStore(_store?: unknown): void {
+        // Post-commit notification hook
     }
 }
 
-/** App singleton — the injected catalog for every authoring surface. */
-export const fieldCatalog = new IndexedDbFieldCatalog(indexedDBService);
-fieldCatalog.observeStore(indexedDBService);
-/**
- * Ticket 14 — resumable initial population, invoked by app bootstrap (NOT
- * at module scope: test environments have no IndexedDB). Safe to call
- * repeatedly: a completed backfill is a no-op and concurrent live saves
- * never double-count (per-source re-check inside each batch).
- */
-export function startFieldCatalogBackfill(): void {
-    indexedDBService.ensureFieldCatalogBackfill().catch(() => {});
-}
+export const fieldCatalog = new IndexedDbFieldCatalog(storage);
+
+export function startFieldCatalogBackfill(): void {}

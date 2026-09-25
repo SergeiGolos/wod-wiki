@@ -9,10 +9,9 @@ import { v7 as uuidv7 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
-import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDBService';
+import { storageService, type StorageService } from '@/services/storage';
 import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
-import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
-import { Section, SectionType, ScriptBlock } from '../../components/Editor/types/section';
+import { parseDocumentSections, type Section, type SectionType, type ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { extractFrontmatterTags } from '../../lib/frontmatter';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import { sessionToPayload } from '../persistence/sessionPayload';
@@ -93,7 +92,7 @@ export class IndexedDBContentProvider implements IContentProvider {
      * @param db storage backing — injectable so tests can supply a real
      * service instance when the module-level singleton is registry-mocked.
      */
-    constructor(private readonly db: IndexedDBService = indexedDBService) {}
+    constructor(private readonly db: StorageService = storageService) {}
 
     readonly mode: ContentProviderMode = 'history';
     readonly persistenceBackend = 'indexed-db' as const;
@@ -122,7 +121,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             tagsByNote.set(note.id, (await this.db.getTagsForNote(note.id)).map(t => t.label));
         }));
 
-        const allSegments = await (this.db as IndexedDBService).getAllSegments();
+        const allSegments = await this.db.getAllSegments();
         const latestByNote = new Map<string, Map<string, NoteSegment>>();
         for (const segment of allSegments) {
             let byId = latestByNote.get(segment.noteId);

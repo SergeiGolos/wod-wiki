@@ -11,7 +11,7 @@ import { SEED_BROADCAST_CHANNEL } from '@/types/seed';
  * render their empty/loading state first, then re-render when it arrives.
  */
 import { useEffect, useSyncExternalStore } from 'react';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import { SEED_BROADCAST_CHANNEL } from '@/services/seed/seedSync';
 import { invalidateCorpusBlocks } from '@/services/content/staticBlockIndex';
 
@@ -26,7 +26,7 @@ function notify(): void {
 }
 
 async function load(): Promise<SeedContentFiles> {
-  const entries = await indexedDBService.getSeedContent();
+  const entries = await storageService.getSeedContent();
   const files: SeedContentFiles = {};
   for (const { path, raw } of entries) files[path] = raw;
   return files;

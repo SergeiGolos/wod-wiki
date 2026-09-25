@@ -35,7 +35,7 @@ import {
   parseDashboardNote,
   type WidgetOpResult,
 } from '@bitcobblers/wod-wiki-wql';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import {
   buildDashboardDocument,
   defaultTokenValues,
@@ -75,7 +75,7 @@ export function DashboardViewPage() {
   const [hasFacts, setHasFacts] = useState<boolean | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void indexedDBService.countEvents().then((n) => {
+    void storageService.countEvents().then((n) => {
       if (!cancelled) setHasFacts(n > 0);
     });
     return () => { cancelled = true; };

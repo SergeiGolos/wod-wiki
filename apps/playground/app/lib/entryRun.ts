@@ -31,6 +31,7 @@ import { entryOpenHref, entryIsPlayground } from './entryActions'
  *  block actually resolves is determined at click time (startEntryRun
  *  surfaces a visible error when none exists). */
 export function entryCanRun(entry: Entry): boolean {
+  if (entry.kind === 'session' && !entry.sourceItem) return false
   return entry.kind === 'note' || entry.kind === 'session' || entry.kind === 'post'
 }
 

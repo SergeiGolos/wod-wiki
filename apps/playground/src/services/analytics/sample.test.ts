@@ -1,18 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 import { QueryService, type EventStore, type NoteQueryStore } from '@bitcobblers/wod-wiki-wql';
-import type { IndexedDBService } from '@/services/db/IndexedDBService';
+import type { StorageService } from '@/services/storage';
 import { loadSampleData, purgeSampleData, hasSampleData, setSampleDataService } from '@/services/analytics/sample';
 import type { AnalyticsDataPoint, EventRecord, Note } from '@/types/storage';
 
-// @ts-expect-error — bun-only '?real' specifier: bypasses the shared
-// mock.module registry (sibling files stub this module process-globally).
-// Dynamic import is intentional — a test exercising the module-loading boundary.
-const { IndexedDBService: RealIndexedDBService } = await import('@/services/db/IndexedDBService?real');
+import { InMemoryStorage, StorageService as RealStorageService } from '@/services/storage';
 
-const service: IndexedDBService = new RealIndexedDBService();
+const storage = new InMemoryStorage();
+const service: StorageService = new RealStorageService(storage);
 setSampleDataService(service);
 
-function noteStore(serviceInstance: IndexedDBService): NoteQueryStore {
+function noteStore(serviceInstance: StorageService): NoteQueryStore {
   return {
     getAllNotes: () => serviceInstance.getAllNotes(),
     getNoteIdsForTag: async (label) => new Set((await serviceInstance.getNotesForTag(label)).map(n => n.id)),
@@ -20,7 +18,7 @@ function noteStore(serviceInstance: IndexedDBService): NoteQueryStore {
   };
 }
 
-function queryService(serviceInstance: IndexedDBService) {
+function queryService(serviceInstance: StorageService) {
   return new QueryService({ eventStore: serviceInstance as EventStore, noteStore: noteStore(serviceInstance) });
 }
 

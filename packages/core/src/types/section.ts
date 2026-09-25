@@ -44,7 +44,16 @@ export function runAffordance(baseTag: string): 'run' | 'log' | null {
 }
 
 /** Section types the editor can parse and render */
-export type SectionType = 'title' | 'markdown' | 'time' | 'log' | 'frontmatter' | 'embed';
+export type SectionType =
+  | 'title'
+  | 'markdown'
+  | 'time'
+  | 'log'
+  | 'frontmatter'
+  | 'embed'
+  | 'code'
+  | 'widget'
+  | 'query';
 
 /** Workout section types — the runnable/recorded fence tags */
 export type WorkoutSectionType = Extract<SectionType, FenceDialect>;
@@ -96,6 +105,7 @@ export interface Section {
   id: string;
   contentId?: string;
   type: SectionType;
+  subtype?: string;
   rawContent: string;
   displayContent: string;
   startLine: number;
@@ -103,6 +113,9 @@ export interface Section {
   lineCount: number;
   level?: number;
   sport?: string;
+  widgetName?: string;
+  queryType?: string;
+  queryError?: string;
   scriptBlock?: ScriptBlock;
   properties?: Record<string, string>;
   frontmatterType?: FrontMatterSubtype;

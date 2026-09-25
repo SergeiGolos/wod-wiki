@@ -23,34 +23,32 @@ import {
 // same name, and the two differ on baseAttributes' index signature (0.6.36).
 import type { IEffort } from '@bitcobblers/wod-wiki-wql';
 import { getAppEffortRegistry } from '@/services/effortRegistry';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { storageService } from '@/services/storage';
 import { staticNoteStore } from '@/services/content/staticBlockIndex';
 
 /** Unified event store over IndexedDB — the `events` object store (V16). */
 export const indexedDbEventStore: EventStore = {
-  getEventsByTimeRange: (start: number, end: number) => indexedDBService.getEventsByTimeRange(start, end),
-  // Ticket 12/14 complete fetch — the V17 by-metric-date multiEntry index.
-  getEventsByMetricDates: (dates) => indexedDBService.getEventsByMetricDates(dates),
-  getEventsByResult: (resultId: string) => indexedDBService.getEventsByResult(resultId),
-  getEventsForNote: (noteId: string) => indexedDBService.getEventsForNote(noteId),
-  getEventsByContent: (blockContentId: string) => indexedDBService.getEventsByContent(blockContentId),
-  scanAll: () => indexedDBService.scanAll(),
-  appendEvents: (rows) => indexedDBService.appendEvents(rows),
-  finalizeSummaries: (resultId, rows) => indexedDBService.finalizeSummaries(resultId, rows),
-  deleteEvents: (ids) => indexedDBService.deleteEvents(ids),
+  getEventsByTimeRange: (start: number, end: number) => storageService.getEventsByTimeRange(start, end),
+  getEventsByMetricDates: (dates) => storageService.getEventsByMetricDates(dates),
+  getEventsByResult: (resultId: string) => storageService.getEventsByResult(resultId),
+  getEventsForNote: (noteId: string) => storageService.getEventsForNote(noteId),
+  getEventsByContent: (blockContentId: string) => storageService.getEventsByContent(blockContentId),
+  scanAll: () => storageService.scanAll(),
+  appendEvents: (rows) => storageService.appendEvents(rows),
+  finalizeSummaries: (resultId, rows) => storageService.finalizeSummaries(resultId, rows),
+  deleteEvents: (ids) => storageService.deleteEvents(ids),
 };
 
 export const indexedDbNoteStore: NoteQueryStore = {
-  getAllNotes: () => indexedDBService.getAllNotes(),
+  getAllNotes: () => storageService.getAllNotes(),
   getNoteIdsForTag: async (label: string) =>
-    new Set((await indexedDBService.getNotesForTag(label)).map((n) => n.id)),
-  // Moved here from the retired FactQueryStore — it reads note tags, not facts.
+    new Set((await storageService.getNotesForTag(label)).map((n) => n.id)),
   getNoteTagLabels: async (noteId: string) =>
-    (await indexedDBService.getTagsForNote(noteId)).map((tag) => tag.label),
+    (await storageService.getTagsForNote(noteId)).map((tag) => tag.label),
 };
 
 export const indexedDbBlockStore: BlockQueryStore = {
-  getAllBlocks: () => indexedDBService.getAllBlockIndex(),
+  getAllBlocks: () => storageService.getAllBlockIndex(),
 };
 
 /**

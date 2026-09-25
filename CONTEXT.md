@@ -110,8 +110,8 @@ _Avoid_: resolve (overloaded with ownership resolution), pick.
 ### Persistence & storage
 **Storage**:
 The raw per-store layer below Persistence. A typed interface (`IStorage`,
-`src/services/storage/IStorage.ts`) with operations keyed by **Store Name**
-(`notes`, `segments`, `results`, `attachments`, `analytics`, `efforts`):
+`apps/playground/src/services/storage/IStorage.ts`) with operations keyed by **Store Name**
+(`notes`, `segments`, `results`, `sessions`, `attachments`, `events`, `efforts`, `block_index`, `meta`):
 `readonly(store).get/getAll/getAllFromIndex`, `readwrite(store).put/delete`,
 and `transaction(stores)` for cross-store atomic work. The interface is
 parameterized by store name so callers and tests cross the same seam

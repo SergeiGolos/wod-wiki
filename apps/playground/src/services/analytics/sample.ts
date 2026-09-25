@@ -16,7 +16,7 @@ import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import { MetricType } from '@bitcobblers/wod-wiki-core';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 import type { Session } from '@/types/storage';
-import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDBService';
+import { storageService, type StorageService } from '@/services/storage';
 
 /**
  * Backing store, injectable for tests. The full bun suite has sibling files
@@ -24,9 +24,9 @@ import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDB
  * real instance through the '?real' specifier and install it here (same
  * documented-exception pattern as queryService.integration.test.ts).
  */
-let service: IndexedDBService = indexedDBService;
+let service: StorageService = storageService;
 
-export function setSampleDataService(instance: IndexedDBService): void {
+export function setSampleDataService(instance: StorageService): void {
   service = instance;
 }
 import type { Note } from '@/types/storage';

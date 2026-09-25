@@ -94,13 +94,34 @@ describe('StreamQueryBar', () => {
     expect(screen.queryAllByTestId('stream-query-chip')).toHaveLength(0)
   })
 
-  it('opens the command palette WQL mode seeded with the current query', () => {
+  it('focuses the input and does not open the command palette on bar click', () => {
     render(<Bar />)
     fireEvent.click(screen.getByTestId('stream-query-bar'))
+    expect(usePaletteStore.getState().isOpen).toBe(false)
+  })
+
+  it('opens the command palette WQL mode when clicking the ⌘K button', () => {
+    render(<Bar />)
+    fireEvent.click(screen.getByTitle('Edit query (⌘K)'))
     const state = usePaletteStore.getState()
     expect(state.isOpen).toBe(true)
     expect(state.request?.wql?.initialQuery).toBe('find:note{text:"deadlift",tags:strength} last 2w')
     expect(state.request?.wql?.onApply).toBeDefined()
+  })
+
+  it('adds a filter clause or text search when entered in the inline input', () => {
+    render(<Bar />)
+    const input = screen.getByTestId('wql-composer-input')
+    fireEvent.change(input, { target: { value: 'tags:hypertrophy' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(lastQuery).toContain('tags:hypertrophy')
+  })
+
+  it('removes the last filter chip on Backspace when input is empty', () => {
+    render(<Bar />)
+    const input = screen.getByTestId('wql-composer-input')
+    fireEvent.keyDown(input, { key: 'Backspace' })
+    expect(lastQuery).toBe('find:note{text:deadlift,tags:strength}')
   })
 
   it('compact variant summarizes the query and opens the palette on tap', () => {

@@ -108,10 +108,10 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   route: '/collections',
   title: 'Collections',
-  defaultWql: 'find:note{source:collections} by {tag}',
+  defaultWql: 'find:note{source:page,type:collection} by {tag}',
   level: 'session',
   typeOptions: ['collections'],
-  shelfVisible: true,
+  shelfVisible: false,
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('collections'),
 }
@@ -121,7 +121,7 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   title: 'Feeds',
   defaultWql: 'find:note{source:feeds} last 2w',
   level: 'note',
-  typeOptions: ['feeds'],
+  typeOptions: ['feeds', 'collections'],
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('feeds'),
 }

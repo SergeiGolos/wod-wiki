@@ -130,7 +130,7 @@ function computePosition(
     const editorRect = view.dom?.getBoundingClientRect?.() ?? { top: 0, left: 0 };
     const contentRect = view.contentDOM?.getBoundingClientRect?.() ?? { left: 0, width: 0 };
     return {
-      top: coords.bottom - editorRect.top + 2,   // 2px gap below the line relative to editor top
+      top: coords.bottom - editorRect.top,   // flush below text in the active line's padding space
       left: contentRect.left - editorRect.left,  // relative to editor left (accounting for gutter)
       width: contentRect.width,
     };
@@ -217,9 +217,9 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
       className={cn(
         "cm-metric-inline-panel",
         "absolute z-50 pointer-events-none",
-        "flex items-center gap-2 px-3 py-1.5",
-        "bg-background/90 border border-border/50 shadow-sm rounded-b-md",
-        "backdrop-blur-sm",
+        "flex items-center gap-2 px-3 h-[28px]",
+        "bg-background/90 backdrop-blur-sm",
+        "border-l border-r border-border/50",
         "transition-opacity duration-100",
       )}
       style={{

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { detectScriptBlocks, findBlockAtLine, extractBlockContent } from './blockDetection';
+import { detectScriptBlocks, findBlockAtLine, extractBlockContent } from '@bitcobblers/wod-wiki-core';
 
 describe('detectScriptBlocks', () => {
   it('should detect a single time block', () => {

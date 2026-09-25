@@ -4,7 +4,6 @@ export * from './CodeStatement';
 export * from './MetricContainer';
 export * from './OutputStatement';
 export * from './TimeSpan';
-export * from './Duration';
 export * from './CollectionSpan';
 export * from './BlockKey';
 export * from './Dialect';

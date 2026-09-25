@@ -13,5 +13,9 @@ export {
   LEGACY_ORIGIN_TO_OWNERSHIP_LAYER,
   getMetricOwnershipLayer,
 } from './types';
-export { createMetricOwnershipLedger } from './ledger';
-export { OwnershipResolver, ownershipRank } from './OwnershipResolver';
+export {
+  createMetricOwnershipLedger,
+  OwnershipResolver,
+  ownershipRank,
+  resolveLayer,
+} from './ledger';

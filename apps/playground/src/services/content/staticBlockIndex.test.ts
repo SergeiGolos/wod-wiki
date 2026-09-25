@@ -10,13 +10,10 @@ import type { BlockIndexRow } from '@/types/storage';
 
 // The corpus plane reads the shared `block_index` store — mock the service
 // before importing the module under test.
+import { storageService } from '@/services/storage';
 const blockRows: BlockIndexRow[] = [];
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getAllBlockIndex: async () => blockRows,
-    getAllTags: async () => [],
-  },
-}));
+storageService.getAllBlockIndex = async () => blockRows;
+storageService.getAllTags = async () => [];
 import {
   feedDateToCreatedAt,
   staticTagIndexFromBlocks,
@@ -101,9 +98,15 @@ describe('staticNotesFromBlocks', () => {
         sourceId: 'feed:feeds/dan-john/2026-01-12/day-01',
         createdAt: 1768176000000,
       }),
+      blockRow({
+        noteId: 'crossfit-girls',
+        noteTitle: 'Crossfit Girls',
+        sourceId: 'collection:crossfit-girls',
+        createdAt: 0,
+      }),
     ];
     const notes = staticNotesFromBlocks(blocks);
-    expect(notes.length).toBe(2);
+    expect(notes.length).toBe(3);
     expect(notes[0]).toEqual({
       id: 'crossfit-girls/fran',
       title: 'Fran',
@@ -119,6 +122,14 @@ describe('staticNotesFromBlocks', () => {
       type: 'note',
       sourceId: 'feed:feeds/dan-john/2026-01-12/day-01',
       catalog: 'dan-john',
+    });
+    expect(notes[2]).toEqual({
+      id: 'crossfit-girls',
+      title: 'Crossfit Girls',
+      createdAt: 0,
+      type: 'collection',
+      sourceId: 'page:collection:crossfit-girls',
+      catalog: 'crossfit-girls',
     });
   });
 });
