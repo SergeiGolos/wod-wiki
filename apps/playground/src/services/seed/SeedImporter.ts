@@ -134,6 +134,7 @@ async function rowToRecords(
       seedOrigin: 'seed',
       seedVersion,
       seedChunkId: chunkId,
+      sourcePath: row.path,
     },
     segment: {
       id: seedSegmentId(id),

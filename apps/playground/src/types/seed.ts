@@ -64,8 +64,8 @@ export interface SeedMetaRecord {
   claim?: { owner: string; at: number } | null;
 }
 
-/** v4 — per-note seed segment ids (`seed:<noteId>`); forces one re-apply. */
-export const SEED_SCHEMA = 4;
+/** v5 — V22 Note.sourcePath + Page junction derivation; forces one re-apply. */
+export const SEED_SCHEMA = 5;
 /** The `meta`-store key holding the import checkpoint record. */
 export const SEED_META_KEY = 'seed';
 /**

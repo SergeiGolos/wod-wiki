@@ -350,7 +350,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     const bySlug = await this.storage.getNoteBySlug?.(id);
     if (bySlug) return bySlug;
     const notes = await this.storage.getAllNotes();
-    return notes.find(note => note.slug === id || toShortId(note.id) === id || note.title.toLowerCase() === id.toLowerCase());
+    return notes.find(note => toShortId(note.id) === id || note.title.toLowerCase() === id.toLowerCase());
   }
 
   private describeLocator(locator: NoteLocator): string {

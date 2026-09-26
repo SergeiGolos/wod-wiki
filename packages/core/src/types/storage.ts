@@ -32,6 +32,10 @@ export interface Note {
   sourceId?: string;
   catalog?: string;
   tags?: string[];
+  /** Original seed file path (e.g. `markdown/collections/girls/fran.md`) — the
+   *  deterministic UUID is derived from this path; retained for seed content
+   *  reconstruction (canvas routes, collection READMEs, block-index lookup). */
+  sourcePath?: string;
 }
 
 // ---------------------------------------------------------------------------

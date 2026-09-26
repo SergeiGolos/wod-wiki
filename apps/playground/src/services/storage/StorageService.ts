@@ -489,10 +489,10 @@ export class StorageService implements NotePersistenceStorage {
     }
     const out: Array<{ path: string; raw: string }> = [];
     for (const note of notes) {
-      if (note.seedOrigin !== 'seed' || !note.slug) continue;
+      if (note.seedOrigin !== 'seed' || !note.sourcePath) continue;
       const latest = latestSegmentByNote.get(note.id);
       if (latest?.rawContent) {
-        out.push({ path: note.slug, raw: latest.rawContent });
+        out.push({ path: note.sourcePath, raw: latest.rawContent });
       }
     }
     return out;

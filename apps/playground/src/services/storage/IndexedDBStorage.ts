@@ -312,6 +312,11 @@ export class IndexedDBStorage implements IStorage {
             await cursor.update(flat);
           }
         }
+        // V21 -> V22 upgrade: invalidate seed checkpoint so V22 seed data re-applies cleanly
+        if (oldVersion === 21 && db.objectStoreNames.contains('meta')) {
+          const metaStore = tx.objectStore('meta');
+          await metaStore.delete('seed');
+        }
       },
       blocked: (currentVersion, blockedVersion) => {
         console.warn(

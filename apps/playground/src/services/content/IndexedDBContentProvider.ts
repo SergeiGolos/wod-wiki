@@ -120,13 +120,22 @@ export class IndexedDBContentProvider implements IContentProvider {
     async getEntries(query?: EntryQuery): Promise<HistoryEntry[]> {
         const notes = await this.db.getAllNotes();
 
-        // Batch the derived-field lookups (V11): journalDate comes from the
-        // page, tags from note_tags + tags, content from segments (one
-        // getAll, grouped client-side — listNotes search reads rawContent).
-        const pageIds = Array.from(new Set(notes.map(n => n.pageId).filter((id): id is string => !!id)));
-        const pages = new Map<string, string | undefined>();
+        // Batch the derived-field lookups (V22): journalDate and slug come
+        // from the page via the page_notes junction, tags from note_tags +
+        // tags, content from segments (one getAll, grouped client-side).
+        const allPageNotes = await this.db.getAllPageNotes();
+        const pageByNote = new Map<string, PageNote>();
+        for (const pn of allPageNotes) {
+            // Primary page: first link by position, or earliest createdAt.
+            const existing = pageByNote.get(pn.noteId);
+            if (!existing || (pn.position ?? Infinity) < (existing.position ?? Infinity)) {
+                pageByNote.set(pn.noteId, pn);
+            }
+        }
+        const pageIds = Array.from(new Set(allPageNotes.map(pn => pn.pageId)));
+        const pages = new Map<string, Page | undefined>();
         await Promise.all(pageIds.map(async id => {
-            pages.set(id, (await this.db.getPage(id))?.date);
+            pages.set(id, await this.db.getPage(id));
         }));
         const tagsByNote = new Map<string, string[]>();
         await Promise.all(notes.map(async note => {
@@ -153,22 +162,26 @@ export class IndexedDBContentProvider implements IContentProvider {
             return ensureFrontmatterTags(base, noteTags ?? []);
         };
 
-        const resolved = notes.map(note => ({
-            id: note.id,
-            title: note.title,
-            slug: note.slug,
-            pageId: note.pageId ?? note.slug,
-            createdAt: note.createdAt,
-            updatedAt: note.createdAt,
-            targetDate: note.createdAt,
-            journalDate: note.pageId ? pages.get(note.pageId) : undefined,
-            rawContent: rawContentFor(note.id),
-            tags: tagsByNote.get(note.id) ?? [],
-            type: note.type || 'note',
-            sourceId: note.sourceId,
-            catalog: note.catalog,
-            schemaVersion: 1,
-        } as HistoryEntry));
+        const resolved = notes.map(note => {
+            const pn = pageByNote.get(note.id);
+            const page = pn ? pages.get(pn.pageId) : undefined;
+            return {
+                id: note.id,
+                title: note.title,
+                slug: page?.slug,
+                pageId: pn?.pageId,
+                createdAt: note.createdAt,
+                updatedAt: note.createdAt,
+                targetDate: note.date ?? note.createdAt,
+                journalDate: page?.date,
+                rawContent: rawContentFor(note.id),
+                tags: tagsByNote.get(note.id) ?? [],
+                type: note.type || 'note',
+                sourceId: note.sourceId,
+                catalog: note.catalog,
+                schemaVersion: 1,
+            } as HistoryEntry;
+        });
 
         // Client-side filtering (IndexedDB indexes are used for getAll, but complex filtering is here)
         let filtered = resolved;
@@ -200,7 +213,14 @@ export class IndexedDBContentProvider implements IContentProvider {
     async getEntry(id: string): Promise<HistoryEntry | null> {
         let note = await this.db.getNote(id);
         if (!note) {
-            note = await this.db.getNoteBySlug(id);
+            // Slug fallback: look up the page by slug, then find its first note.
+            const page = await this.db.getPageBySlug(id);
+            if (page) {
+                const links = await this.db.getPageNotes(page.id);
+                if (links.length > 0) {
+                    note = await this.db.getNote(links[0].noteId);
+                }
+            }
         }
 
         if (!note) return null;
@@ -209,11 +229,14 @@ export class IndexedDBContentProvider implements IContentProvider {
         const segments = await this.db.getLatestSegmentsForNote(note.id);
         const baseContent = segments.map(segmentToRawFragment).join('\n');
 
-        // Derived projection fields (removed from the Note row in V11).
-        const [page, tags] = await Promise.all([
-            note.pageId ? this.db.getPage(note.pageId) : undefined,
+        // Derived projection fields (V22): page/slug/journalDate via page_notes junction.
+        const [notePages, tags] = await Promise.all([
+            this.db.getNotePages(note.id),
             this.db.getTagsForNote(note.id),
         ]);
+        const primaryPage = notePages.length > 0
+            ? await this.db.getPage(notePages[0].pageId)
+            : undefined;
         const rawContent = ensureFrontmatterTags(baseContent, tags.map(t => t.label));
 
         // Fetch latest result for this note
@@ -251,13 +274,13 @@ export class IndexedDBContentProvider implements IContentProvider {
         return {
             id: note.id,
             title: note.title,
-            slug: note.slug,
-            pageId: note.pageId ?? note.slug,
+            slug: primaryPage?.slug,
+            pageId: primaryPage?.id,
             catalog: note.catalog,
             createdAt: note.createdAt,
             updatedAt: note.createdAt, // V11 — note.updatedAt removed; derive
-            targetDate: note.createdAt, // V11 — note.targetDate removed; derive
-            journalDate: page?.date,
+            targetDate: note.date ?? note.createdAt, // V22 — domain date falls back to createdAt
+            journalDate: primaryPage?.date,
             rawContent,
             sections,
             results: latestResult ? sessionToPayload(latestResult, latestEvents) : undefined,
@@ -308,10 +331,23 @@ export class IndexedDBContentProvider implements IContentProvider {
         // Preserve recovered timestamps; mint fresh when absent.
         const createdAt = entry.createdAt ?? now;
 
-        // Journal-dated notes join their calendar page (N-02).
-        const pageId = entry.journalDate
-            ? (await this.db.getOrCreatePageForDate(entry.journalDate)).id
-            : undefined;
+        // Journal-dated notes join their calendar page (V22 — N:M junction).
+        let pageId: string | undefined;
+        if (entry.journalDate) {
+            const page = await this.db.getOrCreatePageForDate(entry.journalDate);
+            pageId = page.id;
+            await this.db.addNoteToPage(noteId, pageId);
+        }
+
+        // Slug-named pages join their custom page (V22).
+        if (entry.slug) {
+            let page = await this.db.getPageBySlug(entry.slug);
+            if (!page) {
+                page = { id: uuidv7(), slug: entry.slug, title: entry.title, createdAt };
+                await this.db.savePage(page);
+            }
+            await this.db.addNoteToPage(noteId, page.id);
+        }
 
         // TRANSITION TO SEGMENTS — content lives only here (N-03/N-04).
         const sections = parseDocumentSections(entry.rawContent);
@@ -337,8 +373,6 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         const note: Note = {
             id: noteId,
-            slug: entry.slug,
-            pageId,
             title: entry.title,
             type: entry.type || 'note',
             sourceId: entry.sourceId,
@@ -359,7 +393,6 @@ export class IndexedDBContentProvider implements IContentProvider {
             updatedAt: createdAt,
             targetDate: createdAt,
             type: note.type,
-            slug: note.slug,
             journalDate: entry.journalDate,
             schemaVersion: 1
         };
@@ -370,24 +403,71 @@ export class IndexedDBContentProvider implements IContentProvider {
         let note = await this.db.getNote(id);
 
         if (!note) {
-            note = await this.db.getNoteBySlug(id);
+            // Slug fallback: look up the page by slug, then find its first note.
+            const page = await this.db.getPageBySlug(id);
+            if (page) {
+                const links = await this.db.getPageNotes(page.id);
+                if (links.length > 0) {
+                    note = await this.db.getNote(links[0].noteId);
+                }
+            }
         }
 
         if (!note) throw new Error(`Note not found: ${id}`);
 
         const now = Date.now();
 
-        // Update Metadata — the slim V11 note row. journalDate patches map to
-        // page linkage (N-02); tags go to note_tags (N-06). `sourceId: null`
-        // clears the source bucket (promotion out of playground/library scope).
+        // Resolve the note's primary page from the junction (V22).
+        const notePageLinks = await this.db.getNotePages(note.id);
+        const primaryPageId = notePageLinks.length > 0 ? notePageLinks[0].pageId : undefined;
+        const primaryPage = primaryPageId ? await this.db.getPage(primaryPageId) : undefined;
+
+        // Update Metadata — the slim V22 note row. journalDate patches map to
+        // page_notes junction; slug patches map to page slug; tags go to
+        // note_tags (N-06). `sourceId: null` clears the source bucket.
         if (patch.title) note.title = patch.title;
         if (patch.type) note.type = patch.type;
-        if (patch.slug !== undefined) note.slug = patch.slug ?? undefined;
         if (patch.sourceId !== undefined) note.sourceId = patch.sourceId ?? undefined;
+
+        // journalDate → update page_notes junction (calendar page membership)
         if (patch.journalDate !== undefined) {
-            note.pageId = patch.journalDate
-                ? (await this.db.getOrCreatePageForDate(patch.journalDate)).id
-                : undefined;
+            // Remove existing calendar-page links (pages with a date)
+            const existingLinks = await this.db.getNotePages(note.id);
+            for (const link of existingLinks) {
+                const linkedPage = await this.db.getPage(link.pageId);
+                if (linkedPage?.date) {
+                    await this.db.removeNoteFromPage(note.id, link.pageId);
+                }
+            }
+            if (patch.journalDate) {
+                const page = await this.db.getOrCreatePageForDate(patch.journalDate);
+                await this.db.addNoteToPage(note.id, page.id);
+            }
+        }
+
+        // slug → update page slug (or create page)
+        if (patch.slug !== undefined) {
+            const existingLinks = await this.db.getNotePages(note.id);
+            // Find the slug page (a page with a slug, no date)
+            for (const link of existingLinks) {
+                const linkedPage = await this.db.getPage(link.pageId);
+                if (linkedPage?.slug && !linkedPage.date) {
+                    if (patch.slug) {
+                        await this.db.savePage({ ...linkedPage, slug: patch.slug });
+                    } else {
+                        // Remove slug page membership when slug is cleared
+                        await this.db.removeNoteFromPage(note.id, link.pageId);
+                    }
+                }
+            }
+            if (patch.slug) {
+                let page = await this.db.getPageBySlug(patch.slug);
+                if (!page) {
+                    page = { id: uuidv7(), slug: patch.slug, title: note.title, createdAt: now };
+                    await this.db.savePage(page);
+                }
+                await this.db.addNoteToPage(note.id, page.id);
+            }
         }
 
         const metadataChanged = Boolean(
@@ -449,7 +529,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                         version: newVersion,
                         noteId: note.id,
                         position,
-                        pageId: note.pageId,
+                        pageId: primaryPageId,
                         dataType: toSegmentDataType(section),
                         data: section.scriptBlock || null,
                         rawContent: section.displayContent,
@@ -469,7 +549,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                         version: existingSegment.version,
                         noteId: note.id,
                         position,
-                        pageId: note.pageId,
+                        pageId: primaryPageId,
                         dataType: toSegmentDataType(section),
                         data: section.scriptBlock || null,
                         rawContent: existingSegment.rawContent,
@@ -529,7 +609,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 segmentId: patch.segmentId,
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
-                pageId: note.pageId,
+                pageId: primaryPageId,
                 blockId: patch.blockId,
                 blockContentId: patch.blockContentId,
                 version: patch.version,
@@ -575,20 +655,17 @@ export class IndexedDBContentProvider implements IContentProvider {
         // recording a workout doesn't churn the note row.
         if (metadataChanged) await this.db.saveNote(note);
 
-        // Derived projection fields for the returned entry.
-        const [page, tags] = await Promise.all([
-            note.pageId ? this.db.getPage(note.pageId) : undefined,
-            this.db.getTagsForNote(note.id),
-        ]);
+        // Derived projection fields for the returned entry (V22 — junction).
+        const tags = await this.db.getTagsForNote(note.id);
 
         return {
             id: note.id,
             title: note.title,
             createdAt: note.createdAt,
             updatedAt: note.createdAt,
-            targetDate: note.createdAt,
-            journalDate: page?.date,
-            slug: note.slug,
+            targetDate: note.date ?? note.createdAt,
+            journalDate: primaryPage?.date,
+            slug: primaryPage?.slug,
             rawContent: finalRawContent,
             tags: tags.map(t => t.label),
             type: note.type ?? 'note',

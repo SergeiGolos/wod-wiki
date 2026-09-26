@@ -107,10 +107,9 @@ function isPlaygroundNote(note: Note): boolean {
 }
 
 /** Route-visible name of a playground note — the `/playground/:id` segment
- *  (slug's name half for UUID-keyed notes, the id itself for legacy pages). */
-export function playgroundRouteName(note: Pick<Note, 'id' | 'slug'>): string {
-  const routeId = note.slug ?? note.id
-  return routeId.startsWith('playground/') ? routeId.slice('playground/'.length) : routeId
+ *  (the id itself for UUID-keyed notes). */
+export function playgroundRouteName(note: Pick<Note, 'id'>): string {
+  return note.id.startsWith('playground/') ? note.id.slice('playground/'.length) : note.id
 }
 
 /** For feeds, drop the `feeds/` wrapper and return the second segment as the catalog. */
