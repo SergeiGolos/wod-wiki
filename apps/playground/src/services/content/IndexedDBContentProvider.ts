@@ -12,7 +12,7 @@ import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types
 import { storageService, type StorageService } from '@/services/storage';
 import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
 import { parseDocumentSections, type Section, type SectionType, type ScriptBlock } from '@bitcobblers/wod-wiki-core';
-import { extractFrontmatterTags } from '../../lib/frontmatter';
+import { extractFrontmatterTags, parseFrontmatter, serializeFrontmatter } from '../../lib/frontmatter';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import { sessionToPayload } from '../persistence/sessionPayload';
 
@@ -65,6 +65,18 @@ function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[
         .filter(part => part.type === 'frontmatter')
         .flatMap(part => extractFrontmatterTags(part.rawContent));
     return Array.from(new Set(tags));
+}
+
+/**
+ * Ensure frontmatter metadata contains the note's tags when tags exist.
+ */
+function ensureFrontmatterTags(rawContent: string, tags: string[]): string {
+    if (!tags || tags.length === 0) return rawContent;
+    const fmTags = extractFrontmatterTags(rawContent);
+    if (fmTags.length > 0) return rawContent;
+    const { meta, body } = parseFrontmatter(rawContent);
+    const mergedMeta = { ...meta, tags };
+    return `---\n${serializeFrontmatter(mergedMeta)}\n---\n${body}`;
 }
 
 /**
@@ -132,11 +144,13 @@ export class IndexedDBContentProvider implements IContentProvider {
         const rawContentFor = (noteId: string): string => {
             const byId = latestByNote.get(noteId);
             if (!byId) return '';
-            return [...byId.values()]
+            const base = [...byId.values()]
                 .filter((s) => !s.isHistory)
                 .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
                 .map(segmentToRawFragment)
                 .join('\n');
+            const noteTags = tagsByNote.get(noteId);
+            return ensureFrontmatterTags(base, noteTags ?? []);
         };
 
         const resolved = notes.map(note => ({
@@ -193,13 +207,14 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // V11 — content always reconstructs from segments (note.rawContent is gone).
         const segments = await this.db.getLatestSegmentsForNote(note.id);
-        const rawContent = segments.map(segmentToRawFragment).join('\n');
+        const baseContent = segments.map(segmentToRawFragment).join('\n');
 
         // Derived projection fields (removed from the Note row in V11).
         const [page, tags] = await Promise.all([
             note.pageId ? this.db.getPage(note.pageId) : undefined,
             this.db.getTagsForNote(note.id),
         ]);
+        const rawContent = ensureFrontmatterTags(baseContent, tags.map(t => t.label));
 
         // Fetch latest result for this note
         const latestResults = await this.db.getResultsForNote(note.id);

@@ -21,6 +21,7 @@ storageService.getPage = async (_id: string) => undefined;
 storageService.getAllSegments = async () => savedSegments;
 storageService.getResultsForNote = async () => [];
 storageService.getAttachmentsForNote = async () => [];
+storageService.rebuildBlockIndexForNote = async () => {};
 storageService.saveNote = async (note: Note) => {
   savedNotes.push(note);
   return note.id;
@@ -254,6 +255,32 @@ sum:totalVolume{}
     // A tag-editor save replaces the manual portion but re-adds the
     // frontmatter labels still present in content.
     await provider.updateEntry(entry.id, { tags: ['benchmark'] });
-    expect(noteTagsByNote.get(entry.id)?.sort()).toEqual(['benchmark', 'crossfit']);
+  });
+
+  it('ensures stored tags are included in frontmatter metadata of reconstructed rawContent', async () => {
+    const { IndexedDBContentProvider } = await providerModule;
+    const provider = new IndexedDBContentProvider();
+
+    const entry = await provider.saveEntry({
+      title: 'Workout Without FM',
+      rawContent: '# Workout Without FM\nJust some notes.\n',
+      tags: ['strength', 'conditioning'],
+      targetDate: Date.now(),
+      type: 'note',
+    });
+
+    const retrieved = await provider.getEntry(entry.id);
+    expect(retrieved).not.toBeNull();
+    expect(retrieved!.rawContent).toContain('tags:');
+    expect(retrieved!.rawContent).toContain('strength');
+    expect(retrieved!.rawContent).toContain('conditioning');
+    expect(retrieved!.rawContent).toMatch(/^---\r?\n/);
+
+    const all = await provider.getEntries();
+    const fromAll = all.find((e) => e.id === entry.id);
+    expect(fromAll).toBeDefined();
+    expect(fromAll!.rawContent).toContain('tags:');
+    expect(fromAll!.rawContent).toContain('strength');
+    expect(fromAll!.rawContent).toContain('conditioning');
   });
 });

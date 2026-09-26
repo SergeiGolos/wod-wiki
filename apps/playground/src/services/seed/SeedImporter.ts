@@ -85,8 +85,6 @@ async function rowToRecords(
   let pageNote: PageNote | undefined = undefined;
 
   const cleanMeta = { ...meta };
-  if ('tags' in cleanMeta) delete cleanMeta['tags'];
-  if ('category' in cleanMeta) delete cleanMeta['category'];
 
   // Parse `date` frontmatter (YYYY-MM-DD) → Note.date (noon UTC)
   if ('date' in cleanMeta) {
@@ -252,6 +250,7 @@ export class SeedImporter {
       // ── Notes chunks: markdown rows → notes + segments (+ efforts) ──
       const rows = assertRows(payload);
       const built = await Promise.all(rows.map((r) => rowToRecords(r, chunk.id, manifest.version)));
+      const rawById = new Map(built.map((record, i) => [record.note.id, rows[i].content]));
 
       const notes: Note[] = [];
       const segments: NoteSegment[] = [];
@@ -293,8 +292,10 @@ export class SeedImporter {
       const efforts: IEffort[] = [];
       const deleteEffortSlugs: string[] = [];
       if (chunk.id === EFFORTS_CHUNK_ID) {
-        for (const { note, segment } of built) {
-          const parsed = parseEffortFile(segment.rawContent);
+        for (const { note } of built) {
+          const rawContent = rawById.get(note.id);
+          if (!rawContent) continue;
+          const parsed = parseEffortFile(rawContent);
           if (!parsed) {
             console.warn(`[SeedImporter] unparseable effort row skipped: ${note.title}`);
             continue;

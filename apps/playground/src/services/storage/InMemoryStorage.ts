@@ -16,8 +16,7 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
   notes: {
     keyPath: 'id',
     indexes: {
-      'by-slug': { keyPath: 'slug' },
-      'by-page': { keyPath: 'pageId' },
+      'by-date': { keyPath: 'date' },
     },
   },
   page: {
@@ -25,6 +24,14 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
     indexes: {
       'by-date': { keyPath: 'date' },
       'by-slug': { keyPath: 'slug' },
+    },
+  },
+  page_notes: {
+    keyPath: 'id',
+    indexes: {
+      'by-page': { keyPath: 'pageId' },
+      'by-note': { keyPath: 'noteId' },
+      'by-page-note': { keyPath: ['pageId', 'noteId'] },
     },
   },
   tags: {

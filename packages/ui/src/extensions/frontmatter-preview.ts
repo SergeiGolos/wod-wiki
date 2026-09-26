@@ -37,7 +37,17 @@ function updateFrontmatter(
   const section =
     sections.find((s) => s.id === sectionId && s.type === "frontmatter") ||
     sections.find((s) => s.type === "frontmatter");
-  if (!section) return;
+  if (!section) {
+    const nextBody = serializeFrontmatter(meta);
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: 0,
+        insert: `---\n${nextBody}\n---\n\n`,
+      },
+    });
+    return;
+  }
 
   const nextBody = serializeFrontmatter(meta);
   if (section.contentFrom !== undefined && section.contentTo !== undefined) {
@@ -428,10 +438,19 @@ export class DefaultFrontmatterWidget extends WidgetType {
     }
 
     if (!this.readOnly) {
+      const hasTagsProperty = entries.some(([k]) => {
+        const lower = k.toLowerCase();
+        return lower === "tags" || lower === "category" || lower === "tag";
+      });
+
+      const actionsRow = document.createElement("div");
+      actionsRow.className = "mt-2 flex items-center gap-3";
+
       const addBtn = document.createElement("button");
       addBtn.type = "button";
+      addBtn.setAttribute("aria-label", "Add property");
       addBtn.className =
-        "mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-1 py-1 cursor-pointer transition-colors select-none";
+        "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-1 py-1 cursor-pointer transition-colors select-none";
       addBtn.appendChild(createPlusIcon());
       const addLabel = document.createElement("span");
       addLabel.textContent = "Add property";
@@ -450,9 +469,94 @@ export class DefaultFrontmatterWidget extends WidgetType {
         const newMeta = { ...meta, [newKey]: "" };
         updateFrontmatter(view, this.sectionId, newMeta);
       });
-      root.appendChild(addBtn);
+      actionsRow.appendChild(addBtn);
+
+      if (!hasTagsProperty) {
+        const addTagBtn = document.createElement("button");
+        addTagBtn.type = "button";
+        addTagBtn.setAttribute("aria-label", "Add tag");
+        addTagBtn.className =
+          "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-1 py-1 cursor-pointer transition-colors select-none";
+        addTagBtn.appendChild(createPlusIcon());
+        const addTagLabel = document.createElement("span");
+        addTagLabel.textContent = "Add tag";
+        addTagBtn.appendChild(addTagLabel);
+
+        addTagBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          pendingFocusTagKey = "tags";
+          const newMeta = { ...meta, tags: [] };
+          updateFrontmatter(view, this.sectionId, newMeta);
+        });
+        actionsRow.appendChild(addTagBtn);
+      }
+
+      root.appendChild(actionsRow);
     }
 
+    return root;
+  }
+}
+
+class EmptyFrontmatterWidget extends WidgetType {
+  eq(_other: EmptyFrontmatterWidget): boolean {
+    return true;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const root = document.createElement("div");
+    root.className = "cm-frontmatter-preview my-2 font-sans select-none";
+
+    const heading = document.createElement("div");
+    heading.className = "text-xs font-medium text-muted-foreground mb-1.5 px-0.5";
+    heading.textContent = "Properties";
+    root.appendChild(heading);
+
+    const actionsRow = document.createElement("div");
+    actionsRow.className = "flex items-center gap-3";
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.setAttribute("aria-label", "Add property");
+    addBtn.className =
+      "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-1 py-1 cursor-pointer transition-colors select-none";
+    addBtn.appendChild(createPlusIcon());
+    const addLabel = document.createElement("span");
+    addLabel.textContent = "Add property";
+    addBtn.appendChild(addLabel);
+
+    addBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      pendingFocusKey = "property";
+      updateFrontmatter(view, "new", { property: "" });
+    });
+    actionsRow.appendChild(addBtn);
+
+    const addTagBtn = document.createElement("button");
+    addTagBtn.type = "button";
+    addTagBtn.setAttribute("aria-label", "Add tag");
+    addTagBtn.className =
+      "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-1 py-1 cursor-pointer transition-colors select-none";
+    addTagBtn.appendChild(createPlusIcon());
+    const addTagLabel = document.createElement("span");
+    addTagLabel.textContent = "Add tag";
+    addTagBtn.appendChild(addTagLabel);
+
+    addTagBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      pendingFocusTagKey = "tags";
+      updateFrontmatter(view, "new", { tags: [] });
+    });
+    actionsRow.appendChild(addTagBtn);
+
+    root.appendChild(actionsRow);
     return root;
   }
 }
@@ -461,8 +565,10 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const { sections } = state.field(sectionField);
 
+  let hasFrontmatter = false;
   for (const section of sections) {
     if (section.type !== "frontmatter") continue;
+    hasFrontmatter = true;
 
     const rawContent = state.doc.sliceString(section.from, section.to);
     builder.add(
@@ -470,6 +576,18 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
       section.to,
       Decoration.replace({
         widget: new DefaultFrontmatterWidget(section.id, rawContent, state.readOnly),
+        block: true,
+      }),
+    );
+  }
+
+  if (!hasFrontmatter && !state.readOnly) {
+    builder.add(
+      0,
+      0,
+      Decoration.widget({
+        widget: new EmptyFrontmatterWidget(),
+        side: -1,
         block: true,
       }),
     );

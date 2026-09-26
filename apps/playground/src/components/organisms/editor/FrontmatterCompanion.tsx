@@ -849,14 +849,27 @@ const DefaultFrontmatterForm: React.FC<{
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border/70 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
-              onClick={() => updateAdding({ key: "", value: "", type: "text" })}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add property
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-dashed border-border/70 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+                onClick={() => updateAdding({ key: "", value: "", type: "text" })}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add property
+              </button>
+              {!entries.some(([k]) => k.toLowerCase() === "tags" || k.toLowerCase() === "category" || k.toLowerCase() === "tag") && (
+                <button
+                  type="button"
+                  aria-label="Add tag"
+                  className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-dashed border-border/70 px-2.5 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+                  onClick={() => commit([...entries, ["tags", []]])}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Tag
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

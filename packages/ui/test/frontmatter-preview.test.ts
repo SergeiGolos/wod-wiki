@@ -193,4 +193,122 @@ describe('frontmatterPreview extension', () => {
     view.destroy();
     container.remove();
   });
+
+  it('renders +tag along with +property when no tags property is in frontmatter', () => {
+    const NOTE_NO_TAGS = `---
+title: My Workout
+author: Coach
+---
+# Workout body
+`;
+    const state = EditorState.create({
+      doc: NOTE_NO_TAGS,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const addPropBtn = container.querySelector('button[aria-label="Add property"]');
+    const addTagBtn = container.querySelector('button[aria-label="Add tag"]');
+
+    expect(addPropBtn).not.toBeNull();
+    expect(addTagBtn).not.toBeNull();
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('does not render +tag when tags property already exists in frontmatter', () => {
+    const state = EditorState.create({
+      doc: SAMPLE_NOTE,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const addPropBtn = container.querySelector('button[aria-label="Add property"]');
+    const addTagBtn = container.querySelector('button[aria-label="Add tag"]');
+
+    expect(addPropBtn).not.toBeNull();
+    expect(addTagBtn).toBeNull();
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('allows adding tags property via Add tag button when tags property is missing', () => {
+    const NOTE_NO_TAGS = `---
+title: My Workout
+---
+# Body
+`;
+    const state = EditorState.create({
+      doc: NOTE_NO_TAGS,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const addTagBtn = container.querySelector('button[aria-label="Add tag"]') as HTMLButtonElement;
+    expect(addTagBtn).not.toBeNull();
+    addTagBtn.click();
+
+    expect(view.state.doc.toString()).toContain('tags:');
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('renders +tag along with +properties at the top when editing a note with no frontmatter', () => {
+    const NOTE_WITHOUT_FM = `# Just A Heading
+No frontmatter here.
+`;
+    const state = EditorState.create({
+      doc: NOTE_WITHOUT_FM,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const addPropBtn = container.querySelector('button[aria-label="Add property"]');
+    const addTagBtn = container.querySelector('button[aria-label="Add tag"]');
+
+    expect(addPropBtn).not.toBeNull();
+    expect(addTagBtn).not.toBeNull();
+
+    (addTagBtn as HTMLButtonElement).click();
+
+    expect(view.state.doc.toString()).toMatch(/^---\r?\ntags:/);
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('does not render metadata buttons for notes without frontmatter in read-only mode', () => {
+    const NOTE_WITHOUT_FM = `# Readonly Heading
+No frontmatter.
+`;
+    const state = EditorState.create({
+      doc: NOTE_WITHOUT_FM,
+      extensions: [sectionField, frontmatterPreview, EditorState.readOnly.of(true)],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const previewEl = container.querySelector('.cm-frontmatter-preview');
+    expect(previewEl).toBeNull();
+
+    view.destroy();
+    container.remove();
+  });
 });
