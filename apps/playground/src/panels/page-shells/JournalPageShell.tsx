@@ -23,7 +23,12 @@ export interface JournalPageShellProps {
 
   /** Optional data-testid for the sticky-header title element (e2e/TestIdContract) */
   titleTestId?: string;
-
+  /** Tags for the note section */
+  tags?: string[];
+  /** Optional callback to remove a tag */
+  onRemoveTag?: (tag: string) => void;
+  /** Optional callback to add a tag */
+  onAddTag?: () => void;
   /** Right-side actions (e.g. New Entry, Cast, etc.) */
   actions?: ReactNode;
 
@@ -61,6 +66,9 @@ export function JournalPageShell({
   title,
   subtitle,
   titleTestId,
+  tags,
+  onRemoveTag,
+  onAddTag,
   actions,
   timerOverlay,
   reviewOverlay,
@@ -86,6 +94,9 @@ export function JournalPageShell({
           title={title}
           subtitle={subtitle}
           titleTestId={titleTestId}
+          tags={tags}
+          onRemoveTag={onRemoveTag}
+          onAddTag={onAddTag}
           actions={actions}
         />
         {/* Main Editor Content */}

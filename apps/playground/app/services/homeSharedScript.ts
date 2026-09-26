@@ -12,8 +12,7 @@
  *
  * Preference-scale and disposable, so localStorage — same tier as
  * playgroundProfile, but deliberately separate keys: the received script is
- * resettable content, and writing the sharer name must not trip the
- * profile-initialized flag that gates the First-Note Wizard.
+ * resettable content, not a preference.
  */
 /**
  * The hero-editor scaffold wrapped around a decoded share payload at

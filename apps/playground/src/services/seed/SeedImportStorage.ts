@@ -16,6 +16,7 @@ import { SEED_META_KEY, seedSegmentId } from '@/types/seed';
 export interface SeedChunkWrite {
   notes: Note[];
   segments: NoteSegment[];
+  noteTags?: { noteId: string; tags: string[] }[];
   /** Effort records materialized from the efforts chunk (seed v2). */
   efforts: IEffort[];
   /** Precomputed block-index rows materialized by `block-index.<n>` chunks (seed v3). */
@@ -62,7 +63,7 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
     await this.storageInstance.transaction(
-      ['notes', 'segments', 'efforts', 'block_index', 'meta'],
+      ['notes', 'segments', 'efforts', 'block_index', 'tags', 'note_tags', 'meta'],
       'readwrite',
       async (tx) => {
         const notes = tx.readwrite('notes');
@@ -81,6 +82,29 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
         for (const row of write.blocks) await blocks.put(row);
         for (const id of write.deleteBlockIds) await blocks.delete(id);
 
+        const tagsStore = tx.readwrite('tags');
+        const noteTagsStore = tx.readwrite('note_tags');
+        for (const id of write.deleteNoteIds) {
+          const links = await noteTagsStore.getAllFromIndex('by-note', id);
+          for (const link of links) await noteTagsStore.delete(link.id);
+        }
+        if (write.noteTags) {
+          const now = Date.now();
+          for (const { noteId, tags } of write.noteTags) {
+            const links = await noteTagsStore.getAllFromIndex('by-note', noteId);
+            for (const link of links) await noteTagsStore.delete(link.id);
+            for (const label of Array.from(new Set(tags))) {
+              const matching = await tagsStore.getAllFromIndex('by-label', label);
+              let tag = matching[0];
+              if (!tag) {
+                tag = { id: crypto.randomUUID(), label, createdAt: now };
+                await tagsStore.put(tag);
+              }
+              await noteTagsStore.put({ id: crypto.randomUUID(), noteId, tagId: tag.id });
+            }
+          }
+        }
+
         await tx.readwrite('meta').put(write.meta);
       }
     );
@@ -93,6 +117,7 @@ export class InMemorySeedStorage implements SeedImportStorage {
   private readonly segments = new Map<string, NoteSegment>();
   private readonly effortsBySlug = new Map<string, IEffort>();
   private readonly blockRows = new Map<string, BlockIndexRow>();
+  private readonly noteTags = new Map<string, string[]>();
   private meta?: SeedMetaRecord;
   applyCount = 0;
 
@@ -121,9 +146,14 @@ export class InMemorySeedStorage implements SeedImportStorage {
     for (const id of write.deleteNoteIds) {
       this.notes.delete(id);
       this.segments.delete(id);
+      this.noteTags.delete(id);
+    }
+    if (write.noteTags) {
+      for (const { noteId, tags } of write.noteTags) {
+        this.noteTags.set(noteId, [...tags]);
+      }
     }
     for (const slug of write.deleteEffortSlugs) this.effortsBySlug.delete(slug);
-    for (const id of write.deleteBlockIds) this.blockRows.delete(id);
     this.meta = structuredClone(write.meta);
   }
 
@@ -142,5 +172,9 @@ export class InMemorySeedStorage implements SeedImportStorage {
 
   allBlocks(): BlockIndexRow[] {
     return [...this.blockRows.values()];
+  }
+
+  getTagsForNote(noteId: string): string[] {
+    return this.noteTags.get(noteId) ?? [];
   }
 }

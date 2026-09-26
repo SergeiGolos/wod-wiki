@@ -27,6 +27,7 @@ import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegm
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
+import { extractFrontmatterTags, parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
 import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
@@ -71,9 +72,25 @@ async function rowToRecords(
   row: SeedRow,
   chunkId: string,
   seedVersion: number,
-): Promise<{ note: Note; segment: NoteSegment }> {
+): Promise<{ note: Note; segment: NoteSegment; tags: string[] }> {
   const id = await seedNoteId(row.path);
   const createdAt = seedVersion; // deterministic: manifest builtAt epoch ms
+
+  const tags = extractFrontmatterTags(row.content);
+  const { meta, body } = parseFrontmatter(row.content);
+
+  let rawContent = row.content;
+  if ('tags' in meta || 'category' in meta) {
+    const cleanMeta = { ...meta };
+    delete cleanMeta['tags'];
+    delete cleanMeta['category'];
+    if (Object.keys(cleanMeta).length > 0) {
+      rawContent = `---\n${serializeFrontmatter(cleanMeta)}\n---\n${body}`;
+    } else {
+      rawContent = body;
+    }
+  }
+
   return {
     note: {
       id,
@@ -93,9 +110,10 @@ async function rowToRecords(
       position: 0,
       dataType: 'markdown',
       data: null,
-      rawContent: row.content,
+      rawContent,
       createdAt,
     },
+    tags,
   };
 }
 
@@ -201,6 +219,7 @@ export class SeedImporter {
 
       const notes: Note[] = [];
       const segments: NoteSegment[] = [];
+      const noteTags: { noteId: string; tags: string[] }[] = [];
       for (const record of built) {
         const existing = await this.storage.getNote(record.note.id);
         if (existing && existing.seedOrigin !== 'seed') {
@@ -209,6 +228,9 @@ export class SeedImporter {
         }
         notes.push(record.note);
         segments.push(record.segment);
+        if (record.tags.length > 0) {
+          noteTags.push({ noteId: record.note.id, tags: record.tags });
+        }
       }
 
       const writtenIds = notes.map((n) => n.id);
@@ -264,6 +286,7 @@ export class SeedImporter {
       await this.storage.applyChunk({
         notes,
         segments,
+        noteTags,
         efforts,
         blocks: [],
         deleteNoteIds: gone,

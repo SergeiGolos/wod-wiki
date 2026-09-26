@@ -40,10 +40,6 @@ import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundConten
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 import { localDateKey } from '../views/queriable-list/JournalDateScroll'
 import { useOnboardingEvents } from '../hooks/useOnboardingEvents'
-import { useCursorInsert } from '../hooks/useCursorInsert'
-import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
-import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
-import { Pin } from 'lucide-react'
 import { CalendarPlus } from 'lucide-react'
 import { ResponsiveActions } from '../nav/ResponsiveActions'
 
@@ -88,21 +84,6 @@ export function PlaygroundNotePage({
     [onEditNote, persistOnChange],
   )
 
-  // First-Note Wizard (ADR-0010, IKEA Effect) — see useFirstNoteWizardState
-  // for the open/close contract. The hook owns the three gates (completion,
-  // profile-initialized, per-mount dismissal); the page just binds.
-  const { open: wizardOpen, handleClose: rawHandleClose } = useFirstNoteWizardState()
-
-  // Pinned effort (ADR-0010, IKEA payoff) — see useCursorInsert for the
-  // IKEA payoff surface contract. The hook owns the editor view
-  // registration, the profile reads/writes (firstNoteUsedAt + pinnedEffort),
-  // and the strong-treatment signal. The page just binds.
-  const { insert: insertPinnedEffort, hasInserted, pinnedEffort, refreshPinnedEffort, registerView } = useCursorInsert()
-  const handleWizardClose = useCallback((completed: boolean) => {
-    rawHandleClose(completed)
-    if (completed) refreshPinnedEffort()
-  }, [rawHandleClose, refreshPinnedEffort])
-
   const [results, setResults] = useState<Session[]>([])
 
   const refreshResults = useCallback(() => {
@@ -116,17 +97,14 @@ export function PlaygroundNotePage({
   }, [refreshResults])
 
   // Place cursor at the $CURSOR token position on first mount.
-  // Register the view with the cursor-insert hook so the IKEA payoff
-  // button can dispatch into it. The hook owns the editor-view coupling.
   const cursorPlaced = useRef(false)
   const handleInternalViewCreated = useCallback((view: EditorView) => {
-    registerView(view)
     onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
     const offset = Math.min(DEFAULT_PLAYGROUND_CONTENT.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [onViewCreated, registerView])
+  }, [onViewCreated])
 
   const handleStartWorkout = useCallback(
     (block: ScriptBlock) => {
@@ -238,35 +216,12 @@ export function PlaygroundNotePage({
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout, results })
 
-  // Pinned-effort insert (IKEA payoff) — the page's single primary action:
-  // ResponsiveActions renders it inline on desktop and as the dock FAB on
-  // mobile. (Strong treatment renders only on the first note the user
-  // inserts the pinned effort on; subsequent notes step down to quiet.)
-  const pinnedEffortButton = pinnedEffort && (
-    <button
-      type="button"
-      onClick={insertPinnedEffort}
-      title={`Insert ${pinnedEffort} at the cursor`}
-      className={!hasInserted
-        ? 'inline-flex items-center gap-1.5 rounded-pill border border-brand/60 border-l-2 border-l-brand bg-brand/10 pl-3 pr-3 py-1.5 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/15 dark:text-brand-light'
-        : 'inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light'}
-    >
-      <Pin
-        className={!hasInserted
-          ? 'size-4 text-brand-deep dark:text-brand-light'
-          : 'size-3'}
-        aria-hidden="true"
-      />
-      {pinnedEffort}
-    </button>
-  )
-
   // The page header is hidden below lg — ResponsiveActions relocates the
   // primary action to the shared thumb dock and the rest to its overflow
   // sheet on mobile; on desktop (and standalone) everything renders inline.
   // Single declaration per breakpoint, no portal duplication.
   const headerActions = (
-    <ResponsiveActions label="Playground actions" primary={pinnedEffortButton}>
+    <ResponsiveActions label="Playground actions">
       <button
         type="button"
         onClick={() => setMoveToJournalOpen(true)}
@@ -372,7 +327,6 @@ export function PlaygroundNotePage({
 
   return (
     <>
-      <FirstNoteWizard open={wizardOpen} onClose={handleWizardClose} />
       <JournalPageShell
         title={pageTitle}
         actions={headerActions}

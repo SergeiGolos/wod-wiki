@@ -103,6 +103,38 @@ describe('SeedImporter', () => {
     expect(await seedNoteId('markdown/canvas/a.md')).toBe(await seedNoteId('markdown/canvas/a.md'));
     expect(await seedNoteId('markdown/canvas/a.md')).not.toBe(await seedNoteId('markdown/canvas/b.md'));
   });
+  it('extracts frontmatter tags into note tags table and strips tags from note markdown', async () => {
+    const sampleContent = `---
+tags:
+  - benchmark
+  - girl
+search: hidden
+template: canvas
+---
+
+# Fran
+21-15-9 Thrusters, Pull-ups
+`;
+    const { source } = makeSource(
+      {
+        'collection.girls': [row('markdown/collections/girls/fran.md', sampleContent)],
+      },
+      1000,
+    );
+    const storage = new InMemorySeedStorage();
+    await importAll(storage, source);
+
+    const franId = await seedNoteId('markdown/collections/girls/fran.md');
+    const tags = storage.getTagsForNote(franId);
+    expect(tags).toEqual(['benchmark', 'girl']);
+
+    const segment = storage.allSegments().find((s) => s.noteId === franId);
+    expect(segment).toBeDefined();
+    expect(segment!.rawContent).not.toContain('tags:');
+    expect(segment!.rawContent).not.toContain('benchmark');
+    expect(segment!.rawContent).toContain('search: hidden');
+    expect(segment!.rawContent).toContain('template: canvas');
+  });
 
   it('re-import of an unchanged manifest is a no-op with zero chunk fetches', async () => {
     const { source } = makeSource({ canvas: [row('markdown/canvas/a.md')] }, 1000);
