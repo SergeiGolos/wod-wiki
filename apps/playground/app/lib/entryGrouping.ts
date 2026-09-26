@@ -7,7 +7,6 @@
  */
 import type { Entry } from './entryMapper'
 import { todayKey, formatDateHeader } from './dateFormat'
-import { getDateLocale } from './dateLocale'
 
 export const UNDATED_KEY = '(undated)'
 
@@ -62,7 +61,7 @@ export function groupEntriesByDimension(
 ): StreamGroup[] {
   const dim = dimension.toLowerCase()
   const today = todayKey()
-  const locale = getDateLocale()
+  const locale = 'en'
 
   if (dim === 'date' || dim === 'day') {
     const map = new Map<string, Entry[]>()

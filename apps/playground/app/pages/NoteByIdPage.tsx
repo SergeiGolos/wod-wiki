@@ -10,7 +10,8 @@ import { notePersistence } from '@/services/persistence'
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
 import { noteByIdPath } from '../lib/routes'
 import type { HistoryEntry } from '@/types/history'
-
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
+import { tagsPaletteSource } from '../services/paletteDataSources'
 const contentProvider = new IndexedDBContentProvider()
 
 export interface NoteByIdPageProps {
@@ -92,11 +93,31 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
         {viewMode === 'read' ? 'Edit' : 'Read mode'}
       </Button>
     )
+    const handleAddTag = async () => {
+      const res = await usePaletteStore.getState().open({
+        placeholder: 'Search or add tag…',
+        sources: [tagsPaletteSource(entry.tags)],
+      })
+      if (!res.dismissed && res.item.payload) {
+        const { tag } = res.item.payload as { tag: string }
+        if (tag && !entry.tags.includes(tag)) {
+          const nextTags = [...entry.tags, tag]
+          contentProvider.updateEntry(noteId, { tags: nextTags }).then(setEntry)
+        }
+      }
+    }
+    const handleRemoveTag = (tag: string) => {
+      const nextTags = entry.tags.filter((t) => t !== tag)
+      contentProvider.updateEntry(noteId, { tags: nextTags }).then(setEntry)
+    }
     body = (
       <WorkbenchSessionProvider notePersistence={notePersistence} provider={contentProvider}>
         <JournalPageShell
           title={entry.title}
           subtitle={noteByIdPath(noteId)}
+          tags={entry.tags}
+          onAddTag={handleAddTag}
+          onRemoveTag={handleRemoveTag}
           actions={<ResponsiveActions navbar={editToggle} />}
           editor={
             <div className="flex flex-col gap-8 px-4 py-6 sm:px-6">

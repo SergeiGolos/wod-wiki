@@ -44,7 +44,6 @@ import { ResponsiveActions } from '../../nav/ResponsiveActions'
 import { effortPath } from '../../lib/routes'
 import { useComposerQueryState } from '../../hooks/useComposerQueryState'
 import { useViewSettings } from '../../lib/viewSettingsStorage'
-import { useDateLocale } from '../../lib/dateLocale'
 import { useBatchedItems, type BatchedItems } from '../../hooks/useBatchedItems'
 import { todayKey } from '../../lib/dateFormat'
 import { withoutFilters, withoutWindow } from '../../lib/wqlEdits'
@@ -107,8 +106,6 @@ export function QueriableStreamView({
     profile.route,
     profile.level,
   )
-
-  useDateLocale()
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [shelfOpen, setShelfOpen] = useState(true)

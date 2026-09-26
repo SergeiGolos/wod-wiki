@@ -56,4 +56,30 @@ describe('StickyPageHeader', () => {
     expect(screen.getByText('Library')).toBeDefined();
     expect(screen.getByTestId('test-subheader').textContent).toBe('Search bar');
   });
+
+  it('renders right-aligned tags with remove buttons and add tag button', () => {
+    let removedTag = '';
+    let addClicked = false;
+
+    render(
+      <StickyPageHeader
+        title="README"
+        tags={['domain-model', 'behavior']}
+        onRemoveTag={(t) => { removedTag = t; }}
+        onAddTag={() => { addClicked = true; }}
+        actions={<button>Edit</button>}
+      />
+    );
+
+    expect(screen.getByText('domain-model')).toBeDefined();
+    expect(screen.getByText('behavior')).toBeDefined();
+
+    const rmBtn = screen.getByLabelText('Remove tag domain-model');
+    rmBtn.click();
+    expect(removedTag).toBe('domain-model');
+
+    const addBtn = screen.getByLabelText('Add tag');
+    addBtn.click();
+    expect(addClicked).toBe(true);
+  });
 });

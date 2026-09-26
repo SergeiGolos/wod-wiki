@@ -32,6 +32,12 @@ export interface StickyPageHeaderProps {
   subtitle?: ReactNode;
   /** Content rendered next to the title (e.g. a challenge badge). */
   titleAccessory?: ReactNode;
+  /** Tags for the note section */
+  tags?: string[];
+  /** Optional callback to remove a tag */
+  onRemoveTag?: (tag: string) => void;
+  /** Optional callback to add a tag */
+  onAddTag?: () => void;
   /** Right-side actions (e.g. search, cast, actions menu). */
   actions?: ReactNode;
   /**
@@ -53,6 +59,9 @@ export function StickyPageHeader({
   title,
   subtitle,
   titleAccessory,
+  tags,
+  onRemoveTag,
+  onAddTag,
   actions,
   queryBar,
   subheader,
@@ -89,9 +98,52 @@ export function StickyPageHeader({
           </div>
         )}
         {queryBar && <div className="min-w-0 flex-1">{queryBar}</div>}
-        {actions && (
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {actions}
+        {Boolean((tags && tags.length > 0) || onAddTag || actions) && (
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+          {((tags && tags.length > 0) || onAddTag) && (
+            <div className="flex items-center flex-wrap gap-1.5 justify-end">
+              {tags?.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20 dark:border-amber-500/30"
+                >
+                  <span>{tag}</span>
+                  {onRemoveTag && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveTag(tag)}
+                      aria-label={`Remove tag ${tag}`}
+                      className="inline-flex items-center justify-center text-amber-700/60 hover:text-amber-950 dark:text-amber-400/60 dark:hover:text-amber-100 cursor-pointer"
+                    >
+                      <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </span>
+              ))}
+              {onAddTag && (
+                <button
+                  type="button"
+                  onClick={onAddTag}
+                  aria-label="Add tag"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-dashed border-border/80 transition-colors cursor-pointer select-none"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>Tag</span>
+                </button>
+              )}
+            </div>
+          )}
+          {actions && (
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {actions}
+            </div>
+          )}
           </div>
         )}
       </div>

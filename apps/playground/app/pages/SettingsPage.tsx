@@ -5,15 +5,15 @@
  * configuration options.
  *
  *   - /settings/appearance (default): Interface theme (System / Light / Dark),
- *     startup page (Home / Journal), and date language formatting
- *     (Auto / English / 中文 / Español / Deutsch / Français).
+ *     mobile actions button position (Bottom left / Bottom right), and startup
+ *     page (Home / Journal).
  *   - /settings/system: Audio feedback (sound effects & test chime), developer
  *     debug mode toggle, and "Reset & Clear Cache" danger zone.
  *   - /settings/queries: per-surface landing query and source / Group-By
  *     option overrides (routeWqlConfig).
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Sun,
@@ -21,7 +21,6 @@ import {
   Laptop,
   Home,
   BookOpen,
-  Globe,
   Volume2,
   VolumeX,
   Bug,
@@ -44,7 +43,6 @@ import { useTheme } from '@/contexts/ThemeProvider'
 import { useAudio } from '@/contexts/AudioContext'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useFabAlignment, FAB_ALIGNMENT_OPTIONS } from '../lib/fabAlignment'
-import { useDateLocale, DATE_LOCALE_OPTIONS, getDateLocale } from '../lib/dateLocale'
 import { useStartPage, START_PAGE_OPTIONS } from '../lib/startPage'
 import { readSeedStatus, runSeedSync, type SeedStatus } from '@/services/seed/seedSync'
 import { toast } from '@/hooks/use-toast'
@@ -56,8 +54,8 @@ import { cn } from '@/lib/utils'
 
 const SETTINGS_TABS = [
   { id: 'appearance', label: 'Appearance', icon: Paintbrush, content: <AppearanceSection /> },
-  { id: 'system', label: 'System', icon: Sliders, content: <SystemSection /> },
   { id: 'queries', label: 'Query Defaults', icon: ListFilter, content: <QueryDefaultsSection /> },
+  { id: 'system', label: 'System', icon: Sliders, content: <SystemSection /> },
 ] as const
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
@@ -81,7 +79,7 @@ export function SettingsPage() {
     <div className="flex-1 flex flex-col min-h-0 bg-background">
       <StickyPageHeader
         title="Settings"
-        subtitle="Manage appearance, regional formatting, audio, and system preferences"
+        subtitle="Manage appearance, audio, and system preferences"
       />
 
       {/* Subroute Navigation Tabs */}
@@ -121,13 +119,10 @@ export function SettingsPage() {
 
 function AppearanceSection() {
   const { theme, setTheme } = useTheme()
-  const [dateLocale, setDateLocale] = useDateLocale()
   const [fabAlignment, setFabAlignment] = useFabAlignment()
   const fabAlignmentIcons = { right: PanelRight, left: PanelLeft } as const
   const [startPage, setStartPage] = useStartPage()
   const startPageIcons = { home: Home, journal: BookOpen } as const
-
-  const today = useMemo(() => new Date(), [])
 
   const themeOptions = [
     {
@@ -150,20 +145,6 @@ function AppearanceSection() {
       icon: Moon,
     },
   ]
-
-  const formatPreviewDate = (tag: string | null): string => {
-    const localeToUse = tag || getDateLocale()
-    try {
-      return today.toLocaleDateString(localeToUse, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    } catch {
-      return today.toDateString()
-    }
-  }
 
   return (
     <div className="space-y-8">
@@ -232,74 +213,7 @@ function AppearanceSection() {
         </div>
       </section>
 
-      {/* 2. Date Language */}
-      <section className="space-y-4 pt-4 border-t border-border/50">
-        <div>
-          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Globe className="size-4 text-primary" />
-            Date & Calendar Language
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Configure the language used for date headers, journal entries, and calendar widgets.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {DATE_LOCALE_OPTIONS.map(option => {
-            const isSelected = dateLocale === option.tag
-            const preview = formatPreviewDate(option.tag)
-
-            return (
-              <div
-                key={option.tag ?? 'auto'}
-                data-testid={`date-locale-${option.tag ?? 'auto'}`}
-                onClick={() => setDateLocale(option.tag)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    setDateLocale(option.tag)
-                  }
-                }}
-                className={cn(
-                  'flex items-center justify-between p-3.5 rounded-xl border text-left cursor-pointer transition-all',
-                  isSelected
-                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5 text-foreground shadow-xs'
-                    : 'border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40',
-                )}
-              >
-                <div className="space-y-0.5 min-w-0 pr-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-foreground">{option.label}</span>
-                    {option.tag === null && (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    Sample: {preview}
-                  </div>
-                </div>
-
-                <div
-                  className={cn(
-                    'size-4 shrink-0 rounded-full border flex items-center justify-center transition-colors',
-                    isSelected
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-muted-foreground/40',
-                  )}
-                >
-                  {isSelected && <span className="text-[10px] font-bold">✓</span>}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* 3. Actions Button Position */}
+      {/* 2. Actions Button Position */}
       <section className="space-y-4 pt-4 border-t border-border/50">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -368,7 +282,7 @@ function AppearanceSection() {
         </div>
       </section>
 
-      {/* 4. Startup Page */}
+      {/* 3. Startup Page */}
       <section className="space-y-4 pt-4 border-t border-border/50">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
