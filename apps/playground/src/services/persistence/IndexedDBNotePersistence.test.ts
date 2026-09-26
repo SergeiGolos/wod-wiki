@@ -323,13 +323,14 @@ describe('IndexedDBNotePersistence', () => {
     ).rejects.toMatchObject({ code: 'NOTE_NOT_FOUND' });
   });
 
-  it('mutateNote resolves a note by its slug (journal route) instead of creating a duplicate', async () => {
+  it('mutateNote resolves a note by its page slug (journal route) instead of creating a duplicate', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider, savedNotes } = createHarness();
-    // A real journal note: UUID id, slug = the route, body present.
-    const journalNote: Note = { ...note, id: 'uuid-journal-1', slug: 'journal/2026-06-29', title: '2026-06-29' };
+    // A real journal note: UUID id, resolvable by its route slug.
+    const journalNote: Note = { ...note, id: 'uuid-journal-1', title: '2026-06-29' };
     storage.getNote = async (id: string) => id === journalNote.id ? journalNote : undefined;
     storage.getAllNotes = async () => [journalNote];
+    storage.getNoteBySlug = async (slug: string) => slug === 'journal/2026-06-29' ? journalNote : undefined;
     const updated: { id: string }[] = [];
     contentProvider.updateEntry = async (id: string) => { updated.push({ id }); return {} as HistoryEntry; };
     const persistence = new IndexedDBNotePersistence(storage, contentProvider);

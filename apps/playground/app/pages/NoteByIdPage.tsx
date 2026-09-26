@@ -10,7 +10,6 @@ import { notePersistence } from '@/services/persistence'
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
 import { noteByIdPath } from '../lib/routes'
 import type { HistoryEntry } from '@/types/history'
-
 const contentProvider = new IndexedDBContentProvider()
 
 export interface NoteByIdPageProps {

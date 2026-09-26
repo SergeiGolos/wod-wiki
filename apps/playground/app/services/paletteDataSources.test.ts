@@ -61,6 +61,7 @@ const {
   globalSearchSource,
   canvasRouteSource,
   constructSource,
+  tagsPaletteSource,
 } = await import('./paletteDataSources');
 
 type ExtractedScriptBlock = import('./paletteDataSources').ExtractedScriptBlock;
@@ -579,5 +580,45 @@ describe('constructSource', () => {
     const results = await source.search('load');
     const ids = results.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('tagsPaletteSource', () => {
+  it('returns existing tags matching query and excludes already assigned tags', async () => {
+    const prevGetAllTags = storageService.getAllTags;
+    storageService.getAllTags = async () => [
+      { id: '1', label: 'benchmark', createdAt: 0 },
+      { id: '2', label: 'cardio', createdAt: 0 },
+      { id: '3', label: 'strength', createdAt: 0 },
+    ];
+
+    try {
+      const source = tagsPaletteSource(['benchmark']);
+      const results = await source.search('car');
+      const existingMatch = results.find((r) => r.id === 'tag:cardio');
+      expect(existingMatch).toBeDefined();
+      expect(existingMatch?.payload).toEqual({ tag: 'cardio' });
+      expect(results.some((r) => r.id === 'tag:benchmark')).toBe(false);
+    } finally {
+      storageService.getAllTags = prevGetAllTags;
+    }
+  });
+
+  it('offers to create new tag when query does not match existing tag', async () => {
+    const prevGetAllTags = storageService.getAllTags;
+    storageService.getAllTags = async () => [
+      { id: '1', label: 'benchmark', createdAt: 0 },
+    ];
+
+    try {
+      const source = tagsPaletteSource([]);
+      const results = await source.search('aerobic');
+      const newTagItem = results.find((r) => r.id === 'tag:new:aerobic');
+      expect(newTagItem).toBeDefined();
+      expect(newTagItem?.label).toBe('Add tag "aerobic"');
+      expect(newTagItem?.payload).toEqual({ tag: 'aerobic' });
+    } finally {
+      storageService.getAllTags = prevGetAllTags;
+    }
   });
 });

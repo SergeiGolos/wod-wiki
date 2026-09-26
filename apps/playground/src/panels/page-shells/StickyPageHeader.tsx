@@ -90,7 +90,7 @@ export function StickyPageHeader({
         )}
         {queryBar && <div className="min-w-0 flex-1">{queryBar}</div>}
         {actions && (
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
             {actions}
           </div>
         )}

@@ -377,3 +377,53 @@ export function journalHistorySource(excludeDateKey?: string): PaletteDataSource
     },
   };
 }
+
+// ── Tags source ───────────────────────────────────────────────────────────
+
+export function tagsPaletteSource(existingTags: string[] = []): PaletteDataSource {
+  return {
+    id: 'tags',
+    label: 'Tags',
+    search: async (query: string) => {
+      let allTags: string[] = [];
+      try {
+        const storedTags = await storageService.getAllTags();
+        allTags = storedTags.map((t) => t.label);
+      } catch {
+        // storage unavailable
+      }
+      const existingSet = new Set(existingTags);
+      const q = query.trim().toLowerCase();
+      const results: PaletteItem[] = [];
+
+      // If user typed a query that is not already an exact tag, offer to create it
+      if (q && !allTags.some((t) => t.toLowerCase() === q) && !existingSet.has(query.trim())) {
+        results.push({
+          id: `tag:new:${query.trim()}`,
+          label: `Add tag "${query.trim()}"`,
+          sublabel: 'Create new tag',
+          category: 'New Tag',
+          type: 'action',
+          payload: { tag: query.trim() },
+        });
+      }
+
+      // Matching existing tags not yet on this note
+      const matched = allTags
+        .filter((t) => !existingSet.has(t) && (!q || t.toLowerCase().includes(q)))
+        .sort((a, b) => a.localeCompare(b));
+
+      for (const tag of matched) {
+        results.push({
+          id: `tag:${tag}`,
+          label: tag,
+          category: 'Existing Tags',
+          type: 'action',
+          payload: { tag },
+        });
+      }
+
+      return results;
+    },
+  };
+}

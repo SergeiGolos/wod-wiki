@@ -74,16 +74,17 @@ describe('SeedImporter', () => {
     expect(result.totalNotes).toBe(3);
     expect(counting.fetchChunkCalls).toHaveLength(2);
 
-    const fran = storage.allNotes().find((n) => n.slug === 'markdown/collections/girls/fran.md');
+    const franId = await seedNoteId('markdown/collections/girls/fran.md');
+    const fran = storage.allNotes().find((n) => n.id === franId);
     expect(fran).toBeDefined();
     expect(fran!.seedOrigin).toBe('seed');
     expect(fran!.seedVersion).toBe(1000);
     expect(fran!.seedChunkId).toBe('collection.girls');
     expect(fran!.catalog).toBe('girls');
-    expect(fran!.id).toBe(await seedNoteId('markdown/collections/girls/fran.md'));
     expect(fran!.createdAt).toBe(1000);
 
-    const canvasNote = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md');
+    const canvasNoteId = await seedNoteId('markdown/canvas/a.md');
+    const canvasNote = storage.allNotes().find((n) => n.id === canvasNoteId);
     expect(canvasNote!.catalog).toBeUndefined();
 
     const segment = storage.allSegments().find((s) => s.noteId === fran!.id);
@@ -102,6 +103,38 @@ describe('SeedImporter', () => {
   it('seed note ids are deterministic for the same path', async () => {
     expect(await seedNoteId('markdown/canvas/a.md')).toBe(await seedNoteId('markdown/canvas/a.md'));
     expect(await seedNoteId('markdown/canvas/a.md')).not.toBe(await seedNoteId('markdown/canvas/b.md'));
+  });
+  it('extracts frontmatter tags into note tags table and preserves tags in note markdown', async () => {
+    const sampleContent = `---
+tags:
+  - benchmark
+  - girl
+search: hidden
+template: canvas
+---
+
+# Fran
+21-15-9 Thrusters, Pull-ups
+`;
+    const { source } = makeSource(
+      {
+        'collection.girls': [row('markdown/collections/girls/fran.md', sampleContent)],
+      },
+      1000,
+    );
+    const storage = new InMemorySeedStorage();
+    await importAll(storage, source);
+
+    const franId = await seedNoteId('markdown/collections/girls/fran.md');
+    const tags = storage.getTagsForNote(franId);
+    expect(tags).toEqual(['benchmark', 'girl']);
+
+    const segment = storage.allSegments().find((s) => s.noteId === franId);
+    expect(segment).toBeDefined();
+    expect(segment!.rawContent).toContain('tags:');
+    expect(segment!.rawContent).toContain('benchmark');
+    expect(segment!.rawContent).toContain('search: hidden');
+    expect(segment!.rawContent).toContain('template: canvas');
   });
 
   it('re-import of an unchanged manifest is a no-op with zero chunk fetches', async () => {
@@ -126,7 +159,8 @@ describe('SeedImporter', () => {
     expect(result.status).toBe('imported');
     expect(result.appliedChunks).toBe(1);
     expect(counting.fetchChunkCalls).toEqual(['chunks/canvas.json']);
-    const edited = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md');
+    const editedId = await seedNoteId('markdown/canvas/a.md');
+    const edited = storage.allNotes().find((n) => n.id === editedId);
     const segment = storage.allSegments().find((s) => s.noteId === edited!.id);
     expect(segment!.rawContent).toBe('edited');
     expect(edited!.seedVersion).toBe(2000);
@@ -139,8 +173,10 @@ describe('SeedImporter', () => {
     await importAll(storage, v1.source);
 
     // Simulate user edits: retitle A (stays in corpus), and B (will vanish).
-    const noteA = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md')!;
-    const noteB = storage.allNotes().find((n) => n.slug === 'markdown/canvas/b.md')!;
+    const noteAId = await seedNoteId('markdown/canvas/a.md');
+    const noteBId = await seedNoteId('markdown/canvas/b.md');
+    const noteA = storage.allNotes().find((n) => n.id === noteAId)!;
+    const noteB = storage.allNotes().find((n) => n.id === noteBId)!;
     await storage.applyChunk({
       notes: [
         { ...noteA, title: 'My A', seedOrigin: 'user' },
@@ -173,7 +209,8 @@ describe('SeedImporter', () => {
     const v1 = makeSource({ canvas: [row('markdown/canvas/a.md'), row('markdown/canvas/b.md')] }, 1000);
     const storage = new InMemorySeedStorage();
     await importAll(storage, v1.source);
-    const noteB = storage.allNotes().find((n) => n.slug === 'markdown/canvas/b.md')!;
+    const noteBId = await seedNoteId('markdown/canvas/b.md');
+    const noteB = storage.allNotes().find((n) => n.id === noteBId)!;
 
     const v2 = makeSource({ canvas: [row('markdown/canvas/a.md')] }, 2000);
     const { result } = await importAll(storage, v2.source);
@@ -294,7 +331,8 @@ describe('SeedImporter manual re-sync (forceAll)', () => {
     await importAll(storage, v1.source);
 
     // Simulate a user edit over the seed row.
-    const noteA = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md')!;
+    const noteAId = await seedNoteId('markdown/canvas/a.md');
+    const noteA = storage.allNotes().find((n) => n.id === noteAId)!;
     await storage.applyChunk({
       notes: [{ ...noteA, title: 'My A', seedOrigin: 'user' }],
       segments: [],
@@ -314,7 +352,8 @@ describe('SeedImporter manual re-sync (forceAll)', () => {
     expect(result.appliedChunks).toBe(1);
     expect(result.skippedUserOwned).toBe(1);
     // The user-owned row survived untouched.
-    const after = storage.allNotes().find((n) => n.slug === 'markdown/canvas/a.md');
+    const afterId = await seedNoteId('markdown/canvas/a.md');
+    const after = storage.allNotes().find((n) => n.id === afterId);
     expect(after?.title).toBe('My A');
     expect(after?.seedOrigin).toBe('user');
   });

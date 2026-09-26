@@ -56,4 +56,16 @@ describe('StickyPageHeader', () => {
     expect(screen.getByText('Library')).toBeDefined();
     expect(screen.getByTestId('test-subheader').textContent).toBe('Search bar');
   });
+
+  it('renders right-aligned actions in the header', () => {
+    render(
+      <StickyPageHeader
+        title="README"
+        actions={<button data-testid="edit-btn">Edit</button>}
+      />
+    );
+
+    expect(screen.getByText('README')).toBeDefined();
+    expect(screen.getByTestId('edit-btn')).toBeDefined();
+  });
 });

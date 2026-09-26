@@ -1,4 +1,7 @@
 [
   "editor-width-slider",
-  "cmdr"
+  "cmdr",
+  "obsidian-excalidraw-plugin",
+  "obsidian-linter",
+  "tag-wrangler"
 ]

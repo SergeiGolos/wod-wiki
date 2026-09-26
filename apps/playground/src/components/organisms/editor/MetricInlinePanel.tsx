@@ -21,7 +21,9 @@ import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
-import { getCursorFocusState } from '@/app/editor/cursorFocusExtension';
+import { getCursorFocusState, type CursorFocusState } from '@/app/editor/cursorFocusExtension';
+import { presentThemedGroup } from "@/components/metrics/presentation";
+import type { SegmentType } from "@/components/organisms/command-palette/segmentSources";
 import { cn } from "@/lib/utils";
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 
@@ -88,7 +90,19 @@ const METRIC_STYLES: Partial<Record<string, MetricStyle>> = {
 
 // ── Metric chip ───────────────────────────────────────────────────────
 
-const MetricChip: React.FC<{ metric: IMetric }> = ({ metric }) => {
+/** Metric types that map onto statement-builder segments (clickable). */
+const SEGMENT_FOR_METRIC: Partial<Record<string, SegmentType>> = {
+  [MetricType.Rep]:        'reps',
+  [MetricType.Effort]:     'movement',
+  [MetricType.Resistance]: 'weight',
+};
+
+const MetricChip: React.FC<{
+  metric: IMetric;
+  tooltip?: string;
+  isFocused: boolean;
+  onClick?: () => void;
+}> = ({ metric, tooltip, isFocused, onClick }) => {
   const style = METRIC_STYLES[metric.type as string];
   const displayVal =
     metric.image ?? (metric.value !== undefined ? String(metric.value) : "");
@@ -96,11 +110,16 @@ const MetricChip: React.FC<{ metric: IMetric }> = ({ metric }) => {
 
   return (
     <span
+      title={tooltip}
+      onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium",
+        "pointer-events-auto transition-opacity hover:opacity-80",
         style?.bgClass ?? "bg-muted/30",
         style?.textClass ?? "text-muted-foreground",
         style?.borderClass ?? "border-border/40",
+        onClick && "cursor-pointer",
+        isFocused && "font-bold shadow-sm",
       )}
     >
       <span>{style?.icon ?? "•"}</span>
@@ -160,32 +179,20 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
   getCursorFocusState: getCursorFocusStateProp,
 }) => {
   const [pos, setPos] = useState<PanelPosition | null>(null);
-  const [statement, setStatement] = useState<ICodeStatement | null>(null);
-  const [section, setSection] = useState<EditorSection | null>(null);
+  const [focus, setFocus] = useState<CursorFocusState | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Recompute focus state and position whenever cursor version changes
   const update = useCallback(() => {
     if (!view) {
-      setStatement(null);
-      setSection(null);
+      setFocus(null);
       setPos(null);
       return;
     }
 
-    const focus = (getCursorFocusStateProp ?? getCursorFocusState)(view.state);
-    if (!focus) {
-      setStatement(null);
-      setSection(null);
-      setPos(null);
-      return;
-    }
-
-    setStatement(focus.statement);
-    setSection(focus.section);
-
-    const newPos = computePosition(view, focus.lineFrom);
-    setPos(newPos);
+    const nextFocus = (getCursorFocusStateProp ?? getCursorFocusState)(view.state);
+    setFocus(nextFocus);
+    setPos(nextFocus ? computePosition(view, nextFocus.lineFrom) : null);
   }, [view, getCursorFocusStateProp]);
 
   useEffect(() => {
@@ -205,11 +212,24 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
   }, [view, update]);
 
   // Don't render if cursor is outside a WOD section
-  if (!pos || !section) return null;
+  if (!pos || !focus?.section) return null;
 
+  const statement = focus.statement;
   const visibleMetrics = statement?.metrics.filter(
     (m) => m.type !== MetricType.Sound && m.type !== MetricType.System
   ) ?? [];
+  // Same presentation tokens the effort widget's badges use (tooltip content).
+  const tokens = presentThemedGroup(visibleMetrics, 'runtime-badge');
+
+  const handleChipClick = (metric: IMetric) => {
+    const segment = SEGMENT_FOR_METRIC[metric.type as string];
+    if (!segment) return;
+    import("@/components/Editor/services/statementBuilderFlow").then(
+      ({ runStatementBuilderFlow }) => {
+        runStatementBuilderFlow(focus, view!, segment);
+      }
+    );
+  };
 
   return (
     <div
@@ -238,7 +258,15 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {visibleMetrics.map((metric, i) => (
-              <MetricChip key={`${metric.type}-${i}`} metric={metric} />
+              <MetricChip
+                key={`${metric.type}-${i}`}
+                metric={metric}
+                tooltip={tokens[i]?.tooltip}
+                isFocused={focus.focusedMetric === metric}
+                onClick={SEGMENT_FOR_METRIC[metric.type as string]
+                  ? () => handleChipClick(metric)
+                  : undefined}
+              />
             ))}
           </div>
         </>

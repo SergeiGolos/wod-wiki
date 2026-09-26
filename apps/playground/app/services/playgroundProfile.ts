@@ -1,9 +1,5 @@
 /**
- * playgroundProfile — the user's local, per-installation preferences.
- *
- * ADR-0010 (IKEA Effect): the First-Note Wizard writes the three answers it
- * collects (training goal, default units, pinned effort) to the user's own
- * storage so they feel ownership of a configuration they built.
+ * playgroundProfile — the user's local, per-installation one-shot flags.
  *
  * These are preferences/metadata — not workout *content* — so they live in
  * localStorage alongside onboarding state rather than in the IndexedDB content
@@ -11,25 +7,13 @@
  * per-installation. Unknown keys are ignored on read; the shape can evolve with
  * no migration.
  *
- * `updateProfile` also writes the `wodwiki.profileInitialized.v1` flag on
- * every call, regardless of patch content. A patch of all-undefined (the
- * "user clicked through without selecting" path through
- * `FirstNoteWizard.finish`) still sets the flag — the user has interacted
- * with the profile, even if they chose nothing. The flag is read by
- * `useProfileInitialized` to gate the wizard's re-appearance.
+ * ponytail: legacy keys from the removed First-Note Wizard (trainingGoal,
+ * defaultUnits, pinnedEffort, firstNoteUsedAt, wodwiki.profileInitialized.v1)
+ * remain in old installs' localStorage as inert bytes; resetUserData wipes
+ * localStorage wholesale, so no targeted cleanup exists. Add cleanup if a new
+ * consumer ever needs the key space.
  */
-export type TrainingGoal = 'general' | 'sport' | 'hybrid' | 'rehab';
-export type UnitSystem = 'lb' | 'kg';
-
 export interface PlaygroundProfile {
-  trainingGoal?: TrainingGoal;
-  defaultUnits?: UnitSystem;
-  /** Effort id/slug the user pinned as their favorite. */
-  pinnedEffort?: string;
-  /** Epoch ms when the user first used the pinned-effort quick-insert.
-   *  Read by `PlaygroundNotePage` to apply the IKEA strong-treatment
-   *  styling on the first note only (see wayfinder #665). */
-  firstNoteUsedAt?: number;
   /** One-shot flag — true after the Goal Gradient completion celebration
    *  has been shown. Read by `OnboardingBanner` to gate the pill (see
    *  wayfinder #668). Survives across home-page visits so the user sees
@@ -57,11 +41,6 @@ export function updateProfile(patch: Partial<PlaygroundProfile>): PlaygroundProf
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      // Mark the profile as initialized on every write — even an
-      // all-undefined patch counts (user clicked through without
-      // selecting). The flag is read by `useProfileInitialized`; see
-      // that file's docstring for the full rationale.
-      window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     } catch {
       // Non-fatal — preferences are disposable.
     }

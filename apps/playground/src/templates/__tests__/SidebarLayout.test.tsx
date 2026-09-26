@@ -53,10 +53,10 @@ describe('SidebarLayout mobile folding zones', () => {
     expect(classes).not.toContain('xl:flex');
   });
 
-  it('exports centralized PAGE_SHELL_CONTAINER_CLASS with xl cap and 2xl/3xl rules', () => {
+  it('exports centralized PAGE_SHELL_CONTAINER_CLASS with xl cap and no ultrawide cap', () => {
     expect(PAGE_SHELL_CONTAINER_CLASS).toContain('xl:max-w-[984px]');
     expect(PAGE_SHELL_CONTAINER_CLASS).toContain('2xl:max-w-none');
-    expect(PAGE_SHELL_CONTAINER_CLASS).toContain('3xl:max-w-7xl');
+    expect(PAGE_SHELL_CONTAINER_CLASS).not.toContain('3xl:max-w');
     expect(PAGE_SHELL_CONTENT_SURFACE_CLASS).toContain('bg-background');
   });
 });

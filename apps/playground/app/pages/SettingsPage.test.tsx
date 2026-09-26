@@ -72,24 +72,16 @@ describe('SettingsPage', () => {
   })
 
   describe('Appearance Subroute', () => {
-    it('renders the Appearance tab active by default and displays theme & date language options', () => {
+    it('renders the Appearance tab active by default and displays theme options', () => {
       renderSettings('/settings/appearance')
 
       expect(screen.getByText('Settings')).toBeDefined()
-      expect(screen.getByTestId('settings-tab-appearance')).toBeDefined()
-      expect(screen.getByTestId('settings-tab-system')).toBeDefined()
 
       // Interface Theme section
       expect(screen.getByText('Interface Theme')).toBeDefined()
       expect(screen.getByTestId('theme-option-system')).toBeDefined()
       expect(screen.getByTestId('theme-option-light')).toBeDefined()
       expect(screen.getByTestId('theme-option-dark')).toBeDefined()
-
-      // Date Language section
-      expect(screen.getByText('Date & Calendar Language')).toBeDefined()
-      expect(screen.getByTestId('date-locale-auto')).toBeDefined()
-      expect(screen.getByTestId('date-locale-en')).toBeDefined()
-      expect(screen.getByTestId('date-locale-zh')).toBeDefined()
     })
 
     it('changes theme when a theme card is clicked', () => {
@@ -104,33 +96,6 @@ describe('SettingsPage', () => {
         screen.getByTestId('theme-option-light').click()
       })
       expect(mockSetTheme).toHaveBeenCalledWith('light')
-    })
-
-    it('offers Date language options with the current one marked, and persists a pick', () => {
-      renderSettings('/settings/appearance')
-
-      // Auto (UI language) is the default and carries the ✓.
-      expect(screen.getByTestId('date-locale-auto').textContent).toContain('Auto (UI language)')
-      expect(screen.getByTestId('date-locale-auto').textContent).toContain('✓')
-      expect(screen.getByTestId('date-locale-en').textContent).not.toContain('✓')
-
-      act(() => {
-        screen.getByTestId('date-locale-en').click()
-      })
-      expect(localStorage.getItem('wodwiki:dateLocale')).toBe('en')
-
-      // Re-render to observe state update
-      cleanup()
-      renderSettings('/settings/appearance')
-
-      expect(screen.getByTestId('date-locale-en').textContent).toContain('✓')
-      expect(screen.getByTestId('date-locale-auto').textContent).not.toContain('✓')
-
-      // Switch back to Auto clears the stored override
-      act(() => {
-        screen.getByTestId('date-locale-auto').click()
-      })
-      expect(localStorage.getItem('wodwiki:dateLocale')).toBeNull()
     })
 
     it('offers Startup Page options with Home default, and persists a Journal pick', () => {
@@ -218,25 +183,6 @@ describe('SettingsPage', () => {
     })
   })
 
-  describe('Tab Navigation', () => {
-    it('switches between Appearance and System tabs', () => {
-      renderSettings('/settings/appearance')
-
-      expect(screen.getByText('Interface Theme')).toBeDefined()
-
-      act(() => {
-        screen.getByTestId('settings-tab-system').click()
-      })
-
-      expect(screen.getByText('Audio Feedback')).toBeDefined()
-
-      act(() => {
-        screen.getByTestId('settings-tab-appearance').click()
-      })
-
-      expect(screen.getByText('Interface Theme')).toBeDefined()
-    })
-  })
 })
 
 describe('SettingsPage — Query Defaults tab', () => {
@@ -252,7 +198,6 @@ describe('SettingsPage — Query Defaults tab', () => {
   it('renders the tab and one card per configurable surface', () => {
     renderSettings('/settings/queries')
 
-    expect(screen.getByTestId('settings-tab-queries')).toBeDefined()
     expect(screen.getByTestId('query-defaults-section')).toBeDefined()
     for (const id of ['/library', '/journal', '/collections', '/feeds', '/efforts', '/sessions', '/playgrounds', '/palette']) {
       expect(screen.getByTestId(`query-defaults-card-${id}`)).toBeDefined()

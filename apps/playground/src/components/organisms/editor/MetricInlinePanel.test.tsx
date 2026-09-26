@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, mock } from 'bun:test';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, beforeAll, describe, expect, it, mock } from 'bun:test';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
@@ -7,6 +7,7 @@ import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import type { EditorView } from '@codemirror/view';
 import type { EditorState } from '@codemirror/state';
 import { MetricInlinePanel } from './MetricInlinePanel';
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
 
 function makeStatement(metrics: IMetric[]): ICodeStatement {
   return {
@@ -214,5 +215,72 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
     expect(panel?.className).toContain('h-[28px]');
     expect(panel?.className).not.toContain('rounded-b-md');
     expect(panel?.className).not.toContain('shadow-sm');
+  });
+});
+
+describe('MetricInlinePanel chip focus, hover, and palette click', () => {
+  afterEach(() => {
+    cleanup();
+    usePaletteStore.setState({ isOpen: false, request: null, _resolve: null });
+  });
+
+  function renderPanel(metrics: IMetric[], focusedMetric: IMetric | null, viewOverrides: object = {}) {
+    const statement = makeStatement(metrics);
+    const section = makeSection();
+    const view = {
+      ...createMockView(),
+      ...viewOverrides,
+    };
+    const getCursorFocusState = mock(() => ({
+      section,
+      statement,
+      cursorLine: 1,
+      lineFrom: 0,
+      lineTo: 10,
+      focusedMetric,
+    }));
+    render(
+      <MetricInlinePanel
+        view={view as unknown as EditorView}
+        cursorVersion={1}
+        getCursorFocusState={getCursorFocusState}
+      />
+    );
+  }
+
+  it('bolds the chip whose metric the cursor is on', () => {
+    const rep = { type: MetricType.Rep, value: 10, origin: 'parser' } as IMetric;
+    const effort = { type: MetricType.Effort, value: 'Burpees', origin: 'parser' } as IMetric;
+    renderPanel([rep, effort], rep);
+
+    const repChip = screen.getByText('Reps').parentElement!;
+    const effortChip = screen.getByText('Exercise').parentElement!;
+    expect(repChip.className).toContain('font-bold');
+    expect(effortChip.className).not.toContain('font-bold');
+  });
+
+  it('exposes metric details on hover matching the effort-widget badges', () => {
+    const rep = { type: MetricType.Rep, value: 10, origin: 'parser' } as IMetric;
+    renderPanel([rep], null);
+
+    const repChip = screen.getByText('Reps').parentElement!;
+    expect(repChip.getAttribute('title')).toContain('Type: rep');
+    expect(repChip.getAttribute('title')).toContain('Value: 10');
+  });
+
+  it('opens the statement-builder palette on the clicked segment', async () => {
+    const weight = { type: MetricType.Resistance, value: '20kg', origin: 'parser' } as IMetric;
+    renderPanel([weight], null, {
+      state: { doc: { sliceString: () => '10 burpees 20kg' } },
+    });
+
+    fireEvent.click(screen.getByText('Weight').parentElement!);
+
+    await waitFor(() => expect(usePaletteStore.getState().isOpen).toBe(true));
+    const request = usePaletteStore.getState().request;
+    expect(request?.sources[0]?.id).toBe('segment:weight');
+    expect(request?.placeholder).toContain('load');
+
+    usePaletteStore.getState()._dismiss();
   });
 });

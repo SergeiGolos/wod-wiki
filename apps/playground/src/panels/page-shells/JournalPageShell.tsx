@@ -23,7 +23,6 @@ export interface JournalPageShellProps {
 
   /** Optional data-testid for the sticky-header title element (e2e/TestIdContract) */
   titleTestId?: string;
-
   /** Right-side actions (e.g. New Entry, Cast, etc.) */
   actions?: ReactNode;
 

@@ -4,9 +4,8 @@
  * anchors to. Right (default) suits right-handed use; Left mirrors it for
  * left-handed use.
  *
- * Follows the dateLocale.ts pattern: module-level value + localStorage +
- * storage event, so non-React readers stay cheap and `useFabAlignment` gives
- * components reactivity.
+ * Module-level value + localStorage + storage event, so non-React readers
+ * stay cheap and `useFabAlignment` gives components reactivity.
  */
 import { useEffect, useState } from 'react'
 
@@ -20,16 +19,17 @@ export interface FabAlignmentOption {
   description: string
 }
 
+// Cards render in this order: left card on the left, right card on the right.
 export const FAB_ALIGNMENT_OPTIONS: FabAlignmentOption[] = [
-  {
-    id: 'right',
-    label: 'Bottom right',
-    description: 'Right-handed — search and page actions float near your right thumb',
-  },
   {
     id: 'left',
     label: 'Bottom left',
     description: 'Left-handed — search and page actions float near your left thumb',
+  },
+  {
+    id: 'right',
+    label: 'Bottom right',
+    description: 'Right-handed — search and page actions float near your right thumb',
   },
 ]
 

@@ -10,7 +10,7 @@
  *     `IndexedDBService` constructor runs `openDB` at the current DB_VERSION and the
  *     `upgrade` callback fires from version 0, recreating the full schema.
  *  2. localStorage — theme, audio, debug flag, onboarding flags, profile
- *     (wodwiki.profile.v1, wodwiki.profileInitialized.v1), and the V4
+ *     (wodwiki.profile.v1), and the V4
  *     migration flag (wodwiki:migrated-to-idb-v4).
  *  3. sessionStorage — the SPA redirect marker and any transient UI state.
  *

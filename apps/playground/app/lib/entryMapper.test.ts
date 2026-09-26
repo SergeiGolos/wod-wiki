@@ -29,18 +29,17 @@ function makeNote(overrides: Partial<Note> = {}): Note {
 }
 
 describe('toEntry — playground entries', () => {
-  it('classifies an intake entry (sourceId playground, UUID id, slug route id) as a playground Note', () => {
+  it('classifies an intake entry (sourceId playground, UUID id) as a playground Note', () => {
     const entry = toEntry(makeNote({
       id: 'uuid-1',
       sourceId: 'playground',
       type: 'playground',
-      slug: 'playground/fran-experiment',
       createdAt: 123,
     }))
     expect(entry.kind).toBe<EntryKind>('note')
     expect(entry.sourceCatalog).toBe('playground')
-    // The /playground/:id route segment — the slug's name half.
-    expect(entry.sourceItem).toBe('fran-experiment')
+    // The /playground/:id route segment — the note id itself (V22: no slug).
+    expect(entry.sourceItem).toBe('uuid-1')
     expect(entry.date).toBeNull()
     expect(entry.createdAt).toBe(123)
   })

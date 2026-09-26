@@ -6,6 +6,7 @@ import type {
   NoteSegment,
   NoteTag,
   Page,
+  PageNote,
   Session,
   Tag,
 } from '@/types/storage';
@@ -32,8 +33,11 @@ export class StorageService implements NotePersistenceStorage {
   }
 
   async getNoteBySlug(slug: string): Promise<Note | undefined> {
-    const matches = await this.storage.readonly('notes').getAllFromIndex('by-slug', slug);
-    return matches[0];
+    const page = await this.getPageBySlug(slug);
+    if (!page) return undefined;
+    const links = await this.getPageNotes(page.id);
+    if (links.length === 0) return undefined;
+    return this.getNote(links[0].noteId);
   }
 
   async getAllNotes(): Promise<Note[]> {
@@ -47,13 +51,13 @@ export class StorageService implements NotePersistenceStorage {
 
   async deleteNote(id: string): Promise<void> {
     await this.storage.transaction(
-      ['notes', 'segments', 'results', 'sessions', 'attachments', 'events', 'note_tags', 'block_index'],
+      ['notes', 'segments', 'results', 'sessions', 'attachments', 'events', 'note_tags', 'block_index', 'page_notes'],
       'readwrite',
       async (tx) => {
         await tx.readwrite('notes').delete(id);
 
         const deleteFromStoreByIndex = async (
-          storeName: 'segments' | 'results' | 'sessions' | 'attachments' | 'note_tags' | 'block_index'
+          storeName: 'segments' | 'results' | 'sessions' | 'attachments' | 'note_tags' | 'block_index' | 'page_notes'
         ) => {
           const store = tx.readwrite(storeName);
           const rows = await store.getAllFromIndex('by-note', id);
@@ -73,6 +77,7 @@ export class StorageService implements NotePersistenceStorage {
         await deleteFromStoreByIndex('attachments');
         await deleteFromStoreByIndex('note_tags');
         await deleteFromStoreByIndex('block_index');
+        await deleteFromStoreByIndex('page_notes');
 
         // Delete events by result
         const eventsStore = tx.readwrite('events');
@@ -99,9 +104,53 @@ export class StorageService implements NotePersistenceStorage {
     return matches[0];
   }
 
+  async getPageBySlug(slug: string): Promise<Page | undefined> {
+    const matches = await this.storage.readonly('page').getAllFromIndex('by-slug', slug);
+    return matches[0];
+  }
+
   async savePage(page: Page): Promise<string> {
     await this.storage.readwrite('page').put(page);
     return page.id;
+  }
+
+  // ---------------------------------------------------------------------------
+  // PageNotes — N:M junction (V22)
+  // ---------------------------------------------------------------------------
+
+  async getAllPageNotes(): Promise<PageNote[]> {
+    return this.storage.readonly('page_notes').getAll();
+  }
+
+  async getPageNotes(pageId: string): Promise<PageNote[]> {
+    return this.storage.readonly('page_notes').getAllFromIndex('by-page', pageId);
+  }
+
+  async getNotePages(noteId: string): Promise<PageNote[]> {
+    return this.storage.readonly('page_notes').getAllFromIndex('by-note', noteId);
+  }
+
+  async addNoteToPage(noteId: string, pageId: string, position?: number): Promise<string> {
+    const existing = await this.storage.readonly('page_notes')
+      .getAllFromIndex('by-page-note', [pageId, noteId]);
+    if (existing.length > 0) return existing[0].id;
+    const id = generateId();
+    await this.storage.readwrite('page_notes').put({
+      id,
+      pageId,
+      noteId,
+      position,
+      createdAt: Date.now(),
+    });
+    return id;
+  }
+
+  async removeNoteFromPage(noteId: string, pageId: string): Promise<void> {
+    const existing = await this.storage.readonly('page_notes')
+      .getAllFromIndex('by-page-note', [pageId, noteId]);
+    for (const link of existing) {
+      await this.storage.readwrite('page_notes').delete(link.id);
+    }
   }
 
   async getOrCreatePageForDate(date: string): Promise<Page> {
@@ -440,10 +489,10 @@ export class StorageService implements NotePersistenceStorage {
     }
     const out: Array<{ path: string; raw: string }> = [];
     for (const note of notes) {
-      if (note.seedOrigin !== 'seed' || !note.slug) continue;
+      if (note.seedOrigin !== 'seed' || !note.sourcePath) continue;
       const latest = latestSegmentByNote.get(note.id);
       if (latest?.rawContent) {
-        out.push({ path: note.slug, raw: latest.rawContent });
+        out.push({ path: note.sourcePath, raw: latest.rawContent });
       }
     }
     return out;

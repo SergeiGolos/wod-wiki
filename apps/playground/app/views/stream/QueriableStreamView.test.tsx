@@ -442,7 +442,6 @@ describe('QueriableStreamView component', () => {
       createdAt: 1_700_000_000_000,
       type: 'playground',
       sourceId: 'playground',
-      slug: 'playground/fran-experiment',
     }
     const wodBlock: BlockIndexRow = {
       id: 'b:uuid-1',
@@ -487,7 +486,7 @@ describe('QueriableStreamView component', () => {
 
     // Actions function on the actual entry kind: Open → /playground/:name.
     const openLink = screen.getByTestId('stream-feed-open') as HTMLAnchorElement
-    expect(openLink.getAttribute('href')).toBe('/playground/fran-experiment')
+    expect(openLink.getAttribute('href')).toBe('/playground/uuid-1')
 
     // Playground scope: undated entries are labeled Undated, never shelved
     // as "Catalog Sessions". Asserted BEFORE the Run click — Run navigates
@@ -507,7 +506,7 @@ describe('QueriableStreamView component', () => {
     expect(runtimeId).not.toBe('wod-hash-1')
     expect(pending?.noteId).toBe('uuid-1')
     expect(pending?.origin).toBe('playground')
-    expect(pending?.returnTo).toBe('/playground/fran-experiment')
+    expect(pending?.returnTo).toBe('/playground/uuid-1')
     expect(pending?.block.content).toContain('21-15-9')
     pendingRuntimes.clear()
   })

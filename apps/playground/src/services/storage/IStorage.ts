@@ -6,6 +6,7 @@ import type {
   NoteSegment,
   NoteTag,
   Page,
+  PageNote,
   Session,
   Tag,
 } from '@/types/storage';
@@ -20,6 +21,7 @@ import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 export interface StorageSchema {
   notes: Note;
   page: Page;
+  page_notes: PageNote;
   tags: Tag;
   note_tags: NoteTag;
   segments: NoteSegment;

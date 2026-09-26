@@ -82,7 +82,8 @@ const SEGMENT_LABELS: Record<SegmentType, string> = {
 
 export async function runStatementBuilderFlow(
   focus: CursorFocusState,
-  view: EditorView
+  view: EditorView,
+  startSegment?: SegmentType
 ): Promise<void> {
   const palette = usePaletteStore.getState();
 
@@ -97,7 +98,8 @@ export async function runStatementBuilderFlow(
 
   const segmentLabels = SEGMENT_SEQUENCE.map(t => SEGMENT_LABELS[t]);
 
-  for (let i = 0; i < SEGMENT_SEQUENCE.length; i++) {
+  const startIndex = Math.max(0, SEGMENT_SEQUENCE.indexOf(startSegment as SegmentType));
+  for (let i = startIndex; i < SEGMENT_SEQUENCE.length; i++) {
     const segType = SEGMENT_SEQUENCE[i];
 
     const result = await palette.open({

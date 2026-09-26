@@ -25,8 +25,9 @@
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
 import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
+import type { BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
+import { extractFrontmatterTags, parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
 import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
@@ -71,20 +72,69 @@ async function rowToRecords(
   row: SeedRow,
   chunkId: string,
   seedVersion: number,
-): Promise<{ note: Note; segment: NoteSegment }> {
+): Promise<{ note: Note; segment: NoteSegment; tags: string[]; page?: Page; pageNote?: PageNote }> {
   const id = await seedNoteId(row.path);
   const createdAt = seedVersion; // deterministic: manifest builtAt epoch ms
+
+  const tags = extractFrontmatterTags(row.content);
+  const { meta, body } = parseFrontmatter(row.content);
+
+  let rawContent = row.content;
+  let date: number | undefined = undefined;
+  let page: Page | undefined = undefined;
+  let pageNote: PageNote | undefined = undefined;
+
+  const cleanMeta = { ...meta };
+
+  // Parse `date` frontmatter (YYYY-MM-DD) → Note.date (noon UTC)
+  if ('date' in cleanMeta) {
+    const rawDate = cleanMeta['date'];
+    if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      date = new Date(`${rawDate}T12:00:00Z`).getTime();
+    }
+    delete cleanMeta['date'];
+  }
+
+  // Parse `slug` frontmatter → create owning Page
+  let pageId: string | undefined = undefined;
+  if ('slug' in cleanMeta) {
+    const slug = String(cleanMeta['slug']).trim();
+    if (slug) {
+      pageId = await seedNoteId(`page:${slug}`);
+      page = {
+        id: pageId,
+        slug,
+        title: titleFromPath(row.path),
+        createdAt,
+      };
+      pageNote = {
+        id: await seedNoteId(`pagenote:${slug}:${row.path}`),
+        pageId,
+        noteId: id,
+        createdAt,
+      };
+    }
+    delete cleanMeta['slug'];
+  }
+
+  if (Object.keys(cleanMeta).length > 0) {
+    rawContent = `---\n${serializeFrontmatter(cleanMeta)}\n---\n${body}`;
+  } else {
+    rawContent = body;
+  }
+
   return {
     note: {
       id,
       title: titleFromPath(row.path),
-      slug: row.path,
+      date,
       createdAt,
       type: 'note',
       catalog: catalogForChunkId(chunkId),
       seedOrigin: 'seed',
       seedVersion,
       seedChunkId: chunkId,
+      sourcePath: row.path,
     },
     segment: {
       id: seedSegmentId(id),
@@ -93,9 +143,12 @@ async function rowToRecords(
       position: 0,
       dataType: 'markdown',
       data: null,
-      rawContent: row.content,
+      rawContent,
       createdAt,
     },
+    tags,
+    page,
+    pageNote,
   };
 }
 
@@ -198,9 +251,13 @@ export class SeedImporter {
       // ── Notes chunks: markdown rows → notes + segments (+ efforts) ──
       const rows = assertRows(payload);
       const built = await Promise.all(rows.map((r) => rowToRecords(r, chunk.id, manifest.version)));
+      const rawById = new Map(built.map((record, i) => [record.note.id, rows[i].content]));
 
       const notes: Note[] = [];
       const segments: NoteSegment[] = [];
+      const pages: Page[] = [];
+      const pageNotes: PageNote[] = [];
+      const noteTags: { noteId: string; tags: string[] }[] = [];
       for (const record of built) {
         const existing = await this.storage.getNote(record.note.id);
         if (existing && existing.seedOrigin !== 'seed') {
@@ -209,6 +266,11 @@ export class SeedImporter {
         }
         notes.push(record.note);
         segments.push(record.segment);
+        if (record.page) pages.push(record.page);
+        if (record.pageNote) pageNotes.push(record.pageNote);
+        if (record.tags.length > 0) {
+          noteTags.push({ noteId: record.note.id, tags: record.tags });
+        }
       }
 
       const writtenIds = notes.map((n) => n.id);
@@ -231,10 +293,12 @@ export class SeedImporter {
       const efforts: IEffort[] = [];
       const deleteEffortSlugs: string[] = [];
       if (chunk.id === EFFORTS_CHUNK_ID) {
-        for (const { note, segment } of built) {
-          const parsed = parseEffortFile(segment.rawContent);
+        for (const { note } of built) {
+          const rawContent = rawById.get(note.id);
+          if (!rawContent) continue;
+          const parsed = parseEffortFile(rawContent);
           if (!parsed) {
-            console.warn(`[SeedImporter] unparseable effort row skipped: ${note.slug}`);
+            console.warn(`[SeedImporter] unparseable effort row skipped: ${note.title}`);
             continue;
           }
           parsed.registrySource = 'bundled';
@@ -245,7 +309,10 @@ export class SeedImporter {
         for (const id of gone) {
           const note = await this.storage.getNote(id);
           if (!note) continue;
-          const slug = effortSlugFromPath(note.slug ?? '');
+          // Slug convention: filename stem == frontmatter slug (enforced corpus-wide).
+          // We recover the path stem from the note's seedChunkId or derive it from the title
+          // if the path isn't tracked anymore. Fallback to title stem.
+          const slug = note.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
           if (!slug) continue;
           const existing = await this.storage.getEffort(slug);
           if (existing && existing.registrySource !== 'bundled') continue;
@@ -264,6 +331,9 @@ export class SeedImporter {
       await this.storage.applyChunk({
         notes,
         segments,
+        pages,
+        pageNotes,
+        noteTags,
         efforts,
         blocks: [],
         deleteNoteIds: gone,
