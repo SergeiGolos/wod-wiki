@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import {
   Sun,
   Moon,
@@ -31,12 +31,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Check,
-  Paintbrush,
-  Sliders,
   Search,
   PanelRight,
   PanelLeft,
-  ListFilter,
 } from 'lucide-react'
 import { StickyPageHeader } from '@/panels/page-shells/StickyPageHeader'
 import { useTheme } from '@/contexts/ThemeProvider'
@@ -52,17 +49,17 @@ import { Switch } from '@/components/atoms/primitives/switch'
 import { Button } from '@/components/atoms/primitives/button'
 import { cn } from '@/lib/utils'
 
-const SETTINGS_TABS = [
-  { id: 'appearance', label: 'Appearance', icon: Paintbrush, content: <AppearanceSection /> },
-  { id: 'queries', label: 'Query Defaults', icon: ListFilter, content: <QueryDefaultsSection /> },
-  { id: 'system', label: 'System', icon: Sliders, content: <SystemSection /> },
+// Subroute switching lives in the left L2 nav (appNavTree); no in-page tab bar.
+const SETTINGS_SECTIONS = [
+  { id: 'appearance', content: <AppearanceSection /> },
+  { id: 'queries', content: <QueryDefaultsSection /> },
+  { id: 'system', content: <SystemSection /> },
 ] as const
 
-type SettingsTab = (typeof SETTINGS_TABS)[number]['id']
+type SettingsTab = (typeof SETTINGS_SECTIONS)[number]['id']
 
 export function SettingsPage() {
   const location = useLocation()
-  const navigate = useNavigate()
 
   // Determine active tab based on route; default to appearance
   const activeTab: SettingsTab = location.pathname.endsWith('/system')
@@ -71,10 +68,6 @@ export function SettingsPage() {
       ? 'queries'
       : 'appearance'
 
-  const handleTabChange = (tab: SettingsTab) => {
-    navigate(`/settings/${tab}`)
-  }
-
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background">
       <StickyPageHeader
@@ -82,33 +75,10 @@ export function SettingsPage() {
         subtitle="Manage appearance, audio, and system preferences"
       />
 
-      {/* Subroute Navigation Tabs */}
-      <div className="border-b border-border/50 bg-card/40 px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-4xl mx-auto flex items-center gap-2">
-          {SETTINGS_TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => handleTabChange(id)}
-              data-testid={`settings-tab-${id}`}
-              className={cn(
-                'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                activeTab === id
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
-              )}
-            >
-              <Icon className="size-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Page Content */}
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto space-y-8">
-        {SETTINGS_TABS.find(tab => tab.id === activeTab)?.content}
+        {SETTINGS_SECTIONS.find(tab => tab.id === activeTab)?.content}
         </div>
       </main>
     </div>

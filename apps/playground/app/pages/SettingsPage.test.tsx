@@ -76,8 +76,6 @@ describe('SettingsPage', () => {
       renderSettings('/settings/appearance')
 
       expect(screen.getByText('Settings')).toBeDefined()
-      expect(screen.getByTestId('settings-tab-appearance')).toBeDefined()
-      expect(screen.getByTestId('settings-tab-system')).toBeDefined()
 
       // Interface Theme section
       expect(screen.getByText('Interface Theme')).toBeDefined()
@@ -185,25 +183,6 @@ describe('SettingsPage', () => {
     })
   })
 
-  describe('Tab Navigation', () => {
-    it('switches between Appearance and System tabs', () => {
-      renderSettings('/settings/appearance')
-
-      expect(screen.getByText('Interface Theme')).toBeDefined()
-
-      act(() => {
-        screen.getByTestId('settings-tab-system').click()
-      })
-
-      expect(screen.getByText('Audio Feedback')).toBeDefined()
-
-      act(() => {
-        screen.getByTestId('settings-tab-appearance').click()
-      })
-
-      expect(screen.getByText('Interface Theme')).toBeDefined()
-    })
-  })
 })
 
 describe('SettingsPage — Query Defaults tab', () => {
@@ -219,7 +198,6 @@ describe('SettingsPage — Query Defaults tab', () => {
   it('renders the tab and one card per configurable surface', () => {
     renderSettings('/settings/queries')
 
-    expect(screen.getByTestId('settings-tab-queries')).toBeDefined()
     expect(screen.getByTestId('query-defaults-section')).toBeDefined()
     for (const id of ['/library', '/journal', '/collections', '/feeds', '/efforts', '/sessions', '/playgrounds', '/palette']) {
       expect(screen.getByTestId(`query-defaults-card-${id}`)).toBeDefined()

@@ -177,19 +177,19 @@ describe('appNavTree - Settings navigation', () => {
     expect(settings?.children).toBeDefined()
     expect(settings?.children?.length).toBe(3)
 
-    const [appearance, system, queries] = settings!.children!
+    const [appearance, queries, system] = settings!.children!
 
     expect(appearance.id).toBe('settings-appearance')
     expect(appearance.label).toBe('Appearance')
     expect(appearance.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
 
-    expect(system.id).toBe('settings-system')
-    expect(system.label).toBe('System')
-    expect(system.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsSystem })
-
     expect(queries.id).toBe('settings-queries')
     expect(queries.label).toBe('Query Defaults')
     expect(queries.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsQueries })
+
+    expect(system.id).toBe('settings-system')
+    expect(system.label).toBe('System')
+    expect(system.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsSystem })
   })
 
   it('activates settings L1 for /settings, /settings/appearance, and /settings/system', () => {
@@ -204,7 +204,7 @@ describe('appNavTree - Settings navigation', () => {
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')!
-    const [appearance, system, queries] = settings.children!
+    const [appearance, queries, system] = settings.children!
 
     expect(appearance.isActive!(mockLocation('/settings'))).toBe(true)
     expect(appearance.isActive!(mockLocation('/settings/appearance'))).toBe(true)
