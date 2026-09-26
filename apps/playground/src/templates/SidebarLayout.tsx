@@ -122,7 +122,7 @@ export function SidebarLayout({
             entries collapse into the header ⋯ menu (see ActionsMenu).
             Between xl (1280px) and 2xl (1520px), content remains capped at 984px
             and right padding grows until the 240px rail fits without shrinking content. */}
-        <aside className="hidden 2xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto border-l border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm">
+        <aside className="hidden 2xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto bg-background/72 backdrop-blur-sm">
           <SecondaryNav spec={secondary} />
         </aside>
 

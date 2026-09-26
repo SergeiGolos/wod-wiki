@@ -9,13 +9,15 @@
  */
 import type { SeedMetaRecord } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { BlockIndexRow, Note, NoteSegment } from '@/types/storage';
+import type { BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { storage, type IStorage } from '@/services/storage';
 import { SEED_META_KEY, seedSegmentId } from '@/types/seed';
 
 export interface SeedChunkWrite {
   notes: Note[];
   segments: NoteSegment[];
+  pages?: Page[];
+  pageNotes?: PageNote[];
   noteTags?: { noteId: string; tags: string[] }[];
   /** Effort records materialized from the efforts chunk (seed v2). */
   efforts: IEffort[];
@@ -63,7 +65,7 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
     await this.storageInstance.transaction(
-      ['notes', 'segments', 'efforts', 'block_index', 'tags', 'note_tags', 'meta'],
+      ['notes', 'segments', 'page', 'page_notes', 'efforts', 'block_index', 'tags', 'note_tags', 'meta'],
       'readwrite',
       async (tx) => {
         const notes = tx.readwrite('notes');
@@ -73,6 +75,16 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
         const segments = tx.readwrite('segments');
         for (const segment of write.segments) await segments.put(segment);
         for (const id of write.deleteNoteIds) await segments.delete([seedSegmentId(id), 1]);
+
+        const pagesStore = tx.readwrite('page');
+        if (write.pages) for (const page of write.pages) await pagesStore.put(page);
+
+        const pageNotesStore = tx.readwrite('page_notes');
+        if (write.pageNotes) for (const pn of write.pageNotes) await pageNotesStore.put(pn);
+        for (const id of write.deleteNoteIds) {
+          const links = await pageNotesStore.getAllFromIndex('by-note', id);
+          for (const link of links) await pageNotesStore.delete(link.id);
+        }
 
         const efforts = tx.readwrite('efforts');
         for (const effort of write.efforts) await efforts.put(effort);

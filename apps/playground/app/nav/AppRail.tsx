@@ -60,12 +60,7 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
               key={item.id}
               type="button"
               onClick={() => {
-                // Group L1s (children, no page) select in place — the
-                // context sidebar shows their children; nothing navigates.
-                if (item.id !== 'home' && (item.children?.length || item.panel)) {
-                  dispatch({ type: 'SET_ACTIVE_L1', id: item.id })
-                  return
-                }
+                dispatch({ type: 'SET_ACTIVE_L1', id: item.id })
                 executeNavAction(item.action, deps)
               }}
               title={item.label}

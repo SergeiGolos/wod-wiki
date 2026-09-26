@@ -21,14 +21,13 @@ export type SegmentDataType =
 // ---------------------------------------------------------------------------
 // Note — root container
 // ---------------------------------------------------------------------------
-export type NoteKind = 'note' | 'template' | 'playground' | 'journal' | 'collection' | 'syntax' | 'dashboard' | 'behavior' | 'analytics' | 'home' | 'page' | (string & {});
+export type NoteKind = 'journal' | 'template' | 'playground' | 'collection' | 'dashboard' | 'page' | (string & {});
 
 export interface Note {
   id: string; // UUID — canonical storage identity
   title: string; // Display name
-  slug?: string;
-  pageId?: string;
-  createdAt: number;
+  date?: number; // Domain date of the record (e.g. workout date, publish date)
+  createdAt: number; // Creation timestamp
   type?: NoteKind;
   sourceId?: string;
   catalog?: string;
@@ -40,9 +39,20 @@ export interface Note {
 // ---------------------------------------------------------------------------
 export interface Page {
   id: string;
-  date?: string; // YYYY-MM-DD
+  date?: string; // YYYY-MM-DD (publish/calendar date)
   slug?: string;
   title?: string;
+  createdAt: number;
+}
+
+// ---------------------------------------------------------------------------
+// PageNote — N:M junction linking a Note to a Page
+// ---------------------------------------------------------------------------
+export interface PageNote {
+  id: string; // UUID
+  pageId: string;
+  noteId: string;
+  position?: number;
   createdAt: number;
 }
 

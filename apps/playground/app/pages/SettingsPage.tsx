@@ -48,11 +48,13 @@ import { QueryDefaultsSection } from './QueryDefaultsSection'
 import { Switch } from '@/components/atoms/primitives/switch'
 import { Button } from '@/components/atoms/primitives/button'
 import { cn } from '@/lib/utils'
+import { storage } from '@/services/storage'
 
 // Subroute switching lives in the left L2 nav (appNavTree); no in-page tab bar.
 const SETTINGS_SECTIONS = [
   { id: 'appearance', content: <AppearanceSection /> },
   { id: 'queries', content: <QueryDefaultsSection /> },
+  { id: 'routes', content: <RoutesSection /> },
   { id: 'system', content: <SystemSection /> },
 ] as const
 
@@ -66,7 +68,9 @@ export function SettingsPage() {
     ? 'system'
     : location.pathname.endsWith('/queries')
       ? 'queries'
-      : 'appearance'
+      : location.pathname.endsWith('/routes')
+        ? 'routes'
+        : 'appearance'
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background">
@@ -82,6 +86,70 @@ export function SettingsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+// ── Routes Section ────────────────────────────────────────────────────────────
+
+function RoutesSection() {
+  const [pages, setPages] = useState<Array<{ id: string; slug?: string; date?: string; title?: string }>>([])
+
+  useEffect(() => {
+    let mounted = true
+    storage.readonly('page').getAll().then(allPages => {
+      if (mounted) setPages(allPages)
+    }).catch(console.error)
+    return () => { mounted = false }
+  }, [])
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium">Route Review</h3>
+        <p className="text-sm text-muted-foreground">
+          All page routes (`/p/:slug`, `/c/:slug`, `/journal/:date`) currently registered in storage.
+        </p>
+      </div>
+
+      <div className="border rounded-md">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-muted/50 border-b">
+            <tr>
+              <th className="px-4 py-2 font-medium">Route</th>
+              <th className="px-4 py-2 font-medium">Title</th>
+              <th className="px-4 py-2 font-medium">ID</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {pages.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">No pages found.</td>
+              </tr>
+            ) : pages.map(p => (
+              <tr key={p.id}>
+                <td className="px-4 py-2 font-mono text-xs">
+                  {p.slug ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary">SLUG</span>
+                      {p.slug}
+                    </span>
+                  ) : p.date ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-secondary/10 text-secondary">DATE</span>
+                      {p.date}
+                    </span>
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td className="px-4 py-2">{p.title ?? '—'}</td>
+                <td className="px-4 py-2 font-mono text-[10px] text-muted-foreground">{p.id}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   )
 }
 

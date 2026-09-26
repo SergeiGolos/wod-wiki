@@ -19,15 +19,16 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter } from 'lucide-react'
-
+import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 import { sourceOfQuery } from '../lib/wqlEdits'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
+import { SessionsNavPanel } from './panels/SessionsNavPanel'
 import type { CanvasRoute } from '../canvas/canvasRoutes'
-import { ROUTE_PATTERNS } from '../lib/routes'
+import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
+import { EFFORT_DISCIPLINES } from '@bitcobblers/wod-wiki-lang'
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMeACoffee'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   ]
 }
 
-// ─── L2 children for Explore ──────────────────────────────────────────────────
+// ─── L2 children for Library ──────────────────────────────────────────────────
 
 /** Canonical playground listing — the dedicated /playgrounds stream route
  *  (the library ?q= deep link remains a valid alias via the library profile). */
@@ -156,7 +157,17 @@ function isLibraryPlaygroundActive(loc: Location): boolean {
   return sourceOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
 }
 
-const exploreChildren: NavItem[] = [
+const libraryChildren: NavItem[] = [
+  {
+    id: 'library-journal',
+    label: 'Journal',
+    level: 2,
+    icon: Calendar,
+    action: { type: 'route', to: ROUTE_PATTERNS.journal },
+    isActive: (loc: Location) =>
+      loc.pathname === '/journal' ||
+      loc.pathname.startsWith('/journal/'),
+  },
   {
     id: 'library-collections',
     label: 'Collections',
@@ -182,28 +193,37 @@ const exploreChildren: NavItem[] = [
   },
   {
     id: 'library-playground',
-    label: 'Playground',
+    label: 'Playgrounds',
     level: 2,
     icon: FlaskConical,
     action: { type: 'route', to: PLAYGROUND_LIBRARY_HREF },
     isActive: isLibraryPlaygroundActive,
   },
+]
+
+const effortTagChildren: NavItem[] = [
   {
-    id: 'library-efforts',
-    label: 'Efforts',
+    id: 'effort-tag-all',
+    label: 'All Efforts',
     level: 2,
-    icon: Dumbbell,
+    icon: Tag,
     action: { type: 'route', to: ROUTE_PATTERNS.efforts },
-    isActive: (loc: Location) => loc.pathname.startsWith('/effort') || loc.pathname.startsWith('/e/'),
+    isActive: (loc: Location) =>
+      isEffortsPath(loc.pathname) && !loc.search.includes('discipline'),
   },
-  {
-    id: 'library-sessions',
-    label: 'Sessions',
+  ...EFFORT_DISCIPLINES.map(disc => ({
+    id: `effort-tag-${disc}`,
+    label: disc.charAt(0).toUpperCase() + disc.slice(1),
     level: 2,
-    icon: ClipboardList,
-    action: { type: 'route', to: ROUTE_PATTERNS.sessions },
-    isActive: (loc: Location) => loc.pathname.startsWith('/sessions') || loc.pathname.startsWith('/session/') || loc.pathname.startsWith('/results'),
-  },
+    icon: Tag,
+    action: {
+      type: 'route' as const,
+      to: `${ROUTE_PATTERNS.efforts}?q=find:effort{discipline:${disc}}`,
+    },
+    isActive: (loc: Location) =>
+      isEffortsPath(loc.pathname) &&
+      (loc.search.includes(`discipline:${disc}`) || loc.search.includes(`discipline=${disc}`)),
+  })),
 ]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
 
@@ -237,44 +257,29 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
     },
 
     {
-      id: 'journal',
-      label: 'Journal',
-      level: 1,
-      icon: Calendar,
-      action: { type: 'route', to: ROUTE_PATTERNS.journal },
-      isActive: (loc: Location) =>
-        loc.pathname === '/journal' ||
-        loc.pathname.startsWith('/journal/'),
-    },
-
-    {
-      id: 'explore',
-      label: 'Explore',
+      id: 'library',
+      label: 'Library',
       level: 1,
       icon: BookOpen,
+      action: { type: 'route', to: ROUTE_PATTERNS.journal },
       isActive: (loc: Location) =>
         loc.pathname === ROUTE_PATTERNS.library ||
         loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
+        loc.pathname === '/journal' ||
+        loc.pathname.startsWith('/journal/') ||
         loc.pathname === '/playground' ||
         loc.pathname.startsWith('/playground/') ||
         loc.pathname === '/playgrounds' ||
-        // Collections, feeds, efforts, and sessions are library stream
-        // profiles (see streamProfile) — they live under Explore.
         loc.pathname.startsWith('/collections') ||
         loc.pathname.startsWith('/c/') ||
         loc.pathname.startsWith('/feeds') ||
-        loc.pathname.startsWith('/feed') ||
-        loc.pathname.startsWith('/effort') ||
-        loc.pathname.startsWith('/e/') ||
-        loc.pathname.startsWith('/sessions') ||
-        loc.pathname.startsWith('/session/') ||
-        loc.pathname.startsWith('/results'),
-      children: exploreChildren,
+        loc.pathname.startsWith('/feed'),
+      children: libraryChildren,
     },
 
     {
       id: 'dashboards',
-      label: 'Dashboards',
+      label: 'Dashboard',
       level: 1,
       icon: ChartBarIcon,
       action: { type: 'route', to: '/dashboard' },
@@ -283,6 +288,29 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       // dashboard action) is dynamic — vault dashboards are runtime data —
       // so it lives in the panel, not static children.
       panel: DashboardsNavPanel,
+    },
+
+    {
+      id: 'efforts',
+      label: 'Efforts',
+      level: 1,
+      icon: Dumbbell,
+      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
+      isActive: (loc: Location) => isEffortsPath(loc.pathname),
+      children: effortTagChildren,
+    },
+
+    {
+      id: 'sessions',
+      label: 'Sessions',
+      level: 1,
+      icon: ClipboardList,
+      action: { type: 'route', to: ROUTE_PATTERNS.sessions },
+      isActive: (loc: Location) =>
+        loc.pathname.startsWith('/sessions') ||
+        loc.pathname.startsWith('/session/') ||
+        loc.pathname.startsWith('/results'),
+      panel: SessionsNavPanel,
     },
     {
       id: 'settings',

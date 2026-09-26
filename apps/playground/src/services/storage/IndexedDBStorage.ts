@@ -11,7 +11,7 @@ import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 21;
+const DB_VERSION = 22;
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
@@ -137,8 +137,7 @@ export class IndexedDBStorage implements IStorage {
         // 1. notes
         if (!db.objectStoreNames.contains('notes')) {
           const store = db.createObjectStore('notes', { keyPath: 'id' });
-          store.createIndex('by-slug', 'slug', { unique: true });
-          store.createIndex('by-page', 'pageId');
+          store.createIndex('by-date', 'date');
         }
 
         // 2. page
@@ -146,6 +145,14 @@ export class IndexedDBStorage implements IStorage {
           const store = db.createObjectStore('page', { keyPath: 'id' });
           store.createIndex('by-date', 'date', { unique: true });
           store.createIndex('by-slug', 'slug', { unique: true });
+        }
+
+        // 2b. page_notes (V22)
+        if (!db.objectStoreNames.contains('page_notes')) {
+          const store = db.createObjectStore('page_notes', { keyPath: 'id' });
+          store.createIndex('by-page', 'pageId');
+          store.createIndex('by-note', 'noteId');
+          store.createIndex('by-page-note', ['pageId', 'noteId'], { unique: true });
         }
 
         // 3. tags

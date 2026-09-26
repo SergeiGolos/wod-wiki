@@ -44,17 +44,19 @@ erDiagram
 ### 2.1 Note (`notes` table)
 * **Storage Owner**: Canonical unit of authored content and exercise logic.
 * **Fields Owned**:
-  | Field | Type | Storage Role / Meaning |
-  | :--- | :--- | :--- |
-  | `id` | `string` (UUID) | Canonical entity ID. Primary key across all authoring and telemetry links. |
-  | `title` | `string` | Display name of the note or workout. |
-  | `slug?` | `string` | Human-readable route sugar (resolves `slug -> UUID`; not a join key). |
-  | `pageId?` | `string` (FK) | Reference to owning [[Page]] placement (e.g., date page). Singular placement. |
-  | `type?` | `NoteKind` | Content taxonomy descriptor: `'note' \| 'template' \| 'playground' \| 'journal' \| 'collection' \| 'syntax' \| 'dashboard' \| 'behavior' \| 'analytics' \| 'home' \| 'page'`. |
-  | `sourceId?` | `string` | Origin provenance. Contains parent note UUID, or URI prefixes like `page:...`, `guides:...`, `collection:...`, `feed:...`, `playground`. |
-  | `catalog?` | `string` | Seed directory identifier for bundled content. |
-  | `createdAt` | `number` | Unix timestamp (ms). Used by WQL time windows. |
-  | `seedOrigin?` | `'seed' \| 'user'` | Ownership marker for seed synchronization. |
+
+| Field         | Type               | Storage Role / Meaning                                                                                                                                                        | UPDATE                                                                                                                                                                                                                                                                                                     |
+| :------------ | :----------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | `string` (UUID)    | Canonical entity ID. Primary key across all authoring and telemetry links.                                                                                                    |                                                                                                                                                                                                                                                                                                            |
+| `title`       | `string`           | Display name of the note or workout.                                                                                                                                          |                                                                                                                                                                                                                                                                                                            |
+| `slug?`       | `string`           | Human-readable route sugar (resolves `slug -> UUID`; not a join key).                                                                                                         | Remove (slug requires page)                                                                                                                                                                                                                                                                                |
+| `pageId?`     | `string` (FK)      | Reference to owning [[Page]] placement (e.g., date page). Singular placement.                                                                                                 | Remove (this should relationship allows a single note to be on multiple pages)  (this becomes linking table)                                                                                                                                                                                               |
+| `type?`       | `NoteKind`         | Content taxonomy descriptor: `'note' \| 'template' \| 'playground' \| 'journal' \| 'collection' \| 'syntax' \| 'dashboard' \| 'behavior' \| 'analytics' \| 'home' \| 'page'`. | Consolidate:<br>- `note`  -> `journal`<br>- `behavior` `home` `syntax` `analytics` -> `page`                                                                                                                                                                                                               |
+| `sourceId?`   | `string`           | Origin provenance. Contains parent note UUID, or URI prefixes like `page:...`, `guides:...`, `collection:...`, `feed:...`, `playground`.                                      | Remove (this also needs to be a crosswalk, where multiple notes )                                                                                                                                                                                                                                          |
+| `catalog?`    | `string`           | Seed directory identifier for bundled content.                                                                                                                                |                                                                                                                                                                                                                                                                                                            |
+| `date`        | `number`           | Unix timestamp (ms). Used by WQL time windows.                                                                                                                                | NEW (date of note)  (used for the filtering date)  - on seed these values are popuald from the frontmatter date property and the property is removed from the imported note.   (this notes requiters the ability to edit this)  if sessions are already logged this isn't allowed, offer to clone instead) |
+| `createdAt`   | `number`           | Unix timestamp (ms). Used by WQL time windows.                                                                                                                                | date note was creaetd                                                                                                                                                                                                                                                                                      |
+| `seedOrigin?` | `'seed' \| 'user'` | Ownership marker for seed synchronization.                                                                                                                                    |                                                                                                                                                                                                                                                                                                            |
 * **Content Relation**:
   - Raw markdown does **not** live on `Note`. It lives in 1:N versioned rows in [[NoteSegment]] (`segments` table).
   - Derived blocks live in [[BlockIndexRow]] (`block_index` table).
@@ -62,13 +64,15 @@ erDiagram
 ### 2.2 Page (`page` table)
 * **Storage Owner**: Placement, calendar dates, and named collection anchors.
 * **Fields Owned**:
-  | Field | Type | Storage Role / Meaning |
-  | :--- | :--- | :--- |
-  | `id` | `string` (UUID) | Primary key. |
-  | `date?` | `string` (`YYYY-MM-DD`) | Unique index `by-date`. Identifies calendar/journal day. |
-  | `slug?` | `string` | Unique index `by-slug`. Identifies named custom routes (`/c/:slug`, `/p/:slug`). |
-  | `title?` | `string` | Optional display label for the page container. |
-  | `createdAt` | `number` | Unix timestamp (ms). |
+
+| Field       | Type                    | Storage Role / Meaning                                                           | UPDATE       |
+| :---------- | :---------------------- | :------------------------------------------------------------------------------- | ------------ |
+| `id`        | `string` (UUID)         | Primary key.                                                                     |              |
+| `date?`     | `string` (`YYYY-MM-DD`) | Unique index `by-date`. Identifies calendar/journal day.                         | publish date |
+| `slug?`     | `string`                | Unique index `by-slug`. Identifies named custom routes (`/c/:slug`, `/p/:slug`). |              |
+| `title?`    | `string`                | Optional display label for the page container.                                   |              |
+| `createdAt` | `number`                | Unix timestamp (ms).                                                             |              |
+
 * **What Page Does NOT Own**:
   - **No markdown or segments**: A page has no body text of its own.
   - **No tags**: Tagging occurs exclusively via `note_tags` on `Note.id`.

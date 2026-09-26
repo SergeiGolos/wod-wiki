@@ -26,19 +26,15 @@ export type SegmentDataType =
  * clonedIds, createdFrom, updatedAt, targetDate, templateId) were removed in
  * V11 — see indexeddb-storage-and-page-queries.md.
  */
-export type NoteKind = 'note' | 'template' | 'playground' | 'journal' | 'collection' | 'syntax' | 'dashboard' | 'behavior' | 'analytics' | 'home' | 'page' | (string & {});
+export type NoteKind = 'journal' | 'template' | 'playground' | 'collection' | 'dashboard' | 'page' | (string & {});
 
 export interface Note {
     id: string;           // UUID — canonical storage identity (V8)
     title: string;        // Display name
 
-    // Routing sugar; routes resolve slug -> UUID. Never a storage or join key.
-    slug?: string;
-    /** V10 — FK to the `page` store (journal-date pages today; the page's
-     *  `date` is the journal grouping key — N-02). */
-    pageId?: string;
-
     // Metadata
+    /** Domain date of the record (e.g. workout date, publish date) */
+    date?: number;
     createdAt: number;
     tags?: string[];
 
@@ -73,9 +69,20 @@ export interface Note {
  */
 export interface Page {
     id: string;           // UUID
-    date?: string;        // YYYY-MM-DD — calendar page (unique when present)
+    date?: string;        // YYYY-MM-DD — calendar/publish date (unique when present)
     slug?: string;        // custom page slug (unique when present)
     title?: string;
+    createdAt: number;
+}
+
+// ---------------------------------------------------------------------------
+// PageNote — N:M junction linking a Note to a Page (V22)
+// ---------------------------------------------------------------------------
+export interface PageNote {
+    id: string;           // UUID
+    pageId: string;
+    noteId: string;
+    position?: number;
     createdAt: number;
 }
 
