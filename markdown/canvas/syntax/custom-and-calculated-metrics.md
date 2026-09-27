@@ -83,4 +83,4 @@ Notes:
 
 - [Custom Metrics Example](./custom-metrics.md)
 - [Calculated Metrics Example](./calculated-metrics.md)
-- [Core Syntax](../../../docs/02-syntax-reference.md)
+- [Core Syntax](../../../docs/language/syntax-reference.md)

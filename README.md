@@ -14,7 +14,7 @@ WOD Wiki is a TypeScript monorepo toolkit for parsing, executing, and analyzing 
 Markdown  →  Metrics (the plan)  →  Tracking metrics (what happened)  →  Analyzed metrics (insight)
 ```
 
-At each stage the system **adds metrics** — it never overwrites. A metric records its `origin` (`parser`, `dialect`, `compiler`, `runtime`, `user`, `analyzed`), and a precedence rule decides which one is shown. That single idea lets the app overlay the **planned** target, the **tracked** actual, and the **analyzed** projection in one view. See [`docs/04-metric-lifecycle.md`](./docs/04-metric-lifecycle.md).
+At each stage the system **adds metrics** — it never overwrites. A metric records its `origin` (`parser`, `dialect`, `compiler`, `runtime`, `user`, `analyzed`), and a precedence rule decides which one is shown. That single idea lets the app overlay the **planned** target, the **tracked** actual, and the **analyzed** projection in one view. See [`docs/architecture/metric-lifecycle.md`](./docs/architecture/metric-lifecycle.md).
 
 ---
 
@@ -88,7 +88,7 @@ A workout is plain Markdown; WOD Wiki interprets fenced ` ```time ` (and ` ```lo
   :30 Rest
 ```
 
-Dialects recognize keywords like `EMOM`, `AMRAP`, `FOR TIME`, `TABATA`, `STRENGTH`, `RUN/ROW/BIKE/SWIM` and tag blocks accordingly. Full reference: [`docs/02-syntax-reference.md`](./docs/02-syntax-reference.md). Sample workout libraries live in [`markdown/collections/`](./markdown/collections).
+Dialects recognize keywords like `EMOM`, `AMRAP`, `FOR TIME`, `TABATA`, `STRENGTH`, `RUN/ROW/BIKE/SWIM` and tag blocks accordingly. Full reference: [`docs/language/syntax-reference.md`](./docs/language/syntax-reference.md). Sample workout libraries live in [`markdown/collections/`](./markdown/collections).
 
 ---
 
@@ -110,7 +110,7 @@ The app is a continuous loop. The same metric flows through every phase.
 - **Journal** (`/journal`, `/journal/:date`) — long-term training log grouped by date pages.
 - **Dashboards** (`/dashboard`, `/dashboard/:slug`) — custom widgets and Datadog-style WQL queries (`<agg>:<metric>{filters} by {dim}`).
 
-Details: [`docs/07-screens-and-workflow.md`](./docs/07-screens-and-workflow.md), [`docs/08-analytics.md`](./docs/08-analytics.md), and [`docs/domain-model/WQL-Domain-Query-Composition.md`](./docs/domain-model/WQL-Domain-Query-Composition.md).
+Details: [`docs/app/screens-and-workflow.md`](./docs/app/screens-and-workflow.md), [`docs/language/wql-reference.md`](./docs/language/wql-reference.md), and [`docs/domain-model/WQL-Domain-Query-Composition.md`](./docs/domain-model/WQL-Domain-Query-Composition.md).
 
 ---
 
@@ -136,7 +136,7 @@ markdown ─▶ PARSE (lezer grammar)          → CodeStatements   (parser metr
 | `apps/playground` | *private* | Full React web application (journal, editor, settings, dashboards) |
 | `apps/storybook` | *private* | Component workbench and visual testing workshop |
 
-Full map: [`docs/05-architecture.md`](./docs/05-architecture.md).
+Full map: [`docs/architecture/overview.md`](./docs/architecture/overview.md).
 
 ---
 
