@@ -1,7 +1,12 @@
 ---
-tags: [domain-model, audit, wql, note, page]
+tags:
+  - domain-model
+  - audit
+  - wql
+  - note
+  - page
 date: 2026-09-26
-status: review-draft
+status: review-draft4
 ---
 
 # Domain Audit & Alignment: Note, Page, and WQL Composition
