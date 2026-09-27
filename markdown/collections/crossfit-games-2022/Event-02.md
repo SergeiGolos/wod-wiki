@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2022 CrossFit Games - Event 2 "Skill Speed Medley"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 3, 2022 (Day 1 - Wednesday)
 

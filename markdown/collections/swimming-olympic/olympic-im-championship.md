@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - competition
+type: Elite Individual Medley
+difficulty: Olympic
 ---
 
 # Olympic IM Championship
 
-**Type**: Elite Individual Medley  
-**Duration**: 115-130 minutes  
-**Difficulty**: Olympic  
+**Duration**: 115-130 minutes
 
 ### Description
 This world-class IM workout prepares athletes for Olympic competition in the 200m and 400m individual medley events. The session develops exceptional proficiency across all four competitive strokes while building the specific metabolic adaptations required for multi-stroke racing at the Olympic level. Athletes must develop not only individual stroke excellence but also transition mastery and tactical intelligence that allows them to execute race strategies under immense pressure.

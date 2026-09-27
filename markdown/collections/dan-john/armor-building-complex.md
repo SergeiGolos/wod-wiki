@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Dan John Complex
+type: Strength Complex
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 2: Armor Building Complex (ABC)
-
-**Category**: Dan John Complex  
-**Type**: Strength Complex  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

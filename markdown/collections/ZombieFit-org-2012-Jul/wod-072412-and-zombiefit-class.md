@@ -1,18 +1,15 @@
 ---
 tags:
   - parkour
----
-
-# WOD 695
-
----
-Category: zombie-fit
-Type: Intervals
-Difficulty: Beginner / Advanced / Expert
+category: zombie-fit
+type: Intervals
+difficulty: Beginner / Advanced / Expert
 date: 2012-07-24
 original_url: "http://zombiefit.org/2012/07/wod-072412-and-zombiefit-class/"
 wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2012/07/wod-072412-and-zombiefit-class/"
 ---
+
+# WOD 695
 
 ## Warm Up
 

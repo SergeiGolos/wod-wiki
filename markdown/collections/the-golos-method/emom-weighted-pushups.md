@@ -3,13 +3,12 @@ tags:
   - unconventional
   - strength
   - minimalist
+category: The Golos Method
+type: EMOM / Strength-Endurance
+difficulty: Intermediate to Advanced
 ---
 
 # EMOM Weighted Push-Ups
-
-**Category**: The Golos Method  
-**Type**: EMOM / Strength-Endurance  
-**Difficulty**: Intermediate to Advanced
 
 ## Description
 

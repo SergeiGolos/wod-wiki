@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Steve Cotter Advanced
+type: Advanced Complex
+difficulty: Advanced
 ---
 
 ## Workout 5: Encyclopedia Series - Advanced Complex
-
-**Category**: Steve Cotter Advanced  
-**Type**: Advanced Complex  
-**Difficulty**: Advanced
 
 ### Description
 

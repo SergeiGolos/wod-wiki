@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - triathlon
+type: Race-Specific
+difficulty: Beginner-Intermediate
 ---
 
 # Sprint Distance Preparation
 
-**Type**: Race-Specific  
-**Duration**: 45-55 minutes  
-**Difficulty**: Beginner-Intermediate  
+**Duration**: 45-55 minutes
 
 ### Description
 This workout prepares triathletes for sprint-distance swim legs (typically 750m). The session emphasizes fast starts, sighting efficiency, and negative split pacing to ensure athletes exit the water with energy remaining for the bike and run. The main set simulates race effort with interval work that builds confidence at race pace. This session works well in the final 4-6 weeks before a sprint-distance race.

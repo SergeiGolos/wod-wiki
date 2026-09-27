@@ -2,13 +2,13 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Style
+type: AMRAP (As Many Rounds As Possible)
+difficulty: Advanced
+format: AMRAP (complete as many rounds as possible)
 ---
 
 # Complex AMRAP Workout
-
-**Category**: CrossFit Style  
-**Type**: AMRAP (As Many Rounds As Possible)  
-**Difficulty**: Advanced  
 
 ## Description
 A challenging 20-minute AMRAP combining gymnastics skills and bodyweight movements.
@@ -22,7 +22,7 @@ A challenging 20-minute AMRAP combining gymnastics skills and bodyweight movemen
 
 ## Breakdown
 - **Duration**: 20 minutes
-- **Format**: AMRAP (complete as many rounds as possible)
+
 - **Exercises**: 
   - Handstand Pushups: 5 reps
   - Single-leg Squats (Pistols): 10 reps (5 per leg)

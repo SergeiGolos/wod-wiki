@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Competition
+type: Competition Event
+difficulty: Advanced
 ---
 
 ## Workout 1: Biathlon (Jerk + Snatch)
-
-**Category**: Girevoy Sport Competition  
-**Type**: Competition Event  
-**Difficulty**: Advanced
 
 ### Description
 

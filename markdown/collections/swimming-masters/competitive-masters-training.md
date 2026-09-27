@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Competition Preparation
+difficulty: Intermediate-Advanced
 ---
 
 # Competitive Masters Training
 
-**Type**: Competition Preparation  
-**Duration**: 75-90 minutes  
-**Difficulty**: Intermediate-Advanced  
+**Duration**: 75-90 minutes
 
 ### Description
 This workout targets masters swimmers who compete in USMS meets and open water events. The session develops race-specific fitness through interval training at threshold and race-pace intensities. Swimmers should select their primary stroke for the main set while maintaining versatility through warm-up and cool-down work. The structure accommodates swimmers training for events from 50m to 500m.

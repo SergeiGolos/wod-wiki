@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2024 CrossFit Games - Event 10 "Hope"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Dickies Arena, Fort Worth, Texas
 **Date:** August 11, 2024 (Day 3 - Sunday)
 

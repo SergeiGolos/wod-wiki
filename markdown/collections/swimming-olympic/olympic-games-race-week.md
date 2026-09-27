@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - competition
+type: Competition Peak
+difficulty: Olympic
 ---
 
 # Olympic Games Race Week
 
-**Type**: Competition Peak  
-**Duration**: 50-60 minutes  
-**Difficulty**: Olympic  
+**Duration**: 50-60 minutes
 
 ### Description
 This race-week session prepares Olympic athletes for maximum performance during the Games themselves. The workout is designed to prime the neuromuscular system while maintaining complete freshness for competition. Athletes complete this session during the days leading up to their events, adjusting timing based on preliminaries schedule and individual recovery needs.

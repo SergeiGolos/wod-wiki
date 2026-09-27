@@ -1,6 +1,6 @@
 # Frontmatter & Typed-Tag Audit
 
-**Status:** Working document — audit complete, tag-type model proposed, normalization tables open for review.
+**Status:** Body-to-frontmatter conversion **landed** (2026-09-27): all 662 collection workout files now carry their classification keys in the leading frontmatter block — 3381 values verified byte-identical against the removed body blocks/bold lines, 0 mismatches; `test:seed` 11/11 and playground unit suite 2553/2553 pass. Tag-type model and normalization tables still open for review.
 **Date:** 2026-09-27
 **Corpus:** `markdown/` — 888 files: `collections/` 728, `canvas/` 87, `efforts/` 53, `feeds/` 14, `dashboards/` 6. One file has no frontmatter: `markdown/canvas/home/sample-script.md`.
 **Related:** `docs/prototypes/seed-data-unification.md` (seed pipeline is the natural processing point), `apps/playground/src/lib/frontmatter.ts` (existing tag extraction)

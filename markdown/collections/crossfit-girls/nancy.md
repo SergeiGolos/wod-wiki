@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Intermediate
 ---
 
 # Nancy
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Intermediate  
 
 ## Description
 Nancy combines running endurance with Olympic lifting skill under fatigue.

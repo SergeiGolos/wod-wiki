@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Geoff Neupert Progressive Program
+type: Progressive Strength Complex
+difficulty: Beginner to Advanced
 ---
 
 ## Workout 5: 2 Kettlebells 12 Weeks Program
-
-**Category**: Geoff Neupert Progressive Program  
-**Type**: Progressive Strength Complex  
-**Difficulty**: Beginner to Advanced
 
 ### Description
 
@@ -40,7 +39,6 @@ The program is designed for those committed to long-term development, with each 
   + 3 Double Front Squat 24kg
   :60 Rest
 ```
-
 
 ### Breakdown
 

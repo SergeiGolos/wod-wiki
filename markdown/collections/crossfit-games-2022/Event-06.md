@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2022 CrossFit Games - Event 6 "Rinse 'N Repeat"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 5, 2022 (Day 3 - Friday)
 

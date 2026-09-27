@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Speed Development
+difficulty: Beginner
 ---
 
 # Sprint Introduction
 
-**Type**: Speed Development  
-**Duration**: 45 minutes  
-**Difficulty**: Beginner  
+**Duration**: 45 minutes
 
 ### Description
 This workout introduces young swimmers to sprinting concepts with short, fast efforts followed by complete recovery. The focus is on explosive starts and maintaining stroke length at higher speeds. Full rest intervals ensure swimmers can perform at their best for each effort while learning the difference between sprint and distance swimming.

@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2024 CrossFit Games - Event 6 "Heavy 24.3"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Dickies Arena, Fort Worth, Texas
 **Date:** August 10, 2024 (Day 2 - Saturday)
 

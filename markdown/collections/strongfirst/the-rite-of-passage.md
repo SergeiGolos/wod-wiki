@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: StrongFirst Strength Program
+type: Progressive Strength
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 2: The Rite of Passage
-
-**Category**: StrongFirst Strength Program  
-**Type**: Progressive Strength  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

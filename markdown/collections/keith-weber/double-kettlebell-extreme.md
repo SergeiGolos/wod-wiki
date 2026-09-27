@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - cardio
+category: Keith Weber Advanced
+type: Double Kettlebell Circuit
+difficulty: Advanced
 ---
 
 ## Workout 6: Double Kettlebell Extreme
-
-**Category**: Keith Weber Advanced  
-**Type**: Double Kettlebell Circuit  
-**Difficulty**: Advanced
 
 ### Description
 

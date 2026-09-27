@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Steve Cotter Sport Training
+type: Sport-Specific Endurance
+difficulty: Advanced
 ---
 
 ## Workout 4: Kettlebell Sport Preparation
-
-**Category**: Steve Cotter Sport Training  
-**Type**: Sport-Specific Endurance  
-**Difficulty**: Advanced
 
 ### Description
 
@@ -43,7 +42,6 @@ Steve Cotter's background in both hardstyle and sport methodology makes him uniq
   1:00 Clean & Jerk 16kg
   :30 Rest
 ```
-
 
 ### Breakdown
 

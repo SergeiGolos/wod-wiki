@@ -1,18 +1,15 @@
 ---
 tags:
   - parkour
----
-
-# WOD 232
-
----
-Category: zombie-fit
-Type: For Time
-Difficulty: Beginner / Advanced / Expert
+category: zombie-fit
+type: For Time
+difficulty: Beginner / Advanced / Expert
 date: 2010-09-28
 original_url: "http://zombiefit.org/2010/09/wod-092810-zombiefit-1-year-anniversary/"
 wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2010/09/wod-092810-zombiefit-1-year-anniversary/"
 ---
+
+# WOD 232
 
 ## Warm Up
 

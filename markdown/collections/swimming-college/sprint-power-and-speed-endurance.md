@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Anaerobic Power
+difficulty: Elite
 ---
 
 # Sprint Power and Speed Endurance
 
-**Type**: Anaerobic Power  
-**Duration**: 90 minutes  
-**Difficulty**: Elite  
+**Duration**: 90 minutes
 
 ### Description
 This elite sprint session develops both explosive power and the speed endurance necessary for 50m and 100m freestyle success. The workout combines short, maximal efforts with race-pace training to prepare swimmers for the demands of multiple sprint rounds at championship meets. Resistance work and dive starts develop starting power, while the descending interval set builds the capacity to maintain speed through fatigue.

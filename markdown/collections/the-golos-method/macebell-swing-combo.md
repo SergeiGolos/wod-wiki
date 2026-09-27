@@ -3,13 +3,12 @@ tags:
   - unconventional
   - strength
   - minimalist
+category: The Golos Method
+type: Rotational Strength / Flow Work
+difficulty: Intermediate to Advanced
 ---
 
 # Macebell Swing Combos
-
-**Category**: The Golos Method  
-**Type**: Rotational Strength / Flow Work  
-**Difficulty**: Intermediate to Advanced
 
 ## Description
 

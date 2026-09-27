@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: Max Reps
 ---
 
 # 2020 CrossFit Games - Event 8 "Handstand Push-up"
 
-**Category:** Competition
-**Type:** Max Reps
 **Location:** CrossFit Ranch, Aromas, California
 **Date:** October 25, 2020 (Day 3 - Sunday)
 

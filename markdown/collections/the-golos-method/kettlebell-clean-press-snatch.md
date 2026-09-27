@@ -3,13 +3,12 @@ tags:
   - unconventional
   - strength
   - minimalist
+category: The Golos Method
+type: Ballistic Strength / Power-Endurance
+difficulty: Intermediate to Advanced
 ---
 
 # Kettlebell Clean & Press / Snatch
-
-**Category**: The Golos Method  
-**Type**: Ballistic Strength / Power-Endurance  
-**Difficulty**: Intermediate to Advanced
 
 ## Description
 
@@ -31,7 +30,7 @@ In the Golos Method, these movements are performed for reps, for time, or in int
   :60 Rest
 ```
 
-### Intermediate — Alternating Intervals 
+### Intermediate — Alternating Intervals
 
 Single Clean and Press
 
@@ -46,8 +45,6 @@ Tactical Snatch
 (10) 1:00 EMOM
   4|6 KB Snatch 24kg
 ```
-
-
 
 ### Advanced — Snatch Endurance
 ```time

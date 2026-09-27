@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Geoff Neupert / StrongFirst Standard
+type: Max Reps Endurance Test
+difficulty: Advanced
 ---
 
 ## Workout 4: Secret Service Snatch Test
-
-**Category**: Geoff Neupert / StrongFirst Standard  
-**Type**: Max Reps Endurance Test  
-**Difficulty**: Advanced
 
 ### Description
 

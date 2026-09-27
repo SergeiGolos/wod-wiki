@@ -2,15 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Advanced
 ---
 
 # Fran
-
----
-Category: CrossFit Benchmark  
-Type: For Time  
-Difficulty: Advanced  
----
 
 ## Description
 One of the most famous CrossFit benchmark workouts. Fran is a sprint that tests both metabolic conditioning and strength endurance.

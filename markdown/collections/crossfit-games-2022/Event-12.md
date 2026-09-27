@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: CrossFit Benchmark / Competition
+type: For Time
 ---
 
 # 2022 CrossFit Games - Event 12 "Fran"
 
-**Category:** CrossFit Benchmark / Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 6, 2022 (Day 4 - Saturday)
 

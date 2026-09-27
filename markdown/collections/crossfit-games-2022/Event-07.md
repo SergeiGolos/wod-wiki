@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: CrossFit Benchmark / Competition
+type: For Time
 ---
 
 # 2022 CrossFit Games - Event 7 "Helen"
 
-**Category:** CrossFit Benchmark / Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 5, 2022 (Day 3 - Friday)
 

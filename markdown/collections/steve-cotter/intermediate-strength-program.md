@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Steve Cotter Intermediate
+type: Strength Development
+difficulty: Intermediate
 ---
 
 ## Workout 2: Intermediate Strength Program
-
-**Category**: Steve Cotter Intermediate  
-**Type**: Strength Development  
-**Difficulty**: Intermediate
 
 ### Description
 
@@ -58,7 +57,6 @@ The program uses a 3-day per week structure with each session focusing on differ
   5 Clean & Press Right 20kg
   :30 Rest
 ```
-
 
 ### Breakdown
 

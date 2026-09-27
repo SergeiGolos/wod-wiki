@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Steve Cotter Recovery
+type: Mobility and Recovery
+difficulty: All Levels
 ---
 
 ## Workout 6: Mobility and Flexibility Session
-
-**Category**: Steve Cotter Recovery  
-**Type**: Mobility and Recovery  
-**Difficulty**: All Levels
 
 ### Description
 

@@ -2,13 +2,13 @@
 tags:
   - crossfit
   - benchmark
+category: Strength Training
+type: EMOM (Every Minute On the Minute)
+difficulty: Advanced
+format: EMOM (complete work every minute on the minute)
 ---
 
 # EMOM Olympic Lifting Complex
-
-**Category**: Strength Training  
-**Type**: EMOM (Every Minute On the Minute)  
-**Difficulty**: Advanced  
 
 ## Description
 A 15-minute EMOM focusing on Olympic lifting complex with heavy weights.
@@ -22,7 +22,7 @@ A 15-minute EMOM focusing on Olympic lifting complex with heavy weights.
 
 ## Breakdown
 - **Duration**: 15 minutes
-- **Format**: EMOM (complete work every minute on the minute)
+
 - **Exercises**: 
   - Deadlifts: 3 reps at 315lb
   - Hang Power Cleans: 6 reps at 185lb

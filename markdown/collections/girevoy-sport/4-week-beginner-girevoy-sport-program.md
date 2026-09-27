@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Beginner
+type: Progressive Introduction
+difficulty: Beginner
 ---
 
 ## Workout 5: 4-Week Beginner Girevoy Sport Program
-
-**Category**: Girevoy Sport Beginner  
-**Type**: Progressive Introduction  
-**Difficulty**: Beginner
 
 ### Description
 
@@ -90,7 +89,6 @@ The program trains three days per week with emphasis on the competition lifts pl
   5:00 Rest
   5:00 KB Snatch 12kg
 ```
-
 
 ### Breakdown
 

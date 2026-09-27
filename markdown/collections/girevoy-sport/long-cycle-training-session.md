@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Training
+type: Long Cycle Development
+difficulty: Advanced
 ---
 
 ## Workout 6: Long Cycle Training Session
-
-**Category**: Girevoy Sport Training  
-**Type**: Long Cycle Development  
-**Difficulty**: Advanced
 
 ### Description
 
@@ -38,7 +37,6 @@ Sessions may use interval structures, pace training, or continuous sets dependin
   3:00 Double KB Clean & Jerk 24kg
   2:00 Rest
 ```
-
 
 ### Breakdown
 

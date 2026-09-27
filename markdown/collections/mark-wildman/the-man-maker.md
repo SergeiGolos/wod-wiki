@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - clubs
   - strength
+category: Mark Wildman Signature
+type: Full Body Strength
+difficulty: Intermediate
 ---
 
 ## Workout 1: The Man Maker (Full Body)
-
-**Category**: Mark Wildman Signature  
-**Type**: Full Body Strength  
-**Difficulty**: Intermediate
 
 ### Description
 
@@ -45,7 +44,6 @@ The session is designed to be progressively overloaded through weight increases 
   15 Two-Hand KB Swing 24kg
   :20 Rest
 ```
-
 
 ### Breakdown
 

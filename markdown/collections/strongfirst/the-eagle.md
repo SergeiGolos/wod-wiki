@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: StrongFirst Strength Endurance
+type: For Time
+difficulty: Advanced
 ---
 
 ## Workout 4: The Eagle
-
-**Category**: StrongFirst Strength Endurance  
-**Type**: For Time  
-**Difficulty**: Advanced
 
 ### Description
 

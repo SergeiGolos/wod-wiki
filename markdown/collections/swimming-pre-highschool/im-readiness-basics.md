@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Technique Focus
+difficulty: Beginner-Intermediate
 ---
 
 # IM Readiness Basics
 
-**Type**: Technique Focus  
-**Duration**: 50 minutes  
-**Difficulty**: Beginner-Intermediate  
+**Duration**: 50 minutes
 
 ### Description
 This workout introduces young swimmers to all four competitive strokes in a single session. Each stroke receives dedicated attention with drill progressions that break down complex movements into manageable components. The goal is not mastery but exposure and fundamental understanding of stroke mechanics for butterfly, backstroke, breaststroke, and freestyle.

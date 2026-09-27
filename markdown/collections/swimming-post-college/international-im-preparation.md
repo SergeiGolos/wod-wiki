@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Elite Multi-Stroke
+difficulty: Elite
 ---
 
 # International IM Preparation
 
-**Type**: Elite Multi-Stroke  
-**Duration**: 105-115 minutes  
-**Difficulty**: Elite  
+**Duration**: 105-115 minutes
 
 ### Description
 This comprehensive IM workout prepares post-collegiate swimmers for 200m and 400m IM competition at the international level. The session develops stroke-specific power across all four disciplines while building the metabolic capacity to maintain speed through the challenging breaststroke-to-freestyle transition. Athletes targeting World Championships or Olympic Trials must develop strength in weaker strokes without sacrificing speed in stronger events.

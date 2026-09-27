@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Steve Cotter Beginner
+type: Foundation Building
+difficulty: Beginner
 ---
 
 ## Workout 1: Kettlebell Training - Beginner Program
-
-**Category**: Steve Cotter Beginner  
-**Type**: Foundation Building  
-**Difficulty**: Beginner
 
 ### Description
 
@@ -46,7 +45,6 @@ The program uses a structured approach with clear progression criteria. Movement
   5 Clean 16kg
   :45 Rest
 ```
-
 
 ### Breakdown
 

@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: StrongFirst Benchmark
+type: For Time (with time standards)
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 1: Simple & Sinister
-
-**Category**: StrongFirst Benchmark  
-**Type**: For Time (with time standards)  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

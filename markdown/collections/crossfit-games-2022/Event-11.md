@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: AMRAP
 ---
 
 # 2022 CrossFit Games - Event 11 "Hope"
 
-**Category:** Competition
-**Type:** AMRAP
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 6, 2022 (Day 4 - Saturday)
 

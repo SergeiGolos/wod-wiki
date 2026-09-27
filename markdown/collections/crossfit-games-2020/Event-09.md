@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: CrossFit Benchmark / Competition
+type: For Time
 ---
 
 # 2020 CrossFit Games - Event 9 "Barbara"
 
-**Category:** CrossFit Benchmark / Competition
-**Type:** For Time
 **Location:** CrossFit Ranch, Aromas, California
 **Date:** October 25, 2020 (Day 3 - Sunday)
 

@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Endurance
+difficulty: Intermediate-Advanced
 ---
 
 # Distance Freestyle Training
 
-**Type**: Endurance  
-**Duration**: 90 minutes  
-**Difficulty**: Intermediate-Advanced  
+**Duration**: 90 minutes
 
 ### Description
 This workout develops the aerobic capacity necessary for distance freestyle events (200m, 500m, and longer). The main set uses negative split training to teach swimmers how to pace races properly, finishing faster than they start. The descending interval structure challenges swimmers to maintain stroke efficiency while fatigued, simulating late-race conditions. This session is ideal for mid-season training when building race-specific endurance.

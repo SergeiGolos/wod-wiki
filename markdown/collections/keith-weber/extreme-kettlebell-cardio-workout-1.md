@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - cardio
+category: Keith Weber Signature
+type: High-Intensity Circuit
+difficulty: Advanced
 ---
 
 ## Workout 1: Extreme Kettlebell Cardio Workout 1 (Full Body)
-
-**Category**: Keith Weber Signature  
-**Type**: High-Intensity Circuit  
-**Difficulty**: Advanced
 
 ### Description
 

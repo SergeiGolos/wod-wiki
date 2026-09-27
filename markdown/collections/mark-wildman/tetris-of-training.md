@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - clubs
   - strength
+category: Mark Wildman Programming
+type: Balanced Programming System
+difficulty: Intermediate
 ---
 
 ## Workout 6: Tetris of Training (Program Design)
-
-**Category**: Mark Wildman Programming  
-**Type**: Balanced Programming System  
-**Difficulty**: Intermediate
 
 ### Description
 
@@ -47,7 +46,6 @@ The concept uses a horizontal and vertical organization: horizontally organizing
   8 Gorilla Row 20kg
   :45 Rest
 ```
-
 
 ### Breakdown
 

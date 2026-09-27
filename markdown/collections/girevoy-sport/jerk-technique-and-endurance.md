@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Training
+type: Jerk-Specific Development
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 4: Jerk Technique and Endurance
-
-**Category**: Girevoy Sport Training  
-**Type**: Jerk-Specific Development  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 
@@ -38,7 +37,6 @@ Training progresses from short sets focusing on technique to longer sets buildin
   5:00 Double KB Jerk 24kg
   3:00 Rest
 ```
-
 
 ### Breakdown
 

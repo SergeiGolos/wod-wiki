@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - competition
+type: Elite Distance
+difficulty: Olympic
 ---
 
 # Distance Freestyle Olympic Preparation
 
-**Type**: Elite Distance  
-**Duration**: 120-140 minutes  
-**Difficulty**: Olympic  
+**Duration**: 120-140 minutes
 
 ### Description
 This world-class distance workout prepares athletes for Olympic finals in the 400m, 800m, and 1500m freestyle events. The session develops the extraordinary aerobic capacity and tactical awareness required for distance racing at the highest international level. The main set challenges athletes to maintain world-record pace under severe metabolic stress, building the physiological machinery and mental fortitude necessary for Olympic podium performances.

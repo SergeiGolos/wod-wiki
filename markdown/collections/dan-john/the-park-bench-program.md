@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Dan John General Fitness
+type: Maintenance / Easy Strength
+difficulty: Beginner to Intermediate
 ---
 
 ## Workout 6: The Park Bench Program
-
-**Category**: Dan John General Fitness  
-**Type**: Maintenance / Easy Strength  
-**Difficulty**: Beginner to Intermediate
 
 ### Description
 

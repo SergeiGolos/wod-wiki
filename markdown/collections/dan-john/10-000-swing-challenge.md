@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Dan John Signature Program
+type: Strength Endurance Challenge
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 1: 10,000 Swing Challenge
-
-**Category**: Dan John Signature Program  
-**Type**: Strength Endurance Challenge  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

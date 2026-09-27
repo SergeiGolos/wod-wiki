@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - clubs
   - strength
+category: Mark Wildman Programming System
+type: Progressive Strength
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 2: Heavy/Light Program Design
-
-**Category**: Mark Wildman Programming System  
-**Type**: Progressive Strength  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 
@@ -47,7 +46,6 @@ Heavy days focus on building absolute strength with heavier weights and lower re
   8 Pushups
   :30 Rest
 ```
-
 
 ### Breakdown
 

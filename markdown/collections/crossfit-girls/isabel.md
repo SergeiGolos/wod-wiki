@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Advanced
 ---
 
 # Isabel
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Advanced  
 
 ## Description
 Isabel is a pure Olympic lifting workout focused on snatch technique and power.

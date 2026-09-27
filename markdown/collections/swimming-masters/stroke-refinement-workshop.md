@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Technique Focus
+difficulty: All Levels
 ---
 
 # Stroke Refinement Workshop
 
-**Type**: Technique Focus  
-**Duration**: 60 minutes  
-**Difficulty**: All Levels  
+**Duration**: 60 minutes
 
 ### Description
 This technique-focused session emphasizes stroke mechanics and efficiency over fitness. Each segment isolates specific aspects of all four competitive strokes using progressive drill sequences. This workout is ideal for masters swimmers returning to the sport after a break, those recovering from injury, or anyone seeking to improve their swimming economy. Coaches should provide individual feedback throughout the session.
