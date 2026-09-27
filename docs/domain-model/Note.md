@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: notes
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # Note
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `notes`
 - **Key path:** `id` (string; UUID is the intended canonical identity, with current exceptions below)
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 ### Domain role (Current)
 
@@ -23,48 +23,45 @@ A note is the owning unit of authored content. The `notes` row holds identity, r
 
 | Representation today | Distinction |
 |---|---|
-| `note`, `journal`, `playground`, `template` | The current `NoteKind` values; missing type reads as `note`. |
-| Journal placement | `pageId` identifies a date-bearing [[Page]]; placement is separate from content type. |
-| Bundled collection/feed content | Seed provenance and `catalog`; discovery does not imply `pageId` membership. |
-| Dashboard content | Markdown with `dashboard: true` and query fences, not a stored `dashboard` kind. |
-| [[Effort]] content | An effort is a note in the domain, but user effort saves currently write registry records without a linked `notes` row. |
+| `journal`, `template`, `playground`, `collection`, `dashboard`, `page` | The current `NoteKind` values; missing type defaults to `'journal'` or `'note'`. |
+| Journal placement | Grouped onto date-bearing [[Page]] containers via the [[PageNote]] junction table. |
+| Bundled collection/feed content | Seed provenance and `catalog`; discovery does not imply `Page` membership. |
+| Dashboard content | Markdown with `dashboard: true` and query fences, rendered as composed cards. |
+| [[Effort]] content | An effort is a note in the domain with materialized `IEffort` projections. |
 
 The stored [[Page]] is a grouping/address record, not automatically a note row. Neither Page tagging nor effort-to-note tagging is established merely by calling those concepts notes; [[NoteTag]] targets a concrete note identity.
 
 ### Fields (Current)
 
 | Field | Type | Notes |
-|-------|------|-------|
-| `id` | string | Owning storage identity; normally UUID, but current playground creation can mint timestamp IDs |
+|---|---|---|
+| `id` | string | Canonical storage identity (UUID) |
 | `title` | string | Display name |
-| `slug?` | string | Route/source locator; resolve to ownership identity rather than using it as a join key |
-| `pageId?` | string | FK → [[Page]] — owned placement, not every page/query where the note appears |
-| `createdAt` | number | Unix ms |
-| `type?` | NoteKind | 'note' \| 'template' \| 'playground' \| 'journal' |
-| `sourceId?` | string | Note this one was created from — template/collection source (N-10) |
+| `date?` | number | Domain date (Unix ms), e.g. workout date from frontmatter |
+| `createdAt` | number | Unix ms when note was created |
+| `tags?` | string[] | Optional denormalized tag array projection; canonical persistence in `note_tags` |
+| `type?` | NoteKind | 'journal' \| 'template' \| 'playground' \| 'collection' \| 'dashboard' \| 'page' |
+| `sourceId?` | string | Note this one was created from (template/collection source) |
 | `catalog?` | string | Catalog directory id for static notes |
 | `seedOrigin?` | 'seed' \| 'user' | Seed-import ownership marker; absent ≡ user-owned |
 | `seedVersion?` | number | manifest.version of last seed write |
 | `seedChunkId?` | string | Seed chunk provenance |
-
+| `sourcePath?` | string | Original seed file path |
 Identity is not yet uniform across sources: seed import derives an ID from its path, while static note projections expose block-index locators. Preserve those locators for Library deep links while defining canonical joins; see [[BlockIndexRow]]. `createdAt` is also not universally an authored date: seed rows use the seed-build timestamp. The journal day lives on [[Page]].
 
 ### Indexes (Current)
 
 | Index | Key path | Unique | Purpose |
-|-------|----------|--------|---------|
-| `by-slug` | `slug` | yes | slug (route) → UUID (V8) |
-| `by-page` | `pageId` | no | page-scoped note queries (V10) |
-
+|---|---|---|---|
+| `by-date` | `date` | no | date-based note queries |
 ### Relationships (Current)
 
 #### Outgoing (this row references)
 
-- `pageId` → [[Page]] — owned placement, independent of query inclusion
 - `sourceId` → [[Note]] — self: creation source (template/collection)
-
 #### Incoming (referenced by)
 
+- [[PageNote]].`noteId` — placement and grouping on pages
 - [[NoteSegment]].`noteId`
 - [[Session]].`noteId`
 - [[Attachment]].`noteId`
@@ -72,11 +69,10 @@ Identity is not yet uniform across sources: seed import derives an ID from its p
 - [[EventRecord]].`noteId`
 - [[BlockIndexRow]].`noteId`
 - [[FieldSourceRecord]].`id` — polymorphic `note:<id>`
-
 #### Relationship tables
 
+- [[PageNote]] — joins Note ↔ Page
 - [[NoteTag]] — joins Note ↔ Tag
-- [[FieldSourceRecord]] — field contributions of this note
 
 ---
 

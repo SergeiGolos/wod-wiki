@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: segments
 keyPath: "[id, version]"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # NoteSegment
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `segments`
 - **Key path:** `[id, version]`
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 Versioned chunk of an owning [[Note]]'s content. Content changes create new incarnations keyed `[id, version]`; superseded rows are flagged `isHistory`. This storage unit is not interchangeable with an editor section, a runtime output grain, or a canvas Page Block.
 
@@ -27,7 +27,7 @@ Versioned chunk of an owning [[Note]]'s content. Content changes create new inca
 | `version` | number | 1, 2, 3… bumps on content change; key part 2 |
 | `noteId` | string | FK → [[Note]] |
 | `position?` | number | Ordinal within parent note, document order (V11) |
-| `pageId?` | string | FK → [[Page]] — copied from parent note (V10) |
+| `pageId?` | string | @deprecated V10 legacy placement field (placements now owned by [[PageNote]]) |
 | `dataType` | SegmentDataType | 'script' \| 'youtube' \| 'markdown' \| 'header' \| 'frontmatter' \| 'wod' \| 'title' \| 'h1'…'h6' |
 | `data` | ScriptBlock \| null | Structured JSON payload for WOD sections |
 | `rawContent` | string | Stored source fragment; workout/frontmatter delimiters are reconstructed on read, so not a byte-exact original |
@@ -43,7 +43,7 @@ The normal content provider writes `wod`, `markdown`, `frontmatter` and `h1`–`
 |-------|----------|--------|---------|
 | `by-note` | `noteId` | no | segments of a note |
 | `by-type` | `dataType` | no | filter by kind |
-| `by-page` | `pageId` | no | page-scoped queries (V10) |
+| `by-page` | `pageId` | no | legacy page-scoped queries (V10) |
 | `by-history` | `isHistory` | no | live vs superseded |
 
 ### Relationships (Current)
@@ -51,7 +51,7 @@ The normal content provider writes `wod`, `markdown`, `frontmatter` and `h1`–`
 #### Outgoing (this row references)
 
 - `noteId` → [[Note]] — parent
-- `pageId` → [[Page]] — copied from parent note
+- `pageId` → [[Page]] — legacy denormalized context
 
 #### Incoming (referenced by)
 

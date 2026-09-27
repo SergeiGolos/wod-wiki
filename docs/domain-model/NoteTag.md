@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: note_tags
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 role: relationship-table
 ---
 
@@ -16,7 +16,7 @@ role: relationship-table
 - **Store:** `note_tags`
 - **Key path:** `id`
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 **Relationship table** — normalized many-to-many join between [[Note]] and [[Tag]] (V10).
 

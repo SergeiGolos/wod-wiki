@@ -3,7 +3,7 @@ tags: [domain-model]
 store: sessions
 legacyStore: results
 keyPath: "id"
-db: wodwiki-db (v21)
+db: wodwiki-db (v23)
 ---
 
 # Session
@@ -16,7 +16,7 @@ db: wodwiki-db (v21)
 - **Store:** `sessions` (legacy `results` copied on V20, flattened on V21)
 - **Key path:** `id`
 - **Type source:** `apps/playground/src/types/storage.ts` (`Session`)
-- **Database version:** `wodwiki-db` (v21)
+- **Database version:** `wodwiki-db` (v23)
 
 Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progress'` at workout start, flipped to `'completed'` at finalize. A session row is **execution metadata only** (V21): statements and metrics live as [[EventRecord]] rows, and display/replay shapes are reconstructed from them (`eventsToStoredLogs`).
 
@@ -33,7 +33,7 @@ Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progres
 | `version?` | number | LEGACY — retired computeVersion() generation |
 | `origin?` | ResultOrigin | 'journal' \| 'playground' \| 'user'; playground excluded from default filters |
 | `status?` | 'in-progress' \| 'completed' | Absent = 'completed' (legacy rows) |
-| `pageId?` | string | FK → [[Page]] — copied from parent note (V10) |
+| `pageId?` | string | @deprecated V10 legacy placement field (placements now owned by [[PageNote]]) |
 | `startTime` | number | When the workout started (flattened from `data` in V21) |
 | `endTime` | number | When the workout ended |
 | `duration` | number | Total elapsed time (ms) |
@@ -51,6 +51,7 @@ Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progres
 | `by-completed` | `createdAt` | no | recency ordering |
 | `by-content` | `blockContentId` | no | cross-workout joins (V6) |
 | `by-block` | `blockId` | no | position identity (V6) |
+| `by-page` | `pageId` | no | legacy page index (V10) |
 
 ### Relationships (Current)
 
@@ -58,7 +59,7 @@ Outcome of running a specific [[NoteSegment]] version. Born `status: 'in-progres
 
 - `noteId` → [[Note]] — parent
 - `segmentId + segmentVersion` → [[NoteSegment]] — pinned recorded occurrence/version
-- `pageId` → [[Page]]
+- `pageId` → [[Page]] — legacy denormalized context
 - `blockContentId` → [[BlockIndexRow]] — content-hash join
 
 #### Incoming (referenced by)

@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: block_index
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # BlockIndexRow
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `block_index`
 - **Key path:** `id`
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 Derived content-search projection for WQL `find:block`. The user-note rebuild emits one row per live [[NoteSegment]] from the owning note. Bundled corpus rows are generated/imported separately; they are not guaranteed to reference the same segment rows or note IDs as the seed notes. This store is query data, not a second authoring source.
 

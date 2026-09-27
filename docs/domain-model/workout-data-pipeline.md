@@ -39,7 +39,7 @@ The event rows are the archival record. If a later re-derivation runs (`rederive
 
 ### WQL queries (facts)
 
-`QueryService` fetches `EventRecord[]` by time range, result, note, or block content, then flattens each row with `projectEventToFacts(record)` into one `AnalyticsDataPoint` per numeric metric. Filters, buckets, rollups, and cross-workout joins run on those facts. Joins are relational: `resultId` → session, `noteId` → note/page, `blockContentId` → same workout across notes and days.
+`QueryService` fetches `EventRecord[]` by time range, result, note, or block content, then flattens each row with `projectEventToFacts(record)` into one `AnalyticsDataPoint` per numeric metric. Filters, buckets, rollups, and cross-workout joins run on those facts. Joins are relational: `resultId` → session, `noteId` → note (and through `page_notes` to pages), `blockContentId` → same workout across notes and days.
 
 ### Display and replay (statement stream)
 

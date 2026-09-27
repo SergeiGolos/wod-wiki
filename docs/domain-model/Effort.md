@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: efforts
 keyPath: "slug"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # Effort
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `efforts`
 - **Key path:** `slug`
 - **Type source:** `packages/lang/src/effort-registry/types.ts` (`IEffort` — no storage-local duplicate)
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 ### Domain role (Current)
 
