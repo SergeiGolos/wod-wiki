@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import { parseFrontmatter } from '@/lib/frontmatter';
 
-import { parseDashboardNote, buildDashboardDocument, isDashboardWidgetType, resolveWidgetType, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';
+import { parseDashboardNote, buildDashboardDocument, isDashboardWidgetType, resolveWidgetType } from '@bitcobblers/wod-wiki-wql';
 
 const SEEDS_DIR = join(import.meta.dir, '../../../../markdown/dashboards');
 const seedFiles = readdirSync(SEEDS_DIR).filter((f) => f.endsWith('.md'));

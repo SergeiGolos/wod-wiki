@@ -281,7 +281,7 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
   async delete(key: IDBValidKey | IDBKeyRange): Promise<void> {
     if (key && typeof key === 'object' && ('lower' in key || 'upper' in key)) {
       for (const [serializedKey] of Array.from(this.records.entries())) {
-        let parsed: any;
+        let parsed: unknown;
         try {
           parsed = JSON.parse(serializedKey);
         } catch {
@@ -302,10 +302,10 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
 }
 
 export class InMemoryStorage implements IStorage {
-  private readonly stores = new Map<StoreName, InMemoryStore<any>>();
+  private readonly stores = new Map<StoreName, InMemoryStore<unknown>>();
 
   private getStore<K extends StoreName>(name: K): InMemoryStore<StoreType<K>> {
-    let store = this.stores.get(name);
+    let store = this.stores.get(name) as InMemoryStore<StoreType<K>> | undefined;
     if (!store) {
       store = new InMemoryStore<StoreType<K>>(name);
       this.stores.set(name, store);

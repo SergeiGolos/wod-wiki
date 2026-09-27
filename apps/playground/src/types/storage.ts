@@ -6,7 +6,7 @@
  * `segments` store and adds `attachments` + `analytics` stores.
  */
 
-import type { Sessions, ScriptBlock } from '../components/Editor/types';
+import type { ScriptBlock } from '../components/Editor/types';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources

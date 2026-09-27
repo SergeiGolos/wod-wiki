@@ -16,7 +16,7 @@ import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extrac
 import { EFFORT_DISCIPLINES } from "@bitcobblers/wod-wiki-lang";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/atoms/primitives/label";
-import { storageService } from "@/services/storage";
+import { storageService } from "@/hooks/useBrowserServices";
 import type { Tag, TagTypeRecord } from "@/types/storage";
 
 // ── Types ────────────────────────────────────────────────────────────

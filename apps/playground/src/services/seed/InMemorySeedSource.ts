@@ -2,7 +2,7 @@
  * InMemorySeedSource — test/fixture adapter. Serves a manifest and chunks
  * from plain objects; no network, no storage.
  */
-import type { SeedManifest, SeedRow } from '@/types/seed';
+import type { SeedManifest } from '@/types/seed';
 import type { ISeedSource, SeedChunkPayload } from './ISeedSource';
 
 export class InMemorySeedSource implements ISeedSource {

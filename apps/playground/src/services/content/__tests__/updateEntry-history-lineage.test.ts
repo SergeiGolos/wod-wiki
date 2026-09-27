@@ -7,7 +7,7 @@
  *  2. getEntry / getLatestSegmentsForNote must exclude retired (isHistory)
  *     rows — reads previously ignored the flag and duplicated every edit.
  */
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
 
 // Replicates the e2e seedNote shape: one whole-document segment 'seg-0'.

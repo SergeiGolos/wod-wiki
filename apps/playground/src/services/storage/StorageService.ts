@@ -4,7 +4,6 @@ import type {
   EventRecord,
   Note,
   NoteSegment,
-  NoteTag,
   Page,
   PageNote,
   Session,

@@ -52,11 +52,11 @@ import { markdownSyntaxHiding } from '@bitcobblers/wod-wiki-ui/extensions';
 import { wodLinter } from '@bitcobblers/wod-wiki-ui/extensions';
 import { wodAutocompletion, wodEditorKeymap, wodAutoWrap, registerCustomCompletionSource, unregisterCustomCompletionSource, type CustomCompletionSource } from '@bitcobblers/wod-wiki-ui/extensions';
 import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
-import { storageService } from '@/services/storage';
+import { storageService } from '@/hooks/useBrowserServices';
 import { wodOverlayPanel } from '@bitcobblers/wod-wiki-ui/extensions';
 import { widgetBlockPreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { queryBlockPreview } from '@bitcobblers/wod-wiki-ui/extensions';
-import { inlineButtonDecoration, type ButtonAction } from '@bitcobblers/wod-wiki-ui/extensions';
+import { type ButtonAction } from '@bitcobblers/wod-wiki-ui/extensions';
 import { sectionGeometry } from '@bitcobblers/wod-wiki-ui/extensions';
 import { linkOpen } from '@bitcobblers/wod-wiki-ui/extensions';
 import { gutterUnified } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -203,7 +203,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   enableInlineRuntime = true,
   extensions: extraExtensions,
   widgetComponents,
-  onButtonAction,
+  // `onButtonAction` is part of the public contract (inline `[Label]{.button}`
+  // activation) but nothing invokes it yet — don't bind until wired.
   activeSectionId: externalActiveSectionId,
   scrollToSectionId,
   results,
@@ -621,7 +622,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       enableOverlay,
       noteId,
       notePersistence,
-      onButtonAction,
       widgetComponents,
     ]
   );

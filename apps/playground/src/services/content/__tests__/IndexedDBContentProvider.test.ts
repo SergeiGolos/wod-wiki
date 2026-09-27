@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
 import { parseDocumentSections } from '@bitcobblers/wod-wiki-core';
 import { parseDashboardNote, buildDashboardDocument, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';

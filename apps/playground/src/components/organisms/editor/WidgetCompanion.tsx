@@ -53,6 +53,9 @@ export const WidgetCompanion: React.FC<WidgetCompanionProps> = ({
     }
 
     return { rawContent: raw, config: parsed };
+    // docVersion isn't read in the body: it bumps to force a re-parse of the
+    // stable CodeMirror view state when the document changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, sectionId, docVersion]);
 
   const WidgetComponent = registry.get(widgetName);

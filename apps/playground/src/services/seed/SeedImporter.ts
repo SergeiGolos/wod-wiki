@@ -25,9 +25,9 @@
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
 import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
+import type { Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
-import { extractFrontmatterTags, parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
+import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
 import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
@@ -61,11 +61,6 @@ function catalogForChunkId(chunkId: string): string | undefined {
   const match = /^(?:collection|feed)\.(.+)$/.exec(chunkId);
   const value = match?.[1];
   return value && value !== '_root' ? value : undefined;
-}
-
-/** Effort slug convention: `<slug>.md` filename stem (validated corpus-wide). */
-function effortSlugFromPath(path: string): string {
-  return (path.split('/').pop() ?? path).replace(/\.md$/, '');
 }
 
 async function rowToRecords(

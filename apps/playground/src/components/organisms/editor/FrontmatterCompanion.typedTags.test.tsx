@@ -3,8 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { EditorView } from '@codemirror/view';
 import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import { FrontmatterCompanion } from './FrontmatterCompanion';
-import { InMemoryStorage } from '@/services/storage/InMemoryStorage';
-import { setStorageForTesting, resetStorageForTesting, storageService } from '@/services/storage';
+import { InMemoryStorage, setStorageForTesting, resetStorageForTesting, storageService } from '@/hooks/useBrowserServices';
 
 afterEach(() => {
   cleanup();

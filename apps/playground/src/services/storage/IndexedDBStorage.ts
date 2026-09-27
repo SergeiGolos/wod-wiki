@@ -15,11 +15,15 @@ const DB_VERSION = 23;
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
+// ponytail: idb handle kept schema-loose — store/key typing lives in IStorage's
+// generics, so Mode is the only thing we track (put/delete/clear need 'readwrite').
+type IDBTx<Mode extends IDBTransactionMode = IDBTransactionMode> = IDBPTransaction<unknown, string, Mode>;
+
 class IDBReadOnlyStore<T> implements IReadOnlyStore<T> {
   constructor(
     private readonly dbPromise: Promise<IDBPDatabase>,
     private readonly storeName: StoreName,
-    private readonly existingTx?: IDBPTransaction<any, any, any>
+    private readonly existingTx?: IDBTx
   ) {}
 
   async get(key: IDBValidKey): Promise<T | undefined> {
@@ -70,7 +74,7 @@ class IDBReadWriteStore<T> extends IDBReadOnlyStore<T> implements IReadWriteStor
   constructor(
     private readonly dbPromiseRef: Promise<IDBPDatabase>,
     private readonly writeStoreName: StoreName,
-    private readonly activeTx?: IDBPTransaction<any, any, any>
+    private readonly activeTx?: IDBTx<'readwrite'>
   ) {
     super(dbPromiseRef, writeStoreName, activeTx);
   }
@@ -359,10 +363,10 @@ export class IndexedDBStorage implements IStorage {
     fn: (tx: IStorageTransaction) => Promise<R>
   ): Promise<R> {
     const db = await this.dbPromise;
-    const idbTx = db.transaction(stores, mode);
+    const idbTx = db.transaction(stores, mode) as IDBTx;
     const txAdapter: IStorageTransaction = {
       readonly: (name) => new IDBReadOnlyStore(this.dbPromise, name, idbTx),
-      readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx),
+      readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx as IDBTx<'readwrite'>),
     };
     const result = await fn(txAdapter);
     await idbTx.done;
