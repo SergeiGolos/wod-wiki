@@ -8,7 +8,7 @@ db: wodwiki-db (v23)
 # Note
 
 > [!info] Review status
-> Current State describes code; Future State contains review recommendations for feedback, not implemented changes or closed decisions. See the [typed-notes review](../wayfinder/typed-notes-unification-review.md) and [[todo#Datatype review guide]].
+> Current State describes code; Future State contains architecture recommendations, not implemented changes or closed decisions. See [[todo#Datatype review guide]].
 
 ## Current State (Implemented in Code)
 

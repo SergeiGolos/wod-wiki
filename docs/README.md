@@ -39,7 +39,3 @@ The canonical specifications for storage entities and data relationships in Inde
 ## 5. Visual Wireframes & Architecture Diagrams
 * [`abstract-views/`](./abstract-views/) — Excalidraw diagrams illustrating wall clock, split-pane canvas, and stream views.
 
----
-
-## 6. Historical Archive
-* [`archive/`](./archive/) — Completed migration specifications and historical language redesign proposals (RFCs 16–20).

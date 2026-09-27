@@ -115,7 +115,7 @@ Recommended answer: judge completeness against the datatype contracts, then asse
 
 ### Source evidence
 
-- [Page schema](../../apps/playground/src/types/storage.ts); [journal composition](../../apps/playground/app/pages/JournalDatePage.tsx); [review reproduction](../wayfinder/typed-notes-unification-review.md#9-evidence-and-verification).
+- [Page schema](../../apps/playground/src/types/storage.ts); [journal composition](../../apps/playground/app/pages/JournalDatePage.tsx).
 - [Responsive actions](../../apps/playground/app/nav/ResponsiveActions.tsx); [example host](../../apps/playground/app/components/organisms/editor/EditorWindow.tsx); [dashboard model](../../packages/wql/src/dashboard/model.ts).
 
 ## Map

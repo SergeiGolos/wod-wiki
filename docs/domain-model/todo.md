@@ -2,7 +2,7 @@
 
 ## Datatype review guide
 
-Start with one datatype below. Its **Current State** records implementation; **Future State (Proposed)** contains recommendations, inline answers and feedback cases from the [typed-notes review](../wayfinder/typed-notes-unification-review.md). Edit/comment on those proposed answers to refine the contract.
+Start with one datatype below. Its **Current State** records implementation; **Future State (Proposed)** contains architecture recommendations. Edit/comment on those proposed answers to refine the contract.
 
 These are working review drafts, **not ticket resolutions**. GitHub remains the decision record: after a human decision, record its resolution there and replace the local proposed answer with the agreed contract and resolution link. This update does not close tickets, change dependency edges or adopt new glossary definitions. Shared glossary wording and runtime/schema changes wait for those decisions.
 
@@ -48,7 +48,7 @@ Existing schema reference. The “New name” column records separate, unimpleme
 
 ## Route & Unification Realignment Checklist
 
-Items in domain model plans requiring updates to align with [`link-crosswalk.md`](../link-crosswalk.md), [`typed-notes-unification-review.md`](../wayfinder/typed-notes-unification-review.md), and [`screens/README.md`](../screens/README.md):
+Items in domain model plans requiring updates to align with [`screens/README.md`](../screens/README.md) and current router conventions:
 
 | Domain Model Plan | Current Plan Gap | Alignment Required | Alignment Status |
 |---|---|---|---|
