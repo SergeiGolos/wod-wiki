@@ -26,8 +26,8 @@ Welcome to the living documentation for WOD Wiki. Documentation is organized int
 
 ## 4. Domain Model Specifications (`docs/domain-model/`)
 The canonical specifications for storage entities and data relationships in IndexedDB (`wodwiki-db v23`):
-* [`domain-model/Note-Page-WQL-Alignment.md`](./domain-model/Note-Page-WQL-Alignment.md) — Note vs Page ownership and WQL alignment.
-* [`domain-model/WQL-Domain-Query-Composition.md`](./domain-model/WQL-Domain-Query-Composition.md) — Detailed guide to compositional queries under the new domain model.
+* [`domain-model/Note-Page-WQL-Alignment.md`](Note-Page-WQL-Alignment.md) — Note vs Page ownership and WQL alignment.
+* [`domain-model/WQL-Domain-Query-Composition.md`](WQL-Domain-Query-Composition.md) — Detailed guide to compositional queries under the new domain model.
 * [`domain-model/Note.md`](./domain-model/Note.md) — Authored content container.
 * [`domain-model/Page.md`](./domain-model/Page.md) — Placement and routing anchor.
 * [`domain-model/PageNote.md`](./domain-model/PageNote.md) — Many-to-many junction joining Page ↔ Note.
