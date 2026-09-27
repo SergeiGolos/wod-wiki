@@ -1,10 +1,10 @@
 ---
-tags:
+format: intervals
+equipment:
   - kettlebell
-  - cardio
-category: Keith Weber Lower Body
-type: High-Intensity Lower Body
-difficulty: Advanced
+quality:
+  - conditioning
+  - strength
 ---
 
 ## Workout 2: The Man Maker (Leg Focus)

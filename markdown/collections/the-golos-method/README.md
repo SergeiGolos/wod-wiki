@@ -1,10 +1,11 @@
 ---
 template: canvas
 collection: true
-category:
-  - unconventional
-  - strength
+equipment:
   - minimalist
+  - unconventional
+quality:
+  - strength
 ---
 # The Golos Method
 

@@ -1,9 +1,7 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Endurance
-difficulty: Beginner-Intermediate
 ---
 
 # Endurance Building

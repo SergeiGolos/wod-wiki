@@ -1,11 +1,7 @@
 ---
-tags:
-  - crossfit
-  - benchmark
-category: CrossFit Benchmark
-type: EMOM (Every Minute on the Minute)
-difficulty: Intermediate
-format: EMOM (complete work every minute on the minute)
+domain: crossfit
+format: emom
+intent: benchmark
 ---
 
 # Chelsea

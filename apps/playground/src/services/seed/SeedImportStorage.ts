@@ -11,6 +11,7 @@ import type { SeedMetaRecord } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { storage, type IStorage } from '@/services/storage';
+import { DEFAULT_TAG_TYPES } from '@/services/storage/StorageService';
 import { SEED_META_KEY, seedSegmentId } from '@/types/seed';
 
 export interface SeedChunkWrite {
@@ -102,13 +103,11 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
         }
         const tagTypesStore = tx.readwrite('tag_types');
         const now = Date.now();
-        for (const typeName of ['category', 'type']) {
-          const matching = await tagTypesStore.getAllFromIndex('by-name', typeName);
+        for (const def of DEFAULT_TAG_TYPES) {
+          const matching = await tagTypesStore.getAllFromIndex('by-name', def.name);
           if (!matching[0]) {
             await tagTypesStore.put({
-              id: crypto.randomUUID(),
-              name: typeName,
-              label: typeName.charAt(0).toUpperCase() + typeName.slice(1),
+              ...def,
               createdAt: now,
             });
           }

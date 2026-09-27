@@ -1,6 +1,6 @@
 ---
-tags:
-  - crossfit
+domain: crossfit
+quality:
   - conditioning
   - strength
 ---

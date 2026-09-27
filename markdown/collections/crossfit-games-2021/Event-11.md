@@ -1,8 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-format: For time
+domain: crossfit
+format: for-time
+intent: competition
 ---
 
 # 2021 CrossFit Games - Event 11 - "Event 11"

@@ -1,10 +1,10 @@
 ---
-tags:
+domain:
   - swimming
-  - endurance
   - triathlon
-type: Race-Specific
-difficulty: Beginner-Intermediate
+quality:
+  - endurance
+intent: competition
 ---
 
 # Sprint Distance Preparation

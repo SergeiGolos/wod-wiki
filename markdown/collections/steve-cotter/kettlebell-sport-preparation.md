@@ -1,10 +1,9 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
+  - endurance
   - strength
-category: Steve Cotter Sport Training
-type: Sport-Specific Endurance
-difficulty: Advanced
 ---
 
 ## Workout 4: Kettlebell Sport Preparation

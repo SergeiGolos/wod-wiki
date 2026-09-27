@@ -1,10 +1,8 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
   - strength
-category: Steve Cotter Intermediate
-type: Strength Development
-difficulty: Intermediate
 ---
 
 ## Workout 2: Intermediate Strength Program

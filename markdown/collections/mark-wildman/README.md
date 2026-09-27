@@ -1,9 +1,10 @@
 ---
 template: canvas
 collection: true
-category:
-  - kettlebell
+equipment:
   - clubs
+  - kettlebell
+quality:
   - strength
 ---
 # Mark Wildman Kettlebell Workouts

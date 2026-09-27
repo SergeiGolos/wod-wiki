@@ -1,10 +1,9 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
+  - recovery
   - strength
-category: Steve Cotter Recovery
-type: Mobility and Recovery
-difficulty: All Levels
 ---
 
 ## Workout 6: Mobility and Flexibility Session

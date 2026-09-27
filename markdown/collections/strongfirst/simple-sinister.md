@@ -1,10 +1,9 @@
 ---
-tags:
+format: for-time
+equipment:
   - kettlebell
+quality:
   - strength
-category: StrongFirst Benchmark
-type: For Time (with time standards)
-difficulty: Intermediate to Advanced
 ---
 
 ## Workout 1: Simple & Sinister

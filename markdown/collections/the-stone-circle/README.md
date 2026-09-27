@@ -1,10 +1,11 @@
 ---
 template: canvas
 collection: true
-category:
-  - strength
-  - conditioning
+equipment:
   - minimalist
+quality:
+  - conditioning
+  - strength
 ---
 # The Stone Circle
 

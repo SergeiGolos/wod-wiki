@@ -1,12 +1,9 @@
 ---
-tags:
-  - parkour
-category: zombie-fit
-type: Intervals
-difficulty: Beginner / Advanced / Expert
 date: 2010-09-06
 original_url: "http://zombiefit.org/2010/09/wod-090610-no-class-today/"
 wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2010/09/wod-090610-no-class-today/"
+domain: parkour
+format: intervals
 ---
 
 # WOD 216

@@ -1,10 +1,8 @@
 ---
-tags:
+format: program
+equipment:
   - kettlebell
-  - sport
-category: Joe Daniels Signature Program
-type: Comprehensive Training Block
-difficulty: Intermediate
+intent: sport
 ---
 
 ## Workout 1: For Love of Training (8-Week Program)

@@ -1,9 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-category: Competition
-type: AMRAP
+domain: crossfit
+format: amrap
+intent: competition
 ---
 
 # 2022 CrossFit Games - Event 11 "Hope"

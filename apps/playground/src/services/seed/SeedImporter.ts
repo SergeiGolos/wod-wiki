@@ -27,7 +27,8 @@ import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegm
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
-import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
+import { extractTypedFrontmatterTags, parseFrontmatter } from '@/lib/frontmatter';
+import { DEFAULT_TAG_TYPES } from '@/services/storage/StorageService';
 import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
@@ -56,6 +57,8 @@ function titleFromPath(path: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const KNOWN_TAG_TYPES = DEFAULT_TAG_TYPES.map((t) => t.name);
+
 /** `collection.crossfit-girls` → `crossfit-girls`; `_root`/non-catalog chunks → undefined. */
 function catalogForChunkId(chunkId: string): string | undefined {
   const match = /^(?:collection|feed)\.(.+)$/.exec(chunkId);
@@ -71,28 +74,24 @@ async function rowToRecords(
   const id = await seedNoteId(row.path);
   const createdAt = seedVersion; // deterministic: manifest builtAt epoch ms
 
-  const { meta, body } = parseFrontmatter(row.content);
+  const { meta } = parseFrontmatter(row.content);
 
-  let rawContent = row.content;
   let date: number | undefined = undefined;
   let page: Page | undefined = undefined;
   let pageNote: PageNote | undefined = undefined;
 
-  const cleanMeta = { ...meta };
-
   // Parse `date` frontmatter (YYYY-MM-DD) → Note.date (noon UTC)
-  if ('date' in cleanMeta) {
-    const rawDate = cleanMeta['date'];
+  if ('date' in meta) {
+    const rawDate = meta['date'];
     if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
       date = new Date(`${rawDate}T12:00:00Z`).getTime();
     }
-    delete cleanMeta['date'];
   }
 
   // Parse `slug` frontmatter → create owning Page
   let pageId: string | undefined = undefined;
-  if ('slug' in cleanMeta) {
-    const slug = String(cleanMeta['slug']).trim();
+  if ('slug' in meta) {
+    const slug = String(meta['slug']).trim();
     if (slug) {
       pageId = await seedNoteId(`page:${slug}`);
       page = {
@@ -108,85 +107,9 @@ async function rowToRecords(
         createdAt,
       };
     }
-    delete cleanMeta['slug'];
-  }
-  // Transform: `tags` property becomes property `category`
-  if ('tags' in cleanMeta) {
-    const rawTags = cleanMeta['tags'];
-    const tagsList = Array.isArray(rawTags)
-      ? rawTags.map(String)
-      : typeof rawTags === 'string' && rawTags.trim()
-        ? rawTags.trim().startsWith('[') && rawTags.trim().endsWith(']')
-          ? rawTags.trim().slice(1, -1).split(',').map((s) => s.trim())
-          : [rawTags.trim()]
-        : [];
-    if ('category' in cleanMeta) {
-      const existing = Array.isArray(cleanMeta['category'])
-        ? cleanMeta['category'].map(String)
-        : [String(cleanMeta['category'])];
-      cleanMeta['category'] = [...new Set([...existing, ...tagsList])];
-    } else {
-      cleanMeta['category'] = tagsList;
-    }
-    delete cleanMeta['tags'];
   }
 
-  // Extract tags typed by their property type
-  const extractedTags: Array<{ label: string; type?: string }> = [];
-
-  // `category` property -> tags with type: 'category'
-  if ('category' in cleanMeta) {
-    const catVal = cleanMeta['category'];
-    const items = Array.isArray(catVal)
-      ? catVal
-      : typeof catVal === 'string' && catVal.trim()
-        ? catVal.trim().startsWith('[') && catVal.trim().endsWith(']')
-          ? catVal.trim().slice(1, -1).split(',').map((s) => s.trim())
-          : [catVal.trim()]
-        : [];
-    for (const item of items) {
-      const label = String(item).trim();
-      if (label) {
-        extractedTags.push({ label, type: 'category' });
-      }
-    }
-  }
-
-  // `type` property -> tags with type: 'type'
-  if ('type' in cleanMeta) {
-    const typeVal = cleanMeta['type'];
-    const items = Array.isArray(typeVal)
-      ? typeVal
-      : typeof typeVal === 'string' && typeVal.trim()
-        ? typeVal.trim().startsWith('[') && typeVal.trim().endsWith(']')
-          ? typeVal.trim().slice(1, -1).split(',').map((s) => s.trim())
-          : [typeVal.trim()]
-        : [];
-    for (const item of items) {
-      const label = String(item).trim();
-      if (label) {
-        extractedTags.push({ label, type: 'type' });
-      }
-    }
-  }
-
-  // Deduplicate by label (prefer typed if collision)
-  const tagMap = new Map<string, { label: string; type?: string }>();
-  for (const tag of extractedTags) {
-    const existing = tagMap.get(tag.label);
-    if (!existing || (!existing.type && tag.type)) {
-      tagMap.set(tag.label, tag);
-    }
-  }
-  const tags = Array.from(tagMap.values());
-
-
-  if (Object.keys(cleanMeta).length > 0) {
-    rawContent = `---\n${serializeFrontmatter(cleanMeta)}\n---\n${body}`;
-  } else {
-    rawContent = body;
-  }
-
+  const tags = extractTypedFrontmatterTags(row.content, KNOWN_TAG_TYPES);
   return {
     note: {
       id,
@@ -207,7 +130,7 @@ async function rowToRecords(
       position: 0,
       dataType: 'markdown',
       data: null,
-      rawContent,
+      rawContent: row.content,
       createdAt,
     },
     tags,

@@ -1,8 +1,9 @@
 ---
 template: canvas
 feed: true
-category:
+equipment:
   - barbell
+quality:
   - strength
 ---
 # Dan John 40-Day Program

@@ -1,6 +1,7 @@
 ---
-tags:
+equipment:
   - barbell
+quality:
   - strength
 ---
 

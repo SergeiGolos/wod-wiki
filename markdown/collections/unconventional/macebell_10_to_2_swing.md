@@ -1,9 +1,9 @@
 ---
-tags:
+format: for-time
+equipment:
   - unconventional
-category: Steel Mace / Macebell
-type: For Time / Volume Training
-difficulty: Intermediate to Advanced
+quality:
+  - strength
 ---
 
 # Macebell 10-to-2 Swing

@@ -1,8 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-format: For time
+domain: crossfit
+format: for-time
+intent: competition
 ---
 
 # 2022 CrossFit Games - Event 1 - "Bike to Work"

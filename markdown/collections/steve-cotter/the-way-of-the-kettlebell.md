@@ -1,10 +1,9 @@
 ---
-tags:
+format: program
+equipment:
   - kettlebell
+quality:
   - strength
-category: Steve Cotter Educational
-type: Comprehensive 6-Day Introduction
-difficulty: Beginner to Intermediate
 ---
 
 ## Workout 3: The Way of the Kettlebell (Mindvalley Program)

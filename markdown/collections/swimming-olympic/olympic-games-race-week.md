@@ -1,10 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-  - competition
-type: Competition Peak
-difficulty: Olympic
+intent: competition
 ---
 
 # Olympic Games Race Week

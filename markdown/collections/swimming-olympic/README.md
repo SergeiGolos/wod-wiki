@@ -1,9 +1,9 @@
 ---
 template: canvas
 collection: true
-category:
-  - swimming
+domain: swimming
+quality:
   - endurance
-  - competition
+intent: competition
 ---
 # Swimming: Olympic

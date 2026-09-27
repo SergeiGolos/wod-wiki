@@ -1,9 +1,8 @@
 ---
-tags:
+equipment:
   - unconventional
-category: Steel Mace / Macebell
-type: Strength / Compound Movement
-difficulty: Intermediate
+quality:
+  - strength
 ---
 
 # Macebell Barbarian Squat

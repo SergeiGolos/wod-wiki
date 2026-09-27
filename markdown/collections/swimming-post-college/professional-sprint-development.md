@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Maximum Power
-difficulty: Elite
+  - power
 ---
 
 # Professional Sprint Development

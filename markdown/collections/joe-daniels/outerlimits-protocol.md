@@ -1,10 +1,10 @@
 ---
-tags:
+format: emom
+equipment:
   - kettlebell
-  - sport
-category: Joe Daniels Strength
-type: EMOM Strength
-difficulty: Advanced
+quality:
+  - strength
+intent: sport
 ---
 
 ## Workout 2: Outerlimits Protocol

@@ -1,9 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-category: Competition
-type: Max Weight
+domain: crossfit
+format: max-weight
+intent: competition
 ---
 
 # 2024 CrossFit Games - Event 7 "Clean & Jerk"

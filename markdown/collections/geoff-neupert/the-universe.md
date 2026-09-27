@@ -1,10 +1,10 @@
 ---
-tags:
+format: complex
+equipment:
   - kettlebell
+quality:
+  - conditioning
   - strength
-category: Geoff Neupert Fat Loss
-type: Complex for Fat Loss
-difficulty: Intermediate
 ---
 
 ## Workout 3: The Universe (Light Day)

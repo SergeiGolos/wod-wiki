@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Competition Preparation
-difficulty: Intermediate-Advanced
+intent: competition
 ---
 
 # Competitive Masters Training

@@ -1,11 +1,11 @@
 ---
-tags:
+domain: girevoy-sport
+format: skill
+equipment:
   - kettlebell
-  - sport
+intent:
   - competition
-category: Girevoy Sport Training
-type: Long Cycle Development
-difficulty: Advanced
+  - sport
 ---
 
 ## Workout 6: Long Cycle Training Session

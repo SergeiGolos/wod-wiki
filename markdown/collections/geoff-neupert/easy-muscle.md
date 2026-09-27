@@ -1,10 +1,8 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
   - strength
-category: Geoff Neupert Hypertrophy
-type: Progressive Hypertrophy
-difficulty: Intermediate
 ---
 
 ## Workout 6: Easy Muscle

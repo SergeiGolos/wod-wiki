@@ -1,10 +1,10 @@
 ---
-tags:
+equipment:
   - kettlebell
-  - cardio
-category: Keith Weber Upper Body
-type: Upper Body Strength Endurance
-difficulty: Intermediate to Advanced
+quality:
+  - conditioning
+  - endurance
+  - strength
 ---
 
 ## Workout 4: Upper Body Blast

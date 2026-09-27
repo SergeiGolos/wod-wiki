@@ -1,11 +1,9 @@
 ---
-tags:
-  - unconventional
-  - strength
+equipment:
   - minimalist
-category: The Golos Method
-type: Odd-Object Strength / Loaded Carries
-difficulty: Intermediate to Advanced
+  - unconventional
+quality:
+  - strength
 ---
 
 # Sandbag Over-the-Shoulder & Bear-Hug Carries

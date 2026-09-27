@@ -104,10 +104,12 @@ describe('SeedImporter', () => {
     expect(await seedNoteId('markdown/canvas/a.md')).toBe(await seedNoteId('markdown/canvas/a.md'));
     expect(await seedNoteId('markdown/canvas/a.md')).not.toBe(await seedNoteId('markdown/canvas/b.md'));
   });
-  it('converts tags property to category and extracts typed tags', async () => {
+  it('extracts typed frontmatter tags and leaves rawContent unchanged', async () => {
     const sampleContent = `---
+domain: crossfit
+format: for-time
+intent: benchmark
 tags:
-  - benchmark
   - girl
 search: hidden
 template: canvas
@@ -127,19 +129,17 @@ template: canvas
 
     const franId = await seedNoteId('markdown/collections/girls/fran.md');
     const tags = storage.getTagsForNote(franId);
-    expect(tags).toEqual(['benchmark', 'girl']);
+    expect(tags).toEqual(['girl', 'crossfit', 'for-time', 'benchmark']);
 
     const segment = storage.allSegments().find((s) => s.noteId === franId);
     expect(segment).toBeDefined();
-    expect(segment!.rawContent).toContain('category:');
-    expect(segment!.rawContent).not.toContain('tags:');
+    expect(segment!.rawContent).toBe(sampleContent);
     expect(storage.getTagObjectsForNote(franId)).toEqual([
-      { label: 'benchmark', type: 'category' },
-      { label: 'girl', type: 'category' },
+      { label: 'girl' },
+      { label: 'crossfit', type: 'domain' },
+      { label: 'for-time', type: 'format' },
+      { label: 'benchmark', type: 'intent' },
     ]);
-    expect(segment!.rawContent).toContain('benchmark');
-    expect(segment!.rawContent).toContain('search: hidden');
-    expect(segment!.rawContent).toContain('template: canvas');
   });
 
   it('parses type property into tags typed as type during seed import', async () => {
@@ -163,13 +163,12 @@ tags:
     const guideId = await seedNoteId('markdown/canvas/guide.md');
     const tagObjects = storage.getTagObjectsForNote(guideId);
     expect(tagObjects).toEqual([
-      { label: 'guide', type: 'category' },
+      { label: 'guide' },
       { label: 'syntax', type: 'type' },
     ]);
 
     const segment = storage.allSegments().find((s) => s.noteId === guideId);
-    expect(segment!.rawContent).toContain('category:');
-    expect(segment!.rawContent).toContain('type: syntax');
+    expect(segment!.rawContent).toBe(sampleContent);
   });
 
   it('re-import of an unchanged manifest is a no-op with zero chunk fetches', async () => {

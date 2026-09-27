@@ -1,10 +1,9 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-  - competition
-type: Maximum Velocity
-difficulty: Olympic
+  - power
+intent: competition
 ---
 
 # Sprint Freestyle World-Class Power

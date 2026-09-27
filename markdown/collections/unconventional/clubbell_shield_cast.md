@@ -1,9 +1,9 @@
 ---
-tags:
+equipment:
   - unconventional
-category: Steel Club / Heavy Club / Clubbell
-type: Ballistic / Rotational Movement
-difficulty: Intermediate
+quality:
+  - power
+  - strength
 ---
 
 # Clubbell Shield Cast

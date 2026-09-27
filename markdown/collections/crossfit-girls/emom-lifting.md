@@ -1,11 +1,7 @@
 ---
-tags:
-  - crossfit
-  - benchmark
-category: Strength Training
-type: EMOM (Every Minute On the Minute)
-difficulty: Advanced
-format: EMOM (complete work every minute on the minute)
+domain: crossfit
+format: emom
+intent: benchmark
 ---
 
 # EMOM Olympic Lifting Complex

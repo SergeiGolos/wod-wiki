@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Race Preparation
-difficulty: Advanced
+intent: competition
 ---
 
 # Race Simulation Day

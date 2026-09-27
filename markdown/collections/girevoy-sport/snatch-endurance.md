@@ -1,11 +1,12 @@
 ---
-tags:
+domain: girevoy-sport
+equipment:
   - kettlebell
-  - sport
+quality:
+  - endurance
+intent:
   - competition
-category: Girevoy Sport Training
-type: Snatch-Specific Endurance
-difficulty: Intermediate to Advanced
+  - sport
 ---
 
 ## Workout 3: Snatch Endurance

@@ -1,10 +1,9 @@
 ---
-tags:
+domain:
   - swimming
-  - endurance
   - triathlon
-type: Aerobic Endurance
-difficulty: Intermediate
+quality:
+  - endurance
 ---
 
 # Olympic Distance Endurance

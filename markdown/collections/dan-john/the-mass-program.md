@@ -1,10 +1,8 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
   - strength
-category: Dan John Hypertrophy
-type: High Volume Strength
-difficulty: Intermediate to Advanced
 ---
 
 ## Workout 5: The Mass Program

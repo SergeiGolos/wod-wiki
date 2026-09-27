@@ -1,11 +1,10 @@
 ---
-tags:
-  - kettlebell
+equipment:
   - clubs
+  - kettlebell
+  - minimalist
+quality:
   - strength
-category: Mark Wildman Minimalist
-type: Minimalist Training
-difficulty: All Levels
 ---
 
 ## Workout 3: The Two Best Exercises

@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
+  - conditioning
   - endurance
-type: Balanced Fitness
-difficulty: Beginner-Intermediate
 ---
 
 # General Fitness Session

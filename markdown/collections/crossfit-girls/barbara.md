@@ -1,10 +1,7 @@
 ---
-tags:
-  - crossfit
-  - benchmark
-category: CrossFit Benchmark
-type: For Time
-difficulty: Intermediate
+domain: crossfit
+format: for-time
+intent: benchmark
 ---
 
 # Barbara

@@ -1,8 +1,8 @@
 ---
 template: canvas
 collection: true
-category:
-  - swimming
+domain: swimming
+quality:
   - endurance
 ---
 # Swimming: Post-College

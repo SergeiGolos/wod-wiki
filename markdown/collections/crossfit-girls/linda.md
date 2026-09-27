@@ -1,10 +1,7 @@
 ---
-tags:
-  - crossfit
-  - benchmark
-category: CrossFit Benchmark
-type: For Time
-difficulty: Advanced
+domain: crossfit
+format: for-time
+intent: benchmark
 ---
 
 # Linda

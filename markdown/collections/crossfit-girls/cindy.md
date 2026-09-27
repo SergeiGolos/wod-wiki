@@ -1,11 +1,7 @@
 ---
-tags:
-  - crossfit
-  - benchmark
-category: CrossFit Benchmark
-type: AMRAP (As Many Rounds As Possible)
-difficulty: Beginner
-format: AMRAP (complete as many rounds as possible)
+domain: crossfit
+format: amrap
+intent: benchmark
 ---
 
 # Cindy

@@ -1,9 +1,7 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Endurance
-difficulty: Intermediate-Advanced
 ---
 
 # Distance Freestyle Training

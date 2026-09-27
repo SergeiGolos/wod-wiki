@@ -1,10 +1,9 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
+  - conditioning
   - strength
-category: Steve Cotter Beginner
-type: Foundation Building
-difficulty: Beginner
 ---
 
 ## Workout 1: Kettlebell Training - Beginner Program

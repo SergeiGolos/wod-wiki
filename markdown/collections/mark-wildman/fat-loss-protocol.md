@@ -1,11 +1,10 @@
 ---
-tags:
-  - kettlebell
+equipment:
   - clubs
+  - kettlebell
+quality:
+  - conditioning
   - strength
-category: Mark Wildman Fat Loss
-type: Progressive Conditioning
-difficulty: All Levels
 ---
 
 ## Workout 5: Fat Loss Protocol (Beginner to Advanced)

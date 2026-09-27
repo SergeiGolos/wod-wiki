@@ -1,10 +1,12 @@
 ---
 template: canvas
 collection: true
-category:
+domain: girevoy-sport
+equipment:
   - kettlebell
-  - sport
+intent:
   - competition
+  - sport
 ---
 # Girevoy Sport (Kettlebell Sport) Workouts
 

@@ -1,8 +1,7 @@
 ---
 dashboard: true
 title: Polarized Base — Sub-3:30 Marathon
-tags:
-  - dashboard
+quality:
   - endurance
 ---
 

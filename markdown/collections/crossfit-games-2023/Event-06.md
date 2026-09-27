@@ -1,8 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-format: Progressive ladder
+domain: crossfit
+format: progressive-ladder
+intent: competition
 ---
 
 # 2023 CrossFit Games - Event 6 - "Muscle-up Clean Ladder"

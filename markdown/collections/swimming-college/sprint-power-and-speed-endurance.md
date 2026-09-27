@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Anaerobic Power
-difficulty: Elite
+  - power
 ---
 
 # Sprint Power and Speed Endurance

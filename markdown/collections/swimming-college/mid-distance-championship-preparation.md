@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Race-Specific
-difficulty: Elite
+intent: competition
 ---
 
 # Mid-Distance Championship Preparation

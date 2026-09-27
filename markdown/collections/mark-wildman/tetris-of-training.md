@@ -1,11 +1,10 @@
 ---
-tags:
-  - kettlebell
+equipment:
   - clubs
+  - kettlebell
+quality:
+  - conditioning
   - strength
-category: Mark Wildman Programming
-type: Balanced Programming System
-difficulty: Intermediate
 ---
 
 ## Workout 6: Tetris of Training (Program Design)

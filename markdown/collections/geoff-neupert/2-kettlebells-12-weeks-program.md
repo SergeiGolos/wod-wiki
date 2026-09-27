@@ -1,10 +1,9 @@
 ---
-tags:
+format: complex
+equipment:
   - kettlebell
+quality:
   - strength
-category: Geoff Neupert Progressive Program
-type: Progressive Strength Complex
-difficulty: Beginner to Advanced
 ---
 
 ## Workout 5: 2 Kettlebells 12 Weeks Program

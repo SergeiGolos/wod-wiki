@@ -1,9 +1,7 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Aerobic Endurance
-difficulty: Advanced-Elite
 ---
 
 # Distance Freestyle Ultra-Endurance

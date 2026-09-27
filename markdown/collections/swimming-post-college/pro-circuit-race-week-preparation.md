@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Competition Sharpening
-difficulty: Elite
+intent: competition
 ---
 
 # Pro Circuit Race Week Preparation

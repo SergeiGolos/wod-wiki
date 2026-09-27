@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+format: skill
+quality:
   - endurance
-type: Technique Focus
-difficulty: All Levels
 ---
 
 # Stroke Refinement Workshop

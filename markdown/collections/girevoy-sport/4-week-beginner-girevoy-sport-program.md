@@ -1,11 +1,11 @@
 ---
-tags:
+domain: girevoy-sport
+format: program
+equipment:
   - kettlebell
-  - sport
+intent:
   - competition
-category: Girevoy Sport Beginner
-type: Progressive Introduction
-difficulty: Beginner
+  - sport
 ---
 
 ## Workout 5: 4-Week Beginner Girevoy Sport Program

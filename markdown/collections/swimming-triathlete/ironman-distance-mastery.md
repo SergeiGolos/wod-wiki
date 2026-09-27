@@ -1,10 +1,9 @@
 ---
-tags:
+domain:
   - swimming
-  - endurance
   - triathlon
-type: Ultra-Endurance
-difficulty: Advanced
+quality:
+  - endurance
 ---
 
 # Ironman Distance Mastery

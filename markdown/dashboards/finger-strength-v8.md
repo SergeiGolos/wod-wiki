@@ -2,9 +2,7 @@
 dashboard: true
 title: Finger Strength → V8
 dashboard.hangGoal: 35
-tags:
-  - dashboard
-  - climbing
+domain: climbing
 ---
 
 # Finger Strength → V8

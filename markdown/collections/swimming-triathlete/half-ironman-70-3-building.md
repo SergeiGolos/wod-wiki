@@ -1,10 +1,9 @@
 ---
-tags:
+domain:
   - swimming
-  - endurance
   - triathlon
-type: Long Distance
-difficulty: Intermediate-Advanced
+quality:
+  - endurance
 ---
 
 # Half Ironman (70.3) Building

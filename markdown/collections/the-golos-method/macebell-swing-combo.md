@@ -1,11 +1,10 @@
 ---
-tags:
-  - unconventional
-  - strength
+equipment:
+  - clubs
   - minimalist
-category: The Golos Method
-type: Rotational Strength / Flow Work
-difficulty: Intermediate to Advanced
+  - unconventional
+quality:
+  - strength
 ---
 
 # Macebell Swing Combos

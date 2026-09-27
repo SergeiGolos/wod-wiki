@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Speed/Power
-difficulty: Intermediate-Advanced
+  - power
 ---
 
 # Sprint Freestyle Power

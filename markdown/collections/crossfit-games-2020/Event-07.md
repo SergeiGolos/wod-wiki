@@ -1,9 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-category: CrossFit Benchmark / Competition
-type: For Time
+domain: crossfit
+format: for-time
+intent: competition
 ---
 
 # 2020 CrossFit Games - Event 7 "Helen"

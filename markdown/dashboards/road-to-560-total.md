@@ -4,8 +4,7 @@ title: Road to a 560 kg Total
 dashboard.squatGoal: 200
 dashboard.benchGoal: 140
 dashboard.deadliftGoal: 220
-tags:
-  - dashboard
+quality:
   - strength
 ---
 

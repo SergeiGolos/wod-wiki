@@ -1,9 +1,10 @@
 ---
 template: canvas
 collection: true
-category:
+domain:
   - swimming
-  - endurance
   - triathlon
+quality:
+  - endurance
 ---
 # Swimming: Triathlete

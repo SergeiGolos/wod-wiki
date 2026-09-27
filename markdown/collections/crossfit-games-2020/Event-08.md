@@ -1,9 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-category: Competition
-type: Max Reps
+domain: crossfit
+format: max-reps
+intent: competition
 ---
 
 # 2020 CrossFit Games - Event 8 "Handstand Push-up"

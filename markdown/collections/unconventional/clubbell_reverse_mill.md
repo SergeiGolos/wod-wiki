@@ -1,9 +1,9 @@
 ---
-tags:
+equipment:
   - unconventional
-category: Steel Club / Heavy Club / Clubbell
-type: Ballistic / Flow Movement
-difficulty: Intermediate
+quality:
+  - power
+  - strength
 ---
 
 # Clubbell Reverse Mill

@@ -1,10 +1,8 @@
 ---
-tags:
+format: skill
+equipment:
   - kettlebell
-  - sport
-category: Joe Daniels Beginner
-type: Skill Development
-difficulty: Beginner
+intent: sport
 ---
 
 ## Workout 5: Fundamentals Program

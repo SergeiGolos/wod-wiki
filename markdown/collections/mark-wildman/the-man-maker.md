@@ -1,11 +1,9 @@
 ---
-tags:
-  - kettlebell
+equipment:
   - clubs
+  - kettlebell
+quality:
   - strength
-category: Mark Wildman Signature
-type: Full Body Strength
-difficulty: Intermediate
 ---
 
 ## Workout 1: The Man Maker (Full Body)

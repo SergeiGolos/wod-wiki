@@ -1,10 +1,9 @@
 ---
-tags:
+equipment:
   - kettlebell
-  - cardio
-category: Keith Weber Assessment
-type: Fitness Benchmark
-difficulty: Advanced
+quality:
+  - conditioning
+intent: benchmark
 ---
 
 ## Workout 3: The Kettlebell Fitness Test

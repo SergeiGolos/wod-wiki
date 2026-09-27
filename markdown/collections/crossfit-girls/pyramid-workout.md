@@ -1,11 +1,7 @@
 ---
-tags:
-  - crossfit
-  - benchmark
-category: Bodyweight Training
-type: For Time
-difficulty: Intermediate
-format: For Time (complete as fast as possible)
+domain: crossfit
+format: for-time
+intent: benchmark
 ---
 
 # Bodyweight Pyramid Workout

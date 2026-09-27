@@ -1,11 +1,10 @@
 ---
-tags:
-  - unconventional
-  - strength
+format: skill
+equipment:
   - minimalist
-category: The Golos Method
-type: High-Frequency Strength / Skill Work
-difficulty: Beginner to Advanced
+  - unconventional
+quality:
+  - strength
 ---
 
 # Grease the Groove — Pull-Ups

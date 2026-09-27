@@ -1,9 +1,7 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Elite Multi-Stroke
-difficulty: Elite
 ---
 
 # International IM Preparation

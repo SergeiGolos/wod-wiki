@@ -1,11 +1,9 @@
 ---
-tags:
-  - kettlebell
+equipment:
   - clubs
+  - kettlebell
+quality:
   - strength
-category: Mark Wildman Programming System
-type: Progressive Strength
-difficulty: Intermediate to Advanced
 ---
 
 ## Workout 2: Heavy/Light Program Design

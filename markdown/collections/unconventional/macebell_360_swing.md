@@ -1,9 +1,9 @@
 ---
-tags:
+format: for-time
+equipment:
   - unconventional
-category: Steel Mace / Macebell
-type: For Time / Volume Training
-difficulty: Beginner to Advanced
+quality:
+  - strength
 ---
 
 # Macebell 360 Swing

@@ -1,9 +1,7 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Elite Endurance
-difficulty: Elite
 ---
 
 # National Qualifier Distance Freestyle

@@ -1,7 +1,7 @@
 ---
 template: canvas
 collection: true
-category:
+equipment:
   - unconventional
 ---
 # Unconventional

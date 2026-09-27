@@ -1,10 +1,9 @@
 ---
-tags:
+equipment:
   - kettlebell
+quality:
+  - conditioning
   - strength
-category: Geoff Neupert Conditioning
-type: High Volume Swing
-difficulty: Intermediate
 ---
 
 ## Workout 7: Swing Hard

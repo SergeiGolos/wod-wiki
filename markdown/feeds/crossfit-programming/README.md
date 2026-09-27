@@ -1,8 +1,8 @@
 ---
 template: canvas
 feed: true
-category:
-  - crossfit
+domain: crossfit
+quality:
   - conditioning
   - strength
 ---

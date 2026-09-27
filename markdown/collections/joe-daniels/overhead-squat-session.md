@@ -1,10 +1,11 @@
 ---
-tags:
+format: complex
+equipment:
   - kettlebell
-  - sport
-category: Joe Daniels Mobility & Strength
-type: Strength/Mobility Complex
-difficulty: Intermediate
+quality:
+  - recovery
+  - strength
+intent: sport
 ---
 
 ## Workout 7: Overhead Squat Session

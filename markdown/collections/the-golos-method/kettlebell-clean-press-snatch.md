@@ -1,11 +1,10 @@
 ---
-tags:
-  - unconventional
-  - strength
+equipment:
   - minimalist
-category: The Golos Method
-type: Ballistic Strength / Power-Endurance
-difficulty: Intermediate to Advanced
+  - unconventional
+quality:
+  - power
+  - strength
 ---
 
 # Kettlebell Clean & Press / Snatch

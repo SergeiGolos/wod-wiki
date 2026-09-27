@@ -1,10 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-  - competition
-type: Elite Distance
-difficulty: Olympic
+intent: competition
 ---
 
 # Distance Freestyle Olympic Preparation

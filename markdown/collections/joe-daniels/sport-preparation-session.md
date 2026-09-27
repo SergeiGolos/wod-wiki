@@ -1,10 +1,9 @@
 ---
-tags:
+equipment:
   - kettlebell
-  - sport
-category: Joe Daniels Sport Training
-type: Sport-Specific Endurance
-difficulty: Advanced
+quality:
+  - endurance
+intent: sport
 ---
 
 ## Workout 6: Sport Preparation Session

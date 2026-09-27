@@ -1,9 +1,7 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Open Water Training
-difficulty: Intermediate
 ---
 
 # Open Water Preparation

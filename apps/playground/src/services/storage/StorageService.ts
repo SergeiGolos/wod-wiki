@@ -21,10 +21,14 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 export const DEFAULT_TAG_TYPES: Array<Omit<TagTypeRecord, 'createdAt'>> = [
-  { id: 'type-category', name: 'category', label: 'Category', color: '#6366f1' },
-  { id: 'type-type', name: 'type', label: 'Type', color: '#8b5cf6' },
+  { id: 'type-domain', name: 'domain', label: 'Domain', color: '#10b981' },
+  { id: 'type-format', name: 'format', label: 'Format', color: '#8b5cf6' },
   { id: 'type-equipment', name: 'equipment', label: 'Equipment', color: '#3b82f6' },
-  { id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#10b981' },
+  { id: 'type-quality', name: 'quality', label: 'Quality', color: '#f59e0b' },
+  { id: 'type-intent', name: 'intent', label: 'Intent', color: '#ec4899' },
+  { id: 'type-category', name: 'category', label: 'Category', color: '#6366f1' },
+  { id: 'type-type', name: 'type', label: 'Type', color: '#a855f7' },
+  { id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#14b8a6' },
 ];
 
 

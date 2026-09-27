@@ -1,10 +1,9 @@
 ---
-tags:
+format: complex
+equipment:
   - kettlebell
+quality:
   - strength
-category: Dan John Complex
-type: Strength Complex
-difficulty: Intermediate to Advanced
 ---
 
 ## Workout 2: Armor Building Complex (ABC)

@@ -1,11 +1,11 @@
 ---
-tags:
+domain: girevoy-sport
+format: skill
+equipment:
   - kettlebell
-  - sport
+intent:
   - competition
-category: Girevoy Sport Training
-type: Jerk-Specific Development
-difficulty: Intermediate to Advanced
+  - sport
 ---
 
 ## Workout 4: Jerk Technique and Endurance

@@ -170,10 +170,14 @@ export class IndexedDBStorage implements IStorage {
           const store = db.createObjectStore('tag_types', { keyPath: 'id' });
           store.createIndex('by-name', 'name', { unique: true });
           const now = Date.now();
-          store.put({ id: 'type-category', name: 'category', label: 'Category', color: '#6366f1', createdAt: now });
-          store.put({ id: 'type-type', name: 'type', label: 'Type', color: '#8b5cf6', createdAt: now });
+          store.put({ id: 'type-domain', name: 'domain', label: 'Domain', color: '#10b981', createdAt: now });
+          store.put({ id: 'type-format', name: 'format', label: 'Format', color: '#8b5cf6', createdAt: now });
           store.put({ id: 'type-equipment', name: 'equipment', label: 'Equipment', color: '#3b82f6', createdAt: now });
-          store.put({ id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#10b981', createdAt: now });
+          store.put({ id: 'type-quality', name: 'quality', label: 'Quality', color: '#f59e0b', createdAt: now });
+          store.put({ id: 'type-intent', name: 'intent', label: 'Intent', color: '#ec4899', createdAt: now });
+          store.put({ id: 'type-category', name: 'category', label: 'Category', color: '#6366f1', createdAt: now });
+          store.put({ id: 'type-type', name: 'type', label: 'Type', color: '#a855f7', createdAt: now });
+          store.put({ id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#14b8a6', createdAt: now });
         }
 
         // 4. note_tags

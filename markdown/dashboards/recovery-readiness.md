@@ -1,8 +1,7 @@
 ---
 dashboard: true
 title: Recovery & Readiness
-tags:
-  - dashboard
+quality:
   - recovery
 ---
 

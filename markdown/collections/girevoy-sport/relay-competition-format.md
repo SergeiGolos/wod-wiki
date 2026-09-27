@@ -1,11 +1,10 @@
 ---
-tags:
+domain: girevoy-sport
+equipment:
   - kettlebell
-  - sport
+intent:
   - competition
-category: Girevoy Sport Team Competition
-type: Team Event
-difficulty: Intermediate to Advanced
+  - sport
 ---
 
 ## Workout 7: Relay Competition Format

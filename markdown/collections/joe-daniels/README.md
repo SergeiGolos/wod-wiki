@@ -1,9 +1,9 @@
 ---
 template: canvas
 collection: true
-category:
+equipment:
   - kettlebell
-  - sport
+intent: sport
 ---
 # Joe Daniels (Swing This) Kettlebell Workouts
 

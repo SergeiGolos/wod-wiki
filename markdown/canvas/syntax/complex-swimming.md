@@ -4,6 +4,7 @@ title: "Swimming Intervals"
 subtitle: "Multi-set swimming intervals with rest recovery"
 section: complex
 order: 5
+domain: swimming
 ---
 ```time
 (4) Power Sprints

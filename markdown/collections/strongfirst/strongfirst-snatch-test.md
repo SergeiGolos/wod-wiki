@@ -1,10 +1,9 @@
 ---
-tags:
+format: max-reps
+equipment:
   - kettlebell
+quality:
   - strength
-category: StrongFirst Certification Standard
-type: Max Reps
-difficulty: Advanced
 ---
 
 ## Workout 5: StrongFirst Snatch Test

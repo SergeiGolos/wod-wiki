@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+quality:
   - endurance
-type: Speed Development
-difficulty: Beginner
+  - power
 ---
 
 # Sprint Introduction

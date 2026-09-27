@@ -2,7 +2,6 @@
 dashboard: true
 title: Training Block Review
 tags:
-  - dashboard
   - coaching
 ---
 

@@ -1,9 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-category: Competition
-type: For Time
+domain: crossfit
+format: for-time
+intent: competition
 ---
 
 # 2022 CrossFit Games - Event 8 "Proving Fittest"

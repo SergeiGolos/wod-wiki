@@ -1,10 +1,10 @@
 ---
-tags:
+format: max-reps
+equipment:
   - kettlebell
+quality:
+  - endurance
   - strength
-category: Geoff Neupert / StrongFirst Standard
-type: Max Reps Endurance Test
-difficulty: Advanced
 ---
 
 ## Workout 4: Secret Service Snatch Test

@@ -1,8 +1,7 @@
 ---
 template: canvas
 collection: true
-category:
-  - crossfit
-  - benchmark
+domain: crossfit
+intent: benchmark
 ---
 # CrossFit Girls

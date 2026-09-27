@@ -1,9 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-category: Competition
-type: For Time
+domain: crossfit
+format: for-time
+intent: competition
 ---
 
 # 2024 CrossFit Games - Event 4 "Track & Field"

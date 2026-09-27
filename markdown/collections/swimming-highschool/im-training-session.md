@@ -1,9 +1,8 @@
 ---
-tags:
-  - swimming
+domain: swimming
+format: individual-medley
+quality:
   - endurance
-type: Individual Medley
-difficulty: Advanced
 ---
 
 # IM Training Session

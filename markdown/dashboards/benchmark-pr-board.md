@@ -1,9 +1,7 @@
 ---
 dashboard: true
 title: Benchmark PR Board
-tags:
-  - dashboard
-  - crossfit
+domain: crossfit
 ---
 
 # Benchmark PR Board

@@ -1,8 +1,9 @@
 ---
 template: canvas
 collection: true
-category:
+equipment:
   - kettlebell
+quality:
   - strength
 ---
 # StrongFirst Kettlebell Workouts

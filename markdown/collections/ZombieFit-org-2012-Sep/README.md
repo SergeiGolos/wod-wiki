@@ -1,8 +1,7 @@
 ---
 template: canvas
 collection: true
-category:
-  - parkour
+domain: parkour
 ---
 # ZombieFit Sep 2012
 

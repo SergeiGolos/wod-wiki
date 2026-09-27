@@ -1,10 +1,9 @@
 ---
-tags:
-  - swimming
+domain: swimming
+format: individual-medley
+quality:
   - endurance
-  - competition
-type: Elite Individual Medley
-difficulty: Olympic
+intent: competition
 ---
 
 # Olympic IM Championship

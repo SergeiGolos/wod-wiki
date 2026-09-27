@@ -1,8 +1,7 @@
 ---
-tags:
-  - crossfit
-  - competition
-format: For max weight
+domain: crossfit
+format: for-max-weight
+intent: competition
 ---
 
 # 2020 CrossFit Games - Event 4 - "CrossFit Total"

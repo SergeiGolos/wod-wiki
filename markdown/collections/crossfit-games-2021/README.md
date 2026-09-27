@@ -1,9 +1,8 @@
 ---
 template: canvas
 collection: true
-category:
-  - crossfit
-  - competition
+domain: crossfit
+intent: competition
 ---
 # CrossFit Games 2021
 
