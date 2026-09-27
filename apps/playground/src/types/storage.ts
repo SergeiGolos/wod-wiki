@@ -130,7 +130,7 @@ export interface NoteSegment {
     /** V11 — ordinal within the parent note (document order). Backfilled from
      *  the removed note.segmentIds array. */
     position?: number;
-    /** V10 — FK to the `page` store (copied from the parent note). */
+    /** @deprecated V10 legacy placement field. Placements are owned exclusively by `page_notes`. */
     pageId?: string;
     dataType: SegmentDataType;
     data: ScriptBlock | null; // Structured JSON payload (the ScriptBlock for WOD sections)
@@ -212,7 +212,7 @@ export interface Session {
      *  (legacy rows predate streaming). */
     status?: 'in-progress' | 'completed';
 
-    /** V10 — FK to the `page` store (copied from the parent note). */
+    /** @deprecated V10 legacy placement field. Note placements are owned exclusively by `page_notes`. */
     pageId?: string;
 
     /** When workout started */
@@ -246,7 +246,7 @@ export interface Session {
 export interface Attachment {
     id: string;           // UUID
     noteId: string;       // Parent Note
-    /** V10 — FK to the `page` store (copied from the parent note). */
+    /** @deprecated V10 legacy placement field. Note placements are owned exclusively by `page_notes`. */
     pageId?: string;
     /** V10 — the Session this blob belongs to, when known. */
     resultId?: string;

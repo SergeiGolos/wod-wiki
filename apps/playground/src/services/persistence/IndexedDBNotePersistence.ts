@@ -201,7 +201,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
         segmentVersion,
         blockContentId: mutation.workoutResult?.blockContentId,
         origin: mutation.workoutResult?.origin,
-        pageId: note.pageId,
+        pageId: undefined,
         // Canonical workout time — mirrors updateEntry's result createdAt
         // (resultData.endTime || now), so event rows and the result agree.
         workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
@@ -221,7 +221,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
         await this.storage.saveAttachment({
           id: attachment.id ?? uuidv7(),
           noteId: note.id,
-          pageId: note.pageId,
+          pageId: undefined,
           resultId,
           label: attachment.label,
           mimeType: attachment.mimeType,
