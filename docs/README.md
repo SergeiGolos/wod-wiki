@@ -37,20 +37,19 @@ This folder contains the living documentation for the WOD Wiki application and t
 ## Where things live
 
 ```
-wod-wiki/                 ← the application
-  src/                    ← library code consumed by the app
-  playground/src/         ← the Vite app
+wod-wiki/                 ← root monorepo
+  packages/
+    core/                 ← @bitcobblers/wod-wiki-core (models & storage contracts)
+    lang/                 ← @bitcobblers/wod-wiki-lang (grammar, dialects, compiler, efforts)
+    wql/                  ← @bitcobblers/wod-wiki-wql (WQL query engine & AST)
+    ui/                   ← @bitcobblers/wod-wiki-ui (CodeMirror extensions, widgets)
+    engine/               ← @bitcobblers/wod-wiki-engine (runtime stack, CLI, umbrella)
+  apps/
+    playground/           ← web application (journal, note editor, analytics, settings)
+    storybook/            ← component/workbench Storybook
+  markdown/               ← bundled workout collections, feeds, and canvas guides
   docs/                   ← this folder
-
-../wod-wiki-engine/       ← the standalone engine packages
-  packages/core/          ← @bitcobblers/wod-wiki-core (data shapes)
-  packages/lang/          ← @bitcobblers/wod-wiki-lang (parser, runtime, analytics)
-  packages/wql/           ← @bitcobblers/wod-wiki-wql (query language)
-  packages/ui/            ← @bitcobblers/wod-wiki-ui (CodeMirror + widgets)
-  packages/engine/        ← @bitcobblers/wod-wiki-engine (umbrella + CLI)
-  apps/storybook/         ← component/workbench Storybook
 ```
-
 ## Editing conventions
 
 - Use the domain vocabulary from [`CONTEXT.md`](../CONTEXT.md). Prefer **Metric**, **Statement**, **Dialect**, **Block**, **Behavior**.
