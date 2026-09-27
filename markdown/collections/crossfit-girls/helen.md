@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Intermediate
 ---
 
 # Helen
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Intermediate  
 
 ## Description
 Helen combines cardio with conditioning work, testing both endurance and strength.

@@ -18,7 +18,7 @@ export interface SeedChunkWrite {
   segments: NoteSegment[];
   pages?: Page[];
   pageNotes?: PageNote[];
-  noteTags?: { noteId: string; tags: string[] }[];
+  noteTags?: { noteId: string; tags: Array<string | { label: string; type?: string }> }[];
   /** Effort records materialized from the efforts chunk (seed v2). */
   efforts: IEffort[];
   /** Precomputed block-index rows materialized by `block-index.<n>` chunks (seed v3). */
@@ -65,7 +65,7 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
     await this.storageInstance.transaction(
-      ['notes', 'segments', 'page', 'page_notes', 'efforts', 'block_index', 'tags', 'note_tags', 'meta'],
+      ['notes', 'segments', 'page', 'page_notes', 'efforts', 'block_index', 'tags', 'note_tags', 'tag_types', 'meta'],
       'readwrite',
       async (tx) => {
         const notes = tx.readwrite('notes');
@@ -100,16 +100,34 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
           const links = await noteTagsStore.getAllFromIndex('by-note', id);
           for (const link of links) await noteTagsStore.delete(link.id);
         }
+        const tagTypesStore = tx.readwrite('tag_types');
+        const now = Date.now();
+        for (const typeName of ['category', 'type']) {
+          const matching = await tagTypesStore.getAllFromIndex('by-name', typeName);
+          if (!matching[0]) {
+            await tagTypesStore.put({
+              id: crypto.randomUUID(),
+              name: typeName,
+              label: typeName.charAt(0).toUpperCase() + typeName.slice(1),
+              createdAt: now,
+            });
+          }
+        }
         if (write.noteTags) {
-          const now = Date.now();
           for (const { noteId, tags } of write.noteTags) {
             const links = await noteTagsStore.getAllFromIndex('by-note', noteId);
             for (const link of links) await noteTagsStore.delete(link.id);
-            for (const label of Array.from(new Set(tags))) {
+            for (const item of tags) {
+              const label = (typeof item === 'string' ? item : item.label).trim();
+              const type = typeof item === 'string' ? undefined : item.type;
+              if (!label) continue;
               const matching = await tagsStore.getAllFromIndex('by-label', label);
               let tag = matching[0];
               if (!tag) {
-                tag = { id: crypto.randomUUID(), label, createdAt: now };
+                tag = { id: crypto.randomUUID(), label, type, createdAt: now };
+                await tagsStore.put(tag);
+              } else if (type && !tag.type) {
+                tag = { ...tag, type };
                 await tagsStore.put(tag);
               }
               await noteTagsStore.put({ id: crypto.randomUUID(), noteId, tagId: tag.id });
@@ -130,6 +148,7 @@ export class InMemorySeedStorage implements SeedImportStorage {
   private readonly effortsBySlug = new Map<string, IEffort>();
   private readonly blockRows = new Map<string, BlockIndexRow>();
   private readonly noteTags = new Map<string, string[]>();
+  private readonly noteTagObjects = new Map<string, Array<{ label: string; type?: string }>>();
   private meta?: SeedMetaRecord;
   applyCount = 0;
 
@@ -162,7 +181,8 @@ export class InMemorySeedStorage implements SeedImportStorage {
     }
     if (write.noteTags) {
       for (const { noteId, tags } of write.noteTags) {
-        this.noteTags.set(noteId, [...tags]);
+        this.noteTags.set(noteId, tags.map(t => typeof t === 'string' ? t : t.label));
+        this.noteTagObjects.set(noteId, tags.map(t => typeof t === 'string' ? { label: t } : t));
       }
     }
     for (const slug of write.deleteEffortSlugs) this.effortsBySlug.delete(slug);
@@ -188,5 +208,9 @@ export class InMemorySeedStorage implements SeedImportStorage {
 
   getTagsForNote(noteId: string): string[] {
     return this.noteTags.get(noteId) ?? [];
+  }
+
+  getTagObjectsForNote(noteId: string): Array<{ label: string; type?: string }> {
+    return this.noteTagObjects.get(noteId) ?? [];
   }
 }

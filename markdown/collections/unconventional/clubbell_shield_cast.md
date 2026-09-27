@@ -1,13 +1,12 @@
 ---
 tags:
   - unconventional
+category: Steel Club / Heavy Club / Clubbell
+type: Ballistic / Rotational Movement
+difficulty: Intermediate
 ---
 
 # Clubbell Shield Cast
-
-**Category**: Steel Club / Heavy Club / Clubbell  
-**Type**: Ballistic / Rotational Movement  
-**Difficulty**: Intermediate  
 
 ## Description
 

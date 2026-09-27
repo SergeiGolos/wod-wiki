@@ -2,13 +2,13 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: AMRAP (As Many Rounds As Possible)
+difficulty: Advanced
+format: AMRAP (complete as many rounds as possible)
 ---
 
 # Mary
-
-**Category**: CrossFit Benchmark  
-**Type**: AMRAP (As Many Rounds As Possible)  
-**Difficulty**: Advanced  
 
 ## Description
 Mary is a challenging gymnastics-focused AMRAP that tests skill and endurance.
@@ -22,7 +22,7 @@ Mary is a challenging gymnastics-focused AMRAP that tests skill and endurance.
 
 ## Breakdown
 - **Duration**: 20 minutes
-- **Format**: AMRAP (complete as many rounds as possible)
+
 - **Exercises**: 
   - Handstand Pushups: 5 reps
   - Single-leg Squats (Pistols): 10 reps (5 per leg)

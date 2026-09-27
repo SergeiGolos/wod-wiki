@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Intermediate
 ---
 
 # Karen
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Intermediate  
 
 ## Description
 Karen is a simple but brutal workout that tests muscular endurance and mental toughness.

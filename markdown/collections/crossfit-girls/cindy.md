@@ -2,13 +2,13 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: AMRAP (As Many Rounds As Possible)
+difficulty: Beginner
+format: AMRAP (complete as many rounds as possible)
 ---
 
 # Cindy
-
-**Category**: CrossFit Benchmark  
-**Type**: AMRAP (As Many Rounds As Possible)  
-**Difficulty**: Beginner  
 
 ## Description
 Cindy is a classic beginner-friendly benchmark that tests basic bodyweight endurance.
@@ -22,7 +22,7 @@ Cindy is a classic beginner-friendly benchmark that tests basic bodyweight endur
 
 ## Breakdown
 - **Duration**: 20 minutes
-- **Format**: AMRAP (complete as many rounds as possible)
+
 - **Exercises**: 
   - Pullups: 5 reps
   - Pushups: 10 reps

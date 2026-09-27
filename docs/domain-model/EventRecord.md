@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: events
 keyPath: "id"
-db: wodwiki-db (v21)
+db: wodwiki-db (v23)
 ---
 
 # EventRecord
@@ -15,7 +15,7 @@ db: wodwiki-db (v21)
 - **Store:** `events`
 - **Key path:** `id`
 - **Type source:** `packages/core/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v21)
+- **Database version:** `wodwiki-db` (v23)
 
 THE single stored record for workout data (renamed from `UnifiedEventRecord`). Grain `event` rows are the archival statement stream: the engine's output statements land here directly (V21), and [[Session]] rows carry execution metadata only. Grain `summary` rows hold derived aggregates; wellness rows are reconciled from note content. `projectEventToFacts` folds rows into query facts; `eventsToStoredLogs` rebuilds the statement stream for display and replay.
 
@@ -27,7 +27,7 @@ THE single stored record for workout data (renamed from `UnifiedEventRecord`). G
 | `resultId` | string | [[Session]] for workout rows; synthetic `wellness:<noteId>` source for note-derived wellness |
 | `noteId` | string | FK → [[Note]] |
 | `blockContentId?` | string | Content-stable cross-workout join key → [[BlockIndexRow]] |
-| `pageId?` | string | FK → [[Page]] |
+| `pageId?` | string | @deprecated V10 legacy placement field (placements now owned by [[PageNote]]) |
 | `origin?` | ResultOrigin |  |
 | `timestamp` | number | Canonical time — when the workout happened |
 | `grain` | EventGrain | 'event' raw statement \| 'summary' folded row |
@@ -63,7 +63,7 @@ THE single stored record for workout data (renamed from `UnifiedEventRecord`). G
 
 - `resultId` → [[Session]] for workout rows; wellness uses a synthetic per-note source ID, not a result foreign key
 - `noteId` → [[Note]]
-- `pageId` → [[Page]]
+- `pageId` → [[Page]] — legacy denormalized context
 - `effortSlug` → [[Effort]]
 - `segmentId` → [[NoteSegment]]
 - `blockContentId` → [[BlockIndexRow]] — content-hash join

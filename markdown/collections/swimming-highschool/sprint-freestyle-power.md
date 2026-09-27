@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Speed/Power
+difficulty: Intermediate-Advanced
 ---
 
 # Sprint Freestyle Power
 
-**Type**: Speed/Power  
-**Duration**: 75 minutes  
-**Difficulty**: Intermediate-Advanced  
+**Duration**: 75 minutes
 
 ### Description
 This high-intensity session targets the anaerobic energy systems required for sprint freestyle events (50m and 100m). Short distances with long rest intervals allow swimmers to perform at maximum effort for each repetition. The workout incorporates resistance work and explosive starts to develop race-specific power. Coaches should monitor stroke rate and distance per stroke to ensure swimmers maintain efficiency at high speeds.

@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Competition
+type: Competition Event
+difficulty: Advanced
 ---
 
 ## Workout 2: Long Cycle (Clean & Jerk)
-
-**Category**: Girevoy Sport Competition  
-**Type**: Competition Event  
-**Difficulty**: Advanced
 
 ### Description
 

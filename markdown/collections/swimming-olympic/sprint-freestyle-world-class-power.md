@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - competition
+type: Maximum Velocity
+difficulty: Olympic
 ---
 
 # Sprint Freestyle World-Class Power
 
-**Type**: Maximum Velocity  
-**Duration**: 90-100 minutes  
-**Difficulty**: Olympic  
+**Duration**: 90-100 minutes
 
 ### Description
 This elite sprint session develops the maximum velocity and explosive power required for Olympic finals in the 50m and 100m freestyle. The workout employs advanced training methodologies including overspeed training, resistance work, and race-simulation protocols that prepare athletes for the unique pressures of Olympic competition. Every sprint effort is designed to enhance neuromuscular firing patterns that produce world-record velocity.

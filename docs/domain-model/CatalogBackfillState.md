@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: field_catalog_meta
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # CatalogBackfillState
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `field_catalog_meta`
 - **Key path:** `id`
 - **Type source:** `packages/core/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 Singleton `'backfill'` row — resumable progress/completion marker for the initial [[FieldCatalogEntry]] population (V17, ticket 14). Invoked by app bootstrap, not at module scope.
 

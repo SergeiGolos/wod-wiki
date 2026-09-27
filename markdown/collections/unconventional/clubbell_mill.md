@@ -1,13 +1,12 @@
 ---
 tags:
   - unconventional
+category: Steel Club / Heavy Club / Clubbell
+type: Ballistic / Flow Movement
+difficulty: Beginner to Advanced
 ---
 
 # Clubbell Mill
-
-**Category**: Steel Club / Heavy Club / Clubbell  
-**Type**: Ballistic / Flow Movement  
-**Difficulty**: Beginner to Advanced  
 
 ## Description
 

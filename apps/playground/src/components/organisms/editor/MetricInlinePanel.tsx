@@ -19,8 +19,6 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import type { EditorView } from "@codemirror/view";
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { IMetric } from '@bitcobblers/wod-wiki-engine';
-import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
-import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import { getCursorFocusState, type CursorFocusState } from '@/app/editor/cursorFocusExtension';
 import { presentThemedGroup } from "@/components/metrics/presentation";
 import type { SegmentType } from "@/components/organisms/command-palette/segmentSources";

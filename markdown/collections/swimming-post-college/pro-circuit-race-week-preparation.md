@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Competition Sharpening
+difficulty: Elite
 ---
 
 # Pro Circuit Race Week Preparation
 
-**Type**: Competition Sharpening  
-**Duration**: 60-70 minutes  
-**Difficulty**: Elite  
+**Duration**: 60-70 minutes
 
 ### Description
 This pre-competition workout prepares post-collegiate swimmers for professional meet formats including the ISL, World Cup, and Grand Prix events. The session primes the neuromuscular system for maximum performance while maintaining freshness for racing. Athletes should complete this session 24-48 hours before competition, adjusting intensity based on travel fatigue and prelims/finals scheduling.

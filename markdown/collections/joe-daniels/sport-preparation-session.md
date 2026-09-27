@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - sport
+category: Joe Daniels Sport Training
+type: Sport-Specific Endurance
+difficulty: Advanced
 ---
 
 ## Workout 6: Sport Preparation Session
-
-**Category**: Joe Daniels Sport Training  
-**Type**: Sport-Specific Endurance  
-**Difficulty**: Advanced
 
 ### Description
 
@@ -30,7 +29,6 @@ The session includes both jerk and snatch practice, following the structure of k
   1:00 KB Clean 16kg
   :30 Rest
 ```
-
 
 ### Breakdown
 

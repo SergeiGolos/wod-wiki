@@ -1,13 +1,12 @@
 ---
 tags:
   - unconventional
+category: Steel Mace / Macebell
+type: For Time / Volume Training
+difficulty: Intermediate to Advanced
 ---
 
 # Macebell 10-to-2 Swing
-
-**Category**: Steel Mace / Macebell  
-**Type**: For Time / Volume Training  
-**Difficulty**: Intermediate to Advanced  
 
 ## Description
 

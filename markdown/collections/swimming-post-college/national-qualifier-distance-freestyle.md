@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Elite Endurance
+difficulty: Elite
 ---
 
 # National Qualifier Distance Freestyle
 
-**Type**: Elite Endurance  
-**Duration**: 100-110 minutes  
-**Difficulty**: Elite  
+**Duration**: 100-110 minutes
 
 ### Description
 This workout targets post-collegiate swimmers pursuing national qualifying times in distance freestyle events (400m, 800m, 1500m). The session combines high-volume aerobic development with race-specific threshold work that builds the sustained speed needed for elite-level competition. Swimmers should maintain precise pace control throughout the main sets, training their internal clocks to recognize goal race pace without constant verification.

@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Individual Medley
+difficulty: Elite
 ---
 
 # Collegiate IM Championship
 
-**Type**: Individual Medley  
-**Duration**: 110 minutes  
-**Difficulty**: Elite  
+**Duration**: 110 minutes
 
 ### Description
 This elite IM workout develops the comprehensive skills needed for 200m and 400m IM success at the NCAA level. The session includes dedicated work on each stroke, transition efficiency between strokes, and race-pace rehearsal for full IM distances. Advanced swimmers will focus on maintaining stroke integrity through fatigue while developing the tactical awareness to manage energy distribution across all four strokes.

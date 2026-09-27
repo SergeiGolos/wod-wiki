@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2022 CrossFit Games - Event 5 "Alpaca"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 4, 2022 (Day 2 - Thursday)
 

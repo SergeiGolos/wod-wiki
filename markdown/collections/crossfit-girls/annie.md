@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Intermediate
 ---
 
 # Annie
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Intermediate  
 
 ## Description
 Annie is a classic CrossFit benchmark that tests gymnastics endurance and double-under skill.

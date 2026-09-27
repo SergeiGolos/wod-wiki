@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: StrongFirst Conditioning
+type: AMRAP
+difficulty: Intermediate
 ---
 
 ## Workout 3: Quick and the Dead
-
-**Category**: StrongFirst Conditioning  
-**Type**: AMRAP  
-**Difficulty**: Intermediate
 
 ### Description
 

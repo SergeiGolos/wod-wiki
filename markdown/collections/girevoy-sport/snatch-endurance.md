@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Training
+type: Snatch-Specific Endurance
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 3: Snatch Endurance
-
-**Category**: Girevoy Sport Training  
-**Type**: Snatch-Specific Endurance  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 
@@ -38,7 +37,6 @@ Training sets may use various structures: fixed time sets, rep-based sets, or pa
 ```time
 5:00 ? KB Snatch 16kg
 ```
-
 
 ### Breakdown
 

@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Geoff Neupert Strength
+type: AMRAP Strength
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 1: Double Kettlebell Clean and Press
-
-**Category**: Geoff Neupert Strength  
-**Type**: AMRAP Strength  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

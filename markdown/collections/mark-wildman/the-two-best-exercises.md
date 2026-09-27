@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - clubs
   - strength
+category: Mark Wildman Minimalist
+type: Minimalist Training
+difficulty: All Levels
 ---
 
 ## Workout 3: The Two Best Exercises
-
-**Category**: Mark Wildman Minimalist  
-**Type**: Minimalist Training  
-**Difficulty**: All Levels
 
 ### Description
 

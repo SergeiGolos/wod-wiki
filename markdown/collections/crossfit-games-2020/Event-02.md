@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: Max Weight
 ---
 
 # 2020 CrossFit Games - Event 2 "Tia-Clair"
 
-**Category:** Competition
-**Type:** Max Weight
 **Location:** CrossFit Ranch, Aromas, California
 **Date:** October 23, 2020 (Day 1 - Friday)
 

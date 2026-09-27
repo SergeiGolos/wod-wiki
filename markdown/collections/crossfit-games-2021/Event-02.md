@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: Max Weight
 ---
 
 # 2021 CrossFit Games - Event 2
 
-**Category:** Competition
-**Type:** Max Weight
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** July 28, 2021 (Day 2 - Wednesday)
 

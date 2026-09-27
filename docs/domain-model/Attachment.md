@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: attachments
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # Attachment
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `attachments`
 - **Key path:** `id`
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 Temporal blob data attached to a workout — GPS/HR streams (GPX, JSON).
 
@@ -25,7 +25,7 @@ Temporal blob data attached to a workout — GPS/HR streams (GPX, JSON).
 |-------|------|-------|
 | `id` | string | UUID |
 | `noteId` | string | FK → [[Note]] |
-| `pageId?` | string | FK → [[Page]] (V10) |
+| `pageId?` | string | @deprecated V10 legacy placement field (placements now owned by [[PageNote]]) |
 | `resultId?` | string | FK → [[Session]] when known (V10) |
 | `mimeType` | string | e.g. 'application/gpx+xml', 'application/json' |
 | `label` | string | Human-readable, e.g. "Garmin HR stream" |
@@ -39,7 +39,7 @@ Temporal blob data attached to a workout — GPS/HR streams (GPX, JSON).
 |-------|----------|--------|---------|
 | `by-note` | `noteId` | no | attachments for a note |
 | `by-time` | `createdAt` | no | chronological ordering |
-| `by-page` | `pageId` | no | page-scoped attachments |
+| `by-page` | `pageId` | no | legacy page-scoped attachments (V10) |
 | `by-result` | `resultId` | no | attachments for a result |
 
 ### Relationships (Current)
@@ -47,7 +47,7 @@ Temporal blob data attached to a workout — GPS/HR streams (GPX, JSON).
 #### Outgoing (this row references)
 
 - `noteId` → [[Note]] — parent
-- `pageId` → [[Page]]
+- `pageId` → [[Page]] — legacy denormalized context
 - `resultId` → [[Session]] — owning result when known
 
 ---

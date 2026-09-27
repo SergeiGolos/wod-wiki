@@ -25,9 +25,9 @@
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
 import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
+import type { Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
-import { extractFrontmatterTags, parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
+import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
 import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
@@ -63,20 +63,14 @@ function catalogForChunkId(chunkId: string): string | undefined {
   return value && value !== '_root' ? value : undefined;
 }
 
-/** Effort slug convention: `<slug>.md` filename stem (validated corpus-wide). */
-function effortSlugFromPath(path: string): string {
-  return (path.split('/').pop() ?? path).replace(/\.md$/, '');
-}
-
 async function rowToRecords(
   row: SeedRow,
   chunkId: string,
   seedVersion: number,
-): Promise<{ note: Note; segment: NoteSegment; tags: string[]; page?: Page; pageNote?: PageNote }> {
+): Promise<{ note: Note; segment: NoteSegment; tags: Array<string | { label: string; type?: string }>; page?: Page; pageNote?: PageNote }> {
   const id = await seedNoteId(row.path);
   const createdAt = seedVersion; // deterministic: manifest builtAt epoch ms
 
-  const tags = extractFrontmatterTags(row.content);
   const { meta, body } = parseFrontmatter(row.content);
 
   let rawContent = row.content;
@@ -116,6 +110,76 @@ async function rowToRecords(
     }
     delete cleanMeta['slug'];
   }
+  // Transform: `tags` property becomes property `category`
+  if ('tags' in cleanMeta) {
+    const rawTags = cleanMeta['tags'];
+    const tagsList = Array.isArray(rawTags)
+      ? rawTags.map(String)
+      : typeof rawTags === 'string' && rawTags.trim()
+        ? rawTags.trim().startsWith('[') && rawTags.trim().endsWith(']')
+          ? rawTags.trim().slice(1, -1).split(',').map((s) => s.trim())
+          : [rawTags.trim()]
+        : [];
+    if ('category' in cleanMeta) {
+      const existing = Array.isArray(cleanMeta['category'])
+        ? cleanMeta['category'].map(String)
+        : [String(cleanMeta['category'])];
+      cleanMeta['category'] = [...new Set([...existing, ...tagsList])];
+    } else {
+      cleanMeta['category'] = tagsList;
+    }
+    delete cleanMeta['tags'];
+  }
+
+  // Extract tags typed by their property type
+  const extractedTags: Array<{ label: string; type?: string }> = [];
+
+  // `category` property -> tags with type: 'category'
+  if ('category' in cleanMeta) {
+    const catVal = cleanMeta['category'];
+    const items = Array.isArray(catVal)
+      ? catVal
+      : typeof catVal === 'string' && catVal.trim()
+        ? catVal.trim().startsWith('[') && catVal.trim().endsWith(']')
+          ? catVal.trim().slice(1, -1).split(',').map((s) => s.trim())
+          : [catVal.trim()]
+        : [];
+    for (const item of items) {
+      const label = String(item).trim();
+      if (label) {
+        extractedTags.push({ label, type: 'category' });
+      }
+    }
+  }
+
+  // `type` property -> tags with type: 'type'
+  if ('type' in cleanMeta) {
+    const typeVal = cleanMeta['type'];
+    const items = Array.isArray(typeVal)
+      ? typeVal
+      : typeof typeVal === 'string' && typeVal.trim()
+        ? typeVal.trim().startsWith('[') && typeVal.trim().endsWith(']')
+          ? typeVal.trim().slice(1, -1).split(',').map((s) => s.trim())
+          : [typeVal.trim()]
+        : [];
+    for (const item of items) {
+      const label = String(item).trim();
+      if (label) {
+        extractedTags.push({ label, type: 'type' });
+      }
+    }
+  }
+
+  // Deduplicate by label (prefer typed if collision)
+  const tagMap = new Map<string, { label: string; type?: string }>();
+  for (const tag of extractedTags) {
+    const existing = tagMap.get(tag.label);
+    if (!existing || (!existing.type && tag.type)) {
+      tagMap.set(tag.label, tag);
+    }
+  }
+  const tags = Array.from(tagMap.values());
+
 
   if (Object.keys(cleanMeta).length > 0) {
     rawContent = `---\n${serializeFrontmatter(cleanMeta)}\n---\n${body}`;
@@ -257,7 +321,7 @@ export class SeedImporter {
       const segments: NoteSegment[] = [];
       const pages: Page[] = [];
       const pageNotes: PageNote[] = [];
-      const noteTags: { noteId: string; tags: string[] }[] = [];
+      const noteTags: { noteId: string; tags: Array<string | { label: string; type?: string }> }[] = [];
       for (const record of built) {
         const existing = await this.storage.getNote(record.note.id);
         if (existing && existing.seedOrigin !== 'seed') {

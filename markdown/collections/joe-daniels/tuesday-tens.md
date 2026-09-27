@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - sport
+category: Joe Daniels Conditioning
+type: AMRAP
+difficulty: Intermediate
 ---
 
 ## Workout 3: Tuesday Tens
-
-**Category**: Joe Daniels Conditioning  
-**Type**: AMRAP  
-**Difficulty**: Intermediate
 
 ### Description
 

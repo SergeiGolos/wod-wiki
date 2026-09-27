@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Geoff Neupert Hypertrophy
+type: Strength Complex
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 2: Kettlebell Muscle Complex 1
-
-**Category**: Geoff Neupert Hypertrophy  
-**Type**: Strength Complex  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

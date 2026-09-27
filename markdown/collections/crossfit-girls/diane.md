@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Advanced
 ---
 
 # Diane
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Advanced  
 
 ## Description
 Diane combines heavy deadlifts with demanding gymnastics work, testing both strength and skill.

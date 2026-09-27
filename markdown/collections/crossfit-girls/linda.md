@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Advanced
 ---
 
 # Linda
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Advanced  
 
 ## Description
 Linda (also known as "3 Bars of Death") is a brutal strength endurance workout with bodyweight percentages.

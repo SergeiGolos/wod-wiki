@@ -67,6 +67,7 @@ export const ROUTE_PATTERNS = {
   settingsAppearance: '/settings/appearance',
   settingsSystem: '/settings/system',
   settingsQueries: '/settings/queries',
+  settingsTags: '/settings/tags',
 } as const;
 
 // ---------------------------------------------------------------------------

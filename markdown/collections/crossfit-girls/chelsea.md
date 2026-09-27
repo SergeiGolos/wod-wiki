@@ -2,13 +2,13 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: EMOM (Every Minute on the Minute)
+difficulty: Intermediate
+format: EMOM (complete work every minute on the minute)
 ---
 
 # Chelsea
-
-**Category**: CrossFit Benchmark  
-**Type**: EMOM (Every Minute on the Minute)  
-**Difficulty**: Intermediate  
 
 ## Description
 Chelsea is a 30-minute EMOM that tests consistency and pacing over an extended period.
@@ -22,7 +22,7 @@ Chelsea is a 30-minute EMOM that tests consistency and pacing over an extended p
 
 ## Breakdown
 - **Duration**: 30 minutes
-- **Format**: EMOM (complete work every minute on the minute)
+
 - **Exercises**: 
   - Pullups: 5 reps
   - Pushups: 10 reps

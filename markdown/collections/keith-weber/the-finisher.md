@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - cardio
+category: Keith Weber Metabolic
+type: High-Intensity Finisher
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 5: The Finisher (Metabolic Conditioning)
-
-**Category**: Keith Weber Metabolic  
-**Type**: High-Intensity Finisher  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 
@@ -31,7 +30,6 @@ The workout can be used as a standalone conditioning session or appended to a st
   :20 KB Swing 16kg
   :10 Rest
 ```
-
 
 ### Breakdown
 

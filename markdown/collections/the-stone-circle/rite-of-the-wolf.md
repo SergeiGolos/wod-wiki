@@ -3,13 +3,12 @@ tags:
   - strength
   - conditioning
   - minimalist
+category: The Stone Circle
+type: Power Endurance / Progressive EMOM
+difficulty: Advanced
 ---
 
 # Rite of the Wolf
-
-**Category**: The Stone Circle  
-**Type**: Power Endurance / Progressive EMOM  
-**Difficulty**: Advanced
 
 ## Description
 

@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - sport
+category: Joe Daniels Hypertrophy
+type: Full Body Hypertrophy
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 4: KBOMG (Kettlebell Only Muscle Gain) - Full Body
-
-**Category**: Joe Daniels Hypertrophy  
-**Type**: Full Body Hypertrophy  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

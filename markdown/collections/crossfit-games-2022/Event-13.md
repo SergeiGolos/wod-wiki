@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2022 CrossFit Games - Event 13 "Air-Esta"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** August 7, 2022 (Day 5 - Sunday)
 

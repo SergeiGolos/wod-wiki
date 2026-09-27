@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Individual Medley
+difficulty: Advanced
 ---
 
 # IM Training Session
 
-**Type**: Individual Medley  
-**Duration**: 90 minutes  
-**Difficulty**: Advanced  
+**Duration**: 90 minutes
 
 ### Description
 This comprehensive IM workout develops proficiency across all four competitive strokes while building the specific endurance needed for 200m and 400m IM events. The session includes stroke-specific sets for each discipline plus transition work between strokes. The main set challenges swimmers to maintain stroke integrity while fatigued, preparing them for the demanding final freestyle leg of IM races.

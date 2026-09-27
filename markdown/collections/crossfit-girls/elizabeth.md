@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Intermediate
 ---
 
 # Elizabeth
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Intermediate  
 
 ## Description
 Elizabeth tests Olympic lifting technique combined with upper body gymnastics strength.

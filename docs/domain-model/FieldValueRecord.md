@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: field_values
 keyPath: "key"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 role: relationship-table
 ---
 
@@ -16,7 +16,7 @@ role: relationship-table
 - **Store:** `field_values`
 - **Key path:** `key`
 - **Type source:** `packages/core/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 **Relationship table** — one observed categorical value (string/boolean fields only) of a [[FieldCatalogEntry]], keyed `[fieldId, value]` with the value keeping its original spelling.
 

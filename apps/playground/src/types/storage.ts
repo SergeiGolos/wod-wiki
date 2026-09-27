@@ -6,7 +6,7 @@
  * `segments` store and adds `attachments` + `analytics` stores.
  */
 
-import type { Sessions, ScriptBlock } from '../components/Editor/types';
+import type { ScriptBlock } from '../components/Editor/types';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources
@@ -93,7 +93,15 @@ export interface PageNote {
 // ---------------------------------------------------------------------------
 // Tag / NoteTag — normalized note tagging (V10)
 // ---------------------------------------------------------------------------
-export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general';
+export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general' | (string & {});
+
+export interface TagTypeRecord {
+    id: string;           // UUID
+    name: string;         // unique slug/identifier, e.g. "discipline", "equipment"
+    label: string;        // display name, e.g. "Discipline"
+    color?: string;       // hex or color token
+    createdAt: number;
+}
 
 export interface Tag {
     id: string;           // UUID
@@ -122,7 +130,7 @@ export interface NoteSegment {
     /** V11 — ordinal within the parent note (document order). Backfilled from
      *  the removed note.segmentIds array. */
     position?: number;
-    /** V10 — FK to the `page` store (copied from the parent note). */
+    /** @deprecated V10 legacy placement field. Placements are owned exclusively by `page_notes`. */
     pageId?: string;
     dataType: SegmentDataType;
     data: ScriptBlock | null; // Structured JSON payload (the ScriptBlock for WOD sections)
@@ -204,7 +212,7 @@ export interface Session {
      *  (legacy rows predate streaming). */
     status?: 'in-progress' | 'completed';
 
-    /** V10 — FK to the `page` store (copied from the parent note). */
+    /** @deprecated V10 legacy placement field. Note placements are owned exclusively by `page_notes`. */
     pageId?: string;
 
     /** When workout started */
@@ -238,7 +246,7 @@ export interface Session {
 export interface Attachment {
     id: string;           // UUID
     noteId: string;       // Parent Note
-    /** V10 — FK to the `page` store (copied from the parent note). */
+    /** @deprecated V10 legacy placement field. Note placements are owned exclusively by `page_notes`. */
     pageId?: string;
     /** V10 — the Session this blob belongs to, when known. */
     resultId?: string;

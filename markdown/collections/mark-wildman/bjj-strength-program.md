@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - clubs
   - strength
+category: Mark Wildman Sport-Specific
+type: Sport-Specific Strength
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 4: BJJ Strength Program
-
-**Category**: Mark Wildman Sport-Specific  
-**Type**: Sport-Specific Strength  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

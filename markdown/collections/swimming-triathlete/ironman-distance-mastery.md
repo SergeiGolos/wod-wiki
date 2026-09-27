@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - triathlon
+type: Ultra-Endurance
+difficulty: Advanced
 ---
 
 # Ironman Distance Mastery
 
-**Type**: Ultra-Endurance  
-**Duration**: 90-120 minutes  
-**Difficulty**: Advanced  
+**Duration**: 90-120 minutes
 
 ### Description
 This comprehensive workout prepares triathletes for the Ironman swim (3.8km). The session combines long continuous swimming with race-pace intervals to build both endurance and confidence at Ironman distance. Special attention is given to energy management, sighting efficiency, and mental strategies for the 2.4-mile swim. This session should be completed during peak training phases 4-8 weeks before race day.

@@ -1,58 +1,41 @@
-# WOD Wiki Documentation
+# WOD Wiki Documentation Index
 
-This folder contains the living documentation for the WOD Wiki application and the Whiteboard Language it is built on. The docs are written for three audiences:
+Welcome to the living documentation for WOD Wiki. Documentation is organized into clear domains:
 
-1. **End users** who want to write workouts, run them, and query their training journal.
-2. **App contributors** working on the React/TypeScript playground in `playground/src/`.
-3. **Engine contributors** working on the packages in `wod-wiki-engine`.
+---
 
-## Documentation index
+## 1. System Architecture
+* [`architecture/overview.md`](./architecture/overview.md) — System pipeline, package topology, and storage architecture.
+* [`architecture/metric-lifecycle.md`](./architecture/metric-lifecycle.md) — How metrics are born, rewritten, compiler-bound, and tracked.
+* [`architecture/interfaces.md`](./architecture/interfaces.md) — Public extension seams (`IDialect`, `IRuntimeBehavior`, `IRuntimeBlockStrategy`).
 
-| Doc | Audience | What it covers |
-| ----- | ---------- | ---------------- |
-| [`01-quick-start.md`](./01-quick-start.md) | Everyone | Install, run Storybook/playground, write your first `time` block |
-| [`02-syntax-reference.md`](./02-syntax-reference.md) | End users | Full Whiteboard Language syntax: timers, rounds, reps, load, distance, rest, choice groups, comments |
-| [`03-dialects.md`](./03-dialects.md) | End users / Engine | Fence tags and built-in dialects: `time`, `climb`, `cardio`, `yoga`, `habits` |
-| [`04-metric-lifecycle.md`](./04-metric-lifecycle.md) | Engine / App | How a `Metric` is born in the parser, rewritten by dialects, compiled into blocks, tracked at runtime, and enriched by analytics |
-| [`05-architecture.md`](./05-architecture.md) | Engine / App | Package split, pipeline seams, runtime stack, and how the app consumes the engine |
-| [`06-interfaces-and-implementations.md`](./06-interfaces-and-implementations.md) | Engine | Extension seams: `IDialect`, `IRuntimeBlockStrategy`, `IRuntimeBehavior`, analytics processors, language packs |
-| [`07-screens-and-workflow.md`](./07-screens-and-workflow.md) | App | Plan → Track → Analyze screens, routing, workbench session, cast, library |
-| [`08-analytics.md`](./08-analytics.md) | Engine / App | Analytics metrics, WQL query language, dashboards, canonical metric keys, rollup math |
-| [`09-wql-deep-dive.md`](./09-wql-deep-dive.md) | Engine | WQL grammar design, AST contract, QueryService execution plan, store seams, fact pipeline, cross-store joins |
-| [`10-wql-composition-style.md`](./10-wql-composition-style.md) | Engine / App | WQL composition style, formula variations, and path to easy filters + graphs |
-| [`11-routes-wql-defaults-and-library-aliases.md`](./11-routes-wql-defaults-and-library-aliases.md) | App / Engine | Complete route inventory, landing WQL defaults, Library route aliases, and future results/segments view |
-| [`home-page-walkthrough.md`](./home-page-walkthrough.md) | App | The marketing home page scroll-runway, slide by slide |
-| [`12-on-this-page-navigation.md`](./12-on-this-page-navigation.md) | App | On-this-page navigation, section/workout headers, and stream group sync |
-| [`13-datadog-analytics-engine-review-and-roadmap.md`](./13-datadog-analytics-engine-review-and-roadmap.md) | Engine / App | Datadog-style analytics engine review, empirical probe findings, and roadmap |
-| [`14-command-locations-by-view.md`](./14-command-locations-by-view.md) | App | Where every command lives per route — desktop page header vs mobile (navbar cast, stacked thumb dock whose ⋮ opens Page options as stacked rows, full-width WQL button row in the thumb footer), with view-by-view command tables |
-| [`15-whiteboard-language-and-wql-reference.md`](./15-whiteboard-language-and-wql-reference.md) | End users / Engine | Complete syntax reference for both languages: every Whiteboard fragment, dialect and protocol keyword, and every WQL family, clause, pipe and document construct — verified against the parsers |
-| [`16-language-complexity-review-and-simplification.md`](./16-language-complexity-review-and-simplification.md) | Engine / Product | Historical complexity inventory and simplification proposal; recommendations superseded by the three category designs below |
-| [`17-language-correctness-fixes-design.md`](./17-language-correctness-fixes-design.md) | Engine / App | Proposed fixes for Statement identity, protocol precedence, diagnostics, and invalid examples; regression and runtime acceptance contracts |
-| [`18-language-behavior-preserving-cleanup-design.md`](./18-language-behavior-preserving-cleanup-design.md) | Engine / App | Proposed removal of redundant implementation, gated by parser, runtime, persistence, and analytics equivalence |
-| [`19-language-redesign-design.md`](./19-language-redesign-design.md) | Engine / Product | Proposed language contracts for query populations, time semantics, parameters, metadata scope, and explicit breaking migrations |
-| [`screens/`](./screens/README.md) | App / Architecture | Domain model to screen crosswalk and page data source outlines |
+---
 
-> These docs are drafts. If the code and a doc disagree, the code wins until the doc is updated.
+## 2. Language & Query References
+* [`language/syntax-reference.md`](./language/syntax-reference.md) — Complete Whiteboard Language syntax: timers, rounds, ladders, reps, choice groups.
+* [`language/dialects.md`](./language/dialects.md) — Built-in dialects: `time`, `climb`, `cardio`, `yoga`, `habits`.
+* [`language/wql-reference.md`](./language/wql-reference.md) — Declarative query language: `find:`, `rows:`, `<agg>:`, and cross-store joins.
 
-## Where things live
+---
 
-```
-wod-wiki/                 ← the application
-  src/                    ← library code consumed by the app
-  playground/src/         ← the Vite app
-  docs/                   ← this folder
+## 3. Application & User Workflows
+* [`app/screens-and-workflow.md`](./app/screens-and-workflow.md) — The Plan → Track → Analyze lifecycle and application views.
+* [`app/on-this-page.md`](./app/on-this-page.md) — Dynamic scroll sync, workout headers, and section tracking.
 
-../wod-wiki-engine/       ← the standalone engine packages
-  packages/core/          ← @bitcobblers/wod-wiki-core (data shapes)
-  packages/lang/          ← @bitcobblers/wod-wiki-lang (parser, runtime, analytics)
-  packages/wql/           ← @bitcobblers/wod-wiki-wql (query language)
-  packages/ui/            ← @bitcobblers/wod-wiki-ui (CodeMirror + widgets)
-  packages/engine/        ← @bitcobblers/wod-wiki-engine (umbrella + CLI)
-  apps/storybook/         ← component/workbench Storybook
-```
+---
 
-## Editing conventions
+## 4. Domain Model Specifications (`docs/domain-model/`)
+The canonical specifications for storage entities and data relationships in IndexedDB (`wodwiki-db v23`):
+* [`domain-model/Note-Page-WQL-Alignment.md`](./domain-model/Note-Page-WQL-Alignment.md) — Note vs Page ownership and WQL alignment.
+* [`domain-model/WQL-Domain-Query-Composition.md`](./domain-model/WQL-Domain-Query-Composition.md) — Detailed guide to compositional queries under the new domain model.
+* [`domain-model/Note.md`](./domain-model/Note.md) — Authored content container.
+* [`domain-model/Page.md`](./domain-model/Page.md) — Placement and routing anchor.
+* [`domain-model/PageNote.md`](./domain-model/PageNote.md) — Many-to-many junction joining Page ↔ Note.
+* [`domain-model/Tag.md`](./domain-model/Tag.md) & [`domain-model/TagType.md`](./domain-model/TagType.md) — Dynamic typed tags.
+* [`domain-model/EventRecord.md`](./domain-model/EventRecord.md) & [`domain-model/Session.md`](./domain-model/Session.md) — Execution telemetry and session metadata.
 
-- Use the domain vocabulary from [`CONTEXT.md`](../CONTEXT.md). Prefer **Metric**, **Statement**, **Dialect**, **Block**, **Behavior**.
-- Code samples should be runnable or clearly marked as illustrative.
-- When documenting the engine, mention the package name (`@bitcobblers/wod-wiki-lang`, etc.).
+---
+
+## 5. Visual Wireframes & Architecture Diagrams
+* [`abstract-views/`](./abstract-views/) — Excalidraw diagrams illustrating wall clock, split-pane canvas, and stream views.
+

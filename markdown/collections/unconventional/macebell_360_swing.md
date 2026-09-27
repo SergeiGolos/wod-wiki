@@ -1,13 +1,12 @@
 ---
 tags:
   - unconventional
+category: Steel Mace / Macebell
+type: For Time / Volume Training
+difficulty: Beginner to Advanced
 ---
 
 # Macebell 360 Swing
-
-**Category**: Steel Mace / Macebell  
-**Type**: For Time / Volume Training  
-**Difficulty**: Beginner to Advanced  
 
 ## Description
 

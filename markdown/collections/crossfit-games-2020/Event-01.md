@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2020 CrossFit Games - Event 1 "Happy Star"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** CrossFit Ranch, Aromas, California
 **Date:** October 23, 2020 (Day 1 - Friday)
 

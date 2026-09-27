@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Dan John Strength Program
+type: Progressive Strength
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 4: The 40-Day Program
-
-**Category**: Dan John Strength Program  
-**Type**: Progressive Strength  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 

@@ -3,13 +3,13 @@ tags:
   - swimming
   - endurance
   - triathlon
+type: Aerobic Endurance
+difficulty: Intermediate
 ---
 
 # Olympic Distance Endurance
 
-**Type**: Aerobic Endurance  
-**Duration**: 60-75 minutes  
-**Difficulty**: Intermediate  
+**Duration**: 60-75 minutes
 
 ### Description
 This workout builds the sustained aerobic capacity needed for Olympic-distance triathlon swims (1.5km). The session uses extended intervals at race pace with minimal rest to develop the metabolic efficiency triathletes need to swim strongly while conserving energy for the bike and run. Open water simulation elements prepare athletes for the rhythm changes and sighting demands of race day.

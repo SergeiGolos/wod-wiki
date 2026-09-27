@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2020 CrossFit Games - Event 3 "Atalanta"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** CrossFit Ranch, Aromas, California
 **Date:** October 24, 2020 (Day 2 - Saturday)
 

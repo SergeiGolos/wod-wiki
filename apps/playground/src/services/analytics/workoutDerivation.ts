@@ -40,7 +40,7 @@ import {
   type ScriptBlock,
   type StoredOutputStatement,
 } from '@/components/Editor/types';
-import type { AnalyticsDataPoint, ResultOrigin, Session, EventRecord } from '@/types/storage';
+import type { AnalyticsDataPoint, ResultOrigin, EventRecord } from '@/types/storage';
 
 export interface DeriveWorkoutOptions {
   /** Block the workout was run from — supplies dialect + statements for the

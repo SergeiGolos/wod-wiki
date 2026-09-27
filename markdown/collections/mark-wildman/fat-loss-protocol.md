@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - clubs
   - strength
+category: Mark Wildman Fat Loss
+type: Progressive Conditioning
+difficulty: All Levels
 ---
 
 ## Workout 5: Fat Loss Protocol (Beginner to Advanced)
-
-**Category**: Mark Wildman Fat Loss  
-**Type**: Progressive Conditioning  
-**Difficulty**: All Levels
 
 ### Description
 
@@ -42,7 +41,6 @@ The protocol combines swings, squats, and pressing movements to create metabolic
   15 Goblet Squat 24kg
   :30 Rest
 ```
-
 
 ### Breakdown
 

@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Technique Focus
+difficulty: Beginner
 ---
 
 # Stroke Introduction Session
 
-**Type**: Technique Focus  
-**Duration**: 45 minutes  
-**Difficulty**: Beginner  
+**Duration**: 45 minutes
 
 ### Description
 This introductory session focuses on helping new swimmers become comfortable with freestyle mechanics. The workout emphasizes body position, breathing timing, and arm recovery. Coaches should position themselves at poolside to provide immediate feedback on technique elements. This session works well as the first structured practice for swimmers who can already perform basic water safety skills.

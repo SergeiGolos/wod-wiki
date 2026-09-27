@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
 import { parseDocumentSections } from '@bitcobblers/wod-wiki-core';
 import { parseDashboardNote, buildDashboardDocument, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';
@@ -18,6 +18,9 @@ storageService.setNoteTags = async (noteId: string, labels: string[]) => {
   noteTagsByNote.set(noteId, labels);
 };
 storageService.getPage = async (_id: string) => undefined;
+storageService.getNotePages = async () => [];
+storageService.getAllPageNotes = async () => [];
+storageService.getAllTagTypes = async () => [];
 storageService.getAllSegments = async () => savedSegments;
 storageService.getResultsForNote = async () => [];
 storageService.getAttachmentsForNote = async () => [];

@@ -3,13 +3,12 @@ tags:
   - kettlebell
   - sport
   - competition
+category: Girevoy Sport Team Competition
+type: Team Event
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 7: Relay Competition Format
-
-**Category**: Girevoy Sport Team Competition  
-**Type**: Team Event  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 
@@ -32,7 +31,6 @@ Relay training focuses on high-intensity short sets with quick transitions. This
   2:00 Rest
 ```
 
-
 ### Breakdown
 
 - **Rounds/Duration**: 3 minutes per athlete
@@ -50,31 +48,6 @@ Relay training focuses on high-intensity short sets with quick transitions. This
 - Individual reps per 3-minute set
 - Transition time
 - Team total
-
----
-
-## Competition Rules Summary
-
-### Time Limits
-- All events: 10 minutes maximum
-- No setting the kettlebell down allowed
-- Count continues while bell is at rest position
-
-### Valid Reps
-- **Jerk**: Both bells fixed overhead with straight arms and legs
-- **Snatch**: Bell fixed overhead with straight arm, visible fixation
-- **Long Cycle**: Clean + Jerk counted as one rep
-
-### Weight Categories
-Competition kettlebells come in standard weights regardless of size (competition bells are all the same dimensions):
-- 8, 12, 16, 20, 24, 28, 32 kg
-
-### Scoring
-- Total reps in 10 minutes
-- If multiple attempts, best score counts
-- Biathlon: Jerk + Snatch combined
-
----
 
 ## References
 

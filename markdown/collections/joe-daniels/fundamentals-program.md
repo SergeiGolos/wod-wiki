@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - sport
+category: Joe Daniels Beginner
+type: Skill Development
+difficulty: Beginner
 ---
 
 ## Workout 5: Fundamentals Program
-
-**Category**: Joe Daniels Beginner  
-**Type**: Skill Development  
-**Difficulty**: Beginner
 
 ### Description
 

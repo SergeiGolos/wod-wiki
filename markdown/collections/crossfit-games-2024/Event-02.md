@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2024 CrossFit Games - Event 2 "Midline Climb"
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Dickies Arena, Fort Worth, Texas
 **Date:** August 9, 2024 (Day 1 - Friday)
 

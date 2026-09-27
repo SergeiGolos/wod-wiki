@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - sport
+category: Joe Daniels Mobility & Strength
+type: Strength/Mobility Complex
+difficulty: Intermediate
 ---
 
 ## Workout 7: Overhead Squat Session
-
-**Category**: Joe Daniels Mobility & Strength  
-**Type**: Strength/Mobility Complex  
-**Difficulty**: Intermediate
 
 ### Description
 
@@ -36,7 +35,6 @@ Joe Daniels has emphasized the overhead kettlebell squat as a diagnostic tool an
   10 Two-Hand KB Swing 20kg
   :30 Rest
 ```
-
 
 ### Breakdown
 

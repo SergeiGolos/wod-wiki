@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - cardio
+category: Keith Weber Lower Body
+type: High-Intensity Lower Body
+difficulty: Advanced
 ---
 
 ## Workout 2: The Man Maker (Leg Focus)
-
-**Category**: Keith Weber Lower Body  
-**Type**: High-Intensity Lower Body  
-**Difficulty**: Advanced
 
 ### Description
 

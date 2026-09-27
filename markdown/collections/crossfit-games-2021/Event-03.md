@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: For Time
 ---
 
 # 2021 CrossFit Games - Event 3
 
-**Category:** Competition
-**Type:** For Time
 **Location:** Alliant Energy Center, Madison, Wisconsin
 **Date:** July 28, 2021 (Day 2 - Wednesday)
 

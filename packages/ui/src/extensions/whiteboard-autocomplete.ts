@@ -108,7 +108,35 @@ export const wodEditorKeymap = keymap.of([
     run: wrapInTimeFence,
   },
 ]);
+export type CustomCompletionSource = (
+  context: CompletionContext
+) => CompletionResult | Promise<CompletionResult | null> | null;
+
+const customCompletionSources: CustomCompletionSource[] = [];
+
+export function registerCustomCompletionSource(source: CustomCompletionSource): void {
+  if (!customCompletionSources.includes(source)) {
+    customCompletionSources.push(source);
+  }
+}
+
+export function unregisterCustomCompletionSource(source: CustomCompletionSource): void {
+  const idx = customCompletionSources.indexOf(source);
+  if (idx !== -1) {
+    customCompletionSources.splice(idx, 1);
+  }
+}
+
 
 export const wodAutocompletion: Extension = autocompletion({
-  override: [fenceCompletion],
+  override: [
+    fenceCompletion,
+    async (context: CompletionContext) => {
+      for (const source of customCompletionSources) {
+        const res = await source(context);
+        if (res) return res;
+      }
+      return null;
+    },
+  ],
 });

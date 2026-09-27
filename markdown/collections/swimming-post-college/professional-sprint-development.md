@@ -2,13 +2,13 @@
 tags:
   - swimming
   - endurance
+type: Maximum Power
+difficulty: Elite
 ---
 
 # Professional Sprint Development
 
-**Type**: Maximum Power  
-**Duration**: 75-90 minutes  
-**Difficulty**: Elite  
+**Duration**: 75-90 minutes
 
 ### Description
 This elite sprint session develops the explosive power and maximum velocity required for professional-level sprint freestyle (50m and 100m). The workout incorporates resisted swimming, dive work, and race-pace rehearsals that prepare athletes for the demands of international competition. Swimmers should approach this session with full recovery from previous training, as maximum effort work requires fresh neuromuscular systems.

@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Dan John Complex
+type: Strength Complex
+difficulty: Intermediate
 ---
 
 ## Workout 3: Single Kettlebell Armor Building Complex
-
-**Category**: Dan John Complex  
-**Type**: Strength Complex  
-**Difficulty**: Intermediate
 
 ### Description
 

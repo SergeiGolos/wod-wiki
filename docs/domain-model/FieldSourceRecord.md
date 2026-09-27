@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: field_sources
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 role: relationship-table
 ---
 
@@ -16,7 +16,7 @@ role: relationship-table
 - **Store:** `field_sources`
 - **Key path:** `id`
 - **Type source:** `packages/core/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 **Relationship table** — the reversal record making re-saves idempotent and deletes reversible: the field-identity contribution set of one stable source record ([[Note]] or [[Session]]).
 

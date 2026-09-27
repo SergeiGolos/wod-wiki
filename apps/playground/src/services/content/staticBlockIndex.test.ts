@@ -5,7 +5,7 @@
  *   - staticTagIndexFromBlocks: tag → noteIds from frontmatter rows — the
  *     mapping `staticNoteStore.getNoteIdsForTag` answers `tags:` clauses with.
  */
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import type { BlockIndexRow } from '@/types/storage';
 
 // The corpus plane reads the shared `block_index` store — mock the service

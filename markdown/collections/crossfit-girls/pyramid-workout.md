@@ -2,13 +2,13 @@
 tags:
   - crossfit
   - benchmark
+category: Bodyweight Training
+type: For Time
+difficulty: Intermediate
+format: For Time (complete as fast as possible)
 ---
 
 # Bodyweight Pyramid Workout
-
-**Category**: Bodyweight Training  
-**Type**: For Time  
-**Difficulty**: Intermediate  
 
 ## Description
 A pyramid-style bodyweight workout that starts high and decreases reps each round.
@@ -22,7 +22,7 @@ For Time
 ```
 
 ## Breakdown
-- **Format**: For Time (complete as fast as possible)
+
 - **Exercises**: 
   - Burpees: 100 reps
   - Situps: 75 reps

@@ -1,13 +1,12 @@
 ---
 tags:
   - unconventional
+category: Steel Club / Heavy Club / Clubbell
+type: Ballistic / Flow Movement
+difficulty: Intermediate
 ---
 
 # Clubbell Reverse Mill
-
-**Category**: Steel Club / Heavy Club / Clubbell  
-**Type**: Ballistic / Flow Movement  
-**Difficulty**: Intermediate  
 
 ## Description
 

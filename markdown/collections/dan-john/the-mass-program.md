@@ -2,13 +2,12 @@
 tags:
   - kettlebell
   - strength
+category: Dan John Hypertrophy
+type: High Volume Strength
+difficulty: Intermediate to Advanced
 ---
 
 ## Workout 5: The Mass Program
-
-**Category**: Dan John Hypertrophy  
-**Type**: High Volume Strength  
-**Difficulty**: Intermediate to Advanced
 
 ### Description
 
@@ -43,7 +42,6 @@ The program emphasizes compound movements and high tension, creating the metabol
   + 3 Double Front Squat 24kg
   :60 Rest
 ```
-
 
 ### Breakdown
 

@@ -2,13 +2,12 @@
 tags:
   - crossfit
   - benchmark
+category: CrossFit Benchmark
+type: For Time
+difficulty: Advanced
 ---
 
 # Grace
-
-**Category**: CrossFit Benchmark  
-**Type**: For Time  
-**Difficulty**: Advanced  
 
 ## Description
 Grace is a pure Olympic lifting workout that tests explosive power and technique.

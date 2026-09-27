@@ -2,12 +2,12 @@
 tags:
   - crossfit
   - competition
+category: Competition
+type: Max Weight
 ---
 
 # 2024 CrossFit Games - Event 7 "Clean & Jerk"
 
-**Category:** Competition
-**Type:** Max Weight
 **Location:** Dickies Arena, Fort Worth, Texas
 **Date:** August 10, 2024 (Day 2 - Saturday)
 

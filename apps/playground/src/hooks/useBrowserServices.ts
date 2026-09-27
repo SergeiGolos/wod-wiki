@@ -30,3 +30,6 @@ export type { WorkoutEvent, WorkoutEventSubscriber } from '@/services/WorkoutEve
 
 // ── Notebooks ─────────────────────────────────────────────────────────────
 export { notebookService, NotebookService } from '@/services/NotebookService';
+
+// ── Storage ───────────────────────────────────────────────────────────────
+export { storageService, setStorageForTesting, resetStorageForTesting, InMemoryStorage } from '@/services/storage';

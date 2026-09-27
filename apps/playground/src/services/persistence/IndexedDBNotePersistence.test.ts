@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import type { HistoryEntry } from '@/types/history';
 import type { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';

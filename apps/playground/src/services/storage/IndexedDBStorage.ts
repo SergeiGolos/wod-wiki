@@ -11,15 +11,19 @@ import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 22;
+const DB_VERSION = 23;
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
+
+// ponytail: idb handle kept schema-loose — store/key typing lives in IStorage's
+// generics, so Mode is the only thing we track (put/delete/clear need 'readwrite').
+type IDBTx<Mode extends IDBTransactionMode = IDBTransactionMode> = IDBPTransaction<unknown, string, Mode>;
 
 class IDBReadOnlyStore<T> implements IReadOnlyStore<T> {
   constructor(
     private readonly dbPromise: Promise<IDBPDatabase>,
     private readonly storeName: StoreName,
-    private readonly existingTx?: IDBPTransaction<any, any, any>
+    private readonly existingTx?: IDBTx
   ) {}
 
   async get(key: IDBValidKey): Promise<T | undefined> {
@@ -70,7 +74,7 @@ class IDBReadWriteStore<T> extends IDBReadOnlyStore<T> implements IReadWriteStor
   constructor(
     private readonly dbPromiseRef: Promise<IDBPDatabase>,
     private readonly writeStoreName: StoreName,
-    private readonly activeTx?: IDBPTransaction<any, any, any>
+    private readonly activeTx?: IDBTx<'readwrite'>
   ) {
     super(dbPromiseRef, writeStoreName, activeTx);
   }
@@ -160,6 +164,16 @@ export class IndexedDBStorage implements IStorage {
           const store = db.createObjectStore('tags', { keyPath: 'id' });
           store.createIndex('by-label', 'label', { unique: true });
           store.createIndex('by-type', 'type');
+        }
+        // 3a. tag_types (V23)
+        if (!db.objectStoreNames.contains('tag_types')) {
+          const store = db.createObjectStore('tag_types', { keyPath: 'id' });
+          store.createIndex('by-name', 'name', { unique: true });
+          const now = Date.now();
+          store.put({ id: 'type-category', name: 'category', label: 'Category', color: '#6366f1', createdAt: now });
+          store.put({ id: 'type-type', name: 'type', label: 'Type', color: '#8b5cf6', createdAt: now });
+          store.put({ id: 'type-equipment', name: 'equipment', label: 'Equipment', color: '#3b82f6', createdAt: now });
+          store.put({ id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#10b981', createdAt: now });
         }
 
         // 4. note_tags
@@ -349,10 +363,10 @@ export class IndexedDBStorage implements IStorage {
     fn: (tx: IStorageTransaction) => Promise<R>
   ): Promise<R> {
     const db = await this.dbPromise;
-    const idbTx = db.transaction(stores, mode);
+    const idbTx = db.transaction(stores, mode) as IDBTx;
     const txAdapter: IStorageTransaction = {
       readonly: (name) => new IDBReadOnlyStore(this.dbPromise, name, idbTx),
-      readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx),
+      readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx as IDBTx<'readwrite'>),
     };
     const result = await fn(txAdapter);
     await idbTx.done;

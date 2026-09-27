@@ -2,7 +2,7 @@
 tags: [domain-model]
 store: page
 keyPath: "id"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # Page
@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `page`
 - **Key path:** `id` (UUID)
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 ### Domain role (Current)
 
@@ -24,7 +24,7 @@ The stored Page is a grouping/address record for notes, not a content-bearing `N
 - **Calendar page** — `date` (YYYY-MM-DD) defines the journal-date route; one per journal date.
 - **Custom page** — `slug` defines a named route for a grouped collection of notes.
 
-Notes point in via `pageId`. That value also exists on segments, results, attachments and events for page-scoped use. `Page` has no note link, source body or tag relationship of its own in this schema; treating authored page configuration as note content is a proposed composition model, not an implemented store merge.
+Notes associate with Pages via the [[PageNote]] junction table (`page_notes`). `Page` has no body text, segments, or tags of its own; authored workout logic lives strictly in [[Note]].
 
 ### Fields (Current)
 
@@ -51,12 +51,8 @@ None.
 
 #### Incoming (referenced by)
 
-- [[Note]].`pageId` — membership
-- [[NoteSegment]].`pageId` — copied from parent note
-- [[Session]].`pageId` — copied from parent note
-- [[Attachment]].`pageId` — copied from parent note
-- [[EventRecord]].`pageId` — copied from parent note
-
+- [[PageNote]].`pageId` — membership junction between Page and Note
+- Legacy denormalized `pageId` on child rows ([[NoteSegment]], [[Session]], [[Attachment]], [[EventRecord]]) is deprecated; canonical joins and telemetry resolve exclusively through [[Note]].`id`.
 ---
 
 ## Future State (Proposed)
@@ -119,7 +115,7 @@ Recommended answer: judge completeness against the datatype contracts, then asse
 
 ### Source evidence
 
-- [Page schema](../../apps/playground/src/types/storage.ts); [journal composition](../../apps/playground/app/pages/JournalDatePage.tsx); [review reproduction](../wayfinder/typed-notes-unification-review.md#9-evidence-and-verification).
+- [Page schema](../../apps/playground/src/types/storage.ts); [journal composition](../../apps/playground/app/pages/JournalDatePage.tsx).
 - [Responsive actions](../../apps/playground/app/nav/ResponsiveActions.tsx); [example host](../../apps/playground/app/components/organisms/editor/EditorWindow.tsx); [dashboard model](../../packages/wql/src/dashboard/model.ts).
 
 ## Map

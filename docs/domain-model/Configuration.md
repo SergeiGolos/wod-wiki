@@ -3,7 +3,7 @@ tags: [domain-model]
 store: meta
 proposedStore: configuration
 keyPath: "key"
-db: wodwiki-db (v20)
+db: wodwiki-db (v23)
 ---
 
 # Configuration (Meta)
@@ -16,7 +16,7 @@ db: wodwiki-db (v20)
 - **Store:** `meta`
 - **Key path:** `key`
 - **Type source:** `apps/playground/src/services/db/IndexedDBService.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 Opaque key-value store (V19). Values are schema-level `unknown`; readers cast. Current use: seed-import checkpoint state.
 
