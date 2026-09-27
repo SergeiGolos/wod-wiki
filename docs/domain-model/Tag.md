@@ -15,7 +15,7 @@ db: wodwiki-db (v20)
 - **Store:** `tags`
 - **Key path:** `id`
 - **Type source:** `apps/playground/src/types/storage.ts`
-- **Database version:** `wodwiki-db` (v19)
+- **Database version:** `wodwiki-db` (v23)
 
 Normalized note tag (V10). Attached to notes exclusively through the [[NoteTag]] relationship table.
 
@@ -25,7 +25,7 @@ Normalized note tag (V10). Attached to notes exclusively through the [[NoteTag]]
 |-------|------|-------|
 | `id` | string | UUID |
 | `label` | string | Unique |
-| `type?` | TagType | 'template' \| 'playground' \| 'qualification' \| 'notebook' \| 'general' |
+| `type?` | TagType | Dynamic string matching a [[TagType]] name (e.g. `'equipment'`, `'discipline'`) |
 | `createdAt` | number | Unix ms |
 
 ### Indexes (Current)
@@ -45,6 +45,10 @@ Normalized note tag (V10). Attached to notes exclusively through the [[NoteTag]]
 
 - [[NoteTag]] — joins Tag ↔ Note
 
+
+### Associated Stores
+
+- `tag_types` (V23) — dynamic tag classification dimensions (`{ id, name, label, color?, createdAt }`) with unique index `by-name`.
 ---
 
 ## Future State (Proposed)

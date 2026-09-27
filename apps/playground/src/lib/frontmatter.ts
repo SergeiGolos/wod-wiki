@@ -192,6 +192,72 @@ export function extractFrontmatterTags(raw: string): string[] {
   return [...new Set(list.map(tag => tag.trim()).filter(Boolean))];
 }
 
+export interface TypedTagItem {
+  label: string;
+  type?: string;
+}
+
+/**
+ * Extract both general tags (`tags:` / `category:`) and typed tags
+ * whose frontmatter keys match any known registered tag type name.
+ */
+export function extractTypedFrontmatterTags(
+  raw: string,
+  knownTypeNames: string[] = [],
+): TypedTagItem[] {
+  const meta = FRONTMATTER_RE.test(raw)
+    ? parseFrontmatter(raw).meta
+    : parseFrontmatterBody(raw);
+
+  const results: TypedTagItem[] = [];
+
+  // 1. General tags
+  const generalTags = extractFrontmatterTags(raw);
+  for (const tag of generalTags) {
+    results.push({ label: tag });
+  }
+
+  // 2. Typed tags matching registered tag type names
+  const metaKeys = Object.keys(meta);
+  for (const typeName of knownTypeNames) {
+    if (typeName === 'tags' || typeName === 'category') continue;
+    const matchedKey = metaKeys.find((k) => k.toLowerCase() === typeName.toLowerCase());
+    if (!matchedKey) continue;
+    const val = meta[matchedKey];
+    if (val === undefined || val === null || val === '') continue;
+
+    let items: string[] = [];
+    if (Array.isArray(val)) {
+      items = val.map(String);
+    } else if (typeof val === 'string' && val.trim()) {
+      const trimmed = val.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        items = trimmed.slice(1, -1).split(',');
+      } else {
+        items = [trimmed];
+      }
+    }
+
+    for (const item of items) {
+      const label = item.trim();
+      if (label) {
+        results.push({ label, type: typeName });
+      }
+    }
+  }
+
+  // Deduplicate by label, preferring typed item if one exists
+  const map = new Map<string, TypedTagItem>();
+  for (const item of results) {
+    const existing = map.get(item.label);
+    if (!existing || (!existing.type && item.type)) {
+      map.set(item.label, item);
+    }
+  }
+
+  return Array.from(map.values());
+}
+
 /**
  * Parse flat scalar key-value pairs from raw inner content (no delimiters).
  *

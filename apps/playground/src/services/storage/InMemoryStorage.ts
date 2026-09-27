@@ -41,6 +41,12 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
       'by-type': { keyPath: 'type' },
     },
   },
+  tag_types: {
+    keyPath: 'id',
+    indexes: {
+      'by-name': { keyPath: 'name' },
+    },
+  },
   note_tags: {
     keyPath: 'id',
     indexes: {

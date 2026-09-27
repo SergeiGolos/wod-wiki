@@ -7,7 +7,7 @@
  * controls that write back to the underlying YAML/frontmatter source.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { Plus, X } from "lucide-react";
@@ -16,6 +16,8 @@ import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extrac
 import { EFFORT_DISCIPLINES } from "@bitcobblers/wod-wiki-lang";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/atoms/primitives/label";
+import { storageService } from "@/services/storage";
+import type { Tag, TagTypeRecord } from "@/types/storage";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -561,6 +563,31 @@ const DefaultFrontmatterForm: React.FC<{
   const [keyDrafts, setKeyDrafts] = useState<Record<number, string>>({});
   const [numDrafts, setNumDrafts] = useState<Record<number, string>>({});
   const [chipDrafts, setChipDrafts] = useState<Record<number, string>>({});
+  const [tagTypes, setTagTypes] = useState<TagTypeRecord[]>([]);
+  const [availableTags, setAvailableTags] = useState<Record<string, Tag[]>>({});
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const types = await storageService.getAllTagTypes();
+        if (!active) return;
+        setTagTypes(types);
+        const map: Record<string, Tag[]> = {};
+        for (const t of types) {
+          map[t.name.toLowerCase()] = await storageService.getTags(t.name);
+        }
+        if (active) setAvailableTags(map);
+      } catch {
+        // Ignore when storage is not available in mock/testing environments
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+
   const [adding, setAdding] = useState<{ key: string; value: string; type: PropertyType } | null>(null);
   // Live mirror of `adding` — deferred blur commits and Enter may race, and
   // a stale closure must never re-commit after the row has been consumed.
@@ -584,6 +611,38 @@ const DefaultFrontmatterForm: React.FC<{
       commit(entries.map(([k, v], i) => (i === index ? [key, value] : [k, v])));
     },
     [commit, entries],
+  );
+  const handleAddTag = useCallback(
+    async (index: number, key: string, currentItems: string[], labelToAdd: string, tagType?: string) => {
+      const trimmed = labelToAdd.trim();
+      if (!trimmed || currentItems.includes(trimmed)) return;
+
+      if (tagType) {
+        try {
+          const typeKey = tagType.toLowerCase();
+          const existingList = availableTags[typeKey] ?? [];
+          const exists = existingList.some((t) => t.label.toLowerCase() === trimmed.toLowerCase());
+          if (!exists) {
+            const newTag: Tag = {
+              id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+              label: trimmed,
+              type: tagType,
+              createdAt: Date.now(),
+            };
+            await storageService.putTag(newTag);
+            setAvailableTags((prev) => ({
+              ...prev,
+              [typeKey]: [...(prev[typeKey] ?? []), newTag],
+            }));
+          }
+        } catch {
+          // ignore storage error
+        }
+      }
+
+      patchEntry(index, key, [...currentItems, trimmed]);
+    },
+    [availableTags, patchEntry],
   );
 
   const dropDraft = useCallback(
@@ -661,6 +720,21 @@ const DefaultFrontmatterForm: React.FC<{
         <div className="space-y-2">
           {entries.map(([key, value], index) => {
             const type = propertyTypeOf(value);
+            const matchingTagType = tagTypes.find((t) => t.name.toLowerCase() === key.toLowerCase());
+            const isTypedTagList = Boolean(matchingTagType);
+            const isList = type === "list" || isTypedTagList;
+            const listItems = Array.isArray(value)
+              ? (value as string[])
+              : typeof value === "string" && value.trim()
+                ? [value.trim()]
+                : [];
+            const existingTagsForType = matchingTagType ? (availableTags[matchingTagType.name.toLowerCase()] ?? []) : [];
+            const currentDraft = (chipDrafts[index] ?? "").trim();
+            const filteredSuggestions = currentDraft
+              ? existingTagsForType.filter(
+                  (t) => !listItems.includes(t.label) && t.label.toLowerCase().includes(currentDraft.toLowerCase())
+                )
+              : existingTagsForType.filter((t) => !listItems.includes(t.label));
             const keyDraft = keyDrafts[index];
             const keyInvalid = keyDraft !== undefined && (!PROPERTY_KEY_RE.test(keyDraft) || keyIsTaken(keyDraft, index));
             return (
@@ -686,9 +760,9 @@ const DefaultFrontmatterForm: React.FC<{
                 />
 
                 <div className="min-w-0 flex-1">
-                  {type === "list" ? (
-                    <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 transition focus-within:border-primary">
-                      {(value as string[]).map((item, itemIndex) => (
+                  {isList ? (
+                    <div className="relative flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 transition focus-within:border-primary">
+                      {listItems.map((item, itemIndex) => (
                         <span key={itemIndex} className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs">
                           {item}
                           <button
@@ -696,7 +770,7 @@ const DefaultFrontmatterForm: React.FC<{
                             aria-label={`Remove ${item}`}
                             className="text-muted-foreground/70 transition hover:text-foreground"
                             onClick={() => {
-                              const next = (value as string[]).filter((_, j) => j !== itemIndex);
+                              const next = listItems.filter((_, j) => j !== itemIndex);
                               patchEntry(index, key, next.length > 0 ? next : "");
                             }}
                           >
@@ -715,18 +789,63 @@ const DefaultFrontmatterForm: React.FC<{
                           if ((e.key === "Enter" || e.key === ",") && draft) {
                             e.preventDefault();
                             dropDraft(setChipDrafts, index);
-                            patchEntry(index, key, [...(value as string[]), draft]);
-                          } else if (e.key === "Backspace" && !draft && (value as string[]).length > 0) {
-                            const list = value as string[];
-                            patchEntry(index, key, list.length > 1 ? list.slice(0, -1) : "");
+                            if (matchingTagType) {
+                              handleAddTag(index, key, listItems, draft, matchingTagType.name);
+                            } else {
+                              patchEntry(index, key, [...listItems, draft]);
+                            }
+                          } else if (e.key === "Backspace" && !draft && listItems.length > 0) {
+                            patchEntry(index, key, listItems.length > 1 ? listItems.slice(0, -1) : "");
                           }
                         }}
                         onBlur={() => {
                           const draft = (chipDrafts[index] ?? "").trim();
                           dropDraft(setChipDrafts, index);
-                          if (draft) patchEntry(index, key, [...(value as string[]), draft]);
+                          if (draft) {
+                            if (matchingTagType) {
+                              handleAddTag(index, key, listItems, draft, matchingTagType.name);
+                            } else {
+                              patchEntry(index, key, [...listItems, draft]);
+                            }
+                          }
                         }}
                       />
+                      {matchingTagType && Boolean(currentDraft) && (
+                        <div
+                          role="listbox"
+                          className="absolute left-0 top-full z-20 mt-1 max-h-36 w-full overflow-auto rounded-md border border-border bg-popover py-1 shadow-md text-xs"
+                        >
+                          {filteredSuggestions.map((suggestion) => (
+                            <div
+                              key={suggestion.id}
+                              role="option"
+                              aria-selected={false}
+                              className="cursor-pointer px-2.5 py-1 hover:bg-accent hover:text-accent-foreground"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                dropDraft(setChipDrafts, index);
+                                handleAddTag(index, key, listItems, suggestion.label, matchingTagType.name);
+                              }}
+                            >
+                              {suggestion.label}
+                            </div>
+                          ))}
+                          {!existingTagsForType.some((t) => t.label.toLowerCase() === currentDraft.toLowerCase()) && (
+                            <div
+                              role="option"
+                              aria-selected={false}
+                              className="cursor-pointer border-t border-border/50 px-2.5 py-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                dropDraft(setChipDrafts, index);
+                                handleAddTag(index, key, listItems, currentDraft, matchingTagType.name);
+                              }}
+                            >
+                              Create &ldquo;{currentDraft}&rdquo;
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : type === "number" ? (
                     <input
@@ -759,19 +878,32 @@ const DefaultFrontmatterForm: React.FC<{
                   )}
                 </div>
 
-                <select
-                  aria-label={`Type for ${key}`}
-                  className="h-9 w-[78px] shrink-0 rounded-md border border-input bg-background px-1.5 text-[11px] text-muted-foreground outline-none ring-0 transition focus:border-primary"
-                  value={type}
-                  onChange={(e) => {
-                    const converted = convertProperty(value, e.target.value as PropertyType);
-                    if (converted !== null) patchEntry(index, key, converted);
-                  }}
-                >
-                  <option value="text">Text</option>
-                  <option value="number">Number</option>
-                  <option value="list">List</option>
-                </select>
+                {matchingTagType ? (
+                  <div
+                    className="h-9 px-2 flex items-center justify-center shrink-0 rounded-md border border-border/80 bg-muted/40 text-[10px] font-mono text-muted-foreground"
+                    title={`Registered Tag Type: ${matchingTagType.label}`}
+                  >
+                    <span
+                      className="size-1.5 rounded-full mr-1 shrink-0"
+                      style={{ backgroundColor: matchingTagType.color || "#3b82f6" }}
+                    />
+                    {matchingTagType.label}
+                  </div>
+                ) : (
+                  <select
+                    aria-label={`Type for ${key}`}
+                    className="h-9 w-[78px] shrink-0 rounded-md border border-input bg-background px-1.5 text-[11px] text-muted-foreground outline-none ring-0 transition focus:border-primary"
+                    value={type}
+                    onChange={(e) => {
+                      const converted = convertProperty(value, e.target.value as PropertyType);
+                      if (converted !== null) patchEntry(index, key, converted);
+                    }}
+                  >
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="list">List</option>
+                  </select>
+                )}
 
                 <button
                   type="button"

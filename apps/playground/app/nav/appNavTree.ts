@@ -339,6 +339,14 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
           isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsQueries,
         },
         {
+          id: 'settings-tags',
+          label: 'Tags',
+          level: 2,
+          icon: Tag,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsTags },
+          isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsTags,
+        },
+        {
           id: 'settings-system',
           label: 'System',
           level: 2,

@@ -63,7 +63,15 @@ export interface PageNote {
 // ---------------------------------------------------------------------------
 // Tag / NoteTag — normalized note tagging
 // ---------------------------------------------------------------------------
-export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general';
+export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general' | (string & {});
+
+export interface TagTypeRecord {
+  id: string;
+  name: string;
+  label: string;
+  color?: string;
+  createdAt: number;
+}
 
 export interface Tag {
   id: string;

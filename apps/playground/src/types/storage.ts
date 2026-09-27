@@ -93,7 +93,15 @@ export interface PageNote {
 // ---------------------------------------------------------------------------
 // Tag / NoteTag — normalized note tagging (V10)
 // ---------------------------------------------------------------------------
-export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general';
+export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general' | (string & {});
+
+export interface TagTypeRecord {
+    id: string;           // UUID
+    name: string;         // unique slug/identifier, e.g. "discipline", "equipment"
+    label: string;        // display name, e.g. "Discipline"
+    color?: string;       // hex or color token
+    createdAt: number;
+}
 
 export interface Tag {
     id: string;           // UUID

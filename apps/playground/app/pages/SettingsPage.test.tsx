@@ -42,6 +42,14 @@ mock.module('@/contexts/DebugModeContext', () => ({
     toggleDebugMode: mockToggleDebugMode,
   }),
 }))
+mock.module('@/services/seed/seedSync', () => ({
+  readSeedStatus: async () => ({
+    stored: { version: 1, schema: 1, builtAt: '2026-01-01', importedAt: 1000 },
+    remote: { version: 1, schema: 1, builtAt: '2026-01-01' },
+    remoteError: null,
+  }),
+  runSeedSync: async () => {},
+}))
 
 function renderSettings(initialPath = '/settings/appearance') {
   return render(

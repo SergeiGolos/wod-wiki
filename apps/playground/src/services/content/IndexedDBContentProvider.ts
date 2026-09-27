@@ -12,7 +12,7 @@ import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types
 import { storageService, type StorageService } from '@/services/storage';
 import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
 import { parseDocumentSections, type Section, type SectionType, type ScriptBlock } from '@bitcobblers/wod-wiki-core';
-import { extractFrontmatterTags, parseFrontmatter, serializeFrontmatter } from '../../lib/frontmatter';
+import { extractFrontmatterTags, extractTypedFrontmatterTags, type TypedTagItem, parseFrontmatter, serializeFrontmatter } from '../../lib/frontmatter';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import { sessionToPayload } from '../persistence/sessionPayload';
 
@@ -60,11 +60,11 @@ function segmentToRawFragment(s: NoteSegment): string {
  * Tags declared in the frontmatter sections of a document (T4 bridge).
  * Accepts parser Sections (`type`) and stored NoteSegments (`dataType`).
  */
-function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[]): string[] {
+function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[], knownTypeNames: string[] = []): TypedTagItem[] {
     const tags = parts
         .filter(part => part.type === 'frontmatter')
-        .flatMap(part => extractFrontmatterTags(part.rawContent));
-    return Array.from(new Set(tags));
+        .flatMap(part => extractTypedFrontmatterTags(part.rawContent, knownTypeNames));
+    return tags;
 }
 
 /**
@@ -380,8 +380,13 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
 
         await this.db.saveNote(note);
-        // T4 bridge: frontmatter `tags:` are additive into the note's tag set.
-        const mergedTags = Array.from(new Set([...entry.tags, ...frontmatterTagsOf(sections)]));
+        // T4 bridge: frontmatter `tags:` and typed tags are additive into the note's tag set.
+        const knownTypes = (await this.db.getAllTagTypes?.().catch(() => []))?.map(t => t.name) ?? [];
+        const fmTags = frontmatterTagsOf(sections, knownTypes);
+        const mergedTags: Array<string | TypedTagItem> = [
+            ...entry.tags,
+            ...fmTags.map(t => (t.type ? t : t.label)),
+        ];
         if (mergedTags.length > 0) {
             await this.db.setNoteTags(noteId, mergedTags);
         }
@@ -478,7 +483,8 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         let finalRawContent = '';
         // Tags parsed out of the new content's frontmatter sections (T4).
-        let frontmatterTags: string[] | undefined;
+        const knownTypes = (await this.db.getAllTagTypes?.().catch(() => []))?.map(t => t.name) ?? [];
+        let frontmatterTags: TypedTagItem[] | undefined;
 
         if (patch.rawContent !== undefined) {
             finalRawContent = patch.rawContent;
@@ -486,7 +492,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             // TRANSITION TO SEGMENTS
             // Parse into sections to identify units
             const sections = parseDocumentSections(patch.rawContent);
-            frontmatterTags = frontmatterTagsOf(sections);
+            frontmatterTags = frontmatterTagsOf(sections, knownTypes);
             let position = 0;
 
             // Fetch current segments to compare versions — the full lineage
@@ -584,15 +590,25 @@ export class IndexedDBContentProvider implements IContentProvider {
         // manual tags sharing the label). Manual editors still replace the
         // manual portion via patch.tags.
         if (patch.tags || patch.rawContent !== undefined) {
-            const fmTags = frontmatterTags
+            const latestSegments = await this.db.getLatestSegmentsForNote(note.id);
+            const fmTags: TypedTagItem[] = frontmatterTags
                 ?? frontmatterTagsOf(
-                    (await this.db.getLatestSegmentsForNote(note.id))
-                        .map(segment => ({ type: segment.dataType, rawContent: segment.rawContent })),
+                    latestSegments.map(segment => ({ type: segment.dataType, rawContent: segment.rawContent })),
+                    knownTypes,
                 );
-            if (patch.tags || fmTags.length > 0) {
-                const base = patch.tags ?? (await this.db.getTagsForNote(note.id)).map(tag => tag.label);
-                await this.db.setNoteTags(note.id, Array.from(new Set([...base, ...fmTags])));
-            }
+
+            const existingTags = await this.db.getTagsForNote(note.id);
+            const retainedExisting = existingTags
+                .filter(t => !t.type || !knownTypes.includes(t.type))
+                .map(t => ({ label: t.label, type: t.type }));
+
+            const baseManual = patch.tags
+                ? patch.tags
+                : retainedExisting.map(t => (t.type ? t : t.label));
+            await this.db.setNoteTags(note.id, [
+                ...baseManual,
+                ...fmTags.map(t => (t.type ? t : t.label)),
+            ]);
         }
 
         // Handle Results (linked to latest version state of note)

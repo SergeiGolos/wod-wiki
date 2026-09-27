@@ -216,9 +216,9 @@ describe('appNavTree - Settings navigation', () => {
     expect(settings?.level).toBe(1)
     expect(settings?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
     expect(settings?.children).toBeDefined()
-    expect(settings?.children?.length).toBe(3)
+    expect(settings?.children?.length).toBe(4)
 
-    const [appearance, queries, system] = settings!.children!
+    const [appearance, queries, tags, system] = settings!.children!
 
     expect(appearance.id).toBe('settings-appearance')
     expect(appearance.label).toBe('Appearance')
@@ -227,6 +227,10 @@ describe('appNavTree - Settings navigation', () => {
     expect(queries.id).toBe('settings-queries')
     expect(queries.label).toBe('Query Defaults')
     expect(queries.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsQueries })
+
+    expect(tags.id).toBe('settings-tags')
+    expect(tags.label).toBe('Tags')
+    expect(tags.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsTags })
 
     expect(system.id).toBe('settings-system')
     expect(system.label).toBe('System')
@@ -245,7 +249,7 @@ describe('appNavTree - Settings navigation', () => {
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')!
-    const [appearance, queries, system] = settings.children!
+    const [appearance, queries, tags, system] = settings.children!
 
     expect(appearance.isActive!(mockLocation('/settings'))).toBe(true)
     expect(appearance.isActive!(mockLocation('/settings/appearance'))).toBe(true)
@@ -253,6 +257,9 @@ describe('appNavTree - Settings navigation', () => {
     expect(queries.isActive!(mockLocation('/settings/queries'))).toBe(true)
     expect(queries.isActive!(mockLocation('/settings/appearance'))).toBe(false)
     expect(appearance.isActive!(mockLocation('/settings/system'))).toBe(false)
+    expect(tags.isActive!(mockLocation('/settings/tags'))).toBe(true)
+    expect(tags.isActive!(mockLocation('/settings/appearance'))).toBe(false)
+
 
     expect(system.isActive!(mockLocation('/settings/system'))).toBe(true)
     expect(system.isActive!(mockLocation('/settings/appearance'))).toBe(false)

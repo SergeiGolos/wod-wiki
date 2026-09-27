@@ -18,6 +18,9 @@ storageService.setNoteTags = async (noteId: string, labels: string[]) => {
   noteTagsByNote.set(noteId, labels);
 };
 storageService.getPage = async (_id: string) => undefined;
+storageService.getNotePages = async () => [];
+storageService.getAllPageNotes = async () => [];
+storageService.getAllTagTypes = async () => [];
 storageService.getAllSegments = async () => savedSegments;
 storageService.getResultsForNote = async () => [];
 storageService.getAttachmentsForNote = async () => [];

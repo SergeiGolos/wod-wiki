@@ -9,6 +9,7 @@ import type {
   PageNote,
   Session,
   Tag,
+  TagTypeRecord,
 } from '@/types/storage';
 import type {
   CatalogBackfillState,
@@ -23,6 +24,7 @@ export interface StorageSchema {
   page: Page;
   page_notes: PageNote;
   tags: Tag;
+  tag_types: TagTypeRecord;
   note_tags: NoteTag;
   segments: NoteSegment;
   results: Session;

@@ -11,7 +11,7 @@ import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 22;
+const DB_VERSION = 23;
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
@@ -160,6 +160,11 @@ export class IndexedDBStorage implements IStorage {
           const store = db.createObjectStore('tags', { keyPath: 'id' });
           store.createIndex('by-label', 'label', { unique: true });
           store.createIndex('by-type', 'type');
+        }
+        // 3a. tag_types (V23)
+        if (!db.objectStoreNames.contains('tag_types')) {
+          const store = db.createObjectStore('tag_types', { keyPath: 'id' });
+          store.createIndex('by-name', 'name', { unique: true });
         }
 
         // 4. note_tags

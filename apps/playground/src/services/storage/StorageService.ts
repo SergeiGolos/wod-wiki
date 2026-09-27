@@ -9,6 +9,7 @@ import type {
   PageNote,
   Session,
   Tag,
+  TagTypeRecord,
 } from '@/types/storage';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { IStorage } from './IStorage';
@@ -174,6 +175,43 @@ export class StorageService implements NotePersistenceStorage {
   async getAllTags(): Promise<Tag[]> {
     return this.storage.readonly('tags').getAll();
   }
+  async getTags(type?: string): Promise<Tag[]> {
+    if (type) {
+      return this.storage.readonly('tags').getAllFromIndex('by-type', type);
+    }
+    return this.storage.readonly('tags').getAll();
+  }
+
+  async putTag(tag: Tag): Promise<void> {
+    await this.storage.readwrite('tags').put(tag);
+  }
+
+  async updateTagType(tagId: string, type?: string): Promise<void> {
+    const tag = await this.storage.readonly('tags').get(tagId);
+    if (tag) {
+      await this.storage.readwrite('tags').put({ ...tag, type });
+    }
+  }
+
+  async getAllTagTypes(): Promise<TagTypeRecord[]> {
+    return this.storage.readonly('tag_types').getAll();
+  }
+
+  async getTagType(nameOrId: string): Promise<TagTypeRecord | undefined> {
+    const byId = await this.storage.readonly('tag_types').get(nameOrId);
+    if (byId) return byId;
+    const byName = await this.storage.readonly('tag_types').getAllFromIndex('by-name', nameOrId);
+    return byName[0];
+  }
+
+  async putTagType(tagType: TagTypeRecord): Promise<void> {
+    await this.storage.readwrite('tag_types').put(tagType);
+  }
+
+  async deleteTagType(id: string): Promise<void> {
+    await this.storage.readwrite('tag_types').delete(id);
+  }
+
 
   async getTagsForNote(noteId: string): Promise<Tag[]> {
     const links = await this.storage.readonly('note_tags').getAllFromIndex('by-note', noteId);
@@ -209,7 +247,7 @@ export class StorageService implements NotePersistenceStorage {
     return notes;
   }
 
-  async setNoteTags(noteId: string, labels: string[]): Promise<void> {
+  async setNoteTags(noteId: string, tags: Array<string | { label: string; type?: string }>): Promise<void> {
     await this.storage.transaction(['tags', 'note_tags'], 'readwrite', async (tx) => {
       const linksStore = tx.readwrite('note_tags');
       const tagsStore = tx.readwrite('tags');
@@ -219,11 +257,28 @@ export class StorageService implements NotePersistenceStorage {
       }
 
       const now = Date.now();
-      for (const label of Array.from(new Set(labels))) {
+      const normalizedMap = new Map<string, { label: string; type?: string }>();
+      for (const item of tags) {
+        if (!item) continue;
+        const rawLabel = typeof item === 'string' ? item : item?.label;
+        if (typeof rawLabel !== 'string') continue;
+        const label = rawLabel.trim();
+        if (!label) continue;
+        const type = typeof item === 'string' ? undefined : item.type;
+        const existing = normalizedMap.get(label);
+        if (!existing || (!existing.type && type)) {
+          normalizedMap.set(label, { label, type });
+        }
+      }
+
+      for (const { label, type } of normalizedMap.values()) {
         const matchingTags = await tagsStore.getAllFromIndex('by-label', label);
         let tag = matchingTags[0];
         if (!tag) {
-          tag = { id: generateId(), label, createdAt: now };
+          tag = { id: generateId(), label, type, createdAt: now };
+          await tagsStore.put(tag);
+        } else if (type && !tag.type) {
+          tag = { ...tag, type };
           await tagsStore.put(tag);
         }
         await linksStore.put({ id: generateId(), noteId, tagId: tag.id });
