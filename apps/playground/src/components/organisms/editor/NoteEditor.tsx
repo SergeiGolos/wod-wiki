@@ -50,7 +50,9 @@ import { frontmatterPreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { markdownTablePreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { markdownSyntaxHiding } from '@bitcobblers/wod-wiki-ui/extensions';
 import { wodLinter } from '@bitcobblers/wod-wiki-ui/extensions';
-import { wodAutocompletion, wodEditorKeymap, wodAutoWrap } from '@bitcobblers/wod-wiki-ui/extensions';
+import { wodAutocompletion, wodEditorKeymap, wodAutoWrap, registerCustomCompletionSource, unregisterCustomCompletionSource, type CustomCompletionSource } from '@bitcobblers/wod-wiki-ui/extensions';
+import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
+import { storageService } from '@/services/storage';
 import { wodOverlayPanel } from '@bitcobblers/wod-wiki-ui/extensions';
 import { widgetBlockPreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { queryBlockPreview } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -213,6 +215,93 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // content (home hero + runway window) must each seed their own blocks — a
   // module-level dedupe swallows the second editor's seed entirely.
   const lastBlocksJsonRef = useRef("");
+  // Register frontmatter tag completions into the global CodeMirror completion chain
+  useEffect(() => {
+    const source: CustomCompletionSource = async (context: CompletionContext): Promise<CompletionResult | null> => {
+      const section = activeCursorSection(context.state);
+      const line = context.state.doc.lineAt(context.pos);
+      const textBefore = line.text.slice(0, context.pos - line.from);
+
+      const isFrontmatter =
+        (section && section.type === 'frontmatter') ||
+        (line.number > 1 && context.state.doc.sliceString(0, 4) === '---\n');
+      if (!isFrontmatter) return null;
+
+      const [tagTypes, allTags] = await Promise.all([
+        storageService.getAllTagTypes().catch(() => []),
+        storageService.getAllTags().catch(() => []),
+      ]);
+      if (tagTypes.length === 0) return null;
+
+      // Pattern 1: Typing property key at line start: e.g. "equip"
+      const propMatch = textBefore.match(/^([a-zA-Z][\w.-]*)$/);
+      if (propMatch) {
+        const word = propMatch[1].toLowerCase();
+        const matchingTypes = tagTypes.filter((t) => t.name.toLowerCase().startsWith(word));
+        if (matchingTypes.length > 0) {
+          return {
+            from: line.from,
+            options: matchingTypes.map((t) => ({
+              label: t.name,
+              detail: `Tag Type (${t.label})`,
+              type: 'property',
+              apply: `${t.name}:\n  - `,
+            })),
+            validFor: /^[a-zA-Z][\w.-]*$/,
+          };
+        }
+      }
+
+      // Pattern 2: Typing under a property: `  - <val>` or `<prop>: <val>`
+      let propertyKey: string | null = null;
+      let wordFrom = context.pos;
+
+      const listMatch = textBefore.match(/^\s*-\s*(.*)$/);
+      const inlineMatch = textBefore.match(/^([a-zA-Z][\w.-]*)\s*:\s*(.*)$/);
+
+      if (listMatch) {
+        for (let l = line.number - 1; l >= 1; l--) {
+          const prevLine = context.state.doc.line(l).text;
+          const keyMatch = prevLine.match(/^([a-zA-Z][\w.-]*)\s*:/);
+          if (keyMatch) {
+            propertyKey = keyMatch[1];
+            break;
+          }
+          if (prevLine.startsWith('---')) break;
+        }
+        const typedPrefix = listMatch[1];
+        wordFrom = context.pos - typedPrefix.length;
+      } else if (inlineMatch) {
+        propertyKey = inlineMatch[1];
+        const typedPrefix = inlineMatch[2];
+        wordFrom = context.pos - typedPrefix.length;
+      }
+
+      if (!propertyKey) return null;
+
+      const matchingType = tagTypes.find((t) => t.name.toLowerCase() === propertyKey?.toLowerCase());
+      if (!matchingType) return null;
+
+      const matchingTags = allTags.filter((t) => t.type?.toLowerCase() === matchingType.name.toLowerCase());
+      if (matchingTags.length === 0) return null;
+
+      return {
+        from: wordFrom,
+        options: matchingTags.map((t) => ({
+          label: t.label,
+          detail: matchingType.label,
+          type: 'constant',
+        })),
+        validFor: /^[\w-]*$/,
+      };
+    };
+
+    registerCustomCompletionSource(source);
+    return () => {
+      unregisterCustomCompletionSource(source);
+    };
+  }, []);
+
   // Mod-P opens the palette. Sources are empty here — the parent (Workbench)
   // should call palette.open() via its own onSearch prop for context-aware sources.
   const openNavigationPalette = useCallback(() => {

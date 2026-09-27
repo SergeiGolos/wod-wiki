@@ -165,6 +165,11 @@ export class IndexedDBStorage implements IStorage {
         if (!db.objectStoreNames.contains('tag_types')) {
           const store = db.createObjectStore('tag_types', { keyPath: 'id' });
           store.createIndex('by-name', 'name', { unique: true });
+          const now = Date.now();
+          store.put({ id: 'type-category', name: 'category', label: 'Category', color: '#6366f1', createdAt: now });
+          store.put({ id: 'type-type', name: 'type', label: 'Type', color: '#8b5cf6', createdAt: now });
+          store.put({ id: 'type-equipment', name: 'equipment', label: 'Equipment', color: '#3b82f6', createdAt: now });
+          store.put({ id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#10b981', createdAt: now });
         }
 
         // 4. note_tags

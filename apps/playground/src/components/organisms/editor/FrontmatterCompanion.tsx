@@ -563,6 +563,7 @@ const DefaultFrontmatterForm: React.FC<{
   const [keyDrafts, setKeyDrafts] = useState<Record<number, string>>({});
   const [numDrafts, setNumDrafts] = useState<Record<number, string>>({});
   const [chipDrafts, setChipDrafts] = useState<Record<number, string>>({});
+  const [focusedChipIndex, setFocusedChipIndex] = useState<number | null>(null);
   const [tagTypes, setTagTypes] = useState<TagTypeRecord[]>([]);
   const [availableTags, setAvailableTags] = useState<Record<string, Tag[]>>({});
 
@@ -570,6 +571,7 @@ const DefaultFrontmatterForm: React.FC<{
     let active = true;
     (async () => {
       try {
+        await storageService.ensureDefaultTagTypes?.();
         const types = await storageService.getAllTagTypes();
         if (!active) return;
         setTagTypes(types);
@@ -781,13 +783,15 @@ const DefaultFrontmatterForm: React.FC<{
                       <input
                         aria-label={`Add to ${key}`}
                         className="min-w-[72px] flex-1 bg-transparent text-xs outline-none"
-                        placeholder="Add item…"
+                        placeholder={matchingTagType ? `Add ${matchingTagType.label}…` : "Add item…"}
                         value={chipDrafts[index] ?? ""}
+                        onFocus={() => setFocusedChipIndex(index)}
                         onChange={(e) => setChipDrafts((drafts) => ({ ...drafts, [index]: e.target.value }))}
                         onKeyDown={(e) => {
                           const draft = (chipDrafts[index] ?? "").trim();
                           if ((e.key === "Enter" || e.key === ",") && draft) {
                             e.preventDefault();
+                            setFocusedChipIndex(null);
                             dropDraft(setChipDrafts, index);
                             if (matchingTagType) {
                               handleAddTag(index, key, listItems, draft, matchingTagType.name);
@@ -796,33 +800,39 @@ const DefaultFrontmatterForm: React.FC<{
                             }
                           } else if (e.key === "Backspace" && !draft && listItems.length > 0) {
                             patchEntry(index, key, listItems.length > 1 ? listItems.slice(0, -1) : "");
+                          } else if (e.key === "Escape") {
+                            setFocusedChipIndex(null);
                           }
                         }}
                         onBlur={() => {
-                          const draft = (chipDrafts[index] ?? "").trim();
-                          dropDraft(setChipDrafts, index);
-                          if (draft) {
-                            if (matchingTagType) {
-                              handleAddTag(index, key, listItems, draft, matchingTagType.name);
-                            } else {
-                              patchEntry(index, key, [...listItems, draft]);
+                          setTimeout(() => {
+                            setFocusedChipIndex((curr) => (curr === index ? null : curr));
+                            const draft = (chipDrafts[index] ?? "").trim();
+                            dropDraft(setChipDrafts, index);
+                            if (draft) {
+                              if (matchingTagType) {
+                                handleAddTag(index, key, listItems, draft, matchingTagType.name);
+                              } else {
+                                patchEntry(index, key, [...listItems, draft]);
+                              }
                             }
-                          }
+                          }, 200);
                         }}
                       />
-                      {matchingTagType && Boolean(currentDraft) && (
+                      {matchingTagType && (focusedChipIndex === index || Boolean(currentDraft)) && (
                         <div
                           role="listbox"
-                          className="absolute left-0 top-full z-20 mt-1 max-h-36 w-full overflow-auto rounded-md border border-border bg-popover py-1 shadow-md text-xs"
+                          className="absolute left-0 top-full z-50 mt-1 max-h-48 w-full min-w-[160px] overflow-auto rounded-md border border-border bg-popover py-1 shadow-lg text-xs"
                         >
                           {filteredSuggestions.map((suggestion) => (
                             <div
                               key={suggestion.id}
                               role="option"
                               aria-selected={false}
-                              className="cursor-pointer px-2.5 py-1 hover:bg-accent hover:text-accent-foreground"
+                              className="cursor-pointer px-2.5 py-1.5 hover:bg-accent hover:text-accent-foreground font-mono"
                               onMouseDown={(e) => {
                                 e.preventDefault();
+                                setFocusedChipIndex(null);
                                 dropDraft(setChipDrafts, index);
                                 handleAddTag(index, key, listItems, suggestion.label, matchingTagType.name);
                               }}
@@ -830,18 +840,24 @@ const DefaultFrontmatterForm: React.FC<{
                               {suggestion.label}
                             </div>
                           ))}
-                          {!existingTagsForType.some((t) => t.label.toLowerCase() === currentDraft.toLowerCase()) && (
+                          {currentDraft && !existingTagsForType.some((t) => t.label.toLowerCase() === currentDraft.toLowerCase()) && (
                             <div
                               role="option"
                               aria-selected={false}
-                              className="cursor-pointer border-t border-border/50 px-2.5 py-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              className="cursor-pointer border-t border-border/50 px-2.5 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground font-mono"
                               onMouseDown={(e) => {
                                 e.preventDefault();
+                                setFocusedChipIndex(null);
                                 dropDraft(setChipDrafts, index);
                                 handleAddTag(index, key, listItems, currentDraft, matchingTagType.name);
                               }}
                             >
                               Create &ldquo;{currentDraft}&rdquo;
+                            </div>
+                          )}
+                          {!currentDraft && filteredSuggestions.length === 0 && (
+                            <div className="px-2.5 py-1 text-muted-foreground/60 italic text-[11px]">
+                              Type to create a {matchingTagType.label}
                             </div>
                           )}
                         </div>

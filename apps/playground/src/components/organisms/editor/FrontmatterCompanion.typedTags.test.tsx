@@ -131,4 +131,38 @@ describe('FrontmatterCompanion Typed Tags Typeahead and Creation (Ticket 03)', (
     // Verify view.dispatch was called with updated content
     expect(view.dispatch).toHaveBeenCalled();
   });
+
+  it('opens typeahead suggestions on focus and allows selecting a suggestion', async () => {
+    const rawContent = `equipment:
+  - other-item
+`;
+    const view = createView(rawContent);
+    const section = createFrontmatterSection();
+
+    render(
+      <FrontmatterCompanion
+        sectionId="frontmatter-1"
+        section={section}
+        view={view}
+        isActive={true}
+        widthPercent={50}
+        docVersion={1}
+      />
+    );
+
+    const input = screen.getByLabelText('Add to equipment');
+    fireEvent.focus(input);
+
+    // Listbox should open on focus showing available tags of type equipment
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeTruthy();
+      expect(screen.getByText('barbell')).toBeTruthy();
+    });
+
+    // Click suggestion
+    const barbellOption = screen.getByText('barbell');
+    fireEvent.mouseDown(barbellOption);
+
+    expect(view.dispatch).toHaveBeenCalled();
+  });
 });

@@ -9,6 +9,9 @@ export {
   fenceCompletion,
   wrapInTimeFence,
   handleFenceAutoWrap,
+  registerCustomCompletionSource,
+  unregisterCustomCompletionSource,
+  type CustomCompletionSource,
 } from './whiteboard-autocomplete';
 export {
   sectionField,

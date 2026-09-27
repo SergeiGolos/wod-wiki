@@ -21,6 +21,13 @@ function generateId(): string {
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
+export const DEFAULT_TAG_TYPES: Array<Omit<TagTypeRecord, 'createdAt'>> = [
+  { id: 'type-category', name: 'category', label: 'Category', color: '#6366f1' },
+  { id: 'type-type', name: 'type', label: 'Type', color: '#8b5cf6' },
+  { id: 'type-equipment', name: 'equipment', label: 'Equipment', color: '#3b82f6' },
+  { id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#10b981' },
+];
+
 
 export class StorageService implements NotePersistenceStorage {
   constructor(private readonly storage: IStorage) {}
@@ -176,10 +183,12 @@ export class StorageService implements NotePersistenceStorage {
     return this.storage.readonly('tags').getAll();
   }
   async getTags(type?: string): Promise<Tag[]> {
+    const all = await this.storage.readonly('tags').getAll();
     if (type) {
-      return this.storage.readonly('tags').getAllFromIndex('by-type', type);
+      const lower = type.toLowerCase();
+      return all.filter((t) => t.type?.toLowerCase() === lower);
     }
-    return this.storage.readonly('tags').getAll();
+    return all;
   }
 
   async putTag(tag: Tag): Promise<void> {
@@ -195,6 +204,20 @@ export class StorageService implements NotePersistenceStorage {
 
   async getAllTagTypes(): Promise<TagTypeRecord[]> {
     return this.storage.readonly('tag_types').getAll();
+  }
+
+  async ensureDefaultTagTypes(): Promise<void> {
+    const existing = await this.storage.readonly('tag_types').getAll();
+    if (existing.length === 0) {
+      const now = Date.now();
+      for (const def of DEFAULT_TAG_TYPES) {
+        try {
+          await this.storage.readwrite('tag_types').put({ ...def, createdAt: now });
+        } catch {
+          // ignore
+        }
+      }
+    }
   }
 
   async getTagType(nameOrId: string): Promise<TagTypeRecord | undefined> {

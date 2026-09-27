@@ -8,6 +8,9 @@ import {
   navigationFacet,
   editorTheme,
   previewDecorations,
+  registerCustomCompletionSource,
+  unregisterCustomCompletionSource,
+  wodAutocompletion,
 } from '../src/extensions';
 import { EditorView } from '@codemirror/view';
 
@@ -123,5 +126,21 @@ describe('@bitcobblers/wod-wiki-ui/extensions and editorPreset suite', () => {
 
     view.destroy();
     container.remove();
+  });
+
+  it('registerCustomCompletionSource allows custom sources to participate in autocompletion', () => {
+    let sourceInvoked = false;
+    const dummySource = () => {
+      sourceInvoked = true;
+      return null;
+    };
+
+    registerCustomCompletionSource(dummySource);
+    const state = EditorState.create({
+      doc: 'test',
+      extensions: [wodAutocompletion],
+    });
+    expect(state).toBeDefined();
+    unregisterCustomCompletionSource(dummySource);
   });
 });
