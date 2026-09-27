@@ -6,163 +6,249 @@ tags:
   - wql
   - domain-model
   - query-composition
+  - typed-tags
+  - block-efforts
   - architecture
 ---
 
 # WQL Evolution & Query Composition Guide
 
-This guide details how **WQL (Wod Query Language)** operates under the new domain structure, specifically addressing the separation of **Page** (placement) from **Note** (authored entity), the dynamic **Typed Tags** system, and cross-store compositional joins.
+This guide details how **WQL (Wod Query Language)** operates under the unified domain structure:
+1. **Dynamic Typed Tags as Filter Drivers & Typeahead Engines**: How `domain`, `format`, `equipment`, `quality`, and `intent` drive declarative query filtering and interactive typeahead.
+2. **Multi-Level Query Joins**: How searches across `Page`, `Note`, `Block`, and `Session` (events) execute their relational intersections.
+3. **Block $\leftrightarrow$ Effort Cross Table (`block_efforts`)**: An inverted index connecting parsed workout movements directly to notes and blocks for $O(1)$ exercise containment queries without scanning raw text or relying on execution history.
 
 ---
 
-## 1. Domain Foundations & Core Cardinality
+## 1. Domain Foundations & Relational Cardinality
 
-Under the updated architecture, cardinality is strictly partitioned between placement, authored content, and recorded facts:
+The unified domain cleanly separates placement, authored containers, structural script blocks, exercise containment, and telemetry:
 
 ```
 [Page] (placement & routing anchor: date or slug)
    │
    ▲ (N:M via `page_notes`)
    │
-[Note] (canonical authoring container)
-   ├── [NoteSegment] (versioned markdown/script content)
-   ├── [BlockIndexRow] (searchable derived blocks: wod, headings)
+[Note] (canonical authored document)
+   ├── [NoteSegment] (versioned markdown / raw source)
+   ├── [BlockIndexRow] (searchable parsed blocks: wod, headings)
+   │      │
+   │      ▲ (N:M via `block_efforts`)
+   │      │
+   │   [Effort] (exercise definition: thruster, pull-up, snatch)
    ├── [Session] (workout execution metadata)
-   ├── [EventRecord] (output telemetry facts)
-   └── [Attachment] (temporal sensor blobs: GPS, HR)
+   └── [EventRecord] (output telemetry facts)
    │
    ▲ (N:M via `note_tags`)
    │
-[Tag] ─── (N:1) ───► [TagType] (dynamic: category, equipment, discipline...)
+[Tag] ─── (N:1) ───► [TagType] (`domain`, `format`, `equipment`, `quality`, `intent`)
 ```
 
-### Key Invariants
-1. **Notes own content and telemetry**: `segments`, `block_index`, `sessions`, `events`, and `attachments` link strictly to `noteId`.
-2. **Pages are placement anchors**: A `Page` has no body text, no segments, and no telemetry of its own. It groups notes via `page_notes`.
-3. **Tags are typed dimensions**: Tags link to notes via `note_tags` and belong to dynamic types in `tag_types` (e.g. `category`, `type`, `equipment`, `discipline`). Frontmatter keys matching registered types synchronize into `Tag` and `NoteTag` records.
+### Core Invariants
+1. **Dynamic Typed Tags**: Frontmatter keys (`domain`, `format`, `equipment`, `quality`, `intent`) synchronize into `Tag` (with `type: TagType`) and `NoteTag` rows.
+2. **Effort Containment is Static**: A workout's exercise composition is known at compile/save time from the AST (`parseScript`), independent of whether the workout has ever been executed.
+3. **Pages are Pure Placements**: Pages contain no content or telemetry; they group notes via `page_notes`.
+4. **Notes Own Telemetry**: `sessions` and `events` link directly to `noteId` and `blockContentId`.
 
 ---
 
-## 2. Core Goal 1: Search Pages or Notes by Tags / Frontmatter
+## 2. Dynamic Tags as WQL Filter Drivers & Typeahead
 
-### Current State
-Today, `find:note` filters by tag labels using `tags:<label>` or `{tags:a|b}`. It can also filter by `type:<kind>`, `source:<scope>`, and text snippets.
+Every registered tag type (`TagTypeRecord.name`) becomes an immediate, first-class filter key in WQL without requiring custom grammar keywords.
 
-### New Domain Behavior
-With dynamic typed tags and frontmatter synchronization:
-1. **Any typed tag acts as a first-class filter key**:
-   - Because frontmatter properties like `equipment: barbell` or `discipline: gymnastics` synchronize to `Tag.type` and `note_tags`, WQL filters query by specific dimensions:
-     ```wql
-     find:note{equipment:barbell}
-     find:note{discipline:gymnastics, category:benchmark}
-     ```
-2. **General tags filter**:
-   ```wql
-   find:note{tags:girl}
-   ```
-3. **Notes vs Pages**:
-   - `find:note`: Discovers notes directly by tags, types, or frontmatter attributes.
-   - `find:page`: Discovers parent pages/groupings by filtering through the notes placed on them:
-     ```wql
-     find:page{tags:benchmark}
-     find:page{equipment:kettlebell}
-     ```
-   - **Resolution Mechanics**:
-     $$\text{Tag Filters } \{k: v\} \xrightarrow{\text{note\_tags}} \text{Matching Note IDs } \xrightarrow{\text{page\_notes}} \text{Matching Page IDs}$$
+### A. Supported Filter Keys
 
----
+| Filter Syntax | Tag Type Target | Example Query | Resolution Mechanism |
+|---|---|---|---|
+| `domain:<slug>` | `domain` | `find:note{domain:crossfit}` | Matches `Tag.type == 'domain'` AND `Tag.label == 'crossfit'` via `note_tags` |
+| `format:<slug>` | `format` | `find:note{format:for-time}` | Matches `Tag.type == 'format'` AND `Tag.label == 'for-time'` |
+| `equipment:<slug>` | `equipment` | `find:note{equipment:kettlebell}` | Matches `Tag.type == 'equipment'` (multi-valued per note) |
+| `quality:<slug>` | `quality` | `find:note{quality:strength}` | Matches `Tag.type == 'quality'` (multi-valued per note) |
+| `intent:<slug>` | `intent` | `find:note{intent:benchmark}` | Matches `Tag.type == 'intent'` AND `Tag.label == 'benchmark'` |
+| `tags:<label>` | Any / Untyped | `find:note{tags:girl}` | Matches any `Tag.label` regardless of type |
 
-## 3. Core Goal 2: Search Blocks by Notes Searches or Efforts
+### B. Compound Filter Logic
+Within a query, filters follow standard WQL Boolean algebra:
+- **Comma (AND across dimensions)**:
+  ```wql
+  find:note{domain:crossfit, equipment:barbell, format:for-time}
+  ```
+  Resolves: $\text{Notes}(\text{domain}=\text{crossfit}) \cap \text{Notes}(\text{equipment}=\text{barbell}) \cap \text{Notes}(\text{format}=\text{for-time})$.
+- **Pipe (OR within a dimension)**:
+  ```wql
+  find:note{equipment:kettlebell|clubs}
+  ```
+  Resolves: $\text{Notes}(\text{equipment}=\text{kettlebell}) \cup \text{Notes}(\text{equipment}=\text{clubs})$.
 
-A block (`BlockIndexRow`) represents a parsed section of a note (such as a `wod` block or a heading). Blocks are indexed by `noteId` and content hash (`blockContentId`).
+### C. Typeahead & Autocompletion Engine
 
-### Current State
-- `find:block{text:amrap}`: Content substring match across blocks.
-- `find:block where sum:totalVolume{} > 5000`: Cross-store metric join.
+In `@bitcobblers/wod-wiki-wql` (`language.ts`), the CodeMirror extension dynamically supplies completions:
 
-### New Domain Behavior
-1. **Search Blocks by Note Searches (Compositional Join)**:
-   - To find all workout blocks contained within notes matching specific tags, frontmatter, or dates:
-     ```wql
-     find:block where find:note{equipment:barbell, source:journal}
-     ```
-   - Or direct scope filter:
-     ```wql
-     find:block{note:note-uuid}
-     find:block{tags:benchmark}
-     ```
-   - **Resolution Mechanics**:
-     1. Evaluates the nested `find:note{...}` query $\to$ returns set of candidate `noteId`s.
-     2. Filters `block_index` table where `block.noteId IN (candidateNoteIds)`.
-
-2. **Search Blocks by Efforts**:
-   - Workouts contain specific exercise movements/efforts (e.g. `thruster`, `pull-up`):
-     ```wql
-     find:block{effort:thruster}
-     find:block{discipline:gymnastics}
-     ```
-   - **Resolution Mechanics**:
-     - Resolves the effort slug to canonical `blockContentId` hashes from the exercise registry/logs.
-     - Selects matching rows from `block_index` where `block.blockContentId IN (effortContentIds)`.
+1. **Filter Key Typeahead**:
+   When the cursor is before a colon inside a filter block (`{...}`):
+   - In addition to static keys (`source:`, `text:`, `has:`), query `IStorage.getAllTagTypes()` or `IFieldCatalog`.
+   - Suggests all registered tag type names: `domain:`, `format:`, `equipment:`, `quality:`, `intent:`.
+2. **Filter Value Typeahead**:
+   When typing after a typed key (e.g. `equipment:` or `format:`):
+   - Look up the matching `TagTypeRecord`.
+   - Query `tagsStore.getAllFromIndex('by-type', tagTypeName)`.
+   - Suggests all existing distinct values:
+     - `equipment:` $\to$ `kettlebell`, `barbell`, `dumbbell`, `pullup-bar`, `clubs`, `sandbag`
+     - `format:` $\to$ `for-time`, `amrap`, `emom`, `intervals`, `complex`, `circuit`, `skill`
+     - `domain:` $\to$ `crossfit`, `parkour`, `swimming`, `triathlon`, `climbing`, `girevoy-sport`
+     - `intent:` $\to$ `benchmark`, `competition`, `sport`
 
 ---
 
-## 4. Core Goal 3: Search Sessions by Notes Searches and Efforts
+## 3. The Block $\leftrightarrow$ Effort Cross Table (`block_efforts`)
 
-Workout executions (`Session` metadata and `EventRecord` telemetry) represent the runtime execution history.
+### The Problem
+Historically, finding which notes contain an exercise (e.g. `thruster` or `pull-up`) required:
+1. Scanning raw script text with regex/substrings (unreliable, misses aliases/synonyms), or
+2. Querying historical session telemetry events (fails entirely for unperformed seed wods).
 
-### Current State
-- `rows:all{note:note-uuid}` / `rows:segment{block:blockContentId}`: Scoped statement rows.
-- `rows:segment [window]`: Cross-workout segment observations.
-- Aggregates (`sum:totalVolume{...}`): Fact analytics across workouts.
+### Proposed Schema: `block_efforts`
 
-### New Domain Behavior
-1. **Search Sessions / Statement Rows by Note Searches**:
-   - Retrieve all completed workout runs from notes matching specific typed tags, categories, or pages:
-     ```wql
-     rows:all where find:note{category:benchmark}
-     rows:segment{equipment:barbell} last 8w
-     ```
-   - **Resolution Mechanics**:
-     1. Execute note predicate: `find:note{category:benchmark}` $\to$ yields `[noteId_1, noteId_2, ...]`.
-     2. Scans `events` or `sessions` where `noteId IN (matchedNotes)`.
-     3. Groups statements by `resultId` / `timestamp`.
+A dedicated relational junction indexed in IndexedDB:
 
-2. **Search Sessions by Efforts**:
-   - Search session outputs and telemetry for a specific movement:
-     ```wql
-     rows:segment{effort:fran} last 12w
-     rows:segment{effort:clean-and-jerk, origin:user}
-     ```
-   - Or aggregated telemetry:
-     ```wql
-     max:resistance{effort:back-squat} last 6m
-     sum:totalVolume{discipline:strength} by {week} last 12w
-     ```
+```ts
+export interface BlockEffort {
+  id: string;               // UUID or deterministic hash
+  noteId: string;           // Parent Note UUID
+  blockId: string;          // Positional block ID within note
+  blockContentId: string;   // Structural content hash (SHA-256 of parsed block AST)
+  effortSlug: string;       // Canonical exercise slug (e.g. 'thruster', 'pull-up')
+  reps?: number;            // Nominal reps if statically declarable
+  load?: string;            // Nominal load string (e.g. '95lb')
+}
+```
 
----
+#### Object Store Indexes (`block_efforts`):
+- `by-effort` (key: `effortSlug`) $\to$ Instant lookup of all `noteId`s and `blockContentId`s containing the exercise.
+- `by-note` (key: `noteId`) $\to$ Instant lookup of all exercises contained within a note.
+- `by-block` (key: `blockContentId`) $\to$ All exercises within a specific block.
 
-## 5. Query Translation & Comparison Matrix
-
-Here is how common queries today translate to the new domain model:
-
-| Goal | Query Under Old Schema (V10-V20) | Query Under New Domain (V23+) | What Changed Internally |
-| :--- | :--- | :--- | :--- |
-| **Find notes by typed metadata** | `find:note{tags:barbell}` *(untyped tag)* | `find:note{equipment:barbell}` | Frontmatter property `equipment` is indexed as a typed tag (`type: 'equipment'`). |
-| **Find pages containing typed notes** | `find:page{source:journal}` *(queried notes table directly)* | `find:page{category:benchmark}` | Resolves matching notes via `note_tags`, then joins to `page` via `page_notes`. |
-| **Blocks from tagged notes** | `find:block{text:fran}` *(text search fallback)* | `find:block where find:note{category:benchmark}` | Clean relational composition: resolves notes by category, then pulls their blocks. |
-| **Blocks for specific exercise** | `find:block{text:thruster}` | `find:block{effort:thruster}` | Directly targets the effort resolver rather than fuzzy text match. |
-| **Session statement rows by note metadata** | `rows:all{note:123}` *(requires knowing UUID)* | `rows:all where find:note{equipment:kettlebell}` | Declarative subquery composition joins `events.noteId` to candidate notes. |
-| **Session metrics by discipline** | `sum:totalVolume{tags:strength}` | `sum:totalVolume{discipline:strength}` | Discipline is recognized as a typed frontmatter / fact dimension. |
-| **Calendar-dated workout queries** | Evaluated on `Note.createdAt` *(skewed by import time)* | Evaluated on `Note.date` and `EventRecord.metricDate` | Civil date anchoring preserves the true workout date regardless of import time. |
+### Materialization Points
+1. **Seed Compiler (`scripts/generate-seed.ts`)**:
+   During build, for every `wod` section parsed by `parseDocumentSections()`:
+   - Extract statement AST efforts: `section.scriptBlock.statements.map(s => s.effortSlug)`.
+   - Emits precomputed `block-efforts.<n>.json` chunks alongside `block-index`.
+2. **User Save (`IndexedDBContentProvider.ts`)**:
+   When saving a user note:
+   - Run `parseDocumentSections(rawContent)`.
+   - Clear existing `block_efforts` for `noteId`.
+   - Insert new rows for each detected effort statement.
 
 ---
 
-## 6. Execution Seams & Next Steps
+## 4. Multi-Level Search Hierarchy & Join Algebra
 
-1. **`QueryService.runFind` Target Extension**:
-   - Add explicit support for `find:page` resolving via `page_notes` rather than filtering the `notes` table for `type !== 'note'`.
-2. **Predicate Resolution in `runRows`**:
-   - Allow `rows:all` and `rows:segment` to accept `where find:note{...}` predicates (currently supported in `runAgg`, but not yet wired in `runRows`).
-3. **Filter Key Registration**:
-   - In `packages/wql/src/vocabulary.ts`, allow registered tag types from `tag_types` to be valid filter keys in addition to the static `WQL_TAG_KEYS`.
+WQL queries operate across 4 distinct target planes:
+
+```
+Level 1: Page    (Placements & Groupings)     find:page
+Level 2: Note    (Authored Workouts)          find:note
+Level 3: Block   (Script Sections / WODs)     find:block
+Level 4: Fact    (Telemetry & Executions)     rows:all / rows:segment / sum:
+```
+
+### Join Execution Matrix
+
+```
+┌─────────────────┐       page_notes
+│    find:page    │ ◄─────────────────────┐
+└─────────────────┘                       │
+                                          │
+┌─────────────────┐       note_tags       ▼       block_efforts
+│    find:note    │ ◄────────────────── [Note] ────────────────► [Effort]
+└─────────────────┘                                                ▲
+         │                                                         │
+         │ block_index                                             │
+         ▼                                                         │
+┌─────────────────┐                                                │
+│   find:block    │ ───────────────────────────────────────────────┘
+└─────────────────┘
+         │
+         │ blockContentId / noteId
+         ▼
+┌─────────────────┐
+│ rows: / agg:    │ (Analytics Events & Telemetry)
+└─────────────────┘
+```
+
+### 1. Level 1: `find:page` (Page Searches)
+Finds collections, dashboards, or daily journal pages containing notes with specific tags, efforts, or metadata.
+- **Example**:
+  ```wql
+  find:page{domain:crossfit, intent:benchmark}
+  find:page{effort:clean-and-jerk}
+  ```
+- **Join Resolution**:
+  $$\text{Query Predicate } \{k: v\} \xrightarrow{\text{note\_tags} \text{ or } \text{block\_efforts}} \text{Candidate Note IDs } \xrightarrow[\text{by-note}]{\text{page\_notes}} \text{Page IDs}$$
+
+### 2. Level 2: `find:note` (Note Searches)
+Finds authored workout notes by tag dimensions and exercise containment.
+- **Example**:
+  ```wql
+  find:note{effort:thruster, equipment:barbell, format:for-time}
+  ```
+- **Join Resolution**:
+  1. $\text{Notes}_{\text{tags}} = \text{note\_tags}(\text{equipment}=\text{barbell}) \cap \text{note\_tags}(\text{format}=\text{for-time})$.
+  2. $\text{Notes}_{\text{effort}} = \text{block\_efforts}(\text{effort}=\text{thruster})$.
+  3. $\text{Result} = \text{Notes}_{\text{tags}} \cap \text{Notes}_{\text{effort}}$.
+
+### 3. Level 3: `find:block` (Block Searches)
+Discovers specific workout blocks within notes matching structural or note-level criteria.
+- **Example 1: Direct Effort Containment**:
+  ```wql
+  find:block{effort:pull-up}
+  ```
+  Resolves directly via `block_efforts.getAllFromIndex('by-effort', 'pull-up')` $\to$ returns matching `blockContentId`s in $O(1)$ time.
+- **Example 2: Cross-Store Note Join**:
+  ```wql
+  find:block where find:note{domain:parkour, format:intervals}
+  ```
+  Resolves:
+  1. Subquery $\text{find:note} \to \{ \text{noteId}_1, \text{noteId}_2, \dots \}$.
+  2. Scans `block_index` where `noteId IN (candidateNoteIds)`.
+
+### 4. Level 4: `rows:` and Analytics Aggregates (Session Telemetry)
+Computes performance metrics across workouts filtered by note metadata or exercise containment.
+- **Example 1: Scoped Rows**:
+  ```wql
+  rows:segment{effort:snatch} where find:note{format:emom} last 8w
+  ```
+  Resolves:
+  1. Subquery $\text{find:note\{format:emom\}} \to \{ \text{noteId}_k \}$.
+  2. Filters `events` table where `noteId IN (noteIds) AND effortSlug == 'snatch' AND timestamp >= now - 8w`.
+- **Example 2: Cross-Store Metric Join**:
+  ```wql
+  sum:totalVolume{effort:thruster} where find:note{domain:crossfit, intent:benchmark}
+  ```
+  Calculates cumulative thruster tonnage strictly across benchmark CrossFit workouts.
+
+---
+
+## 5. Query Translation Matrix
+
+| Analytical Question | Old WQL (V10-V20) | New WQL (V24+ with Typed Tags & Block Efforts) | Internal Execution Optimization |
+|---|---|---|---|
+| **Find all workouts using a kettlebell** | `find:note{tags:kettlebell}` | `find:note{equipment:kettlebell}` | Indexed typed tag lookup via `note_tags`. |
+| **Find benchmark workouts with thrusters** | `find:note{text:thruster, tags:benchmark}` | `find:note{effort:thruster, intent:benchmark}` | Set intersection between `block_efforts` and `note_tags`; zero regex scanning. |
+| **Find all EMOM workouts containing pullups** | `find:block{text:emom}` *(fragile)* | `find:block{effort:pull-up} where find:note{format:emom}` | Exact effort containment joined with note `format` tag. |
+| **Find collections containing swimming workouts** | *Not expressible* | `find:page{domain:swimming}` | Joins `note_tags('domain', 'swimming')` $\to$ `page_notes` $\to$ `page`. |
+| **Total volume on benchmark days** | `sum:totalVolume{tags:benchmark}` | `sum:totalVolume{} where find:note{intent:benchmark}` | Joins telemetry fact stream to candidate notes. |
+
+---
+
+## 6. Implementation Roadmap
+
+1. **`block_efforts` Table & Compiler**:
+   - Add `block_efforts` store to `IndexedDBStorage.ts` and `SeedImportStorage.ts`.
+   - Update `scripts/generate-seed.ts` to emit precomputed `block-efforts.<n>.json` chunks.
+   - Update `IndexedDBContentProvider.ts` to sync `block_efforts` on note edit/save.
+2. **WQL Grammar & Vocabulary Update**:
+   - In `packages/wql/src/vocabulary.ts`, promote `domain`, `format`, `equipment`, `quality`, `intent` to canonical filter keys.
+   - Update `QueryService.ts` to resolve `find:note{effort:...}` and `find:block{effort:...}` using the `block_efforts` store.
+3. **Typeahead Completion Service**:
+   - In `packages/wql/src/language.ts`, update `tagValueOptions` to query distinct values from the `tags` store dynamically based on the active key.
