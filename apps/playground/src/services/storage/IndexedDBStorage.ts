@@ -11,7 +11,9 @@ import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 23;
+// V24: 1b0442ed added block_efforts without bumping the version, so existing
+// V23 DBs lack the store — the guarded upgrade below recreates it.
+const DB_VERSION = 24;
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
