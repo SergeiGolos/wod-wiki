@@ -469,6 +469,18 @@ export class QueryService {
   private readonly effortStore: EffortQueryStore;
   private readonly staticNoteStore?: NoteQueryStore;
 
+  // Optional storage seam properties for block_efforts and typed tag resolution.
+  // Injected by the app adapter (`services/queryService.ts`); tests can supply fakes.
+  private blockEffortsStore: { getAllFromIndex(index: string, key: string): Promise<any[]> } = {
+    getAllFromIndex: async () => [],
+  };
+  private tagsStore: { getAllFromIndex(index: string, key: string): Promise<any[]> } = {
+    getAllFromIndex: async () => [],
+  };
+  private noteTagsStore: { getAllFromIndex(index: string, key: string): Promise<any[]> } = {
+    getAllFromIndex: async () => [],
+  };
+
   constructor(
     storesOrEventStore?: QueryServiceStores | EventStore,
     noteStore?: NoteQueryStore,
@@ -491,6 +503,9 @@ export class QueryService {
       this.blockStore = stores.blockStore ?? defaultBlockStore;
       this.effortStore = stores.effortStore ?? defaultEffortStore;
       this.staticNoteStore = stores.staticNoteStore;
+      if (stores.blockEffortsStore) this.blockEffortsStore = stores.blockEffortsStore;
+      if (stores.tagsStore) this.tagsStore = stores.tagsStore;
+      if (stores.noteTagsStore) this.noteTagsStore = stores.noteTagsStore;
     } else {
       this.store = (storesOrEventStore as EventStore | undefined) ?? defaultEventStore;
       this.noteStore = noteStore ?? defaultNoteStore;
@@ -754,6 +769,8 @@ export class QueryService {
     const selectedCount = notes.length;
     const ctx = runContext(options);
     // Tag filters — intersect note IDs across OR'd values within a key.
+    // Handles general 'tags' plus dynamic typed tags (domain, format, equipment, quality, intent)
+    // and exercise containment ('effort').
     for (const filter of parsed.filters) {
       if (filter.key === 'tags' && !filter.negate) {
         const matchingIds = new Set<string>();
@@ -770,6 +787,20 @@ export class QueryService {
           const sIds = this.staticNoteStore ? await this.staticNoteStore.getNoteIdsForTag(v.value) : new Set<string>();
           notes = notes.filter(n => !ids.has(n.id) && !sIds.has(n.id));
         }
+      } else if (filter.key === 'effort' && !filter.negate) {
+        const matchingIds = new Set<string>();
+        for (const v of filter.values) {
+          const ids = await this.getNoteIdsForEffort(v.value);
+          ids.forEach(id => matchingIds.add(id));
+        }
+        notes = notes.filter(n => matchingIds.has(n.id));
+      } else if (['domain', 'format', 'equipment', 'quality', 'intent'].includes(filter.key) && !filter.negate) {
+        const matchingIds = new Set<string>();
+        for (const v of filter.values) {
+          const ids = await this.getNoteIdsForTypedTag(filter.key, v.value);
+          ids.forEach(id => matchingIds.add(id));
+        }
+        notes = notes.filter(n => matchingIds.has(n.id));
       }
     }
 
@@ -883,6 +914,13 @@ export class QueryService {
           sIds.forEach(id => matchingNoteIds.add(id));
         }
         blocks = blocks.filter(b => matchingNoteIds.has(b.noteId));
+      } else if (filter.key === 'effort' && !filter.negate) {
+        const matchingBlockIds = new Set<string>();
+        for (const v of filter.values) {
+          const rows = await this.blockEffortsStore.getAllFromIndex('by-effort', v.value);
+          for (const r of rows) matchingBlockIds.add(r.blockContentId);
+        }
+        blocks = blocks.filter(b => b.blockContentId && matchingBlockIds.has(b.blockContentId));
       }
     }
 
@@ -1369,6 +1407,21 @@ export class QueryService {
     const noteIds = [...new Set(rows.map(r => r.noteId))];
     await Promise.all(noteIds.map(async (id) => noteTags.set(id, await this.noteStore.getNoteTagLabels(id))));
     return noteTags;
+  }
+
+  /** Resolve matching note IDs for an exercise slug via the block_efforts containment index. */
+  private async getNoteIdsForEffort(effortSlug: string): Promise<Set<string>> {
+    const rows = await this.blockEffortsStore.getAllFromIndex('by-effort', effortSlug);
+    return new Set(rows.map(r => r.noteId));
+  }
+
+  /** Resolve matching note IDs for a canonical typed tag (e.g. equipment:kettlebell). */
+  private async getNoteIdsForTypedTag(type: string, label: string): Promise<Set<string>> {
+    const tags = await this.tagsStore.getAllFromIndex('by-label', label);
+    const typedTag = tags.find(t => t.type === type);
+    if (!typedTag) return new Set();
+    const links = await this.noteTagsStore.getAllFromIndex('by-tag', typedTag.id);
+    return new Set(links.map(l => l.noteId));
   }
 
   /** Look up tag labels for a note across user and static stores. */

@@ -221,7 +221,9 @@ tags:
       deleteNoteIds: [],
       deleteEffortSlugs: [],
       blocks: [],
+      blockEfforts: [],
       deleteBlockIds: [],
+      deleteBlockEffortIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 
@@ -305,7 +307,9 @@ tags:
       deleteNoteIds: [],
       deleteEffortSlugs: [],
       blocks: [],
+      blockEfforts: [],
       deleteBlockIds: [],
+      deleteBlockEffortIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 
@@ -330,7 +334,9 @@ tags:
       deleteNoteIds: [],
       deleteEffortSlugs: [],
       blocks: [],
+      blockEfforts: [],
       deleteBlockIds: [],
+      deleteBlockEffortIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 
@@ -372,9 +378,11 @@ describe('SeedImporter manual re-sync (forceAll)', () => {
       segments: [],
       efforts: [],
       blocks: [],
+      blockEfforts: [],
       deleteNoteIds: [],
       deleteEffortSlugs: [],
       deleteBlockIds: [],
+      deleteBlockEffortIds: [],
       meta: (await storage.getSeedMeta())!,
     });
 

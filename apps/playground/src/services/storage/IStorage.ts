@@ -1,5 +1,6 @@
 import type {
   Attachment,
+  BlockEffort,
   BlockIndexRow,
   EventRecord,
   Note,
@@ -37,6 +38,7 @@ export interface StorageSchema {
   field_catalog_meta: CatalogBackfillState;
   efforts: IEffort;
   block_index: BlockIndexRow;
+  block_efforts: BlockEffort;
   meta: unknown;
 }
 

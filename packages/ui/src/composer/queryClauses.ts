@@ -26,6 +26,11 @@ export type ClauseType =
   | 'catalog'
   | 'tag'
   | 'effort'
+  | 'domain'
+  | 'format'
+  | 'equipment'
+  | 'quality'
+  | 'intent'
   | 'discipline'
   | 'intensity'
   | 'origin'
@@ -73,6 +78,12 @@ export const CONTENT_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
   'text',
   'catalog',
   'tag',
+  'effort',
+  'domain',
+  'format',
+  'equipment',
+  'quality',
+  'intent',
   'time',
   'type',
   'has',
@@ -100,6 +111,11 @@ export const ROWS_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
 export const METRICS_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
   'tag',
   'effort',
+  'domain',
+  'format',
+  'equipment',
+  'quality',
+  'intent',
   'discipline',
   'intensity',
   'origin',
@@ -177,6 +193,11 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   catalog:   { label: 'Catalog',    inputType: 'select',   placeholder: 'Pick catalog...',            placeholderText: 'catalog: [id]',          icon: '📁', description: 'Filter by static catalog', prefix: 'catalog:' },
   tag:       { label: 'Tag',        inputType: 'select',   placeholder: 'Pick tag...',                placeholderText: 'tags: [tag]',            icon: '🏷', description: 'Filter by note/workout tags', prefix: 'tags:' },
   effort:    { label: 'Effort',     inputType: 'select',   placeholder: 'Pick effort...',             placeholderText: 'effort: [movement]',     icon: '💪', description: 'Filter by movement/workout', prefix: 'effort:' },
+  domain:    { label: 'Domain',     inputType: 'select',   placeholder: 'crossfit, parkour, swimming…',placeholderText: 'domain: [discipline]',   icon: '🌐', description: 'Filter by sport/training domain', prefix: 'domain:' },
+  format:    { label: 'Format',     inputType: 'select',   placeholder: 'for-time, amrap, emom…',      placeholderText: 'format: [shape]',        icon: '⏱', description: 'Filter by session time structure', prefix: 'format:' },
+  equipment: { label: 'Equipment',  inputType: 'select',   placeholder: 'kettlebell, barbell…',        placeholderText: 'equipment: [gear]',      icon: '🏋', description: 'Filter by required gear', prefix: 'equipment:' },
+  quality:   { label: 'Quality',    inputType: 'select',   placeholder: 'strength, conditioning…',     placeholderText: 'quality: [stimulus]',    icon: '⚡', description: 'Filter by physical stimulus', prefix: 'quality:' },
+  intent:    { label: 'Intent',     inputType: 'select',   placeholder: 'benchmark, competition…',     placeholderText: 'intent: [tier]',         icon: '🎯', description: 'Filter by protocol status', prefix: 'intent:' },
   discipline:{ label: 'Discipline', inputType: 'select',   placeholder: 'Pick discipline...',         placeholderText: 'discipline: [name]',     icon: '⚙', description: 'Filter by domain discipline', prefix: 'discipline:' },
   intensity: { label: 'Intensity',  inputType: 'select',   placeholder: 'low, moderate, high…',       placeholderText: 'intensity: [tier]',      icon: '🔥', description: 'Effort intensity tier', prefix: 'intensity:' },
   origin:    { label: 'Origin',     inputType: 'select',   placeholder: 'bundled, user…',             placeholderText: 'origin: [registry]',     icon: '🔖', description: 'Effort registry origin', prefix: 'origin:' },

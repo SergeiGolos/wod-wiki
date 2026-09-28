@@ -25,11 +25,11 @@
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
 import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { Note, NoteSegment, Page, PageNote } from '@/types/storage';
+import type { BlockEffort, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
 import { extractTypedFrontmatterTags, parseFrontmatter } from '@/lib/frontmatter';
 import { DEFAULT_TAG_TYPES } from '@/services/storage/StorageService';
-import { assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
+import { assertBlockEffortRows, assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
 /** Fixed RFC-4122 namespace for deterministic seed note ids (UUIDv5 of the source path). */
@@ -227,9 +227,41 @@ export class SeedImporter {
           segments: [],
           efforts: [],
           blocks: written,
+          blockEfforts: [],
           deleteNoteIds: [],
           deleteEffortSlugs: [],
           deleteBlockIds: gone,
+          deleteBlockEffortIds: [],
+          meta,
+        });
+        continue;
+      }
+
+      // ── Block-efforts chunks: precomputed exercise containment rows ──
+      if ((chunk.kind ?? 'notes') === 'block-efforts') {
+        const rows = assertBlockEffortRows(payload);
+        const written = rows.filter((row) => row.isStatic === true);
+        const priorIds = meta.chunks[chunk.id]?.blockIds ?? [];
+        const writtenIds = new Set(written.map((row) => row.id));
+        const gone: string[] = [];
+        for (const id of priorIds) {
+          if (writtenIds.has(id)) continue;
+          gone.push(id);
+        }
+        deleted += gone.length;
+        totalBlocks += written.length;
+        meta.chunks[chunk.id] = { sha256: chunk.sha256, blockIds: rows.map((row) => row.id) };
+        meta.importedAt = this.now();
+        await this.storage.applyChunk({
+          notes: [],
+          segments: [],
+          efforts: [],
+          blocks: [],
+          blockEfforts: written,
+          deleteNoteIds: [],
+          deleteEffortSlugs: [],
+          deleteBlockIds: [],
+          deleteBlockEffortIds: gone,
           meta,
         });
         continue;
@@ -323,9 +355,11 @@ export class SeedImporter {
         noteTags,
         efforts,
         blocks: [],
+        blockEfforts: [],
         deleteNoteIds: gone,
         deleteEffortSlugs,
         deleteBlockIds: [],
+        deleteBlockEffortIds: [],
         meta,
       });
       totalNotes += notes.length;
@@ -348,9 +382,10 @@ export class SeedImporter {
         deleted += gone.length;
         meta.chunks[chunkId] = { sha256: checkpoint.sha256, blockIds: [] };
         await this.storage.applyChunk({
-          notes: [], segments: [], efforts: [], blocks: [],
+          notes: [], segments: [], efforts: [], blocks: [], blockEfforts: [],
           deleteNoteIds: [], deleteEffortSlugs: [],
           deleteBlockIds: gone.filter((id) => !id.startsWith('static:')),
+          deleteBlockEffortIds: [],
           meta,
         });
       }
@@ -364,10 +399,11 @@ export class SeedImporter {
         deleted += gone.length;
         meta.chunks[chunkId] = { sha256: checkpoint.sha256, noteIds: [] };
         await this.storage.applyChunk({
-          notes: [], segments: [], efforts: [], blocks: [],
+          notes: [], segments: [], efforts: [], blocks: [], blockEfforts: [],
           deleteNoteIds: gone,
           deleteEffortSlugs: [],
           deleteBlockIds: [],
+          deleteBlockEffortIds: [],
           meta,
         });
       }
@@ -377,7 +413,11 @@ export class SeedImporter {
     meta.seedVersion = manifest.version;
     meta.builtAt = manifest.builtAt;
     meta.importedAt = this.now();
-    await this.storage.applyChunk({ notes: [], segments: [], efforts: [], blocks: [], deleteNoteIds: [], deleteEffortSlugs: [], deleteBlockIds: [], meta });
+    await this.storage.applyChunk({
+      notes: [], segments: [], efforts: [], blocks: [], blockEfforts: [],
+      deleteNoteIds: [], deleteEffortSlugs: [], deleteBlockIds: [], deleteBlockEffortIds: [],
+      meta,
+    });
 
     return { status: 'imported', appliedChunks: plan.length, skippedUserOwned, deleted, totalNotes, totalEfforts, totalBlocks };
   }

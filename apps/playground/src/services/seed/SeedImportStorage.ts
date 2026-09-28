@@ -9,7 +9,7 @@
  */
 import type { SeedMetaRecord } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
+import type { BlockEffort, BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { storage, type IStorage } from '@/services/storage';
 import { DEFAULT_TAG_TYPES } from '@/services/storage/StorageService';
 import { SEED_META_KEY, seedSegmentId } from '@/types/seed';
@@ -24,6 +24,8 @@ export interface SeedChunkWrite {
   efforts: IEffort[];
   /** Precomputed block-index rows materialized by `block-index.<n>` chunks (seed v3). */
   blocks: BlockIndexRow[];
+  /** Precomputed exercise containment rows materialized by `block-efforts.<n>` chunks (seed v5). */
+  blockEfforts: BlockEffort[];
   /** Seed-origin note ids removed from the corpus. Never includes
    *  user-owned rows — the importer filters before calling. */
   deleteNoteIds: string[];
@@ -31,6 +33,8 @@ export interface SeedChunkWrite {
   deleteEffortSlugs: string[];
   /** Seed-origin block-index row ids removed from the corpus. */
   deleteBlockIds: string[];
+  /** Seed-origin block-efforts row ids removed from the corpus. */
+  deleteBlockEffortIds: string[];
   /** Checkpoint state to persist in the same transaction. */
   meta: SeedMetaRecord;
 }
@@ -66,7 +70,7 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
     await this.storageInstance.transaction(
-      ['notes', 'segments', 'page', 'page_notes', 'efforts', 'block_index', 'tags', 'note_tags', 'tag_types', 'meta'],
+      ['notes', 'segments', 'page', 'page_notes', 'efforts', 'block_index', 'block_efforts', 'tags', 'note_tags', 'tag_types', 'meta'],
       'readwrite',
       async (tx) => {
         const notes = tx.readwrite('notes');
@@ -94,6 +98,10 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
         const blocks = tx.readwrite('block_index');
         for (const row of write.blocks) await blocks.put(row);
         for (const id of write.deleteBlockIds) await blocks.delete(id);
+
+        const blockEffortsStore = tx.readwrite('block_efforts');
+        for (const row of write.blockEfforts) await blockEffortsStore.put(row);
+        for (const id of write.deleteBlockEffortIds) await blockEffortsStore.delete(id);
 
         const tagsStore = tx.readwrite('tags');
         const noteTagsStore = tx.readwrite('note_tags');
@@ -146,6 +154,7 @@ export class InMemorySeedStorage implements SeedImportStorage {
   private readonly segments = new Map<string, NoteSegment>();
   private readonly effortsBySlug = new Map<string, IEffort>();
   private readonly blockRows = new Map<string, BlockIndexRow>();
+  private readonly blockEffortRows = new Map<string, BlockEffort>();
   private readonly noteTags = new Map<string, string[]>();
   private readonly noteTagObjects = new Map<string, Array<{ label: string; type?: string }>>();
   private meta?: SeedMetaRecord;
@@ -173,6 +182,7 @@ export class InMemorySeedStorage implements SeedImportStorage {
     for (const segment of write.segments) this.segments.set(segment.noteId, structuredClone(segment));
     for (const effort of write.efforts) this.effortsBySlug.set(effort.slug, structuredClone(effort));
     for (const row of write.blocks) this.blockRows.set(row.id, structuredClone(row));
+    for (const row of write.blockEfforts) this.blockEffortRows.set(row.id, structuredClone(row));
     for (const id of write.deleteNoteIds) {
       this.notes.delete(id);
       this.segments.delete(id);
@@ -185,6 +195,8 @@ export class InMemorySeedStorage implements SeedImportStorage {
       }
     }
     for (const slug of write.deleteEffortSlugs) this.effortsBySlug.delete(slug);
+    for (const id of write.deleteBlockIds) this.blockRows.delete(id);
+    for (const id of write.deleteBlockEffortIds) this.blockEffortRows.delete(id);
     this.meta = structuredClone(write.meta);
   }
 
@@ -203,6 +215,10 @@ export class InMemorySeedStorage implements SeedImportStorage {
 
   allBlocks(): BlockIndexRow[] {
     return [...this.blockRows.values()];
+  }
+
+  allBlockEfforts(): BlockEffort[] {
+    return [...this.blockEffortRows.values()];
   }
 
   getTagsForNote(noteId: string): string[] {

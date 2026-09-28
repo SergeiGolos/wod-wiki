@@ -77,6 +77,36 @@ const builtinBindings: Record<string, SuggestionBinding> = {
     open: true,
     emptyText: 'No efforts yet — create one on an effort page',
   },
+  domain: {
+    load: async () => [],
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No domains indexed yet',
+  },
+  format: {
+    load: async () => [],
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No formats indexed yet',
+  },
+  equipment: {
+    load: async () => [],
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No equipment indexed yet',
+  },
+  quality: {
+    load: async () => [],
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No qualities indexed yet',
+  },
+  intent: {
+    load: async () => [],
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No intents indexed yet',
+  },
   discipline: {
     load: async () => [
       { value: 'crossfit', label: 'CrossFit' },

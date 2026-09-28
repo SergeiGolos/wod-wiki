@@ -37,10 +37,12 @@
  * always carries a fresh seed. Idempotent: wipes the output dir first.
  */
 import { Glob } from 'bun';
-import { BLOCK_INDEX_CHUNK_PREFIX, SEED_SCHEMA } from '@/types/seed';
+import { BLOCK_EFFORTS_CHUNK_PREFIX, BLOCK_INDEX_CHUNK_PREFIX, SEED_SCHEMA } from '@/types/seed';
 import type { ChunkKind, ManifestChunk, SeedManifest, SeedRow } from '@/types/seed';
-import type { BlockIndexRow, SegmentDataType } from '@/types/storage';
+import type { BlockEffort, BlockIndexRow, SegmentDataType } from '@/types/storage';
+import { parseScript } from '@bitcobblers/wod-wiki-lang';
 import { parseDocumentSections, type Section } from '@bitcobblers/wod-wiki-core';
+import { extractEffortSlugs } from '@/services/storage/StorageService';
 import { fileToDisplayName } from '@/repositories/groupings';
 import { createHash } from 'node:crypto';
 import {
@@ -330,6 +332,33 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
   return index;
 }
 
+/**
+ * Derive BlockEffort[] containment rows from the block-index row set.
+ * Requires a second pass over the source markdown to parse the script AST,
+ * which is safe because the corpus is static and the pass is compile-time.
+ */
+export function buildBlockEffortRows(markdownDir: string, corpusRoot: string): BlockEffort[] {
+  const efforts: BlockEffort[] = [];
+  const blocks = buildBlockIndexRows(markdownDir, corpusRoot);
+  for (const block of blocks) {
+    if (block.dataType !== 'wod' || !block.rawContent) continue;
+    const script = parseScript(block.rawContent);
+    const effortSlugs = extractEffortSlugs(script.statements);
+    for (const effortSlug of effortSlugs) {
+      efforts.push({
+        id: `${block.id}:${effortSlug}`,
+        noteId: block.noteId,
+        blockId: block.segmentId,
+        blockContentId: block.blockContentId,
+        effortSlug,
+        isStatic: block.isStatic,
+        createdAt: block.createdAt,
+      });
+    }
+  }
+  return efforts;
+}
+
 // ── Generation ────────────────────────────────────────────────────────────
 
 function sha256Hex(data: string | Buffer): string {
@@ -381,6 +410,19 @@ export function generateSeed(options: GenerateSeedOptions = {}): GenerateSeedRes
     const file = `chunks/${id}.${sha.slice(0, 8)}.json`;
     writeFileSync(join(outDir, file), bytes);
     manifestChunks.push({ id, path: file, sha256: sha, bytes: bytes.length, count: part.length, kind: 'block-index' satisfies ChunkKind });
+  }
+
+  // ── Block-efforts chunks: precomputed exercise containment rows ──
+  const effortRows = buildBlockEffortRows(markdownDir, corpusRoot);
+  for (let i = 0; effortRows.length > 0 && i * BLOCK_INDEX_ROWS_PER_CHUNK < effortRows.length; i++) {
+    const part = effortRows.slice(i * BLOCK_INDEX_ROWS_PER_CHUNK, (i + 1) * BLOCK_INDEX_ROWS_PER_CHUNK);
+    if (part.length === 0) break;
+    const id = `${BLOCK_EFFORTS_CHUNK_PREFIX}${i}`;
+    const bytes = Buffer.from(JSON.stringify(part), 'utf8');
+    const sha = sha256Hex(bytes);
+    const file = `chunks/${id}.${sha.slice(0, 8)}.json`;
+    writeFileSync(join(outDir, file), bytes);
+    manifestChunks.push({ id, path: file, sha256: sha, bytes: bytes.length, count: part.length, kind: 'block-efforts' satisfies ChunkKind });
   }
 
   const manifest: SeedManifest = {

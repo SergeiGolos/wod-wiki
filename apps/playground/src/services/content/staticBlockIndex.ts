@@ -207,3 +207,19 @@ setSuggestionBinding('tag', {
     open: true,
     emptyText: 'No tags yet — type one to filter by it',
 });
+
+for (const type of ['domain', 'format', 'equipment', 'quality', 'intent']) {
+    setSuggestionBinding(type, {
+        load: async () => {
+            try {
+                const tags = await storageService.getTags(type);
+                return tags.map((t) => ({ value: t.label, label: t.label }));
+            } catch {
+                return [];
+            }
+        },
+        cache: { ttlMs: 60_000 },
+        open: true,
+        emptyText: `No ${type}s indexed yet`,
+    });
+}
