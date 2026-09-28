@@ -209,6 +209,7 @@ describe('filter typeahead', () => {
     render(<WqlComposer initialQuery="sum:totalVolume{}" />);
     const input = screen.getByTestId('wql-composer-input');
     fireEvent.change(input, { target: { value: 'inten' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Tab' });
     expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
     // Enter on the highlighted option (first = 'low') adds it; again removes.

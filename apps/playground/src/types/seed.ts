@@ -15,8 +15,8 @@ export interface SeedRow {
   content: string;
 }
 
-/** Chunk payload kinds. `'block-index'` chunks carry precomputed BlockIndexRow[]. */
-export type ChunkKind = 'notes' | 'block-index';
+/** Chunk payload kinds. `'block-index'` chunks carry precomputed BlockIndexRow[]; `'block-efforts'` chunks carry precomputed BlockEffort[]. */
+export type ChunkKind = 'notes' | 'block-index' | 'block-efforts';
 
 /** One chunk entry in the seed manifest. */
 export interface ManifestChunk {
@@ -84,6 +84,8 @@ export const EFFORTS_CHUNK_ID = 'efforts';
 export const CANVAS_CHUNK_ID = 'canvas';
 /** Prefix of the split block-index chunks (`block-index.<n>`). */
 export const BLOCK_INDEX_CHUNK_PREFIX = 'block-index.';
+/** Prefix of the split block-efforts chunks (`block-efforts.<n>`). */
+export const BLOCK_EFFORTS_CHUNK_PREFIX = 'block-efforts.';
 
 /** Empty checkpoint — pre-first-import state. */
 export function emptySeedMeta(): SeedMetaRecord {

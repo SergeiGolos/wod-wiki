@@ -175,6 +175,31 @@ export interface BlockIndexRow {
 }
 
 // ---------------------------------------------------------------------------
+// BlockEffort — exercise containment index (V24)
+// ---------------------------------------------------------------------------
+/**
+ * Relational junction linking blocks to the exercises they contain.
+ * Populated by `rebuildBlockIndexForNote` (user notes) and the seed compiler.
+ * Enables O(1) bidirectional lookups without scanning raw markdown.
+ */
+export interface BlockEffort {
+    /** Compound key: `${noteId}:${segmentId}:${effortSlug}` or `static:${noteId}:${segmentId}:${effortSlug}` */
+    id: string;
+    /** Parent note UUID */
+    noteId: string;
+    /** Positional block ID within the note (NoteSegment.id) */
+    blockId: string;
+    /** Content-stable hash of the block (SHA-256/FNV-1a) */
+    blockContentId?: string;
+    /** Canonical exercise slug (e.g. 'thruster', 'pull-up', 'clean-and-jerk') */
+    effortSlug: string;
+    /** True for bundled static content (collections, feeds); false for user journal. */
+    isStatic?: boolean;
+    /** When the row was saved. */
+    createdAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // Session — execution log (mostly unchanged)
 // ---------------------------------------------------------------------------
 /**

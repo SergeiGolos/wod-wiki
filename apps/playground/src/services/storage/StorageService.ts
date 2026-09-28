@@ -1,5 +1,6 @@
 import type {
   Attachment,
+  BlockEffort,
   BlockIndexRow,
   EventRecord,
   Note,
@@ -10,7 +11,9 @@ import type {
   Tag,
   TagTypeRecord,
 } from '@/types/storage';
+import { parseScript } from '@bitcobblers/wod-wiki-lang';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import type { IStorage } from './IStorage';
 import type { NotePersistenceStorage } from '../persistence/types';
 
@@ -31,6 +34,21 @@ export const DEFAULT_TAG_TYPES: Array<Omit<TagTypeRecord, 'createdAt'>> = [
   { id: 'type-discipline', name: 'discipline', label: 'Discipline', color: '#14b8a6' },
 ];
 
+export function extractEffortSlugs(statements: ICodeStatement[]): string[] {
+  const slugs = new Set<string>();
+  for (const statement of statements) {
+    if (statement.exerciseId) {
+      slugs.add(statement.exerciseId);
+    } else {
+      const effortMetric = statement.metrics?.getMetric?.('effort');
+      if (effortMetric?.effort) {
+        const slug = effortMetric.effort.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        if (slug) slugs.add(slug);
+      }
+    }
+  }
+  return Array.from(slugs);
+}
 
 export class StorageService implements NotePersistenceStorage {
   constructor(private readonly storage: IStorage) {}
@@ -248,6 +266,11 @@ export class StorageService implements NotePersistenceStorage {
       if (tag) tags.push(tag);
     }
     return tags;
+  }
+
+  /** Generic store-index read seam for WQL and analytics joins. */
+  async getAllFromIndex(storeName: 'block_efforts' | 'tags' | 'note_tags', index: string, key: IDBValidKey): Promise<any[]> {
+    return this.storage.readonly(storeName).getAllFromIndex(index, key);
   }
   async getTagByLabel(label: string): Promise<Tag | undefined> {
     const matches = await this.storage.readonly('tags').getAllFromIndex('by-label', label);
@@ -512,16 +535,26 @@ export class StorageService implements NotePersistenceStorage {
     const noteTitle = note?.title ?? '';
     const segments = await this.getLatestSegmentsForNote(noteId);
 
-    await this.storage.transaction(['block_index'], 'readwrite', async (tx) => {
-      const store = tx.readwrite('block_index');
-      const existing = await store.getAllFromIndex('by-note', noteId);
-      for (const row of existing) {
-        await store.delete(row.id);
+    await this.storage.transaction(['block_index', 'block_efforts'], 'readwrite', async (tx) => {
+      const blockStore = tx.readwrite('block_index');
+      const effortStore = tx.readwrite('block_efforts');
+
+      // 1. Clear existing rows for note
+      const existingBlocks = await blockStore.getAllFromIndex('by-note', noteId);
+      for (const row of existingBlocks) {
+        await blockStore.delete(row.id);
       }
+      const existingEfforts = await effortStore.getAllFromIndex('by-note', noteId);
+      for (const row of existingEfforts) {
+        await effortStore.delete(row.id);
+      }
+
+      // 2. Iterate segments, write block_index + block_efforts
       for (const segment of segments) {
         if (segment.isHistory) continue;
         const blockContentId = segment.data?.contentId ?? undefined;
-        await store.put({
+
+        await blockStore.put({
           id: `${noteId}:${segment.id}:${segment.version}`,
           noteId,
           segmentId: segment.id,
@@ -533,6 +566,21 @@ export class StorageService implements NotePersistenceStorage {
           noteTitle,
           createdAt: segment.createdAt,
         });
+
+        if (segment.dataType === 'wod' && segment.rawContent) {
+          const script = parseScript(segment.rawContent);
+          const effortSlugs = extractEffortSlugs(script.statements);
+          for (const effortSlug of effortSlugs) {
+            await effortStore.put({
+              id: `${noteId}:${segment.id}:${effortSlug}`,
+              noteId,
+              blockId: segment.id,
+              blockContentId,
+              effortSlug,
+              createdAt: segment.createdAt,
+            });
+          }
+        }
       }
     });
   }
@@ -551,6 +599,24 @@ export class StorageService implements NotePersistenceStorage {
 
   async saveEffort(effort: IEffort): Promise<string> {
     await this.storage.readwrite('efforts').put(effort);
+
+    // Effort aliases are page references: create an `e/alias-slug` Page for each.
+    // Link the Page back to the effort's note via `page_notes` when possible.
+    for (const alias of effort.aliases) {
+      const slug = alias.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      if (!slug) continue;
+      const pageSlug = `e/${slug}`;
+      const existing = await this.getPageBySlug(pageSlug);
+      if (!existing) {
+        await this.savePage({
+          id: generateId(),
+          slug: pageSlug,
+          title: `${effort.label} (Alias)`,
+          createdAt: Date.now(),
+        });
+      }
+    }
+
     return effort.slug;
   }
 

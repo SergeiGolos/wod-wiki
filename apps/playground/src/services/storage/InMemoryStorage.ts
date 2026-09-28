@@ -143,6 +143,14 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
       'by-type': { keyPath: 'dataType' },
     },
   },
+  block_efforts: {
+    keyPath: 'id',
+    indexes: {
+      'by-note': { keyPath: 'noteId' },
+      'by-effort': { keyPath: 'effortSlug' },
+      'by-block': { keyPath: 'blockContentId' },
+    },
+  },
   meta: {
     keyPath: 'key',
     indexes: {},

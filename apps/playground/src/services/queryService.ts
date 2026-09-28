@@ -66,13 +66,22 @@ export class RegistryEffortStore implements EffortQueryStore {
 }
 
 export function createQueryService(): QueryService {
-  return new QueryService(
-    indexedDbEventStore,
-    indexedDbNoteStore,
-    indexedDbBlockStore,
-    new RegistryEffortStore(),
+  return new QueryService({
+    eventStore: indexedDbEventStore,
+    noteStore: indexedDbNoteStore,
+    blockStore: indexedDbBlockStore,
+    effortStore: new RegistryEffortStore(),
     staticNoteStore,
-  );
+    blockEffortsStore: {
+      getAllFromIndex: (index, key) => storageService.getAllFromIndex('block_efforts', index, key),
+    },
+    tagsStore: {
+      getAllFromIndex: (index, key) => storageService.getAllFromIndex('tags', index, key),
+    },
+    noteTagsStore: {
+      getAllFromIndex: (index, key) => storageService.getAllFromIndex('note_tags', index, key),
+    },
+  });
 }
 
 /**

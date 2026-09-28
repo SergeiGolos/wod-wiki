@@ -1,149 +1,158 @@
-# Frontmatter & Typed-Tag Audit
+# Frontmatter & Typed-Tag Architecture
 
-**Status:** Typed-tag conversion **landed** (2026-09-27): 748 corpus files migrated to canonical frontmatter typed keys (`domain`, `format`, `equipment`, `quality`, `intent`), redundant `category:` and uncalibrated `difficulty:` dropped; `SeedImporter` simplified to use native `extractTypedFrontmatterTags` with zero category hacks; `generate:seed` recompiled; full test suite passes (packages 1668, playground unit 2553, storybook 104, seed 11/11).
+**Status:** Landed (2026-09-27)
 **Date:** 2026-09-27
-**Corpus:** `markdown/` — 888 files: `collections/` 728, `canvas/` 87, `efforts/` 53, `feeds/` 14, `dashboards/` 6. One file has no frontmatter: `markdown/canvas/home/sample-script.md`.
-**Related:** `docs/prototypes/seed-data-unification.md` (seed pipeline is the natural processing point), `apps/playground/src/lib/frontmatter.ts` (existing tag extraction)
+**Corpus:** `markdown/` — 888 files: `collections/` 728, `canvas/` 87, `efforts/` 53, `feeds/` 14, `dashboards/` 6.
+**Related:** `docs/prototypes/seed-data-unification.md`, `apps/playground/src/lib/frontmatter.ts`, `apps/playground/src/services/seed/SeedImporter.ts`
 
-## Goal
+---
 
-Identify every frontmatter/body property that carries **classification** semantics, and decide which should be converted into **dynamically typed tags** at processing time (seed compile or seed import). The unifying principle: **equipment, type, category, and tags are all one mechanism** — namespaced typed tags — instead of today's three competing systems.
+## 1. Overview & Ground Truth
 
-## Current state — three classification systems, zero overlap
+All workout classification across the codebase is unified under **namespaced typed tags**. The previous three competing classification mechanisms (flat frontmatter `tags:`, frontmatter `category:`, and body pseudo-frontmatter `Type`/`Difficulty`) have been consolidated directly in markdown frontmatter.
 
-| System                               | Where                                | Vocabulary control                                                               |
-| ------------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------- |
-| `tags:` frontmatter                  | 680 files (wods, feeds, dashboards)  | Clean: 20 distinct values                                                        |
-| `category:` frontmatter              | 67 files (collection READMEs, feeds) | Same words as `tags` — parallel spelling                                         |
-| Body pseudo-frontmatter / bold prose | 494 ZombieFit wods + ~110 others     | Broken: 80 distinct free-text `Type` values, 12 incompatible `Difficulty` scales |
+The markdown files are the single source of truth. Seed compilation (`scripts/generate-seed.ts`) bundles files byte-faithfully into JSON chunks, and runtime import (`SeedImporter.ts`) extracts typed tags using the native `extractTypedFrontmatterTags` parser.
 
-The app already treats `tags` and `category` as one slot — `frontmatter.ts:184` reads `meta['tags'] ?? meta['category']` — but nothing classifies beyond that.
+---
 
-## 1. Core frontmatter structure per section
+## 2. Canonical Frontmatter Structure
 
-| Key                                                            | wod | README | canvas   | efforts | feeds | dashboards | Purpose                             |
-| -------------------------------------------------------------- | --- | ------ | -------- | ------- | ----- | ---------- | ----------------------------------- |
-| `template`                                                     | ✓   | ✓      | `canvas` | —       | ✓     | —          | flags the note type as 'template'   |
-| `collection: true`                                             | ✓   | ✓      | —        | —       | —     | —          | flags the note type as 'collection' |
-| `category` (list)                                              | —   | ✓      | —        | —       | ✓     | —          | is a tag type                       |
-| `tags` (list)                                                  | ✓   | —      | —        | —       | ✓     | ✓          | is a default tag type               |
-| `title`                                                        | —   | —      | ✓        | —       | —     | ✓          | used to create the page slug        |
-| `subtitle` / `section` / `order` / `route` / `type` / `search` | —   | —      | ✓        | —       | —     | —          |                                     |
-| `id` / `slug` / `label`                                        | —   | —      | —        | ✓       | —     | —          | id                                  |
-| `aliases` (list)                                               | —   | —      | —        | ✓       | —     | —          |                                     |
-| `baseAttributes` (map)                                         | —   | —      | —        | ✓       | —     | —          |                                     |
-| `feed: true` / `dashboard: true`                               | —   | —      | —        | —       | ✓     | ✓          |                                     |
+Workout notes (`markdown/collections/**` and `markdown/feeds/**`) carry structured frontmatter with typed keys matching registered tag types:
 
-## 2. The `tags` vocabulary (n=680 files, 20 values)
+```yaml
+---
+domain: crossfit
+format: for-time
+equipment:
+  - barbell
+  - pullup-bar
+quality:
+  - conditioning
+intent: benchmark
+date: 2012-09-29
+original_url: "https://example.com/wod"
+wayback_url: "https://web.archive.org/web/.../wod"
+---
+```
 
-Values decompose cleanly into four implicit dimensions — evidence that one flat list is several tag types wearing a trench coat:
+### Frontmatter Key Allocation
 
-| Value | n | Implicit dimension |
-|---|---|---|
-| `parkour` | 494 | domain |
-| `crossfit` | 86 | domain |
-| `competition` | 71 | intent |
-| `kettlebell` | 50 | equipment |
-| `strength` | 49 | quality |
-| `endurance` | 29 | quality |
-| `swimming` | 28 | domain |
-| `benchmark` | 18 | intent |
-| `sport` | 14 | intent |
-| `unconventional` | 11 | equipment |
-| `conditioning` | 8 | quality |
-| `cardio` | 6 | quality |
-| `clubs` | 6 | equipment |
-| `minimalist` | 6 | equipment |
-| `dashboard` | 6 | ⚠ page-type leak, not a tag |
-| `barbell` | 5 | equipment |
-| `triathlon` | 4 | domain |
-| `climbing` | 1 | domain |
-| `recovery` | 1 | quality |
-| `coaching` | 1 | ⚠ audience, not a tag |
+| Key | Type / Value | Purpose | Indexed As |
+|---|---|---|---|
+| `domain` | String / List (`crossfit`, `parkour`, `swimming`, etc.) | Sport or training discipline | `Tag` (`type: 'domain'`) |
+| `format` | String / List (`for-time`, `amrap`, `emom`, `intervals`, etc.) | Session execution shape & time domain | `Tag` (`type: 'format'`) |
+| `equipment` | String / List (`kettlebell`, `barbell`, `clubs`, etc.) | Gear required for the workout | `Tag` (`type: 'equipment'`) |
+| `quality` | String / List (`strength`, `endurance`, `conditioning`, etc.) | Target physical adaptation / stimulus | `Tag` (`type: 'quality'`) |
+| `intent` | String / List (`benchmark`, `competition`, `sport`) | Protocol role or testing status | `Tag` (`type: 'intent'`) |
+| `tags` | String / List | Unclassified / general user tags | `Tag` (`type: undefined`) |
+| `date` | `YYYY-MM-DD` | Calendar anchor | `Note.date` (epoch ms at 12:00 UTC) |
+| `original_url` / `wayback_url` | String | Provenance links | Frontmatter metadata (verbatim) |
+| `template`, `collection`, `feed`, `dashboard` | Boolean / String | Document page-type discriminators | Page routing / UI hierarchy |
 
-## 3. Body pseudo-frontmatter (ZombieFit, 494 files)
+### Fields Excluded from Tags
 
-Second `---` block inside the body — the values actually rendered on effort pages:
+- **`difficulty`**: Dropped. 488/495 ZombieFit files carried the boilerplate string `Beginner / Advanced / Expert`, while other collections used 12 incompatible ad-hoc scales. Contains no normalized signal.
+- **`category`**: Retired from workouts. The collection chunk (`catalog` on `Note`) already provides folder grouping; discipline semantics moved to `domain`.
+- **`dashboard` / `template` / `collection` / `feed`**: Page discriminators; never tagged.
 
-| Key                            | Distinct | Values                                                                                                           |
-| ------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| `Category`                     | 1        | `zombie-fit` (constant, derivable from collection — redundant)                                                   |
-| `Type`                         | 6        | For Time (339), Intervals (55), EMOM (42), AMRAP (39), Skill (16), Max Weight (4)                                |
-| `Difficulty`                   | 4        | `Beginner / Advanced / Expert` (488 — carries no information), Advanced (4), Beginner/Advanced (2), Beginner (1) |
-| `date`                         | 487      | `yyyy-mm-dd`, ≈ filename identity — temporal, **not** a tag                                                      |
-| `original_url` / `wayback_url` | 494      | provenance links — **not** tags                                                                                  |
+---
 
-## 4. Bold inline prose (other collections, 89–109 files)
+## 3. Tag Taxonomy & Normalization
 
-| Key               | Distinct  | Sample                                                                                                                                   |
-| ----------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `**Category:**`   | 63        | `CrossFit Benchmark`(14), `The Golos Method`(5), `Girevoy Sport Training`(3)… — mostly restates the collection name; redundant           |
-| `**Type:**`       | 80        | `For Time`(13), `AMRAP (As Many Rounds As Possible)`, `Strength Complex`, `Competition Event`, `Individual Medley`, `Aerobic Endurance`… |
-| `**Difficulty:**` | 12 scales | Intermediate(25), Advanced(25), Intermediate to Advanced(23), Elite(7), Olympic(4)…                                                      |
-| `**Format:**`     | 3         | prose spellings of AMRAP/EMOM/For Time                                                                                                   |
+### A. `domain` (Discipline / Ecosystem)
+- `crossfit`
+- `parkour`
+- `swimming`
+- `triathlon`
+- `climbing`
+- `girevoy-sport`
 
-## 5. Efforts `baseAttributes` (n=53)
+### B. `format` (Protocol & Time Architecture)
+Replaces 80 free-text `Type` and `Format` prose strings with normalized kebab-case slugs:
+- `for-time` (from `For Time`, `For Time / Volume Training`)
+- `amrap` (from `AMRAP`, `AMRAP (As Many Rounds As Possible)`)
+- `emom` (from `EMOM`, `EMOM (Every Minute on the Minute)`)
+- `intervals` (from `Intervals`, `Distance Intervals`)
+- `skill` (from `Skill`, `Technique Focus`, `Skill Development`)
+- `max-weight` (from `Max Weight`)
+- `max-reps` (from `Max Reps`, `Max Reps Endurance Test`)
+- `complex` (from `Strength Complex`, `Progressive Strength Complex`, `Advanced Complex`)
+- `circuit` (from `Double Kettlebell Circuit`, `High-Intensity Circuit`)
+- `finisher` (from `High-Intensity Finisher`)
+- `individual-medley` (from `Individual Medley`, `Elite Individual Medley`)
+- `program` (from multi-day training block overviews)
 
-| Field | Distinct | Values |
-|---|---|---|
-| `discipline` | 10 | strength(19), bodyweight(8), gymnastics(8), kettlebell(4), cycling(3), rowing(3), running(3), recovery(2), swimming(2), walking(1) |
-| `intensityTier` | 3 | high(31), moderate(16), low(6) |
-| `met` | 15 | 1.0–14.5 numeric — metric, **not** a tag |
+### C. `equipment` (Gear & Implements)
+Composable across multiple pieces of gear per workout:
+- `kettlebell`
+- `barbell`
+- `dumbbell`
+- `pullup-bar`
+- `rings`
+- `clubs`
+- `macebell`
+- `sandbag`
+- `unconventional`
+- `minimalist`
+- `bodyweight`
 
-## 6. Proposed typed-tag model
+### D. `quality` (Physical Stimulus / Capacity)
+- `strength`
+- `endurance`
+- `conditioning` (`cardio` merged into `conditioning`)
+- `power` (from `Speed/Power`, `Maximum Velocity`, `Anaerobic Power`)
+- `recovery` (from `Recovery`, `Mobility and Recovery`)
 
-Everything classification-shaped becomes a **namespaced typed tag** produced at processing time (seed compile in `scripts/generate-seed.ts`, or import in `SeedImporter` — one place, compile-time preferred since the corpus is static). The stored tag type registry (`TagType` in `src/types/storage.ts:96`, open `string & {}`) already admits arbitrary type names; `frontmatter.ts:223` already excludes `tags`/`category` from typed matching, so no double-counting.
+### E. `intent` (Status / Tier)
+- `benchmark` (e.g. CrossFit Girl WODs, standardized benchmarks)
+- `competition` (e.g. Games events, Girevoy Sport competition sets)
+- `sport`
 
-| Tag type | Sources unified | Proposed vocabulary |
-|---|---|---|
-| `domain` | `tags` (parkour, crossfit, swimming, triathlon, climbing) + `**Category:**` restating collection | 5 values today; derivable from collection for new content |
-| `equipment` | `tags` (kettlebell, clubs, barbell, unconventional, minimalist) + `baseAttributes.discipline` equipment half | kettlebell, barbell, clubs, macebell, clubbell, bodyweight, machine… |
-| `quality` | `tags` (strength, endurance, conditioning, cardio, recovery) | strength, endurance, conditioning, cardio, recovery — `cardio`→`conditioning` merge candidate |
-| `type` (format) | ZombieFit `Type` (6 clean) + `**Type:**` (80 free-text) + `**Format:**` (3) | for-time, amrap, emom, intervals, skill, max-weight, competition — see §7 |
-| `intensity` | `baseAttributes.intensityTier` | high, moderate, low |
-| `intent` | `tags` (competition, benchmark, sport) | competition, benchmark, sport |
+---
 
-**Stays out of tags:**
+## 4. Runtime & Storage Architecture
 
-- `date` (temporal grouping), `original_url`/`wayback_url` (provenance), `met` (metric)
-- `dashboard` / `collection` / `feed` / `template` / `search` — page-type discriminators; `dashboard` currently leaks into `tags` and should be re-homed
-- `title`/`label`/`slug`/`order`/`route` — identity and layout
-- `Difficulty` — no usable signal: 488/495 files say `Beginner / Advanced / Expert`; 12 incompatible scales elsewhere. Drop, or re-add later as a typed tag with a real ordinal scale.
-- `Category` (body) — constant (`zombie-fit`) or restates collection name → derived `domain`, never authored.
+### Storage Layer (`tag_types`, `tags`, `note_tags`)
 
-## 7. `type` normalization table
+1. **`tag_types` store** (`TagTypeRecord`):
+   Pre-seeded by `StorageService.DEFAULT_TAG_TYPES` and `SeedImportStorage`:
+   - `domain` (#10b981)
+   - `format` (#8b5cf6)
+   - `equipment` (#3b82f6)
+   - `quality` (#f59e0b)
+   - `intent` (#ec4899)
+   - Backwards compatibility: `category` (#6366f1), `type` (#a855f7), `discipline` (#14b8a6)
 
-ZombieFit's six values are the controlled base; the 80 free-text values map onto them by rule:
+2. **`tags` store** (`Tag`):
+   Indexed by `by-label` (unique label) and `by-type` (`type?: TagType`).
 
-| Free-text value | → typed tag |
-|---|---|
-| `For Time`, `For Time / Volume Training` | `type:for-time` |
-| `AMRAP`, `AMRAP (As Many Rounds As Possible)`, `**Format:** AMRAP (…)` | `type:amrap` |
-| `EMOM`, `**Format:** EMOM (…)` | `type:emom` |
-| `Intervals`, `Distance Intervals` | `type:intervals` |
-| `Skill`, `Technique Focus` | `type:skill` |
-| `Max Weight` | `type:max-weight` |
-| `Competition Event`, `Girevoy Sport Competition` | `type:competition` |
-| `Strength Complex`, `Progressive Strength`, `Ballistic / Flow Movement` | `type:strength-complex` (new — review) |
-| `Endurance`, `Aerobic Endurance`, `Sport-Specific Endurance`, `Race-Specific` | `type:endurance` (review: quality vs format) |
-| `Individual Medley` | `type:swimming-im` (review: domain-specific) |
-| anything else | **fallback rule:** lowercase, strip parenthetical, kebab-case; flag in importer parity report |
+3. **`note_tags` store** (`NoteTag`):
+   N:M junction table indexed by `by-note` (`noteId`) and `by-tag` (`tagId`).
 
-~15 low-frequency `Type` values have no obvious home (e.g. dance-therapy one-offs) — unresolved, see open questions.
+### Extraction Pipeline
 
-## 8. Decisions needed
+Both user note saves (`IndexedDBContentProvider.ts`) and seed imports (`SeedImporter.ts`) share the same parser in `apps/playground/src/lib/frontmatter.ts`:
 
-1. **Namespace style**: `equipment:kettlebell` prefixed-value vs separate `TagType='equipment'` + value `kettlebell`. The app's `TagType` registry supports the latter natively; the former is one string. Lean: typed type + value (matches `TagTypeStorage`).
-2. **Split today's flat `tags` at processing time** (authoritative mapping in §2) vs leave legacy files flat and only type new content. Lean: split at compile time — corpus is static, one migration.
-3. **`quality` vs `type` boundary**: is `endurance` a quality (capacity) or a format (session shape)? Appears as both today.
-4. **`cardio`/`conditioning` merge** — two values, same meaning.
-5. **`difficulty`** — drop entirely vs define a real scale (5-point ordinal) and normalize the 12 ad-hoc scales.
-6. **`dashboard` tag** — re-home to a page-type flag like `collection`/`feed`.
-7. **Where conversion runs**: `generate-seed.ts` (compile) vs `SeedImporter.ts` (import). Compile-time keeps IDB schema clean; import-time keeps the seed byte-faithful to the markdown.
+```ts
+const KNOWN_TAG_TYPES = DEFAULT_TAG_TYPES.map((t) => t.name);
 
-## Evidence trail
+// Native extraction: matches frontmatter keys to known tag types
+const tags = extractTypedFrontmatterTags(rawContent, KNOWN_TAG_TYPES);
+```
 
-- Audit script: frontmatter keys, `tags` values, pseudo-fm extraction — counts above are exact (walked all 888 files, 2026-09-27).
-- Tag-slot equivalence: `apps/playground/src/lib/frontmatter.ts:184` (`meta['tags'] ?? meta['category']`), typed exclusion `:223`.
-- Tag type registry: `apps/playground/src/types/storage.ts:96`.
-- Seed pipeline: `scripts/generate-seed.ts`, `apps/playground/src/services/seed/SeedImporter.ts`.
+- Keys matching known types (`domain: crossfit`) yield `{ label: 'crossfit', type: 'domain' }`.
+- `tags:` values yield `{ label: 'name' }` (untyped general tag).
+- Duplicate labels resolve in favor of the typed record.
+- Frontmatter in `NoteSegment.rawContent` is stored byte-identically with no synthetic re-serialization.
+
+---
+
+## 5. Migration History
+
+1. **Hoisting (2026-09-27)**: Lifted body-level pseudo-frontmatter (`Type`, `Difficulty`, `Category`, URLs) into leading YAML frontmatter across 662 collection workout files.
+2. **Taxonomy Migration (2026-09-27)**: Ran `scripts/migrate-corpus-tags.ts` across 888 markdown files (748 modified):
+   - Parsed flat `tags:` and normalized `type:` into canonical typed keys (`domain`, `format`, `equipment`, `quality`, `intent`).
+   - Merged `cardio` into `conditioning`.
+   - Dropped empty `category:` and `difficulty:` values.
+3. **Seed Importer Cutover (2026-09-27)**: Removed the legacy category-munging code in `SeedImporter.ts` in favor of direct `extractTypedFrontmatterTags()`.
+4. **Seed Compilation (2026-09-27)**: Re-generated seed artifacts under `apps/playground/public/seed/` via `scripts/generate-seed.ts` (78 chunks, 889 files, 9262 KB).

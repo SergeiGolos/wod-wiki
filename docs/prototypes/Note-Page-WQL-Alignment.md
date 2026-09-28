@@ -41,11 +41,13 @@ erDiagram
     Note ||--o{ PageNote : "noteId"
     Note ||--|{ NoteSegment : "noteId (authored content)"
     Note ||--o{ BlockIndexRow : "noteId (parsed blocks)"
+    BlockIndexRow ||--o{ BlockEffort : "blockContentId (exercise links)"
+    Effort ||--o{ BlockEffort : "effortSlug"
     Note ||--o{ Session : "noteId (executions)"
     Note ||--o{ EventRecord : "noteId (telemetry)"
     Note ||--o{ Attachment : "noteId (blobs)"
     Note }o--o{ Tag : "via note_tags"
-    Tag }o--o| TagType : "type (dynamic)"
+    Tag }o--o| TagType : "type (domain, format, equipment, quality, intent)"
 ```
 
 ### 2.1 Note (`notes` table)
@@ -140,12 +142,10 @@ if (isPageTarget || hasPageSource) {
   - Filters out records matching `isPage(n)`.
   - Result: Only returns workout/executable notes (unless `type:` is explicitly specified).
 * **`find:page`**:
-  - **Does not query the `page` table.**
-  - Queries the `notes` table and filters for `isPage(n) === true`.
-  - Result: Returns guide/canvas/dashboard/collection `Note` records.
+  - Resolves placement pages (collections, dates, custom routes) from the `page` table by joining candidate notes via `page_notes`.
+  - Filtered by note tags (`find:page{domain:crossfit}`) or exercise containment (`find:page{effort:clean-and-jerk}`).
 * **`find:block`**:
-  - Queries `block_index`. Each block points to both `noteId` and `pageId`.
-
+  - Queries `block_index`. Filtered by note tags via `noteId` or direct exercise containment via `block_efforts` (`find:block{effort:pull-up}`).
 ### 3.2 Filter Scopes on Content Queries
 * **`source:<scope>`**:
   - `source:journal`: Notes where `!sourceId || sourceId === 'journal'` (excluding playground IDs).
@@ -175,14 +175,9 @@ if (isPageTarget || hasPageSource) {
 
 Use these sections to mark decisions and track consensus.
 
-### Decision 1: What does `find:page` mean?
-- [ ] **Option A (Current Implementation)**: `find:page` is a semantic sugar for document-style `Note`s (guides, syntax, canvases, dashboards).
-  - *Tradeoff*: Confusing naming because `Page` is also an IndexedDB table.
-- [ ] **Option B (Separate Entity Target)**: `find:page` queries the `page` table to discover date/custom page containers; document notes use `find:note{type:page}` or `find:note{source:guides}`.
-  - *Tradeoff*: Breaks existing WQL scripts expecting `find:page` to return canvas documents.
-- [ ] **Option C (Deprecate `find:page` target)**: Keep `find:note` as the sole content target with `source:` / `type:` discriminators (`find:note{source:page}`).
-  - *Tradeoff*: Cleaner target vocabulary (`note`, `block`, `effort`), retires pseudo-target.
-
+### Decision 1: What does `find:page` mean? (Adopted: Option B)
+- [x] **Option B (Separate Entity Target)**: `find:page` queries the `page` table to discover date/custom page containers via `page_notes` junction; document notes use `find:note{template:canvas}` or `find:note{source:guides}`.
+  - *Tradeoff*: Clean relational model where `find:page` targets actual `Page` rows and `find:note` targets authored `Note` documents.
 ### Decision 2: Page Placement vs. Query Composition (Adopted)
 - [x] **Contract Rule**: `page_notes` is strictly **placement and grouping** (which calendar date or custom page anchors this note).
 - [x] **Contract Rule**: A note appearing in a collection, tag list, or stream view is **composition via query**, and must NEVER modify `page_notes` or subordinate records.

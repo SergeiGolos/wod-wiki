@@ -7,10 +7,10 @@
  * rather than a hypothetical one.
  */
 import type { SeedManifest, SeedRow } from '@/types/seed';
-import type { BlockIndexRow } from '@/types/storage';
+import type { BlockEffort, BlockIndexRow } from '@/types/storage';
 
-/** Chunk payload union — notes chunks carry SeedRow[], block-index chunks BlockIndexRow[]. */
-export type SeedChunkPayload = SeedRow[] | BlockIndexRow[];
+/** Chunk payload union — notes chunks carry SeedRow[], block-index chunks BlockIndexRow[], block-efforts chunks BlockEffort[]. */
+export type SeedChunkPayload = SeedRow[] | BlockIndexRow[] | BlockEffort[];
 
 export interface ISeedSource {
   fetchManifest(): Promise<SeedManifest>;
@@ -18,9 +18,9 @@ export interface ISeedSource {
    * Fetch one chunk's payload by its manifest `path`
    * (e.g. `chunks/canvas.ab12cd34.json`). The payload shape follows the
    * manifest chunk's `kind`: `SeedRow[]` for `'notes'` (the default),
-   * `BlockIndexRow[]` for `'block-index'`.
+   * `BlockIndexRow[]` for `'block-index'`, `BlockEffort[]` for `'block-efforts'`.
    */
-  fetchChunk(path: string): Promise<SeedRow[] | BlockIndexRow[]>;
+  fetchChunk(path: string): Promise<SeedRow[] | BlockIndexRow[] | BlockEffort[]>;
 }
 
 export class SeedSourceError extends Error {
@@ -73,4 +73,16 @@ export function assertBlockRows(value: unknown): BlockIndexRow[] {
     }
   }
   return value as BlockIndexRow[];
+}
+
+export function assertBlockEffortRows(value: unknown): BlockEffort[] {
+  if (!Array.isArray(value)) {
+    throw new SeedSourceError('block-efforts chunk is not an array');
+  }
+  for (const row of value) {
+    if (typeof row?.id !== 'string' || typeof row?.noteId !== 'string' || typeof row?.effortSlug !== 'string') {
+      throw new SeedSourceError(`block-efforts row failed shape validation: ${String(row?.id)}`);
+    }
+  }
+  return value as BlockEffort[];
 }

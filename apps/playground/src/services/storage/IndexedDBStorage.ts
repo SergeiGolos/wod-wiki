@@ -272,7 +272,15 @@ export class IndexedDBStorage implements IStorage {
           store.createIndex('by-type', 'dataType');
         }
 
-        // 13. meta
+        // 13. block_efforts
+        if (!db.objectStoreNames.contains('block_efforts')) {
+          const store = db.createObjectStore('block_efforts', { keyPath: 'id' });
+          store.createIndex('by-note', 'noteId');
+          store.createIndex('by-effort', 'effortSlug');
+          store.createIndex('by-block', 'blockContentId');
+        }
+
+        // 14. meta
         if (!db.objectStoreNames.contains('meta')) {
           db.createObjectStore('meta', { keyPath: 'key' });
         }

@@ -84,4 +84,10 @@ export interface QueryServiceStores {
   effortStore?: EffortQueryStore;
   /** Derived corpus-note projections (catalog/tag planes). */
   staticNoteStore?: NoteQueryStore;
+  /** Serves exercise containment rows (`block_efforts` store). */
+  blockEffortsStore?: { getAllFromIndex(index: string, key: string): Promise<any[]> };
+  /** Serves tag records (`tags` store). */
+  tagsStore?: { getAllFromIndex(index: string, key: string): Promise<any[]> };
+  /** Serves note-tag junction rows (`note_tags` store). */
+  noteTagsStore?: { getAllFromIndex(index: string, key: string): Promise<any[]> };
 }

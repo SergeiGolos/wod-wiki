@@ -61,11 +61,11 @@ public/seed/
     ├── efforts.<sha256-8>.json
     ├── dashboards.<sha256-8>.json
     ├── syntax.<sha256-8>.json
-    └── block-index.<n>.<sha256-8>.json   ← precomputed BlockIndexRow[] (split, ~8 MB)
+    ├── block-index.<n>.<sha256-8>.json   ← precomputed BlockIndexRow[] (split, ~8 MB)
+    └── block-efforts.<n>.<sha256-8>.json ← precomputed BlockEffort[] (exercise containment index)
 ```
 
-- **Derives at build time what loaders derive at runtime today**: frontmatter (`parseFrontmatter`, `parseFrontmatterCategories`), route slugs, Catalog Session/Post item shape and sort order (the Grouping adapters' logic), derived first-published dates, canvas page metadata. Runtime receives ready-to-store rows, not raw markdown to re-interpret.
-- **Chunk granularity = one Catalog / corpus part**, so an edit to one collection re-fetches only its chunk.
+- **Derives at build time what loaders derived at runtime**: typed frontmatter (`domain`, `format`, `equipment`, `quality`, `intent` via `extractTypedFrontmatterTags`), route slugs, exercise containment (`block_efforts`), derived first-published dates, canvas page metadata. Runtime receives ready-to-store rows, with markdown content preserved byte-faithfully.
 - `manifest.json`:
 
 ```jsonc
@@ -94,8 +94,7 @@ One interface, real adapters — the seam exists because the implementations gen
 
 `SeedImporter.apply(manifest, chunkLoader)` writes through the existing **Storage** layer in per-chunk transactions:
 
-- Materializes corpus items as the same shapes Persistence already serves: **Notes** (UUID id + **Slug** + `sourceId` + kind) with versioned **segments** holding raw markdown, Efforts (`registrySource: 'bundled'` — the `by-source` index already exists), `block_index` rows, Dashboard Notes.
-- Tags every seed row: `origin: 'seed'`, `seedVersion`.
+- Materializes corpus items into Storage: **Notes** (UUID id, title, date, catalog) with versioned **segments** holding byte-faithful markdown, **Pages** (slug/date anchors via `page_notes`), **Tags** & **NoteTags** (typed via `DEFAULT_TAG_TYPES`), Efforts (`registrySource: 'bundled'`), `block_index` rows, and `block_efforts` exercise links.
 - **Checkpoint record** in a new `meta` key-value store (V19): `{ seedVersion, importedAt, chunks: { [id]: sha256 } }` — per-chunk resume, same pattern as `field_catalog_meta` backfill state.
 - **Idempotent**: re-applying a chunk with a hash already recorded in `meta` is a no-op. Crash mid-import → next boot resumes at the first unrecorded chunk.
 
