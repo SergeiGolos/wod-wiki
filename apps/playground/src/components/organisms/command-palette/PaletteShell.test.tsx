@@ -186,8 +186,8 @@ describe('PaletteShell WQL mode', () => {
     fireEvent.keyDown(screen.getByTestId('wql-composer-input'), { key: 'ArrowDown' })
     fireEvent.keyDown(screen.getByTestId('wql-composer-input'), { key: 'Enter' })
 
-    // The clause changed (journal → collections) and re-searched…
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{source:collections}'))
+    // The clause changed to the next source option and re-searched…
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:block'))
     // …but the Enter did NOT activate the palette result…
     await act(async () => {})
     expect(resolved).toBe(false)

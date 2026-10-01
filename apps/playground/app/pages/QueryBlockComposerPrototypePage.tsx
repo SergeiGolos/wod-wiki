@@ -22,7 +22,7 @@ import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 
 // ── Mock note ────────────────────────────────────────────────────────────────
 const RESULT_ID = '01a09d45-885a-738d-ab1e-be31d44fe919';
-const INITIAL_WQL = `rows:all{result:${RESULT_ID}}`;
+const INITIAL_WQL = `find:session{result:${RESULT_ID}}`;
 
 const DOC_BEFORE = `## Morning session
 
@@ -49,13 +49,13 @@ const FRAN_ROWS: FakeRow[] = [
 
 /** Heuristic preview: rows type + effort-ish text filter. ponytail above. */
 function previewRows(wql: string): { rows: FakeRow[]; note?: string } {
-  const m = /rows:(\w+)/.exec(wql);
-  if (!m) return { rows: [], note: 'no rows: head — block would render chart/value instead' };
+  const m = /find:session/.test(wql);
+  if (!m) return { rows: [], note: 'no find:session head — block would render chart/value instead' };
   const text = /text:"?([\w-]+)"?/.exec(wql)?.[1];
   const rows = text
     ? FRAN_ROWS.filter((r) => r.effort.toLowerCase().includes(text.toLowerCase()))
     : FRAN_ROWS;
-  return { rows, note: m[1] !== 'all' ? `rows:${m[1]}` : undefined };
+  return { rows };
 }
 
 function ResultTable({ wql }: { wql: string }) {
@@ -146,7 +146,7 @@ function InlineVariant({ wql, setWql }: { wql: string; setWql: (s: string) => vo
       {open && (
         <div className="rounded-lg border border-sky-500/50 bg-card p-3 space-y-2 shadow-lg shadow-sky-500/5">
           <div className="text-[10px] text-sky-400 font-mono">editing query:table — Apply writes the fence</div>
-          <WqlComposer query={draft} onQueryChange={setDraft} autoFocus placeholder="rows:…" />
+          <WqlComposer query={draft} onQueryChange={setDraft} autoFocus placeholder="find:session…" />
           <div className="flex justify-end gap-2">
             <button onClick={() => setOpen(false)} className="px-3 py-1 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground">Cancel</button>
             <button onClick={() => { setWql(draft); setOpen(false); }} className="px-3 py-1 text-xs rounded-md bg-sky-500 text-zinc-950 font-medium">Apply to fence</button>
@@ -177,7 +177,7 @@ function DockVariant({ wql, setWql }: { wql: string; setWql: (s: string) => void
           </span>
           {bound && <button onClick={() => setBound(false)} className="text-[10px] text-muted-foreground hover:text-foreground">Done</button>}
         </div>
-        {bound && <WqlComposer query={wql} onQueryChange={setWql} autoFocus showDiagnostics={false} placeholder="rows:…" />}
+        {bound && <WqlComposer query={wql} onQueryChange={setWql} autoFocus showDiagnostics={false} placeholder="find:session…" />}
       </div>
     </div>
   );
@@ -206,7 +206,7 @@ function FenceVariant({ wql, setWql }: { wql: string; setWql: (s: string) => voi
     <div className="rounded-lg border border-sky-500/50 bg-muted/60 shadow-lg shadow-sky-500/5">
       <div className="px-3 pt-2 text-[10px] font-mono text-muted-foreground select-none">```query:table</div>
       <div className="px-3 py-2">
-        <WqlComposer query={wql} onQueryChange={setWql} autoFocus showDiagnostics={false} placeholder="rows:…" className="bg-transparent border-0 shadow-none" />
+        <WqlComposer query={wql} onQueryChange={setWql} autoFocus showDiagnostics={false} placeholder="find:session…" className="bg-transparent border-0 shadow-none" />
       </div>
       <div className="px-3 pb-2 flex items-center justify-between">
         <span className="text-[10px] font-mono text-muted-foreground select-none">```</span>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 import { isDashboardWidgetType, PLANNED_WIDGET_TYPES, resolveWidgetType, unknownWidgetTypeMessage } from '@bitcobblers/wod-wiki-wql';
 import { QueryValue } from './QueryValue';
@@ -31,7 +31,22 @@ export function WidgetChart({ type, result, label, unit, params, attributes }: W
 
   const resolved = resolveWidgetType(type);
 
-  if (!result || result.parsed.error || result.series.length === 0) {
+  if (resolved === 'table' && (result as any)?.table) {
+    return (
+      <div className="w-full h-full min-h-[160px]">
+        <TabularTable table={(result as any).table} />
+      </div>
+    );
+  }
+  if (resolved === 'list' && (result as any)?.parsed?.family === 'find') {
+    return (
+      <div className="w-full h-full min-h-[160px]">
+        <ThingList result={result as any} />
+      </div>
+    );
+  }
+
+  if (!result || result.parsed.error || ('series' in result && result.series.length === 0)) {
     return <WqlEmptyState result={result} />;
   }
 
@@ -106,6 +121,69 @@ function PlannedWidgetPlaceholder({ type }: { type: string }) {
   return (
     <div className="flex items-center justify-center h-full text-xs text-muted-foreground font-mono bg-muted/20 rounded p-4 text-center">
       widget:{type} renderer in progress
+    </div>
+  );
+}
+
+function TabularTable({ table }: { table: { columns: Array<{ name: string; unit?: string }>; rows: Array<Record<string, unknown>>; groups?: Array<{ key: string; label: string; rows: Array<Record<string, unknown>> }> } }) {
+  return (
+    <div className="h-full overflow-auto" data-testid="tabular-table">
+      <table className="w-full text-[11px] font-mono border-collapse">
+        <thead>
+          <tr className="border-b border-border text-muted-foreground text-left">
+            {table.columns.map((c) => (
+              <th key={c.name} className="py-1 px-2 font-medium">
+                {c.name}{c.unit ? ` (${c.unit})` : ''}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.groups ? (
+            table.groups.map((group) => (
+              <React.Fragment key={group.key}>
+                <tr className="bg-muted/40 font-semibold border-b border-border/60">
+                  <td colSpan={table.columns.length} className="py-1 px-2">
+                    {group.label}
+                  </td>
+                </tr>
+                {group.rows.map((row, i) => (
+                  <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
+                    {table.columns.map((c) => (
+                      <td key={c.name} className="py-1 px-2 whitespace-nowrap">
+                        {String(row[c.name] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))
+          ) : (
+            table.rows.map((row, i) => (
+              <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
+                {table.columns.map((c) => (
+                  <td key={c.name} className="py-1 px-2 whitespace-nowrap">
+                    {String(row[c.name] ?? '')}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ThingList({ result }: { result: any }) {
+  const items = result.notes?.length ? result.notes : result.blocks?.length ? result.blocks : result.efforts?.length ? result.efforts : result.runs ?? [];
+  return (
+    <div className="h-full overflow-auto space-y-1" data-testid="thing-list">
+      {items.map((item: any, i: number) => (
+        <div key={item.id ?? item.resultId ?? i} className="py-1 px-2 text-xs border-b border-border/40 truncate">
+          {item.title ?? item.label ?? item.noteTitle ?? item.id ?? item.resultId}
+        </div>
+      ))}
     </div>
   );
 }

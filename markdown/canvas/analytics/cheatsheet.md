@@ -29,7 +29,7 @@ One page, every WQL construct. Copy the query pattern, plug in your metrics, and
 |---|---|---|---|
 | `totalVolume` | Base | kg / lb | `sum:totalVolume{discipline:strength}` |
 | `totalReps` | Base | reps | `sum:totalReps{} by {effort}` |
-| `sessionLoad` | Base | AU | `sum:sessionLoad{} by {week}.rollup(1w)` |
+| `sessionLoad` | Base | AU | `sum:sessionLoad{} by {week}` |
 | `tis` | Base | pts | `avg:tis{}` |
 | `totalDistance` | Base | m / km / mi | `sum:totalDistance{discipline:running}` |
 | `calc.acwr` | Calculated | ratio | `avg:calc.acwr{}` |
@@ -44,7 +44,7 @@ One page, every WQL construct. Copy the query pattern, plug in your metrics, and
 |---|---|---|---|
 | `find:note` | `journal` | Search personal user notes | `find:note{tags:pr,source:journal}` |
 | `find:note` | `collections` | Search Catalog sessions | `find:note{effort:fran,source:collections}` |
-| `find:block` | `all` | Search fenced blocks across all sources | `find:block{text:amrap,source:all} last 4w` |
+| `find:block` | `all` | Search fenced blocks across all sources | `find:block{text:amrap} last 4w` |
 
 ### Filters {#filters}
 
@@ -64,7 +64,7 @@ One page, every WQL construct. Copy the query pattern, plug in your metrics, and
 
 ````time
 ```query
-sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+sum:totalVolume{discipline:strength} by {week}
 ```
 ````
 
@@ -74,7 +74,7 @@ Widget type and grid span ride the fence-tag suffix (#899):
 
 ````time
 ```query:timeseries-2
-sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+sum:totalVolume{discipline:strength} by {week}
 ```
 ````
 
@@ -103,7 +103,7 @@ avg:tis{}
 Is training polarized?
 
 ```query:stacked-bar
-sum:sessionLoad{intensity:$intensity} by {week}.rollup(1w)
+sum:sessionLoad{intensity:$intensity} by {week}
 ```
 ````
 

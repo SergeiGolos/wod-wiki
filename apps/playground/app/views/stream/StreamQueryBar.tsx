@@ -44,7 +44,7 @@ const SOURCE_DOT: Record<string, string> = {
   blocks: '#A87040',
   efforts: '#948030',
   metrics: '#5980A8',
-  rows: '#A05858',
+  session: '#A05858',
 }
 
 // SOURCE_OPTIONS (ui package) covers the classic planes; the playground
@@ -53,6 +53,11 @@ const SOURCE_DOT: Record<string, string> = {
 const SOURCE_LABEL: Record<string, string> = {
   ...Object.fromEntries(SOURCE_OPTIONS.map((o) => [o.value, o.label])),
   playground: 'Playground',
+  // wqlEdits.sourceOfQuery returns these plural scope keys for the content plane.
+  notes: 'All Notes',
+  blocks: 'Blocks',
+  efforts: 'Efforts',
+  metrics: 'Metrics',
 }
 
 function windowLabel(w: QueryWindow): string {

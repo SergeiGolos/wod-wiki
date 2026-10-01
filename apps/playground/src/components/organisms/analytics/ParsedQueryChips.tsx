@@ -1,5 +1,5 @@
 import type { AnyParsedQuery, QueryWindow } from '@bitcobblers/wod-wiki-engine';
-import { isAggregateQuery, isFindQuery, isRowsQuery } from '@bitcobblers/wod-wiki-engine';
+import { isAggregateQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 
 interface ChipProps {
@@ -88,15 +88,6 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
     );
   }
 
-  if (isRowsQuery(parsed)) {
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        <Chip label="rows" value={parsed.outputType ?? 'all'} className="text-blue-400 dark:text-blue-300" />
-        {filterChips}
-        {windowChip}
-      </div>
-    );
-  }
 
   return null;
 }

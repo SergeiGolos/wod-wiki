@@ -25,7 +25,7 @@
  *     comparison regex's plain-decimal domain.
  */
 
-import type { AnyParsedQuery, MetricPredicate, ParsedAggregateQuery, ParsedFindQuery, ParsedRowsQuery, QueryWindow, TagFilter } from './wql';
+import type { AnyParsedQuery, MetricPredicate, ParsedAggregateQuery, ParsedFindQuery, QueryWindow, TagFilter } from './wql';
 
 /** Quote a filter value unless it fits the grammar's bare forms — a `Word`
  * (`[a-zA-Z0-9_-]+`) or a catalog-id `Word:Word`. Quoted phrases
@@ -75,11 +75,7 @@ function serializeFindHead(f: ParsedFindQuery): string {
   return serializeFindHalf(f.target, f.filters);
 }
 
-/** `rows:<target>{filters}` — `all` when the AST has no outputType
- * narrowing (parse normalizes `rows:all` back to undefined). */
-function serializeRowsHead(r: ParsedRowsQuery): string {
-  return `rows:${r.outputType ?? 'all'}{${serializeFilters(r.filters)}}`;
-}
+
 /** Window clause (C1): `last 8w` or `from 2026-01-01 [to 2026-03-31]`.
  * Returns '' when the AST has no window. */
 function serializeWindow(w: QueryWindow | undefined): string {
@@ -104,15 +100,27 @@ export function serialize(parsed: AnyParsedQuery): string {
   }
   if (parsed.family === 'find') {
     const parts = [serializeFindHead(parsed), serializeWindow(parsed.window)];
+    if (parsed.groupBy?.length) parts.push(`by {${parsed.groupBy.join(', ')}}`);
+    if (parsed.displayUnit) parts.push(`in ${parsed.displayUnit}`);
     if (parsed.join) parts.push(`where ${serializeMetricHalf(parsed.join)}`);
-    return parts.filter(Boolean).join(' ');
+    let text = parts.filter(Boolean).join(' ');
+    if (parsed.pipes) {
+      const pipeParts: string[] = [];
+      if (parsed.pipes.select) {
+        pipeParts.push(`select ${parsed.pipes.select.map((s) => s.col + (s.unit ? ` in ${s.unit}` : '')).join(', ')}`);
+      }
+      if (parsed.pipes.order) {
+        pipeParts.push(`order by ${parsed.pipes.order.map((o) => o.dir === 'desc' ? `${o.col} desc` : o.col).join(', ')}`);
+      }
+      if (parsed.pipes.limit !== undefined) {
+        pipeParts.push(`limit ${parsed.pipes.limit}${parsed.pipes.offset ? ` offset ${parsed.pipes.offset}` : ''}`);
+      }
+      if (pipeParts.length > 0) {
+        text += ` | ${pipeParts.join(' | ')}`;
+      }
+    }
+    return text;
   }
-  if (parsed.family === 'rows') {
-    const win = serializeWindow(parsed.window);
-    return [serializeRowsHead(parsed), win].filter(Boolean).join(' ');
-  }
-  // Defensive only — the C5 union is exhaustive (unreachable for typed
-  // callers); a cross-version object with an unknown family echoes `raw`.
   const unhandled = parsed as { raw?: string };
   return unhandled.raw ?? '';
 }

@@ -20,21 +20,21 @@ last:elapsed{tags:benchmark} by {effort}
 Closing on the goal time?
 
 ```query:timeseries
-last:elapsed{effort:fran} by {week}.rollup(1w)
+last:elapsed{effort:fran} by {week}
 ```
 
 ## Work capacity
 Total reps per week rising?
 
 ```query:timeseries
-sum:totalReps{} by {week}.rollup(1w)
+sum:totalReps{} by {week}
 ```
 
 ## Session intensity
 Pacing even or blowing up late?
 
 ```query:bar
-sum:tis{} by {session}.rollup(1d)
+sum:tis{} by {session, day}
 ```
 
 ## Training consistency

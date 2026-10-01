@@ -47,17 +47,14 @@ describe('@bitcobblers/wod-wiki-engine re-exports', () => {
     expect(engine.QueryService).toBeDefined();
     expect(engine.parseQuery).toBeDefined();
     expect(engine.isFindQuery).toBeDefined();
-    expect(engine.isRowsQuery).toBeDefined();
     expect(engine.isAggregateQuery).toBeDefined();
     expect(engine.WQL_AGGREGATORS).toBeDefined();
     expect(engine.WQL_TAG_KEYS).toBeDefined();
     expect(engine.WQL_CALC_TARGETS).toBeDefined();
     expect(engine.WQL_FIND_TARGETS).toBeDefined();
     expect(engine.WQL_RESULT_PLANES).toBeDefined();
-    expect(engine.WQL_ROWS_TARGETS).toBeDefined();
     // Language train (C1-C7) surface — guarded after 0.10.41 shipped without it.
     expect(engine.WQL_SOURCE_VALUES).toBeDefined();
-    expect(engine.WQL_ROWS_SCOPE_KEYS).toBeDefined();
     expect(engine.normalizeWql).toBeDefined();
     expect(engine.serialize).toBeDefined();
     expect(engine.buildDashboardDocument).toBeDefined();

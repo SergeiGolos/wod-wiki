@@ -43,7 +43,7 @@ describe('sample analytics dataset', () => {
 
   it('includes intensity tiers on load and volume facts', async () => {
     const query = queryService(service);
-    const intensity = await query.runQuery('sum:sessionLoad{} by {intensity}.rollup(1w)');
+    const intensity = await query.runQuery('sum:sessionLoad{} by {intensity, week}');
 
     expect(intensity.series.length).toBeGreaterThan(0);
     const labels = intensity.series.map((s) => s.label);

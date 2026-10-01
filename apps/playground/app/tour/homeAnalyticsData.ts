@@ -23,8 +23,8 @@ const ts = (weeksAgo: number) => NOW - weeksAgo * WEEK;
 /** The six showcase widgets, keyed for live execution. */
 export const HOME_ANALYTICS_QUERIES: AnalyticsQueryDef[] = [
   { key: 'repsByEffort', query: 'sum:totalReps{} by {effort} last 6w' },
-  { key: 'weeklyVolume', query: 'sum:totalVolume{} by {week}.rollup(1w) last 6w' },
-  { key: 'loadByIntensity', query: 'sum:sessionLoad{} by {intensity}.rollup(1w) last 6w' },
+  { key: 'weeklyVolume', query: 'sum:totalVolume{} by {week} last 6w' },
+  { key: 'loadByIntensity', query: 'sum:sessionLoad{} by {intensity, week} last 6w' },
   { key: 'volumeByEffort', query: 'sum:totalVolume{discipline:strength} by {effort} last 6w' },
   { key: 'avgTis', query: 'avg:tis{} last 6w' },
   { key: 'totalVolume', query: 'sum:totalVolume{} last 6w' },
@@ -57,8 +57,8 @@ const repsByEffort: QueryResult = {
 const weeklyVolume: QueryResult = {
   parsed: {
     family: 'aggregate',
-    raw: 'sum:totalVolume{} by {week}.rollup(1w) last 6w',
-    agg: 'sum', metric: 'totalVolume', filters: [], groupBy: ['week'], rollup: { size: 1, unit: 'w' }, window: { kind: 'relative', size: 6, unit: 'w' },
+    raw: 'sum:totalVolume{} by {week} last 6w',
+    agg: 'sum', metric: 'totalVolume', filters: [], groupBy: ['week'], window: { kind: 'relative', size: 6, unit: 'w' },
   },
   series: [{
     key: 'totalVolume', label: 'Total volume',
@@ -75,8 +75,8 @@ const weeklyVolume: QueryResult = {
 const loadByIntensity: QueryResult = {
   parsed: {
     family: 'aggregate',
-    raw: 'sum:sessionLoad{} by {intensity}.rollup(1w) last 6w',
-    agg: 'sum', metric: 'sessionLoad', filters: [], groupBy: ['intensity'], rollup: { size: 1, unit: 'w' }, window: { kind: 'relative', size: 6, unit: 'w' },
+    raw: 'sum:sessionLoad{} by {intensity, week} last 6w',
+    agg: 'sum', metric: 'sessionLoad', filters: [], groupBy: ['intensity', 'week'], window: { kind: 'relative', size: 6, unit: 'w' },
   },
   series: [
     { key: 'low', label: 'low', points: [{ ts: ts(3), value: 120 }, { ts: ts(2), value: 140 }, { ts: ts(1), value: 110 }, { ts: ts(0), value: 160 }] },

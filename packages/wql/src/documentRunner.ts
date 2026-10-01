@@ -198,24 +198,15 @@ export class QueryDocumentRunner {
         const evaluate = async (assignment: DocumentAssignment): Promise<void> => {
             if (assignment.kind === 'query') {
                 const merged = this.mergeDefaults(assignment, doc);
-                // Ticket 19 family dispatch: rows/find never aggregate.
+                // Family dispatch: find/table nouns never aggregate.
                 const parsedFamily = assignment.parsed?.family;
-                if (parsedFamily === 'rows') {
-                    const rowsRun = await this.options?.runRows?.(merged.queryText);
-                    const output: DocumentOutput = {
-                        name: assignment.name,
-                        kind: 'rows',
-                        ...(rowsRun?.table ? { table: rowsRun.table as DocumentOutput['table'] } : {}),
-                        ...(rowsRun?.error ? { error: rowsRun.error } : {}),
-                    };
-                    outputs.push(output);
-                    return;
-                }
                 if (parsedFamily === 'find') {
                     const findRun = await this.options?.runFind?.(merged.queryText);
                     outputs.push({
                         name: assignment.name,
                         kind: 'find',
+                        ...(findRun && 'table' in findRun ? { table: (findRun as any).table } : {}),
+                        ...(findRun && 'runs' in findRun ? { runs: (findRun as any).runs } : {}),
                         ...(findRun?.error ? { error: findRun.error } : {}),
                     });
                     return;

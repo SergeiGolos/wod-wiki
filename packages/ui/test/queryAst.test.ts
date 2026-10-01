@@ -47,19 +47,19 @@ describe('wqlToPills — restore via parseQuery', () => {
     expect(pill(pills, 'tag')).toHaveLength(1);
   });
 
-  it('restores blocks/efforts targets to their source values', () => {
-    expect(pill(wqlToPills('find:block{text:"air squats"}'), 'source')[0]?.value).toBe('blocks');
-    expect(pill(wqlToPills('find:effort{discipline:kettlebell}'), 'source')[0]?.value).toBe('efforts');
+  it('restores block/effort targets to their noun values', () => {
+    expect(pill(wqlToPills('find:block{text:"air squats"}'), 'source')[0]?.value).toBe('block');
+    expect(pill(wqlToPills('find:effort{discipline:kettlebell}'), 'source')[0]?.value).toBe('effort');
   });
 
   it('restores the metrics plane — agg, metric, filters, dims, rollup, unit', () => {
-    const pills = wqlToPills('sum:totalVolume{discipline:strength} by {week}.rollup(1w) in kg');
+    const pills = wqlToPills('sum:totalVolume{discipline:strength} by {week}.rollup(2w) in kg');
     expect(pill(pills, 'source')[0]?.value).toBe('metrics');
     expect(pill(pills, 'agg')[0]?.value).toBe('sum');
     expect(pill(pills, 'metric')[0]?.value).toBe('totalVolume');
     expect(pill(pills, 'discipline')[0]?.value).toBe('strength');
     expect(pill(pills, 'groupby')[0]?.value).toBe('week');
-    expect(pill(pills, 'rollup')[0]?.value).toBe('1w');
+    expect(pill(pills, 'rollup')[0]?.value).toBe('2w');
     expect(pill(pills, 'unit')[0]?.value).toBe('kg');
   });
 
@@ -68,10 +68,9 @@ describe('wqlToPills — restore via parseQuery', () => {
     expect(pill(pills, 'time')[0]?.value).toBe('last 6w');
   });
 
-  it('restores the rows plane — source, output, scope filters, window', () => {
-    const pills = wqlToPills('rows:segment{result:abc-123} last 4w');
-    expect(pill(pills, 'source')[0]?.value).toBe('rows');
-    expect(pill(pills, 'output')[0]?.value).toBe('segment');
+  it('restores the session plane — source noun, scope filters, window', () => {
+    const pills = wqlToPills('find:session{result:abc-123} last 4w');
+    expect(pill(pills, 'source')[0]?.value).toBe('session');
     expect(pill(pills, 'result')[0]?.value).toBe('abc-123');
     expect(pill(pills, 'time')[0]?.value).toBe('last 4w');
   });
@@ -103,13 +102,13 @@ describe('pillsToWql — emit via the serializer', () => {
     'find:block{text:"air squats",!source:feeds}', // negated source — pillsToWql drops nothing, see below
     'find:effort{discipline:kettlebell,intensity:high}',
     'find:note{source:journal} where sum:totalVolume{discipline:strength} > 5000',
-    'sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w) last 6w',
+    'sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(2w) last 6w',
     'avg:tis{effort:back*} by {session}',
     'max:resistance{effort:back-squat} in kg',
     'sum:totalVolume{} by {week} where find:note{tags:competition,source:journal}',
-    'rows:all{result:abc123}',
-    'rows:segment{block:content-id-xyz}',
-    'rows:all{note:note-uuid} last 4w',
+    'find:session{result:abc123}',
+    'find:segment{block:content-id-xyz}',
+    'find:session{note:note-uuid} last 4w',
   ];
 
   for (const wql of cases) {
@@ -151,11 +150,10 @@ describe('pivotPills', () => {
     expect(pill(pivoted, 'effort')[0]?.value).toBe('back-squat');
   });
 
-  it('pivots to rows keeping scope-expressible filters', () => {
+  it('pivots to session keeping scope-expressible filters', () => {
     const pills = wqlToPills('find:note{note:note-uuid} last 4w')!;
-    const pivoted = pivotPills(pills, 'rows');
-    expect(pill(pivoted, 'source')[0]?.value).toBe('rows');
-    expect(pill(pivoted, 'output')[0]?.value).toBe('all');
+    const pivoted = pivotPills(pills, 'session');
+    expect(pill(pivoted, 'source')[0]?.value).toBe('session');
     expect(pill(pivoted, 'note')[0]?.value).toBe('note-uuid');
   });
 });
@@ -210,8 +208,8 @@ describe('non-expressible provenance states reject honestly', () => {
     expect(wqlToPills('find:effort{source:journal}')).toBeNull();
   });
 
-  it('rejects a source: filter on rows (the source pill is the plane selector)', () => {
-    expect(wqlToPills('rows:all{source:journal,result:abc-123}')).toBeNull();
+  it('rejects a source: filter on session (the source pill is the noun selector)', () => {
+    expect(wqlToPills('find:session{source:journal,result:abc-123}')).toBeNull();
   });
 });
 

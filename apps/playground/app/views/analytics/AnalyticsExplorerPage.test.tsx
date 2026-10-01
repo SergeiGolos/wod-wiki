@@ -327,13 +327,13 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('hydrates the composer from ?q= and runs the query', async () => {
-    renderPage('sum:totalVolume{discipline:strength} by {week}.rollup(1w)');
+    renderPage('sum:totalVolume{discipline:strength} by {week}');
 
     expect(screen.getByTestId('token-slot-source').textContent).toContain('metrics');
     expect(screen.getByTestId('token-slot-metric').textContent).toContain('totalVolume');
     expect(screen.getByTestId('token-slot-discipline').textContent).toContain('strength');
 
-    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{discipline:strength} by {week}.rollup(1w)'));
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{discipline:strength} by {week}'));
   });
 
   it('updates parsed chips while editing before running the query', async () => {
@@ -356,17 +356,17 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('runs on submit only: edits do not re-run, Run Query runs the current draft', async () => {
-    renderPage('sum:totalVolume{discipline:strength} by {week}.rollup(1w)');
-    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{discipline:strength} by {week}.rollup(1w)'));
+    renderPage('sum:totalVolume{discipline:strength} by {week}');
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{discipline:strength} by {week}'));
 
     // Edit the draft (remove the discipline filter) — no page run may follow.
     fireEvent.click(screen.getByTestId('token-slot-remove-discipline'));
     await waitFor(() => expect(screen.getByTestId('token-slot-metric')).toBeDefined());
-    expect(pageRuns()).not.toContain('sum:totalVolume{} by {week}.rollup(1w)');
+    expect(pageRuns()).not.toContain('sum:totalVolume{} by {week}');
 
     // Submit via the Run button — the page runs the edited draft.
     fireEvent.click(screen.getByTestId('run-query'));
-    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{} by {week}.rollup(1w)'));
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{} by {week}'));
   });
 
   it('restores composer state on browser back and re-runs the restored query', async () => {
@@ -387,7 +387,7 @@ describe('AnalyticsExplorerPage', () => {
 
     // …and re-runs what it restored.
     await waitFor(() => expect(pageRuns().length).toBeGreaterThan(runsBeforeBack));
-    expect(pageRuns()[pageRuns().length - 1]).toBe('sum:totalVolume{discipline:strength} by {week}.rollup(1w)');
+    expect(pageRuns()[pageRuns().length - 1]).toBe('sum:totalVolume{discipline:strength} by {week}');
   });
 
   it('meta-line metric chip selection populates the composer and submits', async () => {

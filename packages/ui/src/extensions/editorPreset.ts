@@ -50,6 +50,9 @@ export interface EditorPresetOptions {
   /** Injected field catalog (ticket 15) — catalog-backed typeahead for wql
    *  editors. The app supplies it; this package never opens storage. */
   catalog?: IFieldCatalog;
+  /** Dynamic typed-tag filter values (`domain:`/`format:`/`equipment:`/
+   *  `quality:`/`intent:`) for wql editors — host reads its tags store. */
+  tagTypeValues?: (key: string) => Promise<readonly string[]> | readonly string[];
   extensions?: Extension[];
 }
 
@@ -71,6 +74,7 @@ export function editorPreset(optionsOrDialect: string | EditorPresetOptions = 'm
     executor,
     onResultSaved,
     catalog,
+    tagTypeValues,
     extensions: extraExtensions = [],
   } = options;
 
@@ -100,7 +104,10 @@ export function editorPreset(optionsOrDialect: string | EditorPresetOptions = 'm
   }
 
   if (dialect === 'wql') {
-    const completionOptions = catalog ? { catalog } : {};
+    const completionOptions = {
+      ...(catalog ? { catalog } : {}),
+      ...(tagTypeValues ? { tagTypeValues } : {}),
+    };
     extensions.push(wql(completionOptions));
   } else if (dialect === 'wod' || dialect === 'whiteboard' || dialect === 'time') {
     extensions.push(

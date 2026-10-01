@@ -43,7 +43,6 @@ export {
   WQL_CALC_TARGETS,
   WQL_FIND_TARGETS,
   WQL_RESULT_PLANES,
-  WQL_ROWS_TARGETS,
   WQL_SOURCE_VALUES,
   WQL_CONTENT_FILTER_KEYS,
   WQL_AGGREGATORS,
@@ -102,6 +101,14 @@ export interface WqlCompletionOptions {
    */
   effortNames?: () => readonly string[];
   /**
+   * Dynamic values for the frontmatter typed-tag filters (`{domain:…}`,
+   * `{format:…}`, `{equipment:…}`, `{quality:…}`, `{intent:…}`) — fed from
+   * the tags store's `by-type` index:
+   * `async key => (await storage.getAllFromIndex('tags', 'by-type', key)).map(t => t.label)`.
+   * Absent or empty results fall through to catalog discovery.
+   */
+  tagTypeValues?: (key: string) => Promise<readonly string[]> | readonly string[];
+  /**
    * Injected field catalog (ticket 15): discovered typed variants join the
    * static metric vocabulary, and categorical values back filter-value
    * suggestions for discovered fields. Bounded prefix lookups only — the
@@ -123,7 +130,7 @@ function options(labels: readonly (string | Completion)[]): Completion[] {
 }
 
 export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
-  const { effortNames, catalog } = options_;
+  const { effortNames, tagTypeValues, catalog } = options_;
 
   /** Discovered typed variants for the typed metric word — bounded lookup. */
   const catalogMetricOptions = async (typed: string): Promise<Completion[]> => {
@@ -165,7 +172,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     ];
   };
 
-  const tagValueOptions = (key: string): Completion[] | null => {
+  const tagValueOptions = (key: string): Completion[] | Promise<Completion[] | null> | null => {
     switch (key) {
       case 'effort': return options(effortNames?.() ?? []);
       case 'discipline': return options(EFFORT_DISCIPLINES);
@@ -173,6 +180,14 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       case 'grain': return options(WQL_GRAINS);
       case 'metric': return metricOptions();
       case 'source': return options(WQL_SOURCE_VALUES);
+      case 'domain':
+      case 'format':
+      case 'equipment':
+      case 'quality':
+      case 'intent': {
+        if (!tagTypeValues) return null;
+        return Promise.resolve(tagTypeValues(key)).then((values) => (values.length ? options(values) : null));
+      }
       default: return null; // note/page/block/result/tags — free-form
     }
   };
@@ -198,7 +213,14 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       }
       const key = filterText.slice(0, colonIndex).replace(/^!/, '').trim();
       const valueOptions = tagValueOptions(key);
-      if (valueOptions) return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
+      if (valueOptions) {
+        if (valueOptions instanceof Promise) {
+          return valueOptions.then((resolved) => (
+            resolved ? { from: word.from, options: resolved, validFor: /^[\w*-]*$/ } : null
+          ));
+        }
+        return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
+      }
       // Discovered categorical fields back filter-value suggestions
       // (original spellings — ticket 15).
       if (catalog) {

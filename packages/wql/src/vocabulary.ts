@@ -29,9 +29,14 @@ export type WqlAggregator = (typeof WQL_AGGREGATORS)[number];
 export const WQL_COMPARISON_OPS = ['>', '>=', '<', '<=', '==', '!='] as const;
 export type WqlComparisonOp = (typeof WQL_COMPARISON_OPS)[number];
 
+/** Frontmatter typed-tag keys (CONTEXT.md § Tags) — values are dynamic,
+ *  backed by the host's tags store (`by-type` index), not a static enum. */
+export const WQL_TYPED_TAG_KEYS = ['domain', 'format', 'equipment', 'quality', 'intent'] as const;
+export type WqlTypedTagKey = (typeof WQL_TYPED_TAG_KEYS)[number];
+
 /** Tag keys the Query Service reads off a fact row (QueryService.factTagValue). */
 export const WQL_TAG_KEYS = [
-  'domain', 'format', 'equipment', 'quality', 'intent',
+  ...WQL_TYPED_TAG_KEYS,
   'effort', 'discipline', 'intensity', 'grade', 'note', 'page', 'origin',
   'grain', 'metric', 'block', 'result', 'tags',
 ] as const;
@@ -97,13 +102,11 @@ export const WQL_GRAINS = ['summary', 'event'] as const;
 export type WqlGrain = (typeof WQL_GRAINS)[number];
 
 /** Content-discovery query targets (find:<target>). */
-export const WQL_FIND_TARGETS = ['note', 'block', 'effort', 'page'] as const;
+export const WQL_FIND_TARGETS = ['note', 'block', 'effort', 'session', 'segment', 'event'] as const;
 export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 
-/** Canonical source filter values (C2): scope folded into the source: filter key.
- *  `playground` scopes to persisted playground entries (sourceId 'playground',
- *  playground-intake convention) — excluded from `journal`/`collections`/`feeds`. */
-export const WQL_SOURCE_VALUES = ['journal', 'collections', 'feeds', 'guides', 'playground', 'page', 'pages', 'all'] as const;
+/** Canonical source filter values: exactly the 5 allowed storage locations. */
+export const WQL_SOURCE_VALUES = ['journal', 'collections', 'feeds', 'guides', 'playground'] as const;
 export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
 
 
@@ -115,17 +118,6 @@ export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
  *  stay addressable programmatically via hand-built ASTs. */
 export const WQL_RESULT_PLANES = KNOWN_OUTPUT_TYPES;
 export type WqlResultPlane = (typeof WQL_RESULT_PLANES)[number];
-
-/** All `rows:` targets — content planes plus result planes (rows model
- *  §1.0: every query selects rows from a target) plus `all`, the explicit
- *  no-narrowing pseudo-target (spec v2 decision 1: the bare `rows:{…}`
- *  alias retires). Content-plane targets scope by content, not outputType
- *  (C4). */
-export const WQL_ROWS_TARGETS = [...WQL_FIND_TARGETS, ...WQL_RESULT_PLANES, 'all'] as const;
-export type WqlRowsTarget = (typeof WQL_ROWS_TARGETS)[number];
-
-/** Rows scope filter keys (C4): the exact-match keys a rows query filters by. */
-export const WQL_ROWS_SCOPE_KEYS = ['result', 'block', 'note'] as const;
 
 /** Content-specific filter keys (beyond the analytics tag keys). */
 export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', 'catalog', ...WQL_TAG_KEYS] as const;
@@ -140,11 +132,11 @@ export type WqlContentFilterKey = (typeof WQL_CONTENT_FILTER_KEYS)[number];
  * deliberately absent — it needs new grammar/engine semantics and is
  * deferred to its own ticket.
  */
-export const WQL_SOURCES = ['journal', 'collections', 'feeds', 'notes', 'blocks', 'efforts', 'metrics'] as const;
+export const WQL_SOURCES = ['note', 'block', 'effort', 'session', 'segment', 'event'] as const;
 export type WqlSource = (typeof WQL_SOURCES)[number];
 
-/** Rollup periods the aggregate grammar accepts (wql.ts: unit d|w only). */
-export const WQL_ROLLUP_PERIODS = ['1d', '1w'] as const;
+/** Rollup periods the aggregate grammar accepts (wql.ts: N > 1, unit d|w). */
+export const WQL_ROLLUP_PERIODS = ['2w', '4w'] as const;
 export type WqlRollupPeriod = (typeof WQL_ROLLUP_PERIODS)[number];
 
 /** Display units the app can render (analytics unit preference, kg/lb). The

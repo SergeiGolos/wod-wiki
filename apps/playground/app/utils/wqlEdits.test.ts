@@ -25,9 +25,9 @@ describe('sourceOfQuery', () => {
     expect(sourceOfQuery('find:effort{discipline:kettlebell}')).toBe('efforts');
   });
 
-  it('reads the metrics and rows planes', () => {
+  it('reads the metrics and session planes', () => {
     expect(sourceOfQuery('sum:totalVolume{} by {week}')).toBe('metrics');
-    expect(sourceOfQuery('rows:all{result:abc-123}')).toBe('rows');
+    expect(sourceOfQuery('find:session{result:abc-123}')).toBe('session');
   });
 
   it('falls back to notes for unparseable text', () => {

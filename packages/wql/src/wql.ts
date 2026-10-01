@@ -3,7 +3,7 @@
  *
  *   <aggregator>:<metric.namespace>{<tag filters>} by {<dimensions>} .rollup(<period>)
  *
- *   sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+ *   sum:totalVolume{discipline:strength} by {week}
  *   avg:tis{effort:thruster,!discipline:recovery} by {session}
  *
  * This module holds the AST contract the Query Service executes and the
@@ -20,8 +20,6 @@ import {
   WQL_CONTENT_ONLY_KEYS,
   WQL_EFFORT_FILTER_KEYS,
   WQL_FIND_TARGETS,
-  WQL_ROWS_SCOPE_KEYS,
-  WQL_ROWS_TARGETS,
   WQL_SOURCE_VALUES,
   type WqlAggregator,
   WQL_TAG_KEYS,
@@ -163,7 +161,7 @@ export function buildDrillDownQuery(options: {
     const filterText = (options.filters ?? [])
         .map((f) => `${f.key}:${f.values.join('|')}`)
         .join(',');
-    parts.push(`rows:segment{${filterText}}`);
+    parts.push(`find:segment{${filterText}}`);
     if (options.startIso && options.endIso) parts.push(`from ${options.startIso} to ${options.endIso}`);
     else if (options.start !== undefined && options.end !== undefined && options.timeZone) {
         const fmt = (ts: number, tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ts);
@@ -185,6 +183,12 @@ export interface ParsedFindQuery {
   window?: QueryWindow;
   /** Cross-store metric join (`where sum:totalVolume{} > 5000`). */
   join?: MetricPredicate;
+  /** Presentation pipes (`| select … | order by … | limit …`). */
+  pipes?: RowsPipes;
+  /** Group-by dimensions (`by {effort}`). */
+  groupBy?: string[];
+  /** Optional display unit directive (`in kg` / `in lb`). */
+  displayUnit?: string;
   /** Deprecation advisories (C2 normalizer). */
   advisories?: string[];
   error?: string;
@@ -200,16 +204,11 @@ export type QueryWindow =
   | { kind: 'relative'; size: number; unit: 'd' | 'w' }
   | { kind: 'range'; start: string; end?: string };
 
-export type AnyParsedQuery = ParsedAggregateQuery | ParsedFindQuery | ParsedRowsQuery;
+export type AnyParsedQuery = ParsedAggregateQuery | ParsedFindQuery;
 
 /** Type guard: true for content-discovery queries. */
 export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
   return parsed.family === 'find';
-}
-
-/** Type guard: true for rows queries. */
-export function isRowsQuery(parsed: AnyParsedQuery): parsed is ParsedRowsQuery {
-  return parsed.family === 'rows';
 }
 
 /** Type guard: true for analytics (aggregate) queries. */
@@ -326,14 +325,42 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
  * (C5). Dispatch is textual: a leading `find:` routes to the content path,
  * `rows` to the rows path, everything else to analytics.
  */
+export function rowsParseError(raw: string): string {
+  const m = /^rows(?::(\w+))?\{([^}]*)\}/.exec(raw);
+  if (!m) {
+    return 'The "rows:" query family is retired — use find:session, find:segment, or find:event instead.';
+  }
+  const target = m[1] ?? 'all';
+  const inner = m[2].trim();
+  if (target === 'all' || ['note', 'block', 'effort', 'page'].includes(target)) {
+    return `rows:${target}{…} is retired — use find:session{${inner}} instead.`;
+  }
+  if (target === 'segment' && !inner.includes('result:') && !inner.includes('block:') && !inner.includes('note:')) {
+    return `rows:segment{…} is retired — use find:segment{${inner}} instead.`;
+  }
+  if (target === 'event') {
+    return `rows:event{…} is retired — use find:event{${inner}} instead.`;
+  }
+  const planePart = inner ? `${inner}, plane:${target}` : `plane:${target}`;
+  return `rows:${target}{…} is retired — use find:session{${planePart}} instead.`;
+}
+
 export function parseQuery(raw: string): AnyParsedQuery {
+  const trimmed = raw.trimStart();
+  if (/^rows(?=[:{]|\s|$)/.test(trimmed)) {
+    return {
+      family: 'find',
+      raw,
+      target: '',
+      filters: [],
+      error: rowsParseError(raw.trim()),
+    };
+  }
   const norm = normalizeWql(raw);
-  const trimmed = norm.query.trimStart();
+  const normalizedTrimmed = norm.query.trimStart();
   let result: AnyParsedQuery;
-  if (trimmed.startsWith('find:')) {
+  if (normalizedTrimmed.startsWith('find:')) {
     result = parseFindQuery(norm.query);
-  } else if (/^rows(?=[:{]|\s|$)/.test(trimmed)) {
-    result = parseRowsQuery(norm.query);
   } else {
     result = parseAnalyticsQuery(norm.query);
   }
@@ -346,7 +373,6 @@ export function parseQuery(raw: string): AnyParsedQuery {
 
 /**
  * C2 Compatibility normalizer: rewrites legacy query syntax into modern WQL.
- *   - Bare `rows:{…}` heads rewrite to `rows:all{…}`
  *   - Legacy trailing `in <scope>` rewrites into `{source:<scope>}`
  * Returns the normalized query string and any deprecation advisories.
  */
@@ -354,36 +380,27 @@ export function normalizeWql(raw: string): { query: string; advisories: string[]
   const advisories: string[] = [];
   let text = raw.trim();
 
-  // 1. Bare rows head rewrite
-  if (/^rows:?\s*[{]/.test(text)) {
-    text = text.replace(/^rows:?\s*[{]/, 'rows:all{');
-    advisories.push("Bare 'rows:{...}' syntax is deprecated; use 'rows:all{...}' instead.");
-  }
-
-  // 2. Legacy `in <scope>` on find: or rows:
   const { primary, where } = splitAtWhere(text);
   const isFind = primary.startsWith('find:');
-  const isRows = /^rows(?=[:{]|\s|$)/.test(primary);
-
-  if (isFind || isRows) {
+  if (isFind) {
     const suffixes = parseWqlSuffixes(primary);
     if (suffixes.legacyScope && !suffixes.conflicts?.length) {
       advisories.push("Legacy 'in <scope>' syntax is deprecated; use 'source:<scope>' filter instead.");
       const scope = suffixes.legacyScope;
       let head = suffixes.primaryText.trim();
-
-      const braceOpen = head.indexOf('{');
-      const braceClose = head.lastIndexOf('}');
-      if (braceOpen !== -1 && braceClose !== -1 && braceClose > braceOpen) {
-        const beforeBrace = head.slice(0, braceOpen + 1);
-        const inside = head.slice(braceOpen + 1, braceClose).trim();
-        const afterBrace = head.slice(braceClose);
-        const newInside = inside ? `${inside},source:${scope}` : `source:${scope}`;
-        head = `${beforeBrace}${newInside}${afterBrace}`;
-      } else {
-        head = `${head}{source:${scope}}`;
+      if (scope !== 'all') {
+        const braceOpen = head.indexOf('{');
+        const braceClose = head.lastIndexOf('}');
+        if (braceOpen !== -1 && braceClose !== -1 && braceClose > braceOpen) {
+          const beforeBrace = head.slice(0, braceOpen + 1);
+          const inside = head.slice(braceOpen + 1, braceClose).trim();
+          const afterBrace = head.slice(braceClose);
+          const newInside = inside ? `${inside},source:${scope}` : `source:${scope}`;
+          head = `${beforeBrace}${newInside}${afterBrace}`;
+        } else {
+          head = `${head}{source:${scope}}`;
+        }
       }
-
       const parts: string[] = [head];
       if (suffixes.groupBy) {
         parts.push(`by {${suffixes.groupBy.join(', ')}}`);
@@ -404,35 +421,6 @@ export function normalizeWql(raw: string): { query: string; advisories: string[]
   return { query: text, advisories };
 }
 
-// ── Rows query parsing (#949) ────────────────────────────────────
-
-function cannotParseRows(text: string): string {
-  return `Cannot parse "${text}". Expected rows:all{result:…|block:…|note:…}, rows:<plane>{…}, or rows:segment{…} last 8w`;
-}
-
-/**
- * Rows-only filter rules (C4), relaxed for the cross-workout form (ticket
- * 18): `rows:segment{<tag/metadata filters>}` is valid without any
- * result:/block:/note: scope — single-session `rows:all` and scoped forms
- * keep their existing behavior. No negation, no wildcards.
- */
-function validateRowsFilters(filters: TagFilter[], target: string): string | undefined {
-  const scopeKeys = new Set<string>(WQL_ROWS_SCOPE_KEYS);
-  const crossWorkout = target === 'segment';
-  const allowedKeys = new Set<string>([...WQL_ROWS_SCOPE_KEYS, 'source', ...(crossWorkout ? WQL_TAG_KEYS : [])]);
-  const unsupported = filters.filter(
-    (f) => !allowedKeys.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
-  );
-  if (unsupported.length > 0) {
-    const allowed = [...WQL_ROWS_SCOPE_KEYS, 'source', ...(crossWorkout ? WQL_TAG_KEYS : [])];
-    return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact ${allowed.map((k) => `${k}:`).join(', ')} values.`;
-  }
-  if (!crossWorkout && !filters.some((f) => scopeKeys.has(f.key))) {
-    return `Rows query needs a scope: ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')}.`;
-  }
-  return undefined;
-}
-
 /** Validate source: filter values against canonical sources and catalog literals (C2). */
 function validateSourceFilter(filters: TagFilter[]): string | undefined {
   const validSources = new Set<string>(WQL_SOURCE_VALUES);
@@ -440,6 +428,12 @@ function validateSourceFilter(filters: TagFilter[]): string | undefined {
     if (f.key !== 'source') continue;
     for (const v of f.values) {
       const val = v.value;
+      if (val === 'page' || val === 'pages') {
+        return `source:${val} is retired — page-ness is handled by type: (e.g. type:collection or source:guides).`;
+      }
+      if (val === 'all') {
+        return `source:all is retired — omit the source: filter to query all sources.`;
+      }
       if (
         validSources.has(val) ||
         val === 'collection' ||
@@ -455,132 +449,28 @@ function validateSourceFilter(filters: TagFilter[]): string | undefined {
   return undefined;
 }
 
-const BARE_ROWS_RETIRED = 'Bare "rows:" is retired — name a target: rows:all{…} for every output type, or a plane like rows:segment{…}.';
-
-/**
- * Parse a rows query (#949, C4 cutover). The whole primary text parses under
- * the shared Lezer grammar — the `Word colon Word` head fits `rows:<target>`
- * natively (ticket 001), so the synthetic `find:_` head is gone. The bare
- * `rows:{…}` alias is retired (spec v2 decision 1): a head without a target
- * errors with a migrate-to-`all` message; C2's normalizer rewrites stored
- * documents. `all` normalizes to no outputType narrowing.
- */
-function parseRowsQuery(raw: string): ParsedRowsQuery {
-  // Ticket 18 — pipe clauses ride the tail (`| select … | order by … |
-  // limit …`); they govern presentation only and are stripped before the
-  // language parses the query.
-  let pipes: RowsPipes | undefined;
-  // The first '|' OUTSIDE filter braces starts the pipe tail — an '|' inside
-  // `{result:a|b}` is an OR-value, not a pipe.
+/** Extract pipe clauses (| select … | order by … | limit …) outside braces. */
+function extractPipes(raw: string): { text: string; pipes?: RowsPipes } {
   let pipeIndex = -1;
-  {
-    let depth = 0;
-    for (let i = 0; i < raw.length; i++) {
-      const ch = raw[i];
-      if (ch === '{') depth++;
-      else if (ch === '}') depth = Math.max(0, depth - 1);
-      else if (ch === '|' && depth === 0) {
-        pipeIndex = i;
-        break;
-      }
+  let depth = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch === '{') depth++;
+    else if (ch === '}') depth = Math.max(0, depth - 1);
+    else if (ch === '|' && depth === 0) {
+      pipeIndex = i;
+      break;
     }
   }
   if (pipeIndex !== -1) {
     const pipeText = raw.slice(pipeIndex + 1);
-    raw = raw.slice(0, pipeIndex).trimEnd();
-    pipes = parseRowsPipes(pipeText);
+    const text = raw.slice(0, pipeIndex).trimEnd();
+    const pipes = parseRowsPipes(pipeText);
+    return { text, pipes };
   }
-  const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, window: windowSuffix, legacyScope, groupBy, rollup, primaryText } = suffixes;
-  const win = toQueryWindow(windowSuffix);
-  const advisories: string[] = [];
-  if (legacyScope) {
-    advisories.push("Legacy 'in <scope>' syntax is deprecated; use 'source:<scope>' filter instead.");
-  }
-  const result: ParsedRowsQuery = {
-    family: 'rows',
-    raw,
-    filters: [],
-    window: win.window,
-    ...(advisories.length ? { advisories } : {}),
-  };
-  if (win.error) {
-    result.error = win.error;
-    return result;
-  }
-  if (pipes?.error) {
-    result.error = pipes.error;
-    return result;
-  }
-  if (pipes) result.pipes = pipes;
-  if (suffixes.conflicts?.length) {
-    result.error = suffixes.conflicts.join('; ');
-    return result;
-  }
-  if (whereText || groupBy || rollup) {
-    result.error = `Rows queries return raw statements — no where / by / rollup. Got "${primaryText.trim()}"`;
-    return result;
-  }
-
-  const text = primaryText.trim();
-  // The bare alias is structurally ungrammatical (ticket 001: Word ∩ By),
-  // so it surfaces as a syntax error — intercept it first for the
-  // migrate-to-`all` message instead of a generic cannot-parse.
-  if (/^rows:?\s*[{]?$/.test(text) || /^rows:?\s*[{]/.test(text)) {
-    result.error = BARE_ROWS_RETIRED;
-    return result;
-  }
-  const tree = wqlParser.parse(text);
-  let syntaxError = false;
-  tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
-  if (syntaxError) {
-    result.error = cannotParseRows(text);
-    return result;
-  }
-
-  const query = tree.topNode;
-  const head = query.getChild(terms.Head);
-  const aggNode = head?.getChild(terms.Aggregator);
-  const metricNode = head?.getChild(terms.Metric);
-  if (!head || !aggNode || !metricNode) {
-    // A rows head without a target — the retired bare alias.
-    result.error = BARE_ROWS_RETIRED;
-    return result;
-  }
-  const aggText = text.slice(aggNode.from, aggNode.to);
-  if (aggText !== 'rows') {
-    result.error = cannotParseRows(text);
-    return result;
-  }
-
-  const target = text.slice(metricNode.from, metricNode.to);
-  // C7: closed plane enum — content planes, result planes (the store's
-  // known outputType values), and `all`. Custom stored types stay queryable
-  // via hand-built ASTs; the text surface reopens only with a registry
-  // decision.
-  if (!(WQL_ROWS_TARGETS as readonly string[]).includes(target)) {
-    result.error = `Unknown rows target "${target}". Try: ${WQL_ROWS_TARGETS.join(', ')}`;
-    return result;
-  }
-  result.target = target;
-  if (target !== 'all') result.outputType = target;
-
-  result.filters = extractFilters(query, text);
-  if (legacyScope) {
-    result.filters.push({
-      key: 'source',
-      negate: false,
-      values: [{ value: legacyScope, wildcard: false }],
-    });
-  }
-  const sourceError = validateSourceFilter(result.filters);
-  if (sourceError) { result.error = sourceError; return result; }
-  const grainError = retiredGrainRollup(result.filters);
-  if (grainError) { result.error = grainError; return result; }
-  const filterError = validateRowsFilters(result.filters, target);
-  if (filterError) { result.error = filterError; return result; }
-  return result;
+  return { text: raw };
 }
+
 
 /** True when `s` is a real civil date in YYYY-MM-DD form (rejects 02-30,
  *  month 13, etc. via Date component round-trip). */
@@ -679,9 +569,15 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   }
 
   // Validate rollup unit if a rollup suffix was present
-  if (rollup && rollup.unit !== 'd' && rollup.unit !== 'w') {
-    base.error = cannotParse(text);
-    return base;
+  if (rollup) {
+    if (rollup.unit !== 'd' && rollup.unit !== 'w') {
+      base.error = cannotParse(text);
+      return base;
+    }
+    if ((rollup.unit === 'd' || rollup.unit === 'w') && rollup.size === 1) {
+      base.error = `.rollup(1${rollup.unit}) is retired — use by {${rollup.unit === 'd' ? 'day' : 'week'}} instead.`;
+      return base;
+    }
   }
 
   const tree = wqlParser.parse(text);
@@ -753,8 +649,9 @@ function cannotParseFind(text: string): string {
 }
 
 function parseFindQuery(raw: string): ParsedFindQuery {
-  const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, window: windowSuffix, legacyScope, primaryText: text } = suffixes;
+  const { text: rawNoPipes, pipes } = extractPipes(raw);
+  const suffixes = parseWqlSuffixes(rawNoPipes);
+  const { where: whereText, window: windowSuffix, legacyScope, groupBy, displayUnit, primaryText: text } = suffixes;
   const win = toQueryWindow(windowSuffix);
   const advisories: string[] = [];
   if (legacyScope) {
@@ -766,10 +663,17 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     target: '',
     filters: [],
     window: win.window,
+    ...(pipes ? { pipes } : {}),
+    ...(groupBy ? { groupBy } : {}),
+    ...(displayUnit ? { displayUnit } : {}),
     ...(advisories.length ? { advisories } : {}),
   };
   if (win.error) {
     result.error = win.error;
+    return result;
+  }
+  if (pipes?.error) {
+    result.error = pipes.error;
     return result;
   }
   if (suffixes.conflicts?.length) {
@@ -802,6 +706,10 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   }
 
   result.target = text.slice(metricNode.from, metricNode.to);
+  if (result.target === 'page') {
+    result.error = 'find:page is retired — page-ness is handled by type: (e.g. find:note{source:guides} or type:collection).';
+    return result;
+  }
   // C7: closed target enum — unknown targets error at parse instead of
   // silently returning empty at runtime.
   if (!(WQL_FIND_TARGETS as readonly string[]).includes(result.target)) {
@@ -809,7 +717,7 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     return result;
   }
   result.filters = extractFilters(query, text);
-  if (legacyScope) {
+  if (legacyScope && legacyScope !== 'all') {
     result.filters.push({
       key: 'source',
       negate: false,

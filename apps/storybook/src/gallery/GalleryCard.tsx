@@ -15,7 +15,6 @@ import { Edit3 } from 'lucide-react';
 import {
   isAggregateQuery,
   isFindQuery,
-  isRowsQuery,
   parseQuery,
   parseQueryWidgetSuffix,
   type FindQueryResult,
@@ -171,7 +170,7 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
         if (parsed.error) {
           if (!cancelled) {
             setError(parsed.error);
-            if (isRowsQuery(parsed) || def.widgetType === 'rows' || isFindQuery(parsed) || def.widgetType === 'find') {
+            if (def.widgetType === 'rows' || isFindQuery(parsed) || def.widgetType === 'find') {
               setRowsResult(undefined);
               setFindResult(undefined);
               setResult(undefined);
@@ -186,16 +185,6 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
               setRowsResult(undefined);
               setFindResult(undefined);
             }
-          }
-          return;
-        }
-        if (isRowsQuery(parsed)) {
-          const r = await service.runRows(parsed);
-          if (!cancelled) {
-            setRowsResult(r);
-            setFindResult(undefined);
-            setResult(undefined);
-            setError(r.error);
           }
           return;
         }

@@ -46,7 +46,7 @@ export type ClauseType =
   | 'result'
   | 'block'
   | 'note'
-  | 'output';
+  | 'plane';
 
 export interface QueryClause {
   id: string;
@@ -63,7 +63,7 @@ export interface QueryClause {
 // ── Source planes ───────────────────────────────────────────────────────────
 
 /** Content sources compile `find:note in <scope>`; notes/blocks use `all`. */
-export const CONTENT_SOURCES = WQL_SOURCES.filter((s) => s !== 'metrics');
+export const CONTENT_SOURCES = WQL_SOURCES.filter((s) => (s as string) !== 'metrics');
 
 /** The plane a source value belongs to — everything but `metrics` is content. */
 export function sourcePlane(source: string): 'content' | 'metrics' {
@@ -98,12 +98,12 @@ export const EFFORT_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
   'origin',
 ]);
 
-/** Filter clause types valid for rows queries (rows:all, rows:segment). */
-export const ROWS_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
-  'output',
+/** Filter clause types valid for session/segment/event find queries. */
+export const SESSION_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
   'result',
   'block',
   'note',
+  'plane',
   'time',
 ]);
 
@@ -124,21 +124,19 @@ export const METRICS_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
 
 export function allowedFilterTypesForSource(source: string): ReadonlySet<ClauseType> {
   if (source === 'efforts') return EFFORT_FILTER_TYPES;
-  if (source === 'rows') return ROWS_FILTER_TYPES;
+  if (source === 'session' || source === 'segment' || source === 'event') return SESSION_FILTER_TYPES;
   if (source === 'metrics') return METRICS_FILTER_TYPES;
   return CONTENT_FILTER_TYPES;
 }
 // ── Options & Data Sources ──────────────────────────────────────────────────
 
 export const SOURCE_OPTIONS = [
-  { value: 'journal', label: 'Journal', description: 'Find notes in the personal journal' },
-  { value: 'collections', label: 'Collections', description: 'Find notes in workout catalogs' },
-  { value: 'feeds', label: 'Feeds', description: 'Find notes in subscribed feeds' },
-  { value: 'notes', label: 'All Notes', description: 'Find notes across every source' },
-  { value: 'blocks', label: 'Blocks', description: 'Find fenced workout/dashboard regions' },
-  { value: 'efforts', label: 'Efforts', description: 'Find registered efforts (bundled + custom)' },
-  { value: 'metrics', label: 'Metrics', description: 'Aggregate analytics facts' },
-  { value: 'rows', label: 'Sessions (rows)', description: 'Raw workout logs as per-round rows (#949)' },
+  { value: 'note', label: 'Note', description: 'Find notes across journal, collections, feeds' },
+  { value: 'block', label: 'Block', description: 'Find fenced workout/dashboard regions' },
+  { value: 'effort', label: 'Effort', description: 'Find registered movements and benchmarks' },
+  { value: 'session', label: 'Session', description: 'Find completed workout sessions' },
+  { value: 'segment', label: 'Segment', description: 'Cross-workout segment table' },
+  { value: 'event', label: 'Event', description: 'Telemetry events table' },
 ];
 
 export const TIME_OPTIONS = [
@@ -155,7 +153,7 @@ export const TIME_OPTIONS = [
 export const AGG_OPTIONS = WQL_AGGREGATORS.map((v) => ({ value: v, label: v }));
 export const ROLLUP_OPTIONS = WQL_ROLLUP_PERIODS.map((v) => ({
   value: v,
-  label: v === '1d' ? 'Daily (1d)' : 'Weekly (1w)',
+  label: `${v} (${v})`,
 }));
 export const GROUPBY_OPTIONS = [...WQL_VIRTUAL_DIMS, ...WQL_TAG_KEYS].map((v) => ({ value: v, label: v }));
 export const METRIC_OPTIONS = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES, ...WQL_CALC_TARGETS]
@@ -208,12 +206,12 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   agg:       { label: 'Aggregate',  inputType: 'select',   placeholder: 'sum, avg…',                  placeholderText: 'agg: [sum|avg|…]',        icon: '∑', description: 'Aggregation function' },
   metric:    { label: 'Metric',     inputType: 'select',   placeholder: 'totalVolume, reps…',         placeholderText: 'metric: [key]',           icon: '📈', description: 'Canonical metric key to aggregate' },
   groupby:   { label: 'Group By',   inputType: 'select',   placeholder: 'week, effort…',              placeholderText: 'by: [dim]',               icon: '🗂', description: 'Group results by dimension' },
-  rollup:    { label: 'Rollup',     inputType: 'select',   placeholder: '1d or 1w',                   placeholderText: 'rollup: [1d|1w]',         icon: '🗓', description: 'Bucket period for rollups' },
+  rollup:    { label: 'Rollup',     inputType: 'select',   placeholder: '2w, 4w…',                    placeholderText: 'rollup: [2w|4w]',         icon: '🗓', description: 'Multi-unit bucket period (by {week}/by {day} for 1-unit)' },
   unit:      { label: 'Unit',       inputType: 'select',   placeholder: 'kg, lb, km…',                placeholderText: 'in: [unit]',              icon: '📏', description: 'Display unit directive' },
   result:    { label: 'Session',    inputType: 'freetext', placeholder: 'result id…',                  placeholderText: 'result: [id]',            icon: '🏁', description: 'Scope to one workout session', prefix: 'result:' },
   block:     { label: 'Block',      inputType: 'freetext', placeholder: 'block content id…',           placeholderText: 'block: [contentId]',      icon: '🧱', description: 'Scope to all versions of a block', prefix: 'block:' },
   note:      { label: 'Note',       inputType: 'freetext', placeholder: 'note id…',                    placeholderText: 'note: [id]',              icon: '📓', description: 'Scope to one note', prefix: 'note:' },
-  output:    { label: 'Output Type',inputType: 'select',   placeholder: 'segment, milestone…',          placeholderText: 'rows:[type]',             icon: '📋', description: 'Output-statement type for rows queries' },
+  plane:     { label: 'Output Plane',inputType: 'select',   placeholder: 'segment, load, event…',       placeholderText: 'plane: [type]',           icon: '📋', description: 'Output-statement plane on find:session', prefix: 'plane:' },
 };
 
 const CUSTOM_FALLBACK_ICON = '\u{1F9E9}';

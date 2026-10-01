@@ -77,3 +77,35 @@ describe('note: filter in runFind and runFindBlock', () => {
     expect(result.blocks.map(b => b.id)).toEqual(['note-2:seg-1:1']);
   });
 });
+
+describe('#1047 — pipes on find queries', () => {
+  it('find:note | order by title | limit N returns N notes in title order', async () => {
+    const service = makeService();
+    const parsed = parseQuery('find:note | order by title | limit 2') as ParsedFindQuery;
+    expect(parsed.error).toBeUndefined();
+    const result = await service.runFind(parsed);
+    expect(result.notes.map(n => n.title)).toEqual(['Cindy Note', 'Fran Note']);
+  });
+
+  it('find:note | order by title desc reverses the order', async () => {
+    const service = makeService();
+    const parsed = parseQuery('find:note | order by title desc') as ParsedFindQuery;
+    const result = await service.runFind(parsed);
+    expect(result.notes.map(n => n.title)).toEqual(['Murph Note', 'Fran Note', 'Cindy Note']);
+  });
+
+  it('find:block | limit N caps the block list', async () => {
+    const service = makeService();
+    const parsed = parseQuery('find:block | limit 1') as ParsedFindQuery;
+    expect(parsed.error).toBeUndefined();
+    const result = await service.runFind(parsed);
+    expect(result.blocks).toHaveLength(1);
+  });
+
+  it('find:note | limit N offset M pages the list', async () => {
+    const service = makeService();
+    const parsed = parseQuery('find:note | order by title | limit 1 offset 1') as ParsedFindQuery;
+    const result = await service.runFind(parsed);
+    expect(result.notes.map(n => n.title)).toEqual(['Fran Note']);
+  });
+});

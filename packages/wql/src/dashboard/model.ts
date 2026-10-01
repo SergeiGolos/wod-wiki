@@ -19,6 +19,7 @@ import { WQL_CALC_TARGETS } from '../vocabulary';
 
 export const DASHBOARD_WIDGET_TYPES = [
   'table',
+  'list',
   'value',
   'timeseries',
   'bar',
@@ -27,7 +28,6 @@ export const DASHBOARD_WIDGET_TYPES = [
   'goal-rings',
   'zone-distribution',
 ] as const;
-
 export type DashboardWidgetType = (typeof DASHBOARD_WIDGET_TYPES)[number];
 
 export function isDashboardWidgetType(type: string): type is DashboardWidgetType {

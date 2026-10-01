@@ -108,7 +108,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   route: '/collections',
   title: 'Collections',
-  defaultWql: 'find:note{source:page,type:collection} by {tag}',
+  defaultWql: 'find:note{source:collections} by {tag}',
   level: 'session',
   typeOptions: ['collections'],
   shelfVisible: false,
@@ -153,16 +153,16 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
 export const SESSIONS_STREAM_PROFILE: StreamProfile = {
   route: '/sessions',
   title: 'Sessions',
-  defaultWql: 'rows:all{} last 4w',
+  defaultWql: 'find:session{} last 4w',
   level: 'result',
-  typeOptions: ['rows'],
+  typeOptions: ['session'],
   emptyMessage: 'No completed session results recorded in this period.',
   secondary: [
     {
       kind: 'wql',
       id: 'recent-sessions',
       label: 'Recent sessions',
-      query: 'rows:all{} last 2w',
+      query: 'find:session{} last 2w',
       limit: 6,
       toEntry: e => sessionDetailPath(e.id),
     },
@@ -193,9 +193,9 @@ export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
 export function createSessionDateProfile(date: string): StreamProfile {
   return {
     route: `/session/${date}`,
-    defaultWql: `rows:all{date:${date}}`,
+    defaultWql: `find:session{} from ${date} to ${date}`,
     level: 'result',
-    typeOptions: ['rows'],
+    typeOptions: ['session'],
     emptyMessage: `No session results recorded on ${date}.`,
   }
 }
@@ -203,9 +203,9 @@ export function createSessionDateProfile(date: string): StreamProfile {
 export function createResultDetailProfile(resultId: string): StreamProfile {
   return {
     route: `/sessions/${resultId}`,
-    defaultWql: `rows:segment{result:${resultId}}`,
+    defaultWql: `find:session{result:${resultId}, plane:segment}`,
     level: 'segment',
-    typeOptions: ['rows'],
+    typeOptions: ['session'],
     emptyMessage: `No segment records found for result ${resultId}.`,
   }
 }

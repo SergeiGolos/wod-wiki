@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
-import { parseQuery, isFindQuery, isRowsQuery, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isFindQuery, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { RowsResultsChrome } from './RowsResultsChrome';
@@ -87,7 +87,6 @@ export function QueryBlockView({
     widgetType != null && widgetType !== '' && !isDashboardWidgetType(widgetType);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
-  const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
   const [rowsRefreshKey, setRowsRefreshKey] = useState(0);
 
@@ -107,33 +106,24 @@ export function QueryBlockView({
     setRunError(undefined);
     setResult(undefined);
     setFindResult(undefined);
-    setRowsResult(undefined);
 
     if (parsed.error) return;
     if (widgetError || unknownType || missing.length > 0) return;
     if (!executor) return;
 
     if (isFindQuery(parsed)) {
-      void executor
-        .runFind(parsed)
-        .then((res) => {
-          if (!cancelled) setFindResult(res);
-        })
-        .catch((err) => {
-          if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
-        });
-    } else if (isRowsQuery(parsed)) {
       let retryTimer: number | NodeJS.Timeout | undefined;
-      const executeRows = (attemptCount: number) => {
+      const isSession = parsed.target === 'session';
+      const executeFind = (attemptCount: number) => {
         void executor
-          .runRows(parsed)
+          .runFind(parsed)
           .then((res) => {
             if (cancelled) return;
-            setRowsResult(res);
-            if (res.runs.length === 0 && attemptCount < 4) {
+            setFindResult(res);
+            if (isSession && (res.runs ?? []).length === 0 && attemptCount < 4) {
               const delays = [50, 150, 350, 750];
               retryTimer = setTimeout(() => {
-                if (!cancelled) executeRows(attemptCount + 1);
+                if (!cancelled) executeFind(attemptCount + 1);
               }, delays[attemptCount] ?? 500);
             }
           })
@@ -141,10 +131,10 @@ export function QueryBlockView({
             if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
           });
       };
-      executeRows(0);
+      executeFind(0);
       return () => {
         cancelled = true;
-        if (retryTimer) clearTimeout(retryTimer);
+        clearTimeout(retryTimer);
       };
     } else {
       void executor
@@ -166,7 +156,7 @@ export function QueryBlockView({
   const onEdit = canEdit ? () => setIsModalOpen(true) : undefined;
 
   const resultId = useMemo(() => {
-    if (!isRowsQuery(parsed)) return undefined;
+    if (!isFindQuery(parsed) || parsed.target !== 'session') return undefined;
     const resultFilter = parsed.filters.find((f) => f.key === 'result');
     return resultFilter?.values[0]?.value;
   }, [parsed]);
@@ -199,34 +189,30 @@ export function QueryBlockView({
             Query execution error: {runError}
           </div>
         </QueryBlockShell>
-      ) : isRowsQuery(parsed) ? (
+      ) : isFindQuery(parsed) ? (
         <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>
-          {rowsResult?.error ? (
-            <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded p-2">
-              {rowsResult.error}
-            </div>
-          ) : resultId && rowsResult && rowsResult.runs.length > 0 ? (
+          {(findResult as any)?.table ? (
+            <WidgetChart type="table" result={findResult as any} />
+          ) : resultId && findResult?.runs && findResult.runs.length > 0 ? (
             <RowsResultsChrome
               resultId={resultId}
-              sessionResult={rowsResult}
+              sessionResult={findResult as any}
               executor={executor}
               onCaptureRpe={onCaptureRpe}
               onCaptured={() => setRowsRefreshKey((k) => k + 1)}
             />
-          ) : rowsResult ? (
-            <RowsTable result={rowsResult} />
+          ) : findResult?.runs ? (
+            <RowsTable result={findResult as any} />
+          ) : findResult ? (
+            <FindResultList
+              parsed={parsed}
+              result={findResult}
+              onOpenNote={onOpenNote}
+              noteHref={noteHref}
+            />
           ) : (
             <div className="text-xs text-muted-foreground py-2">Loading rows…</div>
           )}
-        </QueryBlockShell>
-      ) : isFindQuery(parsed) ? (
-        <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>
-          <FindResultList
-            parsed={parsed}
-            result={findResult}
-            onOpenNote={onOpenNote}
-            noteHref={noteHref}
-          />
         </QueryBlockShell>
       ) : (
         <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>

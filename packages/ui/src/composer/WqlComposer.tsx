@@ -1,6 +1,6 @@
 /**
- * WqlComposer — shared omni command bar for composing WQL queries of all
- * three families: content find:, analytics aggregates, and rows:.
+ * WqlComposer — shared omni command bar for composing WQL queries of both
+ * kinds: things (find:<noun>) and numbers (<agg>:<metric>).
  *
  * State discipline (ticket 013): the composer state observed from outside is
  * the C6 AST — restore goes through `parseQuery` + `astToPills`, emission

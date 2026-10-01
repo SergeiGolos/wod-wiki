@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseQuery } from '../src/wql';
-import type { ParsedAggregateQuery, ParsedFindQuery, ParsedRowsQuery, QueryWindow, TagFilter } from '../src/wql';
-import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_FIND_TARGETS, WQL_ROWS_SCOPE_KEYS, WQL_ROWS_TARGETS } from '../src/vocabulary';
+import type { ParsedAggregateQuery, ParsedFindQuery, QueryWindow, TagFilter } from '../src/wql';
+import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_FIND_TARGETS } from '../src/vocabulary';
 import { serialize } from '../src/serialize';
 /** Deep equality on query structure — ignores provenance fields (`raw`,
  * `advisories`) and absent-vs-undefined distinctions. */
@@ -34,7 +34,7 @@ describe('serialize (C6 structured interface)', () => {
   });
 
   it('round-trips an aggregate with by, rollup, display unit, and window', () => {
-    const text = 'sum:totalVolume{discipline:strength} by {week, effort}.rollup(1w) in kg last 4w';
+    const text = 'sum:totalVolume{discipline:strength} by {week, effort}.rollup(2w) in kg last 4w';
     const a = parseQuery(text);
     expect(a.error).toBeUndefined();
     expect(serialize(a)).toBe(text);
@@ -78,27 +78,19 @@ describe('serialize (C6 structured interface)', () => {
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
-  it('serializes hand-built rows queries with scope filters and windows', () => {
-    const a: ParsedRowsQuery = {
-      family: 'rows', raw: '', outputType: 'segment', target: 'segment',
+  it('serializes hand-built find:session queries with scope filters and windows', () => {
+    const a: ParsedFindQuery = {
+      family: 'find', raw: '', target: 'session',
       filters: [
         { key: 'result', negate: false, values: [{ value: 'r13', wildcard: false }] },
         { key: 'source', negate: false, values: [{ value: 'journal', wildcard: false }] },
       ],
       window: { kind: 'relative', size: 4, unit: 'w' },
     };
-    expect(serialize(a)).toBe('rows:segment{result:r13,source:journal} last 4w');
+    expect(serialize(a)).toBe('find:session{result:r13,source:journal} last 4w');
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
-  it('emits rows:all for a rows AST without outputType narrowing', () => {
-    const a: ParsedRowsQuery = {
-      family: 'rows', raw: '', target: 'all',
-      filters: [{ key: 'result', negate: false, values: [{ value: 'r13', wildcard: false }] }],
-    };
-    expect(serialize(a)).toBe('rows:all{result:r13}');
-    expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
-  });
   it('serializes an aggregate with a find join and windows on both halves', () => {
     const a: ParsedAggregateQuery = {
       family: 'aggregate', raw: '', agg: 'sum', metric: 'totalVolume',
@@ -135,7 +127,7 @@ describe('serialize (C6 structured interface)', () => {
     const KEYS = ['tags', 'discipline', 'effort', 'text', 'category'] as const;
     // Aggregate filter sides only accept fact-resolvable tag keys (parse validates).
     const AGG_KEYS = ['tags', 'discipline', 'effort', 'intensity', 'grade'] as const;
-    const SOURCES = ['journal', 'collections', 'feeds', 'all', 'collection:crossfit-girls', 'feed:x/2026-01-12'];
+    const SOURCES = ['journal', 'collections', 'feeds', 'guides', 'playground', 'collection:crossfit-girls', 'feed:x/2026-01-12'];
     const METRICS = ['totalVolume', 'tis', 'calc.acwr', 'maxHeartRate'];
     const DIMS = ['week', 'day', 'session', 'round', 'effort'];
     const DATES = ['2026-01-01', '2026-03-31', '2025-11-30'];
@@ -176,7 +168,7 @@ describe('serialize (C6 structured interface)', () => {
         filters: genFilters(rng, int(rng, 0, 3), true, AGG_KEYS),
         groupBy: maybe(rng, 0.4) ? [...KEYS].sort(() => rng() - 0.5).slice(0, int(rng, 1, 2)) : [],
       };
-      if (maybe(rng, 0.4)) a.rollup = { size: pick(rng, [1, 2, 7]), unit: maybe(rng, 0.5) ? 'd' : 'w' };
+      if (maybe(rng, 0.4)) a.rollup = { size: pick(rng, [2, 3, 7]), unit: maybe(rng, 0.5) ? 'd' : 'w' };
       if (maybe(rng, 0.3)) a.displayUnit = pick(rng, ['kg', 'lb', 'reps']);
       const w = genWindow(rng);
       if (w) a.window = w;
@@ -210,17 +202,14 @@ describe('serialize (C6 structured interface)', () => {
       return f;
     }
 
-    function genRows(rng: () => number): ParsedRowsQuery {
-      const scopeKey = pick(rng, WQL_ROWS_SCOPE_KEYS);
-      // Ticket 18: parse stamps the rows target — the generator mirrors it.
-      const withTarget = maybe(rng, 0.5);
-      const r: ParsedRowsQuery = {
-        family: 'rows', raw: '',
-        target: withTarget ? 'segment' : 'all',
-        ...(withTarget ? { outputType: 'segment' } : {}),
+    function genRows(rng: () => number): ParsedFindQuery {
+      const scopeKey = pick(rng, ['result', 'block', 'note']);
+      const target = pick(rng, ['session', 'segment'] as const);
+      const r: ParsedFindQuery = {
+        family: 'find', raw: '',
+        target,
         filters: [
           { key: scopeKey, negate: false, values: [{ value: pick(rng, ['r1', 'r13', 'blk-9', 'note-3']), wildcard: false }] },
-          ...(maybe(rng, 0.4) ? [{ key: 'source', negate: false, values: [{ value: pick(rng, SOURCES), wildcard: false }] }] : []),
         ],
       };
       const w = genWindow(rng);
@@ -266,7 +255,7 @@ describe('serialize (C6 structured interface)', () => {
   it('leaves canonical corpus strings untouched (fixed-point text)', () => {
     const corpus = [
       'sum:tis{}',
-      'sum:totalVolume{discipline:strength,!effort:burpee} by {week, effort}.rollup(1w) in kg last 4w',
+      'sum:totalVolume{discipline:strength,!effort:burpee} by {week, effort}.rollup(2w) in kg last 4w',
       'max:tis{effort:back*}',
       'sum:totalVolume{note:a|b|c}',
       'count:exercise{} from 2025-11-30 to 2026-03-31',
@@ -277,9 +266,10 @@ describe('serialize (C6 structured interface)', () => {
       'find:effort{category:hero} where sum:totalVolume{discipline:strength} > 5000',
       'sum:totalVolume{} where find:note{tags:competition} last 4w',
       'sum:tis{} by {session}.rollup(7d) last 12w where find:note',
-      'rows:all{result:r13}',
-      'rows:segment{result:r13,source:journal} last 4w',
-      'rows:note{note:note-3} from 2026-01-01 to 2026-02-01',
+      'find:session{result:r13}',
+      'find:session{result:r13,source:journal} last 4w',
+      'find:session{note:note-3} from 2026-01-01 to 2026-02-01',
+      'find:segment{effort:running} | order by date | limit 10',
     ];
     for (const text of corpus) {
       const a = parseQuery(text);

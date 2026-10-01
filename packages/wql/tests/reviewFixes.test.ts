@@ -5,7 +5,7 @@ import { toSummaryEventRows } from '../src/derivation';
 import { AnalyticsInvalidationBus, coalescingEventStore, computeCacheKey } from '../src/queryCache';
 import { QueryService, type EventStore } from '../src/QueryService';
 import { QueryDocumentRunner } from '../src/queryDocumentRunner';
-import { parseQuery, isRowsQuery } from '../src/wql';
+import { parseQuery, isFindQuery } from '../src/wql';
 
 /** Review-fix regression tests (datadog-analytics findings): each test was a
  *  runtime-confirmed defect before its fix. */
@@ -116,10 +116,10 @@ describe('ticket 18 — rows filtering over every projected fact', () => {
         { type: 'weight', value: 75, unit: 'kg', metadata: { canonicalKey: 'weight' } },
       ],
     } as unknown as EventRecord;
-    const parsed = parseQuery('rows:segment{metric:weight}');
+    const parsed = parseQuery('find:segment{metric:weight}');
     expect(parsed.error).toBeUndefined();
-    if (!isRowsQuery(parsed)) throw new Error('expected rows query');
-    const result = await new QueryService({ eventStore: store([row]) }).runRows(parsed);
+    expect(isFindQuery(parsed)).toBe(true);
+    const result = await new QueryService({ eventStore: store([row]) }).runFind(parsed as any);
     expect(result.table?.totalCount).toBe(1);
   });
 });

@@ -248,7 +248,7 @@ describe('buildDashboardDocument', () => {
       [
         md('heading', '## Weekly tonnage'),
         md('paragraph', 'Is volume rising?'),
-        query('sum:totalVolume{} by {week}.rollup(1w)', { widgetType: 'timeseries', spanCols: 2 }),
+        query('sum:totalVolume{} by {week}', { widgetType: 'timeseries', spanCols: 2 }),
       ],
       {},
     );
@@ -257,7 +257,7 @@ describe('buildDashboardDocument', () => {
       spanCols: 2,
       title: 'Weekly tonnage',
       question: 'Is volume rising?',
-      body: 'sum:totalVolume{} by {week}.rollup(1w)',
+      body: 'sum:totalVolume{} by {week}',
     });
   });
 

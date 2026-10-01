@@ -58,6 +58,28 @@ describe('wqlCompletionSource', () => {
     expect(complete('sum:tis{grain:')).toEqual(['summary', 'event']);
   });
 
+  it('offers injected typed-tag values for frontmatter tag filters', async () => {
+    const typedSource = wqlCompletionSource({
+      effortNames: () => EFFORTS,
+      tagTypeValues: async (key) =>
+        ({ domain: ['crossfit', 'parkour'], equipment: ['kettlebell', 'clubs'] })[key as 'domain' | 'equipment'] ?? [],
+    });
+    const completeAsync = async (doc: string): Promise<string[] | null> => {
+      const state = EditorState.create({ doc, extensions: [wqlLanguage] });
+      ensureSyntaxTree(state, doc.length, 200);
+      const result = await typedSource(new CompletionContext(state, doc.length, true));
+      return result && 'options' in result ? result.options.map((o) => o.label) : null;
+    };
+    expect(await completeAsync('find:note{domain:')).toEqual(['crossfit', 'parkour']);
+    expect(await completeAsync('find:note{equipment:kettlebell')).toEqual(['kettlebell', 'clubs']);
+  });
+
+  it('falls through to catalog discovery when no typed-tag provider is injected', () => {
+    // No tagTypeValues → domain: values stay on the catalog path (free-form
+    // here, since the shared source has no catalog).
+    expect(complete('find:note{domain:')).toBeNull();
+  });
+
   it('offers nothing for free-form tag values', () => {
     expect(complete('sum:tis{note:')).toBeNull();
   });
@@ -70,8 +92,8 @@ describe('wqlCompletionSource', () => {
 
   it('offers rollup periods inside .rollup()', () => {
     const labels = complete('sum:tis{}.rollup(')!;
-    expect(labels).toContain('1d');
-    expect(labels).toContain('1w');
+    expect(labels).toContain('2w');
+    expect(labels).toContain('4w');
   });
 
   it('offers structural suffixes after a complete head', () => {
@@ -82,7 +104,7 @@ describe('wqlCompletionSource', () => {
 
 describe('wqlLanguage highlighting', () => {
   it('tags the structural roles distinctly', () => {
-    const doc = 'sum:totalVolume{effort:thruster} by {week}.rollup(1w)';
+    const doc = 'sum:totalVolume{effort:thruster} by {week}.rollup(2w)';
     const tree = wqlLanguage.parser.parse(doc);
     const classes: Record<string, string> = {};
     highlightTree(
@@ -111,7 +133,7 @@ describe('wqlLanguage highlighting', () => {
     expect(classes['week']).toBe('attribute');
     expect(classes['by']).toBe('keyword');
     expect(classes['.rollup']).toBe('keyword');
-    expect(classes['1']).toBe('number');
+    expect(classes['2']).toBe('number');
     expect(classes['w']).toBe('unit');
   });
 });

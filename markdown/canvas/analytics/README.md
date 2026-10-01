@@ -25,7 +25,7 @@ WQL operates across two distinct query planes:
 
 | Query Plane | Syntax Pattern | What It Searches | Example |
 |---|---|---|---|
-| **Metrics Plane** | `<agg>:<metric>{<filters>} by {<dimension>}` | Numeric fact store (`totalVolume`, `tis`, `sessionLoad`) | `sum:totalVolume{discipline:strength} by {week}.rollup(1w)` |
+| **Metrics Plane** | `<agg>:<metric>{<filters>} by {<dimension>}` | Numeric fact store (`totalVolume`, `tis`, `sessionLoad`) | `sum:totalVolume{discipline:strength} by {week}` |
 | **Content Plane** | `find:<target>{<filters>,source:<scope>}` | Journal notes, Catalog sessions, and dated Posts | `find:note{effort:thruster,source:journal} last 8w` |
 
 The two planes can be joined using the `where` clause:

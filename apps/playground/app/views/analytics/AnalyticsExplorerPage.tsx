@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, serialize, isAggregateQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, serialize, isAggregateQuery, isFindQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader, StickyGroupHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -153,7 +153,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const liveParsed = useMemo(() => parseQuery(draft), [draft]);
   const scopeLabel = sourceFilterLabel(isFindQuery(liveParsed) ? liveParsed.filters : []);
   const findWindowLabel = isFindQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
-  const rowsWindowLabel = isRowsQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
   const stickyOffset = useStickyBoundaryOffset(104);
 
   // The subset for the Query→Dashboard flow: a find draft IS the subset; an
@@ -184,7 +183,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const recordsWql = useMemo(() => {
     if (!submitted) return null;
     const p = parseQuery(submitted);
-    if (isFindQuery(p) || isRowsQuery(p) || p.error) return null;
+    if (isFindQuery(p) || p.error) return null;
     if (p.join) {
       const jf = p.join;
       return serialize({
@@ -246,15 +245,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
           .catch(() => { if (!cancelled) { setEntries(undefined); setEfforts(undefined); } })
           .finally(() => { if (!cancelled) setLoading(false); });
       }
-    } else if (isRowsQuery(parsed)) {
-      // Rows query (rows:{…}, #949) — per-run logs grid re-derived from logs.
-      setResult(undefined);
-      setEntries(undefined);
-      setEfforts(undefined);
-      queryService.runRows(parsed)
-        .then((r) => { if (!cancelled) setRowsResult(r); })
-        .catch(() => { if (!cancelled) setRowsResult(undefined); })
-        .finally(() => { if (!cancelled) setLoading(false); });
     } else {
       // Analytics query — resolves directly against the unified event store.
       setRowsResult(undefined);
@@ -466,27 +456,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
                   <GroupedEntryList entries={entries} stickyOffset={stickyOffset} />
                 ) : (
                   <div className="text-sm text-muted-foreground">No {liveParsed.target}s found.</div>
-                )}
-              </div>
-            </div>
-          ) : isRowsQuery(liveParsed) ? (
-            /* ── Rows query result: per-run logs grid (rows:{…}, #949) ── */
-            <div className="mt-3">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-                  Rows{liveParsed.outputType ? `:${liveParsed.outputType}` : ''}
-                  {rowsWindowLabel && <span className="ml-1">{rowsWindowLabel}</span>}
-                </div>
-                {liveParsed.error ? (
-                  <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>
-                ) : loading ? (
-                  <div className="text-sm text-muted-foreground">Loading rows…</div>
-                ) : rowsResult?.error ? (
-                  <div className="text-sm text-destructive font-mono">{rowsResult.error}</div>
-                ) : rowsResult ? (
-                  <RowsTable result={rowsResult} />
-                ) : (
-                  <div className="text-sm text-muted-foreground">No workout logs matched.</div>
                 )}
               </div>
             </div>

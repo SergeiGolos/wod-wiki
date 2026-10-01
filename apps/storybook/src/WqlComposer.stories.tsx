@@ -199,7 +199,7 @@ export const LiveDiagnostics: Story = {
 };
 
 const AnalyticsCompositionHarness: React.FC = () => {
-  const [wql, setWql] = useState('sum:totalVolume{} by {week}.rollup(1w)');
+  const [wql, setWql] = useState('sum:totalVolume{} by {week}');
 
   const execute: WqlExecutor = async (ast: AnyParsedQuery) => {
     return {
@@ -323,9 +323,9 @@ export const HostEffortsCatalog: Story = {
 };
 
 const EXPLORER_EXAMPLES = [
-  'sum:totalVolume{} by {week}.rollup(1w)',
+  'sum:totalVolume{} by {week}',
   'sum:tis{} by {discipline}',
-  'avg:heartRate{} by {day}.rollup(1d)',
+  'avg:heartRate{} by {day}',
 ];
 
 /**
@@ -400,8 +400,8 @@ export const HostAnalyticsExplorer: Story = {
 };
 
 const DASHBOARD_SUBSETS = [
-  { label: 'whole store', seed: 'sum:totalVolume{} by {week}.rollup(1w)' },
-  { label: 'effort:fran', seed: 'sum:totalVolume{effort:fran} by {week}.rollup(1w)' },
+  { label: 'whole store', seed: 'sum:totalVolume{} by {week}' },
+  { label: 'effort:fran', seed: 'sum:totalVolume{effort:fran} by {week}' },
 ];
 
 /**
@@ -468,7 +468,7 @@ export const HostQueryToDashboard: Story = {
  * whose validity gates the Save button, with live stage counts while editing.
  */
 const WidgetEditorHarness: React.FC = () => {
-  const [editWql, setEditWql] = useState('sum:totalVolume{} by {week}.rollup(1w)');
+  const [editWql, setEditWql] = useState('sum:totalVolume{} by {week}');
   const [isValid, setIsValid] = useState(true);
   const [saved, setSaved] = useState<string | null>(null);
 

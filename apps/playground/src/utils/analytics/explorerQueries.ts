@@ -11,12 +11,12 @@ export interface ExampleQuery {
  *  sessionLoad, totalReps. Tag keys are the ones QueryService can filter on. */
 export const EXAMPLE_QUERIES: ExampleQuery[] = [
   {
-    query: 'sum:totalVolume{discipline:strength} by {week}.rollup(1w)',
+    query: 'sum:totalVolume{discipline:strength} by {week}',
     label: 'Weekly strength volume',
     question: 'Is strength volume rising?',
   },
   {
-    query: 'avg:tis{effort:thruster} by {week}.rollup(1w)',
+    query: 'avg:tis{effort:thruster} by {week}',
     label: 'Thruster time-in-motion',
     question: 'Is time-in-motion improving?',
   },
@@ -31,17 +31,17 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
     question: 'Is session load dropping?',
   },
   {
-    query: 'sum:sessionLoad{} by {intensity}.rollup(1w)',
+    query: 'sum:sessionLoad{} by {intensity, week}',
     label: 'Polarized weekly load',
     question: 'Is my intensity 80/20?',
   },
   {
-    query: 'avg:calc.acwr{}.rollup(1d)',
+    query: 'avg:calc.acwr{} by {day}',
     label: 'Injury risk (ACWR)',
     question: 'Am I spiking my workload?',
   },
   {
-    query: 'count:totalReps{tags:mobility} by {week}.rollup(1w)',
+    query: 'count:totalReps{tags:mobility} by {week}',
     label: 'Mobility habit',
     question: 'Did I do mobility work?',
   },

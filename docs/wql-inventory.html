@@ -314,31 +314,34 @@
 
 <!-- 1. QUERY FAMILIES -->
 <section id="families">
-  <h2>1. Query Families &amp; High-Level Syntax</h2>
-  <p>WQL exposes three distinct query families, all lexed through a single Lezer head grammar and mapped to typed ASTs by <code>wql.ts</code>:</p>
+  <h2>1. Query Kinds &amp; High-Level Syntax</h2>
+  <p>WQL exposes two query kinds — things or numbers — lexed through a single Lezer head grammar and mapped to typed ASTs by <code>wql.ts</code>:</p>
 
   <div class="grid-2">
     <div class="diagram-container">
-      <span class="pill pill-find">find:&lt;target&gt;</span>
-      <h3 style="margin-top:8px;">Content Discovery</h3>
-      <p style="font-size:12px;">Discovers authored documents, script blocks, exercises, or placements.</p>
+      <span class="pill pill-find">find:&lt;noun&gt;</span>
+      <h3 style="margin-top:8px;">Things — Content, Sessions &amp; Tables</h3>
+      <p style="font-size:12px;">Discovers authored documents, sessions, and cross-workout tables.</p>
       <pre>find:note{domain:crossfit, equipment:barbell} last 8w
-find:block{effort:pull-up}
+find:block{effort:pull-up} | limit 20
 find:effort{discipline:strength}
-find:page{source:collections}</pre>
+find:session{} last 4w
+find:session{result:r1, plane:segment}
+find:segment{effort:snatch} last 12w | select date, effort, totalVolume</pre>
       <div style="font-size:11px; color:var(--text-faint);">
-        Targets (<code>WQL_FIND_TARGETS</code>): <code>note</code> | <code>block</code> | <code>effort</code> | <code>page</code><br>
-        Returns: <code>FindQueryResult { notes[], blocks[], efforts[], stages }</code>
+        Nouns (<code>WQL_FIND_TARGETS</code>): <code>note</code> | <code>block</code> | <code>effort</code> | <code>session</code> | <code>segment</code> | <code>event</code><br>
+        Returns: <code>FindQueryResult { notes[], blocks[], efforts[], runs?, table?, stages }</code>
       </div>
     </div>
 
     <div class="diagram-container">
       <span class="pill pill-agg">&lt;agg&gt;:&lt;metric&gt;</span>
-      <h3 style="margin-top:8px;">Analytics &amp; Aggregates</h3>
+      <h3 style="margin-top:8px;">Numbers — Analytics &amp; Aggregates</h3>
       <p style="font-size:12px;">Computes performance series and stats across event telemetry.</p>
-      <pre>sum:totalVolume{effort:clean-and-jerk} by {week} .rollup(1w)
+      <pre>sum:totalVolume{effort:clean-and-jerk} by {week}
 avg:tis{discipline:strength} by {session}
-sum:sessionLoad{} where find:note{format:emom} in kg</pre>
+sum:sessionLoad{} where find:note{format:emom} in kg
+sum:totalDistance{} .rollup(2w)</pre>
       <div style="font-size:11px; color:var(--text-faint);">
         Aggregators (<code>WQL_AGGREGATORS</code>): <code>sum</code> | <code>avg</code> | <code>min</code> | <code>max</code> | <code>count</code> | <code>last</code> | <code>delta</code><br>
         Returns: <code>QueryResult { series[], scalar?, unit, stages }</code>
@@ -347,15 +350,15 @@ sum:sessionLoad{} where find:note{format:emom} in kg</pre>
   </div>
 
   <div class="diagram-container" style="margin-top: 16px;">
-    <span class="pill pill-rows">rows:&lt;plane&gt;</span>
-    <h3 style="margin-top:8px;">Raw Statement &amp; Execution Rows</h3>
-    <p style="font-size:12px;">Streams recorded event statements and structured output logs across results.</p>
-    <pre>rows:all{result:550e8400-e29b-41d4-a716-446655440000}
-rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVolume | order by date desc | limit 20</pre>
-    <div style="font-size:11px; color:var(--text-faint);">
-      Targets (<code>WQL_ROWS_TARGETS</code>): <code>note</code> | <code>block</code> | <code>effort</code> | <code>page</code> | <code>segment</code> | <code>system</code> | <code>load</code> | <code>event</code> | <code>compiler</code> | <code>completion</code> | <code>analytics</code> | <code>wellness</code> | <code>all</code><br>
-      Returns: <code>RowsQueryResult { runs: RowsRun[], table?: RowsTableData }</code>
-    </div>
+    <span class="pill pill-rows">removed</span>
+    <h3 style="margin-top:8px;">Removed: the <code>rows:</code> family</h3>
+    <p style="font-size:12px;">The <code>rows:</code> head was removed (simplification, tickets #1041–#1044). Every <code>rows:…</code> input is a parse error naming its <code>find:</code> replacement. <code>runRows</code> survives only as a legacy delegate for hand-built ASTs (RowsTable).</p>
+    <pre>rows:all{scope}        → find:session{scope}
+rows:&lt;plane&gt;{scope}   → find:session{scope, plane:&lt;plane&gt;}
+rows:segment{…}        → find:segment{…}
+rows:event{…}          → find:event{…}
+find:page / source:page|pages|all → removed (type: handles page-ness)
+.rollup(1d|1w)         → by {day} / by {week}</pre>
   </div>
 </section>
 
@@ -529,9 +532,9 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
       <tr>
         <td><strong>Level 1</strong></td>
         <td>Placement / Container</td>
-        <td><code>find:page</code></td>
+        <td><code>find:note{source:…}</code> / <code>type:</code></td>
         <td>Route slug, calendar date, or catalog folder</td>
-        <td><code>page</code> + <code>page_notes</code> junction</td>
+        <td><code>notes.sourceId</code> (guides / collections) — a real <code>page</code> table is deferred</td>
       </tr>
       <tr>
         <td><strong>Level 2</strong></td>
@@ -550,7 +553,7 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
       <tr>
         <td><strong>Level 4</strong></td>
         <td>Telemetry Fact</td>
-        <td><code>rows:</code> / <code>sum:</code> / <code>avg:</code></td>
+        <td><code>find:session|segment|event</code> / <code>sum:</code> / <code>avg:</code></td>
         <td>Logged metric statement or calculated aggregate</td>
         <td><code>events</code> + <code>field_catalog</code></td>
       </tr>
@@ -632,10 +635,11 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
           &bull; <code>journal</code>: excludes <code>playground</code>, matches empty or <code>journal</code>.<br>
           &bull; <code>collections</code>: <code>sourceId.startsWith('collection:')</code>.<br>
           &bull; <code>feeds</code>: <code>sourceId.startsWith('feed:')</code>.<br>
-          &bull; <code>page/pages</code>: <code>sourceId.startsWith('page:')</code> or <code>guides:</code>.<br>
-          &bull; <code>playground</code>: <code>sourceId === 'playground'</code>.
+          &bull; <code>guides</code>: <code>sourceId.startsWith('guides:')</code>.<br>
+          &bull; <code>playground</code>: <code>sourceId === 'playground'</code>.<br>
+          <em>Removed: <code>page</code>, <code>pages</code>, <code>all</code> — parse errors with hints.</em>
         </td>
-        <td><code>QueryService.ts:96–141</code>, <code>759</code>, <code>874</code></td>
+        <td><code>QueryService.ts</code> — <code>applySourceFilter</code> / <code>sourceMatches</code></td>
       </tr>
       <tr>
         <td><code>text</code></td>
@@ -667,16 +671,16 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
         <td><code>time window</code></td>
         <td><code>find:note</code><br><code>find:block</code></td>
         <td>
-          Evaluated against <strong><code>createdAt</code></strong> timestamp (epoch ms), NOT frontmatter date!
+          Evaluated against <strong>when it happened</strong>: a note's own <code>date</code>, falling back to <code>createdAt</code>; a block's parent note date.
         </td>
-        <td><code>QueryService.ts:854–856</code>, <code>936–938</code></td>
+        <td><code>QueryService.ts</code> — <code>runFind</code> / <code>runFindBlock</code> window predicates</td>
       </tr>
     </tbody>
   </table>
 
   <div class="callout gap">
-    <strong>Architectural Divergence Note: <code>find:page</code> Runtime Reality</strong><br>
-    While <em>Note-Page-WQL-Alignment.md (Decision 1, Option B)</em> adopted the model that <code>find:page</code> queries the <code>page</code> table joined via <code>page_notes</code>, the live codebase in <code>QueryService.ts:760–768</code> still executes <code>find:page</code> directly against the <strong>notes</strong> store using the <code>isPage(n)</code> heuristic filter (checking <code>type !== 'note'</code> and prefixes <code>page:</code> / <code>guides:</code>).
+    <strong>Removed: <code>find:page</code></strong><br>
+    <code>find:page</code> was only a heuristic over the notes store and had zero callers; it was removed with the source collapse (ticket #1046). Page-ness is now expressed with <code>type:</code> (e.g. <code>find:note{type:collection}</code>) and location with <code>source:guides</code>. If the ADR's real <code>page</code> table lands (Note-Page-WQL-Alignment, Option B), <code>find:page</code> can return with join semantics.
   </div>
 </section>
 
@@ -736,7 +740,7 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
     </li>
     <li>
       <strong>STAGE 2: BUCKET</strong><br>
-      Assigns bucket keys based on time dimension: <code>d:YYYY-MM-DD</code> (day), <code>w:YYYY-MM-DD</code> (Monday of week), or <code>r:N</code> (epoch rollup window). Fills empty missing buckets across calendar domain (up to 10,000 buckets) with <code>{ value: 0, missing: true }</code>.
+      Assigns bucket keys based on time dimension: <code>d:YYYY-MM-DD</code> (day), <code>w:YYYY-MM-DD</code> (Monday of week), or N-day/N-week civil-aligned rollup windows (e.g. <code>.rollup(2w)</code> anchored to civil Mondays). Fills empty missing buckets across calendar domain (up to 10,000 buckets) with <code>{ value: 0, missing: true }</code>.
     </li>
     <li>
       <strong>STAGE 3: GROUP</strong><br>
@@ -748,7 +752,7 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
     </li>
   </ol>
 
-  <h3>B. Rows Execution Plans (<code>runRows()</code> &mdash; QueryService.ts:546&ndash;741)</h3>
+  <h3>B. Session &amp; Table Execution Plans (<code>runFindSession()</code> / <code>runFindTable()</code>)</h3>
   <table>
     <thead>
       <tr>
@@ -767,9 +771,9 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
       </tr>
       <tr>
         <td><strong>Cross-Workout Table</strong></td>
-        <td><code>rows:segment{...}</code> without scope key</td>
+        <td><code>find:segment{...}</code> / <code>find:event{...}</code> (scope key optional)</td>
         <td><code>getEventsByTimeRange()</code> or <code>scanAll()</code> (grain = <code>event</code>)</td>
-        <td>Flat tabular format (<code>RowsTableData</code>) with columns: <code>date</code>, <code>effort</code>, <code>discipline</code>, and numeric metrics. Supports <code>| select</code>, <code>| order by</code>, <code>| limit</code>.</td>
+        <td>Flat tabular format (<code>TabularResult</code>) with columns: <code>date</code>, <code>effort</code>, <code>discipline</code>, and numeric metrics. Supports <code>| select</code>, <code>| order by</code>, <code>| limit</code>, <code>by {dim}</code> grouping, and <code>in kg|lb</code> unit conversion.</td>
       </tr>
     </tbody>
   </table>
@@ -795,10 +799,11 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
         <td><code>StreamQueryBar.tsx</code> (omni-bar in sticky header)</td>
         <td>
           <code>/journal</code>: <code>find:note{source:journal} last 4w</code><br>
-          <code>/collections</code>: <code>find:note{source:page,type:collection} by {tag}</code><br>
+          <code>/collections</code>: <code>find:note{source:collections} by {tag}</code><br>
           <code>/library</code>: <code>find:note{source:collections} last 4w</code><br>
           <code>/efforts</code>: <code>find:effort</code><br>
-          <code>/sessions</code>: <code>rows:all{} last 4w</code>
+          <code>/sessions</code>: <code>find:session{} last 4w</code><br>
+          <code>/session/:date</code>: <code>find:session{} from D to D</code>
         </td>
         <td><code>StreamQueryEngine.ts</code> &rarr; <code>queryService.runFind</code> or <code>runQuery</code>. Results mapped via <code>entryMapper.ts</code> into <code>Entry</code> cards.</td>
       </tr>
@@ -806,19 +811,19 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
         <td><strong>Analytics Explorer</strong><br><code>/dashboards</code> (Metric Explorer)</td>
         <td><code>WqlComposer.tsx</code> inside <code>ExplorerCommandBar</code></td>
         <td>User query or deep link; examples from <code>EXAMPLE_QUERIES</code></td>
-        <td>Dispatches by family: <code>find:</code> &rarr; <code>runFind</code>, <code>rows:</code> &rarr; <code>runRows</code>, <code>agg:</code> &rarr; <code>runQuery</code>. Renders chart via <code>useChartShape</code>.</td>
+        <td>Dispatches by kind: <code>find:</code> &rarr; <code>runFind</code> (sessions map to run cards, tables render inline), <code>agg:</code> &rarr; <code>runQuery</code>. Renders chart via <code>useChartShape</code>.</td>
       </tr>
       <tr>
         <td><strong>Dashboard View</strong><br><code>/d/:slug</code>, <code>/dashboard/:slug</code></td>
         <td>Parsed markdown frontmatter / <code>WidgetComposerDialog.tsx</code></td>
         <td>Individual widget WQL queries</td>
-        <td><code>DashboardView.tsx</code> runs <code>queryService.runQuery</code> per widget. <em>find: queries are rejected as widget queries.</em></td>
+        <td><code>DashboardView.tsx</code> runs the widget's query: chart/value widgets take aggregates; <code>table</code>/<code>list</code> widgets take <code>find:</code> queries. A find query in a chart widget errors naming <code>table</code>/<code>list</code>.</td>
       </tr>
       <tr>
         <td><strong>Note Query Blocks</strong><br>fenced <code>```query</code> in notes</td>
         <td>CodeMirror markdown editor with <code>query-block-preview.tsx</code></td>
         <td>Authored query in markdown body</td>
-        <td><code>QueryBlockView.tsx</code> runs <code>queryService</code>. Dispatches <code>runFind</code>, <code>runRows</code>, or <code>runQuery</code>.</td>
+        <td><code>QueryBlockView.tsx</code> runs <code>queryService</code>. Dispatches <code>runFind</code> (sessions → run cards, tables → tabular) or <code>runQuery</code>.</td>
       </tr>
       <tr>
         <td><strong>Command Palette</strong><br>Global <code>Cmd+K</code></td>
@@ -913,10 +918,10 @@ rows:segment{effort:snatch, discipline:strength} | select: date, effort, totalVo
 
     <div>
       <h3>Canonical Sources (<code>WQL_SOURCE_VALUES</code>)</h3>
-      <code>journal</code>, <code>collections</code>, <code>feeds</code>, <code>guides</code>, <code>playground</code>, <code>page</code>, <code>pages</code>, <code>all</code>
+      <code>journal</code>, <code>collections</code>, <code>feeds</code>, <code>guides</code>, <code>playground</code> <em>(exactly five; <code>page</code>/<code>pages</code>/<code>all</code> removed)</em>
 
-      <h3 style="margin-top:16px;">Composer Source Heads (<code>WQL_SOURCES</code>)</h3>
-      <code>journal</code>, <code>collections</code>, <code>feeds</code>, <code>notes</code>, <code>blocks</code>, <code>efforts</code>, <code>metrics</code>
+      <h3 style="margin-top:16px;">Composer Nouns (<code>WQL_SOURCES</code>)</h3>
+      <code>note</code>, <code>block</code>, <code>effort</code>, <code>session</code>, <code>segment</code>, <code>event</code> <em>(exactly six)</em>
 
       <h3 style="margin-top:16px;">Output Result Planes (<code>KNOWN_OUTPUT_TYPES</code>)</h3>
       <code>segment</code>, <code>system</code>, <code>load</code>, <code>event</code>, <code>compiler</code>, <code>completion</code>, <code>analytics</code>, <code>wellness</code>

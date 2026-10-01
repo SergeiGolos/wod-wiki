@@ -225,4 +225,80 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
     fireEvent.click(screen.getByRole('button', { name: /Inspect query for/ }));
     expect(onInspectWidget).toHaveBeenCalledWith(expect.objectContaining({ key: 'w0' }));
   });
+
+  it('#1049 — a table widget runs a find:segment query and renders rows', async () => {
+    const runFindMock = vi.fn(async () => ({
+      parsed: { family: 'find', raw: '', target: 'segment', filters: [] },
+      notes: [],
+      blocks: [],
+      stages: { selected: 5, matched: 5 },
+      table: {
+        columns: [
+          { name: 'date', type: 'date' },
+          { name: 'elapsed', type: 'number' },
+        ],
+        rows: [
+          { date: '2026-09-01', elapsed: 320 },
+          { date: '2026-09-08', elapsed: 300 },
+          { date: '2026-09-15', elapsed: 295 },
+          { date: '2026-09-22', elapsed: 290 },
+          { date: '2026-09-29', elapsed: 285 },
+        ],
+        totalCount: 5,
+      },
+    }) as any);
+    const mockExecutor: QueryExecutor = {
+      runQuery: vi.fn(async (q: string) => mockQueryResult(q, 100)),
+      runFind: runFindMock,
+      runRows: vi.fn(async () => ({} as any)),
+    };
+
+    const doc: DashboardDocument = buildDashboardDocument(
+      [{ type: 'query', content: 'find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5', widgetType: 'table' }],
+      {},
+    );
+
+    render(<DashboardView document={doc} executor={mockExecutor} />);
+
+    await waitFor(() => expect(runFindMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId('tabular-table')).toBeDefined());
+    expect(screen.getByText('285')).toBeDefined();
+    expect(screen.getByText('320')).toBeDefined();
+  });
+
+  it('#1049 — find: inside a timeseries widget shows an error naming table/list', async () => {
+    const mockExecutor: QueryExecutor = {
+      runQuery: vi.fn(async (q: string) => mockQueryResult(q, 100)),
+      runFind: vi.fn(async () => ({} as any)),
+      runRows: vi.fn(async () => ({} as any)),
+    };
+
+    const doc: DashboardDocument = buildDashboardDocument(
+      [{ type: 'query', content: 'find:segment{effort:fran} last 26w', widgetType: 'timeseries' }],
+      {},
+    );
+
+    render(<DashboardView document={doc} executor={mockExecutor} />);
+
+    await waitFor(() =>
+      expect(screen.getByText('find: queries return things — use a table or list widget instead')).toBeDefined(),
+    );
+  });
+
+  it('#1049 — aggregate queries keep rendering unchanged', async () => {
+    const runQueryMock = vi.fn(async (query: string) => mockQueryResult(query, 250));
+    const mockExecutor: QueryExecutor = {
+      runQuery: runQueryMock,
+      runFind: vi.fn(async () => ({} as any)),
+      runRows: vi.fn(async () => ({} as any)),
+    };
+
+    const doc: DashboardDocument = buildDashboardDocument(
+      [{ type: 'query', content: 'sum:reps{}', widgetType: 'value' }],
+      {},
+    );
+
+    render(<DashboardView document={doc} executor={mockExecutor} />);
+    await waitFor(() => expect(screen.getByText('250')).toBeDefined());
+  });
 });

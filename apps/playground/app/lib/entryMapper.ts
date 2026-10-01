@@ -538,7 +538,8 @@ export function rowsQueryResultToEntries(
 ): Entry[] {
   if (!result || result.error || !result.runs) return []
 
-  const target = result.parsed?.outputType
+  const planeFilter = result.parsed?.filters?.find(f => f.key === 'plane' && !f.negate);
+  const target = (result.parsed as any)?.outputType ?? planeFilter?.values[0]?.value;
 
   if (target === 'segment') {
     const entries: Entry[] = []

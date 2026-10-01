@@ -2,8 +2,7 @@ import type { EditorState } from "@codemirror/state";
 import { sectionField } from "./section-state";
 
 export function sessionQueryWql(resultId: string): string {
-  // C4: target always explicit — `all` = every output type.
-  return `rows:all{result:${resultId}}`;
+  return `find:session{result:${resultId}}`;
 }
 
 export function sessionQueryInsert(

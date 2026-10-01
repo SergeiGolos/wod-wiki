@@ -41,21 +41,21 @@ max:calc.e1rm{effort:deadlift}
 Is strength actually surging?
 
 ```query:timeseries-2
-max:calc.e1rm{} by {effort}.rollup(1w)
+max:calc.e1rm{} by {effort, week}
 ```
 
 ## Tonnage by week
 Enough volume for adaptation?
 
 ```query:bar
-sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+sum:totalVolume{discipline:strength} by {week}
 ```
 
 ## Average intensity
 Neural demand in the right zone?
 
 ```query:timeseries
-avg:calc.pct1rm{discipline:strength} by {week}.rollup(1w)
+avg:calc.pct1rm{discipline:strength} by {week}
 ```
 
 ## Volume by lift
@@ -69,5 +69,5 @@ sum:totalVolume{discipline:strength} by {effort}
 Is fatigue outpacing recovery?
 
 ```query:timeseries
-sum:sessionLoad{discipline:strength} by {week}.rollup(1w)
+sum:sessionLoad{discipline:strength} by {week}
 ```

@@ -29,7 +29,7 @@ export interface ParsedWqlSuffixes {
   where?: string;
   /** Display unit directive (`in kg`). */
   displayUnit?: string;
-  /** Rollup period (`.rollup(1w)`). */
+  /** Rollup period (`.rollup(2w)` — 1-unit forms are rejected in parseQuery). */
   rollup?: ParsedWqlRollupSuffix;
   /** Group-by dimensions (`by {week, effort}`). */
   groupBy?: string[];
@@ -71,11 +71,10 @@ const ROLLUP_RE = /\.rollup\((\d+)?([a-zA-Z]*)\)\s*$/;
 const BY_RE = /\s+by\s+\{([^}]*)\}\s*$/;
 const LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i;
 const FROM_TO_RE = /\s+from\s+(\d{4}-\d{2}-\d{2})(?:\s+to\s+(\d{4}-\d{2}-\d{2}))?\s*$/i;
-const IN_SCOPE_RE = /\s+in\s+(\w+)\s*$/;
 
 /**
  * Extract suffixes from a raw WQL query string.
- * Strips outer join (`where`), display unit (`in kg`), rollup (`.rollup(1w)`),
+ * Strips outer join (`where`), display unit (`in kg`), rollup (`.rollup(Nw)`),
  * group-by (`by {week}`), time window (`last 8w` / `from … [to …]`), and
  * legacy scope (`in journal`).
  */
@@ -148,48 +147,34 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     }
   }
 
-  if (isFind || isRows) {
-    // Content/rows families: legacy `in <scope>` stripped for the C2 compat
-    // normalizer; aggregation suffixes on rows surface as loud errors
-    // downstream — rows never aggregates.
-    const scopes = stripRepeated(IN_SCOPE_RE);
-    conflictFrom('scope', scopes);
-    if (scopes.length) legacyScope = scopes[scopes.length - 1][1];
-
-    if (isRows) {
-      const rollups = stripRepeated(ROLLUP_RE);
-      conflictFrom('.rollup', rollups);
-      if (rollups.length) {
-        const m = rollups[rollups.length - 1];
-        rollup = { size: m[1] ? parseInt(m[1], 10) : 1, unit: m[2] || '', raw: m[1] + m[2] };
-      }
-      const bys = stripRepeated(BY_RE);
-      conflictFrom('by', bys);
-      if (bys.length) {
-        groupBy = bys[bys.length - 1][1].split(',').map((d) => d.trim()).filter(Boolean);
-      }
+  // Uniform suffix peeling: display-unit / legacy scope, rollup, and by {...}
+  const units = stripRepeated(DISPLAY_UNIT_RE);
+  conflictFrom(isFind || isRows ? 'scope' : 'display-unit', units);
+  if (units.length) {
+    const val = units[units.length - 1][1];
+    if (val === 'kg' || val === 'lb') {
+      displayUnit = val;
+    } else if (isFind || isRows) {
+      legacyScope = val;
+    } else {
+      displayUnit = val;
     }
-  } else {
-    // Analytics queries strip `in <unit>`, `.rollup(<period>)`, `by {<dims>}`
-    const units = stripRepeated(DISPLAY_UNIT_RE);
-    conflictFrom('display-unit', units);
-    if (units.length) displayUnit = units[units.length - 1][1];
+  }
 
-    const rollups = stripRepeated(ROLLUP_RE);
-    conflictFrom('.rollup', rollups);
-    if (rollups.length) {
-      const m = rollups[rollups.length - 1];
-      rollup = { size: m[1] ? parseInt(m[1], 10) : 1, unit: m[2] || '', raw: m[1] + m[2] };
-    }
+  const rollups = stripRepeated(ROLLUP_RE);
+  conflictFrom('.rollup', rollups);
+  if (rollups.length) {
+    const m = rollups[rollups.length - 1];
+    rollup = { size: m[1] ? parseInt(m[1], 10) : 1, unit: m[2] || '', raw: m[1] + m[2] };
+  }
 
-    const bys = stripRepeated(BY_RE);
-    conflictFrom('by', bys);
-    if (bys.length) {
-      groupBy = bys[bys.length - 1][1]
-        .split(',')
-        .map((d) => d.trim())
-        .filter(Boolean);
-    }
+  const bys = stripRepeated(BY_RE);
+  conflictFrom('by', bys);
+  if (bys.length) {
+    groupBy = bys[bys.length - 1][1]
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean);
   }
 
   return {

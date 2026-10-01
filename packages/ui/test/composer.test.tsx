@@ -194,7 +194,7 @@ describe('filter typeahead', () => {
     // Editor open with the source options; arrow down to 'collections'.
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(screen.getByTestId('token-slot-value-source').textContent).toBe('collections');
+    expect(screen.getByTestId('token-slot-value-source').textContent).toBe('block');
     // Editor stays open — the pill is highlighted until Tab.
     expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
     expect(screen.getByTestId('token-slot-source').className).toContain('bg-primary');
@@ -367,7 +367,7 @@ describe('filter typeahead', () => {
       fireEvent.keyDown(input, { key: 'ArrowDown' });
       fireEvent.keyDown(input, { key: 'Enter' });
       expect(input.value).toBe('');
-      expect(screen.getByTestId('token-slot-value-source').textContent).toBe('collections');
+      expect(screen.getByTestId('token-slot-value-source').textContent).toBe('block');
       // Uncommitted filter text is dropped when the editor is released.
       fireEvent.change(input, { target: { value: 'zz' } });
       fireEvent.keyDown(input, { key: 'Tab' });

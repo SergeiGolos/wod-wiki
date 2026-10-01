@@ -26,7 +26,7 @@ import {
   WqlComposer,
   type QueryExecutor,
 } from '@bitcobblers/wod-wiki-ui';
-import { parseQuery, isFindQuery, isRowsQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, isFindQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 /** Parse the composer's attribute text: whitespace-separated `key=value`
  *  tokens (values may be double-quoted) — the fence-tag encoding. */
@@ -155,8 +155,11 @@ function ComposerSession({
   const [error, setError] = useState<string | null>(null);
 
   const parsed = useMemo(() => parseQuery(wql.trim()), [wql]);
+  const resolvedType = type === '' ? 'table' : type;
   const widgetReady =
-    !parsed.error && !isFindQuery(parsed) && !isRowsQuery(parsed) && wql.trim() !== '';
+    !parsed.error &&
+    wql.trim() !== '' &&
+    (isFindQuery(parsed) ? resolvedType === 'table' || resolvedType === 'list' : resolvedType !== 'list');
 
   // Preview: execute through the board's executor with the board's
   // range/unit context and token substitution — matching what the widget
@@ -446,8 +449,8 @@ function ComposerSession({
                 <div className="h-full flex items-center justify-center text-xs text-destructive font-mono px-4 text-center">
                   {parsed.error
                     ? parsed.error
-                    : isFindQuery(parsed) || isRowsQuery(parsed)
-                      ? 'find:/rows: queries render inline in notes — widgets take an aggregate calculation.'
+                    : isFindQuery(parsed)
+                      ? 'find: queries return things — use a table or list widget instead'
                       : 'Compose a calculation to preview.'}
                 </div>
               ))}

@@ -43,14 +43,14 @@ avg:calc.adherence{}
 Is volume rising?
 
 ```query:timeseries-2
-sum:totalVolume{} by {week}.rollup(1w)
+sum:totalVolume{} by {week}
 ```
 
 ## TIS trend
 Is intensity consistent?
 
 ```query:timeseries
-avg:tis{} by {week}.rollup(1w)
+avg:tis{} by {week}
 ```
 
 ## Volume by effort
@@ -64,7 +64,7 @@ sum:totalVolume{} by {effort}
 Is training polarized?
 
 ```query:stacked-bar
-sum:sessionLoad{} by {intensity}.rollup(1w)
+sum:sessionLoad{} by {intensity, week}
 ```
 
 ## Distance by discipline
@@ -78,5 +78,5 @@ sum:totalDistance{} by {discipline}
 Is load building?
 
 ```query:timeseries
-sum:sessionLoad{} by {week}.rollup(1w)
+sum:sessionLoad{} by {week}
 ```

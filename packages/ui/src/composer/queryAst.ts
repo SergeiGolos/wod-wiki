@@ -24,7 +24,6 @@ import {
   serialize,
   isAggregateQuery,
   isFindQuery,
-  isRowsQuery,
   type AnyParsedQuery,
   type TagFilter,
 } from '@bitcobblers/wod-wiki-wql';
@@ -52,6 +51,7 @@ const PILL_KEY: Record<string, string> = {
   result: 'result',
   block: 'block',
   note: 'note',
+  plane: 'plane',
 };
 
 /** AST filter key → built-in filter pill type (inverse of PILL_KEY). */
@@ -131,25 +131,6 @@ function restorePill(id: string, type: string, value: string): QueryClause {
 export function astToPills(ast: AnyParsedQuery): QueryClause[] | null {
   if (ast.error) return null;
 
-  if (isRowsQuery(ast)) {
-    if (ast.window?.kind === 'range') return null;
-    // The rows source pill is the plane selector — a source: filter has no
-    // pill home here, so the query is not composer-expressible.
-    if (ast.filters.some((f) => f.key === 'source')) return null;
-    const filterPills: QueryClause[] = [];
-    for (let i = 0; i < ast.filters.length; i++) {
-      const p = filterToPill(ast.filters[i]!, i);
-      if (!p) return null;
-      filterPills.push(p);
-    }
-    return [
-      restorePill('c-source', 'source', 'rows'),
-      restorePill('c-time', 'time', windowPillValue(ast.window)),
-      restorePill('c-output', 'output', ast.outputType ?? 'all'),
-      ...filterPills,
-    ];
-  }
-
   if (isFindQuery(ast)) {
     if (ast.window?.kind === 'range') return null;
     const sourceFilter = ast.filters.find((f) => f.key === 'source' && !f.negate);
@@ -157,15 +138,13 @@ export function astToPills(ast: AnyParsedQuery): QueryClause[] | null {
     // REAL source: value there is not composer-expressible. `source:all` is
     // the identity scope and absorbs losslessly on every target.
     const nonIdentitySource = sourceFilter && !sourceFilter.values.every((v) => v.value === 'all');
-    if ((ast.target === 'block' || ast.target === 'effort') && nonIdentitySource) return null;
+    if ((ast.target === 'block' || ast.target === 'effort' || ast.target === 'session' || ast.target === 'segment' || ast.target === 'event') && nonIdentitySource) return null;
     const sourceValue =
-      ast.target === 'block'
-        ? 'blocks'
-        : ast.target === 'effort'
-          ? 'efforts'
-          : !sourceFilter || sourceFilter.values.every((v) => v.value === 'all')
-            ? 'notes'
-            : sourceFilter.values.map((v) => v.value).join('|');
+      ['block', 'effort', 'session', 'segment', 'event'].includes(ast.target)
+        ? ast.target
+        : !sourceFilter || sourceFilter.values.every((v) => v.value === 'all')
+          ? 'notes'
+          : sourceFilter.values.map((v) => v.value).join('|');
     const rest = ast.filters.filter((f) => f !== sourceFilter);
     const filterPills: QueryClause[] = [];
     for (let i = 0; i < rest.length; i++) {
@@ -285,11 +264,6 @@ function buildCandidateText(pills: QueryClause[]): string {
   const wherePill = pills.find((c) => c.type === 'where');
   const whereText = wherePill?.value.trim() ? `where ${wherePill.value.trim()}` : '';
 
-  if (source === 'rows') {
-    const output = pillValue(pills, 'output', 'all') || 'all';
-    return [`rows:${output}{${filterParts.join(',')}}`, timeText].filter(Boolean).join(' ').trim();
-  }
-
   if (sourcePlane(source) === 'metrics') {
     const agg = pillValue(pills, 'agg', 'sum');
     const metric = pillValue(pills, 'metric', '');
@@ -307,9 +281,11 @@ function buildCandidateText(pills: QueryClause[]): string {
   }
 
   // Content plane — source pill folds into target + source: filter (C2).
-  const target = source === 'blocks' ? 'block' : source === 'efforts' ? 'effort' : 'note';
+  const target = ['note', 'block', 'effort', 'session', 'segment', 'event'].includes(source)
+    ? source
+    : source === 'blocks' ? 'block' : source === 'efforts' ? 'effort' : 'note';
   const withSource =
-    source === 'notes' || source === 'blocks' || source === 'efforts'
+    ['note', 'notes', 'block', 'blocks', 'effort', 'efforts', 'session', 'segment', 'event'].includes(source)
       ? filterParts
       : [`source:${source}`, ...filterParts];
   const braces = withSource.length ? `{${withSource.join(',')}}` : '';
@@ -337,8 +313,7 @@ const METRICS_HEAD_TYPES = new Set(['agg', 'metric', 'groupby', 'rollup', 'unit'
  * the time pill survives every pivot (C1 — one window clause on every
  * family); kind-specific pills drop (metrics head on content pivots, the
  * where join always — its half-type is plane-specific). Pivoting to metrics
- * seeds the head slots (agg=sum, metric empty for placeholder guidance);
- * pivoting to rows seeds output=all.
+ * seeds the head slots (agg=sum, metric empty for placeholder guidance).
  */
 export function pivotPills(pills: QueryClause[], source: string): QueryClause[] {
   const next = pills
@@ -351,10 +326,6 @@ export function pivotPills(pills: QueryClause[], source: string): QueryClause[] 
     if (!next.some((c) => c.type === 'agg')) head.push(restorePill('c-agg', 'agg', 'sum'));
     if (!next.some((c) => c.type === 'metric')) head.push(restorePill('c-metric', 'metric', ''));
     next.splice(sourceIdx >= 0 ? sourceIdx + 1 : next.length, 0, ...head);
-  }
-  if (source === 'rows' && !next.some((c) => c.type === 'output')) {
-    const sourceIdx = next.findIndex((c) => c.type === 'source');
-    next.splice(sourceIdx >= 0 ? sourceIdx + 1 : next.length, 0, restorePill('c-output', 'output', 'all'));
   }
   return next;
 }

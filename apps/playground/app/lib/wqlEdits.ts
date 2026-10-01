@@ -12,7 +12,6 @@ import {
   serialize,
   isAggregateQuery,
   isFindQuery,
-  isRowsQuery,
   type AnyParsedQuery,
   type FindPredicate,
   type MetricPredicate,
@@ -72,7 +71,9 @@ export function sourceOfQuery(query: string): string {
   const parsed = parseQuery(query);
   if (parsed.error) return 'notes';
   if (isAggregateQuery(parsed)) return 'metrics';
-  if (isRowsQuery(parsed)) return 'rows';
+  if (isFindQuery(parsed) && (parsed.target === 'session' || parsed.target === 'segment' || parsed.target === 'event')) {
+    return parsed.target;
+  }
   const sf = parsed.filters.find((f) => f.key === 'source' && !f.negate);
   const tf = parsed.filters.find((f) => f.key === 'type' && !f.negate);
   if (tf?.values.some((v) => v.value === 'collection')) return 'collections';
@@ -107,11 +108,11 @@ export function pivotSourceQuery(query: string, source: string): string {
     });
   }
 
-  if (source === 'rows') {
+  if (source === 'session' || source === 'segment' || source === 'event') {
     return serialize({
-      family: 'rows',
+      family: 'find',
       raw: '',
-      outputType: isRowsQuery(parsed) ? parsed.outputType : undefined,
+      target: source,
       filters,
       window,
     });

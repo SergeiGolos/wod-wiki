@@ -70,7 +70,7 @@ const SAMPLE_ROWS = [
   '## Query',
   '',
   '```wql',
-  'rows:all{result:res-fran-w0}',
+  'find:session{result:res-fran-w0}',
   '```',
   '',
   '## Expected',

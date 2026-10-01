@@ -56,7 +56,7 @@ const qParam = () => new URLSearchParams(search()).get('q') ?? ''
 const submitted = () => screen.getByTestId('submitted').textContent ?? ''
 const weeks = () => screen.getByTestId('weeks').textContent ?? ''
 
-const AGG = 'sum:totalVolume{discipline:strength} by {week}.rollup(1w)'
+const AGG = 'sum:totalVolume{discipline:strength} by {week}'
 
 describe('useExplorerQueryState', () => {
   it('falls back to explorer defaults when no params are present', () => {
