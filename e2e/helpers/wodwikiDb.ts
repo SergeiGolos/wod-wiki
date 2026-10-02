@@ -654,9 +654,23 @@ export async function seedJournalNote(
         const now = Date.now();
         const pageId = `page/${date}`;
         const noteId = `journal/${date}`;
+        // V22: journalDate is derived from the page row via the page_notes
+        // junction — without the link the note is invisible to listByDate.
+        const stores = db.objectStoreNames.contains('page_notes')
+          ? ['page', 'notes', 'segments', 'page_notes']
+          : ['page', 'notes', 'segments'];
         await new Promise<void>((resolve, reject) => {
-          const tx = db.transaction(['page', 'notes', 'segments'], 'readwrite');
+          const tx = db.transaction(stores as string[], 'readwrite');
           tx.objectStore('page').put({ id: pageId, date, title: date, createdAt: now });
+          if (db.objectStoreNames.contains('page_notes')) {
+            tx.objectStore('page_notes').put({
+              id: `pn-${pageId}-${noteId}`,
+              pageId,
+              noteId,
+              position: 0,
+              createdAt: now,
+            });
+          }
           tx.objectStore('notes').put({
             id: noteId,
             title: title ?? date,
