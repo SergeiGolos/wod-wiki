@@ -403,7 +403,10 @@ export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<
       const db = await openWodDb(dbName);
       try {
         await new Promise<void>((resolve, reject) => {
-          const tx = db.transaction(['notes', 'segments', 'note_tags'], 'readwrite');
+          const stores = ['notes', 'segments', 'note_tags'];
+          if (db.objectStoreNames.contains('page')) stores.push('page');
+          if (db.objectStoreNames.contains('page_notes')) stores.push('page_notes');
+          const tx = db.transaction(stores, 'readwrite');
           const notesStore = tx.objectStore('notes');
 
           const deleteCascade = (noteId: string) => {
@@ -428,11 +431,27 @@ export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<
           idReq.onsuccess = () => {
             if (idReq.result) {
               deleteCascade(idReq.result.id);
-            } else {
-              const slugReq = notesStore.index('by-slug').get(routeId);
-              slugReq.onsuccess = () => {
-                if (slugReq.result) deleteCascade(slugReq.result.id);
+            } else if (db.objectStoreNames.contains('page')) {
+              // V22+: slugs live on the `page` store; notes link via page_notes.
+              const pageReq = tx.objectStore('page').index('by-slug').get(routeId);
+              pageReq.onsuccess = () => {
+                const pg = pageReq.result;
+                if (!pg) return;
+                if (db.objectStoreNames.contains('page_notes')) {
+                  const linkReq = tx.objectStore('page_notes').index('by-page').getAll(pg.id);
+                  linkReq.onsuccess = () => {
+                    for (const link of linkReq.result) {
+                      deleteCascade(link.noteId);
+                      tx.objectStore('page_notes').delete(link.id);
+                    }
+                    tx.objectStore('page').delete(pg.id);
+                  };
+                  linkReq.onerror = () => reject(linkReq.error);
+                } else {
+                  tx.objectStore('page').delete(pg.id);
+                }
               };
+              pageReq.onerror = () => reject(pageReq.error);
             }
           };
 
@@ -745,7 +764,10 @@ export async function getNoteContentByRouteId(
       const db = await openWodDb(dbName);
       try {
         return await new Promise<string | null>((resolve, reject) => {
-          const tx = db.transaction(['notes', 'segments'], 'readonly');
+          const stores = ['notes', 'segments'];
+          if (db.objectStoreNames.contains('page')) stores.push('page');
+          if (db.objectStoreNames.contains('page_notes')) stores.push('page_notes');
+          const tx = db.transaction(stores, 'readonly');
           const notesStore = tx.objectStore('notes');
 
           const readSegments = (noteId: string) => {
@@ -785,13 +807,26 @@ export async function getNoteContentByRouteId(
           idReq.onsuccess = () => {
             if (idReq.result) {
               readSegments(idReq.result.id);
-            } else {
-              const slugReq = notesStore.index('by-slug').get(routeId);
-              slugReq.onsuccess = () => {
-                if (slugReq.result) readSegments(slugReq.result.id);
-                else resolve(null);
+            } else if (db.objectStoreNames.contains('page')) {
+              // V22+: slugs live on the `page` store; notes link via page_notes.
+              const pageReq = tx.objectStore('page').index('by-slug').get(routeId);
+              pageReq.onsuccess = () => {
+                const pg = pageReq.result;
+                if (!pg) return resolve(null);
+                if (db.objectStoreNames.contains('page_notes')) {
+                  const linkReq = tx.objectStore('page_notes').index('by-page').getAll(pg.id);
+                  linkReq.onsuccess = () => {
+                    if (linkReq.result.length === 0) return resolve(null);
+                    readSegments(linkReq.result[0].noteId);
+                  };
+                  linkReq.onerror = () => reject(linkReq.error);
+                } else {
+                  resolve(null);
+                }
               };
-              slugReq.onerror = () => reject(slugReq.error);
+              pageReq.onerror = () => reject(pageReq.error);
+            } else {
+              resolve(null);
             }
           };
           idReq.onerror = () => reject(idReq.error);
