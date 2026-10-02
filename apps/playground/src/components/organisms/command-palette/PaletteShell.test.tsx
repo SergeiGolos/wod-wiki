@@ -24,7 +24,7 @@
  */
 import { beforeAll, afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter, useLocation } from 'react-router-dom'
 import { usePaletteStore } from './palette-store'
 import type { PaletteItem, PaletteRequest, PaletteResponse } from './palette-types'
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
@@ -316,7 +316,7 @@ describe('PaletteShell WQL mode', () => {
       expect(usePaletteStore.getState().isOpen).toBe(false)
       // The sentinel entry is consumed — the visible URL is exactly the page's.
       await waitFor(() =>
-        expect(screen.getByTestId('location-probe').textContent).toBe('/library?q=find:note'),
+        expect(screen.getByTestId('location-probe').textContent).toBe('/library?q=find%3Anote'),
       )
     } finally {
       window.history.replaceState(null, '', '/')

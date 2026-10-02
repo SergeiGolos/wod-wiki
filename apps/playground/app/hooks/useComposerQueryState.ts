@@ -125,13 +125,8 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
   const urlIsCheckpoint = useRef(true)
   const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // URL → query (back/forward, external navigation, migration). Content-
-  // compared: echoes of our own setQuery writes restore the same text and
-  // are skipped, so a transient edit is never clobbered. Any other q change
-  // is a committed restore — the next edit starts a fresh spell, and the
-  // epoch bump tells hosts to discard the composer's obsolete pending input.
+  // URL → query. Skip our own URL echoes without clobbering transient edits.
   const prevQRef = useRef(q)
-  const [restoreEpoch, setRestoreEpoch] = useState(0)
   useEffect(() => {
     if (q === prevQRef.current) return
     prevQRef.current = q
@@ -140,9 +135,25 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
     settleRef.current = null
     setUrlQueryError(urlQueryErrorFor(q))
     const restored = q && !parseQuery(q).error ? q : configRef.current.defaultQuery()
-    if (queryRef.current !== restored) setRestoreEpoch(epoch => epoch + 1)
     setQueryState(current => (current === restored ? current : restored))
   }, [q])
+
+  useEffect(() => {
+    const restore = () => {
+      const restoredQ = new URLSearchParams(window.location.search).get('q') ?? ''
+      prevQRef.current = restoredQ
+      urlIsCheckpoint.current = true
+      clearTimeout(settleRef.current)
+      settleRef.current = null
+      setUrlQueryError(urlQueryErrorFor(restoredQ))
+      setQueryState(restoredQ && !parseQuery(restoredQ).error ? restoredQ : configRef.current.defaultQuery())
+    }
+    window.addEventListener('popstate', restore)
+    return () => {
+      window.removeEventListener('popstate', restore)
+      clearTimeout(settleRef.current)
+    }
+  }, [])
 
   const setQuery = useCallback(
     (next: string) => {

@@ -16,7 +16,7 @@ import '../../tests/helpers/repair-react-router-dom'
 import { afterEach, describe, expect, it } from 'bun:test'
 
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { useComposerQueryState, type ComposerQueryState } from './useComposerQueryState'
 
 afterEach(cleanup)
@@ -53,6 +53,22 @@ const qParam = () => new URLSearchParams(search()).get('q') ?? ''
 const pathname = () => screen.getByTestId('pathname').textContent
 
 describe('useComposerQueryState', () => {
+  it('native Back restores the query when the scratch navigation has not rendered', async () => {
+    window.history.replaceState(null, '', '/library')
+    try {
+      render(<BrowserRouter><Probe /></BrowserRouter>)
+      act(() => {
+        captured.setQuery('find:note{tags:strength}')
+        window.history.replaceState(null, '', '/library')
+        window.dispatchEvent(new window.PopStateEvent('popstate'))
+      })
+      await waitFor(() => expect(query()).toBe(DEFAULT_QUERY))
+      expect(qParam()).toBe('')
+    } finally {
+      window.history.replaceState(null, '', '/')
+    }
+  })
+
   it('collapses an editing burst into one scratch entry — Back restores the landing', async () => {
     renderAt(['/elsewhere', '/library'], 1)
 

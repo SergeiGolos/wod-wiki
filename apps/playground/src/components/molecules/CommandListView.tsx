@@ -119,8 +119,11 @@ export function CommandListView<TPayload>({
   // Keep the active result visible while navigating.
   useEffect(() => {
     if (!state.activeId) return;
-    const el = resultsRef.current?.querySelector(`[data-item-id="${CSS.escape(state.activeId)}"]`);
-    el?.scrollIntoView?.({ block: 'nearest' });
+    for (const item of resultsRef.current?.querySelectorAll<HTMLElement>('[data-item-id]') ?? []) {
+      if (item.dataset.itemId !== state.activeId) continue;
+      item.scrollIntoView?.({ block: 'nearest' });
+      break;
+    }
   }, [state.activeId]);
 
   if (!isOpen) return null;
