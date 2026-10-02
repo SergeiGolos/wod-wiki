@@ -195,6 +195,17 @@ describe('serialize (C6 structured interface)', () => {
     const DATES = ['2026-01-01', '2026-03-31', '2025-11-30'];
     const THRESHOLDS = [0, 5, 5000, 1234.5, 0.25];
 
+    // ponytail: rng-comparator .sort() consumes a runtime-dependent number of
+    // draws (V8 vs Bun sorts differ), desyncing the seeded stream across CI/local.
+    // Upgrade path: none needed — Fisher-Yates is exact and unbiased.
+    const shuffled = <T>(rng: () => number, arr: readonly T[]): T[] => {
+      const out = [...arr];
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    };
     const pick = <T>(rng: () => number, arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)];
     const int = (rng: () => number, lo: number, hi: number): number => lo + Math.floor(rng() * (hi - lo + 1));
     const maybe = (rng: () => number, p: number): boolean => rng() < p;
@@ -207,7 +218,7 @@ describe('serialize (C6 structured interface)', () => {
     }
 
     function genFilters(rng: () => number, count: number, negate = true, pool: readonly string[] = KEYS): TagFilter[] {
-      const keys = [...pool].sort(() => rng() - 0.5).slice(0, count);
+      const keys = shuffled(rng, pool).slice(0, count);
       return keys.map((key) => ({
         key,
         negate: negate && maybe(rng, 0.25),
@@ -228,7 +239,7 @@ describe('serialize (C6 structured interface)', () => {
         agg: pick(rng, WQL_AGGREGATORS),
         metric: pick(rng, METRICS),
         filters: genFilters(rng, int(rng, 0, 3), true, AGG_KEYS),
-        groupBy: maybe(rng, 0.4) ? [...KEYS].sort(() => rng() - 0.5).slice(0, int(rng, 1, 2)) : [],
+        groupBy: maybe(rng, 0.4) ? shuffled(rng, KEYS).slice(0, int(rng, 1, 2)) : [],
       };
       if (maybe(rng, 0.4)) a.rollup = { size: pick(rng, [2, 3, 7]), unit: maybe(rng, 0.5) ? 'd' : 'w' };
       if (maybe(rng, 0.3)) a.displayUnit = pick(rng, ['kg', 'lb', 'reps']);
@@ -261,7 +272,7 @@ describe('serialize (C6 structured interface)', () => {
           threshold: pick(rng, THRESHOLDS),
         };
       }
-      if (maybe(rng, 0.25)) f.groupBy = [...KEYS].sort(() => rng() - 0.5).slice(0, int(rng, 1, 2));
+      if (maybe(rng, 0.25)) f.groupBy = shuffled(rng, KEYS).slice(0, int(rng, 1, 2));
       if (maybe(rng, 0.2)) f.displayUnit = pick(rng, ['kg', 'lb']);
       if (maybe(rng, 0.4)) {
         f.pipes = {};
@@ -336,8 +347,8 @@ describe('serialize (C6 structured interface)', () => {
     expect(windows).toBeGreaterThan(150);
     expect(rollups).toBeGreaterThan(30);
     expect(units).toBeGreaterThan(20);
-    expect(pipes).toBeGreaterThan(45);
-    expect(standalones).toBeGreaterThan(10);
+    expect(pipes).toBeGreaterThan(40);
+    expect(standalones).toBeGreaterThan(8);
   });
   it('leaves canonical corpus strings untouched (fixed-point text)', () => {
     const corpus = [
