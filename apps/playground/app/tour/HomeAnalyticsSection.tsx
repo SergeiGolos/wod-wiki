@@ -167,13 +167,13 @@ export function GraphsTile({ data }: { data: HomeAnalyticsData }) {
   return (
     <Tile kind="Graphs">
       <div className="flex flex-col gap-3">
-        <WidgetFrame title="Weekly tonnage" question="Is volume rising?" query="sum:totalVolume{} by {week}.rollup(1w) last 6w">
+        <WidgetFrame title="Weekly tonnage" question="Is volume rising?" query="sum:totalVolume{} by {week} last 6w">
           <Chips parsed={data.weeklyVolume.parsed} />
           <div className="h-40">
             <WqlTimeseries result={data.weeklyVolume} unit="kg" />
           </div>
         </WidgetFrame>
-        <WidgetFrame title="Load by intensity" question="Is training polarized?" query="sum:sessionLoad{} by {intensity}.rollup(1w) last 6w">
+        <WidgetFrame title="Load by intensity" question="Is training polarized?" query="sum:sessionLoad{} by {intensity, week} last 6w">
           <Chips parsed={data.loadByIntensity.parsed} />
           <div className="h-40">
             <StackedBar result={data.loadByIntensity} unit="AU" />
@@ -213,7 +213,7 @@ export function DashboardTile({ data }: { data: HomeAnalyticsData }) {
             <QueryValue result={data.totalVolume} unit="kg" label="total volume" />
           </WidgetFrame>
           <div className="col-span-2">
-            <WidgetFrame title="Weekly tonnage" question="Rising?" query="sum:totalVolume{} by {week}.rollup(1w) last 6w">
+            <WidgetFrame title="Weekly tonnage" question="Rising?" query="sum:totalVolume{} by {week} last 6w">
               <div className="h-32">
                 <WqlTimeseries result={data.weeklyVolume} unit="kg" />
               </div>
@@ -224,7 +224,7 @@ export function DashboardTile({ data }: { data: HomeAnalyticsData }) {
               <TopList result={data.volumeByEffort} unit="kg" limit={4} />
             </div>
           </WidgetFrame>
-          <WidgetFrame title="Load by intensity" question="Polarized?" query="sum:sessionLoad{} by {intensity}.rollup(1w) last 6w">
+          <WidgetFrame title="Load by intensity" question="Polarized?" query="sum:sessionLoad{} by {intensity, week} last 6w">
             <div className="h-32">
               <StackedBar result={data.loadByIntensity} unit="AU" />
             </div>

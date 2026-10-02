@@ -287,7 +287,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
       </>
     ),
     body: 'Roll the same facts up by week and they become a timeseries — is tonnage rising, is training polarized? A graph is not a feature you enable; it is a rollup away.',
-    foot: 'rollup(1w) · timeseries · stacked intensity',
+    foot: 'by {week} · timeseries · stacked intensity',
     accent: TOUR_ACCENTS.analytics,
   },
   {

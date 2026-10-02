@@ -156,14 +156,19 @@ test.describe('Note Persistence — save / load / workout flow', () => {
         const req = indexedDB.open(dbName);
         req.onsuccess = () => {
           const db = req.result;
-          if (!Array.from(db.objectStoreNames).includes('results')) { db.close(); resolve(); return; }
-          const tx = db.transaction('results', 'readwrite');
-          tx.objectStore('results').put({
+          if (!Array.from(db.objectStoreNames).includes('sessions')) { db.close(); resolve(); return; }
+          const tx = db.transaction('sessions', 'readwrite');
+          tx.objectStore('sessions').put({
             id: 'seeded-result-001',
             noteId,
             segmentId: 'wod-test',
+            blockContentId: 'wod-test',
             createdAt: Date.now(),
-            data: { startTime: 0, endTime: 430, duration: 430, metrics: [], logs: [], completed: true },
+            startTime: 0,
+            endTime: 430,
+            duration: 430,
+            completed: true,
+            status: 'completed',
           });
           tx.oncomplete = () => { db.close(); resolve(); };
           tx.onerror = () => { db.close(); reject(tx.error); };
@@ -214,11 +219,11 @@ test.describe('Note Persistence — save / load / workout flow', () => {
         req.onsuccess = () => {
           const db = req.result;
           const stores = Array.from(db.objectStoreNames);
-          if (!stores.includes('results')) { db.close(); resolve(); return; }
-          const tx = db.transaction('results', 'readwrite');
-          const store = tx.objectStore('results');
-          const base = { noteId, segmentId: 'wod-a',
-            data: { startTime: 0, endTime: 100, duration: 100, metrics: [], logs: [], completed: true } };
+          if (!stores.includes('sessions')) { db.close(); resolve(); return; }
+          const tx = db.transaction('sessions', 'readwrite');
+          const store = tx.objectStore('sessions');
+          const base = { noteId, segmentId: 'wod-a', blockContentId: 'wod-a',
+            startTime: 0, endTime: 100, duration: 100, completed: true, status: 'completed' as const };
           store.put({ ...base, id: 'test-result-1', createdAt: 1000 });
           store.put({ ...base, id: 'test-result-2', createdAt: 2000 });
           tx.oncomplete = () => { db.close(); resolve(); };

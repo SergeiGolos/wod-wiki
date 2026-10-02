@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseQuery as _parseQuery, isFindQuery, isRowsQuery, isAggregateQuery, normalizeWql, WQL_COMPARISON_OPS, type ParsedAggregateQuery } from '../src/wql';
+import { parseQuery as _parseQuery, isFindQuery, isAggregateQuery, normalizeWql, WQL_COMPARISON_OPS, type ParsedAggregateQuery } from '../src/wql';
 import { WQL_CONTENT_FILTER_KEYS } from '../src/vocabulary';
 
 function parseQuery(raw: string): ParsedAggregateQuery {
@@ -8,7 +8,7 @@ function parseQuery(raw: string): ParsedAggregateQuery {
 
 describe('parseQuery', () => {
   it('parses the full surface: agg:metric{filters} by {dims} .rollup(period)', () => {
-    const parsed = parseQuery('sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w)');
+    const parsed = parseQuery('sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(2w)');
     expect(parsed.error).toBeUndefined();
     expect(parsed.agg).toBe('sum');
     expect(parsed.metric).toBe('totalVolume');
@@ -17,7 +17,7 @@ describe('parseQuery', () => {
       { key: 'effort', negate: true, values: [{ value: 'burpee', wildcard: false }] },
     ]);
     expect(parsed.groupBy).toEqual(['week', 'effort']);
-    expect(parsed.rollup).toEqual({ size: 1, unit: 'w' });
+    expect(parsed.rollup).toEqual({ size: 2, unit: 'w' });
   });
 
   it('parses wildcard tag values', () => {
@@ -76,13 +76,13 @@ describe('parseQuery', () => {
   });
 
   it('parses the display unit directive at the end of the query', () => {
-    const parsed = parseQuery('sum:totalVolume{} by {week}.rollup(1w) in kg');
+    const parsed = parseQuery('sum:totalVolume{} by {week}.rollup(2w) in kg');
     expect(parsed.error).toBeUndefined();
     expect(parsed.displayUnit).toBe('kg');
     expect(parsed.agg).toBe('sum');
     expect(parsed.metric).toBe('totalVolume');
     expect(parsed.groupBy).toEqual(['week']);
-    expect(parsed.rollup).toEqual({ size: 1, unit: 'w' });
+    expect(parsed.rollup).toEqual({ size: 2, unit: 'w' });
   });
 
   it('parses display unit directive on bare and filtered queries', () => {
@@ -335,9 +335,6 @@ describe('grain:rollup retirement (ticket 003)', () => {
     expect(_parseQuery('sum:totalVolume{grain:summary}').error).toBeUndefined();
   });
 
-  it('retires grain:rollup on rows queries too', () => {
-    expect(_parseQuery('rows:all{result:x,grain:rollup}').error).toContain('.rollup suffix');
-  });
 });
 
 describe('suffix conflicts surface as parse errors (C3)', () => {
@@ -348,20 +345,15 @@ describe('suffix conflicts surface as parse errors (C3)', () => {
     expect(parsed.error).toContain('by {effort}');
   });
 
-  it('rows: duplicate window clauses error before rows-specific checks', () => {
-    const parsed = _parseQuery('rows:{note:a} last 4w last 8w');
-    expect(parsed.error).toContain("'last 4w' conflicts with 'last 8w'");
-  });
-
   it('find: duplicate scope clauses error', () => {
     const parsed = _parseQuery('find:note{tags:pr} in journal in feeds');
     expect(parsed.error).toContain("'in journal' conflicts with 'in feeds'");
   });
 
   it('valid queries stay error-free across all families', () => {
-    expect(_parseQuery('sum:tis{} by {week}.rollup(1w) in kg').error).toBeUndefined();
+    expect(_parseQuery('sum:tis{} by {week}.rollup(2w) in kg').error).toBeUndefined();
     expect(_parseQuery('find:note{tags:pr} in journal last 8w').error).toBeUndefined();
-    expect(_parseQuery('rows:all{result:x} last 4w').error).toBeUndefined();
+    expect(_parseQuery('find:session{result:x} last 4w').error).toBeUndefined();
   });
 });
 
@@ -369,24 +361,20 @@ describe('discriminated query union (C5)', () => {
   it('stamps family on every parse path, including error results', () => {
     expect(_parseQuery('sum:totalVolume{}').family).toBe('aggregate');
     expect(_parseQuery('find:note{tags:pr} in journal').family).toBe('find');
-    expect(_parseQuery('rows:{result:x}').family).toBe('rows');
+    expect(_parseQuery('find:session{result:x}').family).toBe('find');
     // Error paths keep the family — a malformed query still narrows.
     expect(_parseQuery('sum:').family).toBe('aggregate');
     expect(_parseQuery('find:').family).toBe('find');
-    expect(_parseQuery('rows: where x').family).toBe('rows');
+    expect(_parseQuery('find:session where x').family).toBe('find');
   });
 
   it('guards discriminate on family alone', () => {
     const agg = _parseQuery('sum:totalVolume{}');
     const find = _parseQuery('find:note{}');
-    const rows = _parseQuery('rows:{}');
     expect(isAggregateQuery(agg)).toBe(true);
     expect(isAggregateQuery(find)).toBe(false);
-    expect(isAggregateQuery(rows)).toBe(false);
     expect(isFindQuery(agg)).toBe(false);
     expect(isFindQuery(find)).toBe(true);
-    expect(isRowsQuery(rows)).toBe(true);
-    expect(isRowsQuery(agg)).toBe(false);
   });
 });
 
@@ -410,46 +398,22 @@ describe('find/rows target validation (C7)', () => {
     expect(parsed.error).toContain('Unknown find target "exercise"');
   });
 
-  it('rows: unknown target errors listing valid planes', () => {
-    const parsed = _parseQuery('rows:exercise{result:rA}');
-    expect(parsed.family).toBe('rows');
-    expect(parsed.error).toContain('Unknown rows target "exercise"');
-    expect(parsed.error).toContain('segment');
-    expect(parsed.error).toContain('note');
-  });
-
-  it('rows: result planes and content planes stay error-free', () => {
-    expect(_parseQuery('rows:segment{result:rA}').error).toBeUndefined();
-    expect(_parseQuery('rows:analytics{result:rA}').error).toBeUndefined();
-    expect(_parseQuery('rows:wellness{result:rA}').error).toBeUndefined();
-    expect(_parseQuery('rows:note{note:n1}').error).toBeUndefined();
-    expect(_parseQuery('rows:block{block:bc-1}').error).toBeUndefined();
-    expect(_parseQuery('rows:effort{result:rA}').error).toBeUndefined();
-  });
 });
 
-describe('rows-in-grammar cutover (C4)', () => {
-  it('bare rows head normalizes to rows:all with advisory under parseQuery (C2)', () => {
-    const parsed = _parseQuery('rows:{note:n1}');
-    expect(parsed.family).toBe('rows');
-    expect(parsed.error).toBeUndefined();
-    expect(parsed.advisories?.[0]).toContain("Bare 'rows:{...}' syntax is deprecated");
-  });
-  it('rows:all parses without outputType narrowing', () => {
-    const parsed = _parseQuery('rows:all{note:n1}');
-    expect(parsed.error).toBeUndefined();
-    expect(parsed.outputType).toBeUndefined();
+describe('rows: retirement and hints (#1044)', () => {
+  it('rows:all{result:r} fails to parse with a message pointing to find:session{result:r}', () => {
+    const parsed = _parseQuery('rows:all{result:r1}');
+    expect(parsed.error).toContain('rows:all{…} is retired — use find:session{result:r1} instead.');
   });
 
-  it('filter rules error at parse: unsupported keys, negation, wildcards', () => {
-    expect(_parseQuery('rows:all{tags:x}').error).toContain('Unsupported rows filter');
-    expect(_parseQuery('rows:segment{!result:rA}').error).toContain('Unsupported rows filter');
-    expect(_parseQuery('rows:all{block:bc-*}').error).toContain('Unsupported rows filter');
+  it('rows:segment without scope points to find:segment', () => {
+    const parsed = _parseQuery('rows:segment{effort:snatch}');
+    expect(parsed.error).toContain('rows:segment{…} is retired — use find:segment{effort:snatch} instead.');
   });
 
-  it('scope requirement: rows:all needs a scope; unscoped rows:segment is the cross-workout form (ticket 18)', () => {
-    expect(_parseQuery('rows:all{}').error).toContain('needs a scope');
-    expect(_parseQuery('rows:segment{}').error).toBeUndefined();
+  it('rows:segment with scope points to find:session with plane:segment', () => {
+    const parsed = _parseQuery('rows:segment{result:r1}');
+    expect(parsed.error).toContain('rows:segment{…} is retired — use find:session{result:r1, plane:segment} instead.');
   });
 });
 
@@ -481,12 +445,11 @@ describe('window module (C1)', () => {
     expect(find.error).toBeUndefined();
     expect(isFindQuery(find) ? find.window : undefined)
       .toEqual({ kind: 'relative', size: 8, unit: 'w' });
-    const rows = _parseQuery('rows:all{result:x} from 2026-02-01 to 2026-02-28');
-    expect(rows.error).toBeUndefined();
-    expect(isRowsQuery(rows) ? rows.window : undefined)
+    const session = _parseQuery('find:session{result:x} from 2026-02-01 to 2026-02-28');
+    expect(session.error).toBeUndefined();
+    expect(isFindQuery(session) ? session.window : undefined)
       .toEqual({ kind: 'range', start: '2026-02-01', end: '2026-02-28' });
   });
-
   it('last and from are mutually exclusive — conflict naming both spans', () => {
     const parsed = _parseQuery('sum:tis{} last 4w from 2026-01-01');
     expect(parsed.error).toContain("'last 4w' conflicts with 'from 2026-01-01'");
@@ -503,7 +466,7 @@ describe('window module (C1)', () => {
   });
 
   it('window rides the canonical tail after unit and rollup', () => {
-    const parsed = _parseQuery('sum:totalVolume{} by {week}.rollup(1w) in kg last 6w');
+    const parsed = _parseQuery('sum:totalVolume{} by {week}.rollup(2w) in kg last 6w');
     expect(parsed.error).toBeUndefined();
     expect(isAggregateQuery(parsed) ? parsed.window : undefined)
       .toEqual({ kind: 'relative', size: 6, unit: 'w' });
@@ -523,44 +486,19 @@ describe('window module (C1)', () => {
 });
 
 describe('de-overload in with compat normalizer (C2)', () => {
-  it('normalizes bare rows:{...} to rows:all{...}', () => {
-    const parsed = _parseQuery('rows:{result:r1}');
-    expect(parsed.error).toBeUndefined();
-    expect(isRowsQuery(parsed)).toBe(true);
-    if (!isRowsQuery(parsed)) return;
-    expect(parsed.outputType).toBeUndefined();
-    expect(parsed.filters).toEqual([
-      { key: 'result', negate: false, values: [{ value: 'r1', wildcard: false }] },
-    ]);
-    expect(parsed.advisories?.[0]).toContain("Bare 'rows:{...}' syntax is deprecated");
-  });
-
-  it('normalizes legacy in <scope> on rows queries', () => {
-    const parsed = _parseQuery('rows:all{result:r1} in journal');
-    expect(parsed.error).toBeUndefined();
-    expect(isRowsQuery(parsed)).toBe(true);
-    if (!isRowsQuery(parsed)) return;
-    expect(parsed.filters).toContainEqual({
-      key: 'source',
-      negate: false,
-      values: [{ value: 'journal', wildcard: false }],
-    });
-    expect(parsed.advisories?.[0]).toContain("Legacy 'in <scope>' syntax is deprecated");
-  });
 
   it('rejects unknown source: filter values with clear error', () => {
     const parsed = _parseQuery('find:note{source:invalid_scope}');
     expect(parsed.error).toContain('Unknown source "invalid_scope"');
-    expect(parsed.error).toContain('Try: journal, collections, feeds, guides, playground, page, pages, all');
+    expect(parsed.error).toContain('Try: journal, collections, feeds, guides, playground');
   });
 
   it('rejects unknown legacy in <scope> values with clear error', () => {
     const parsed = _parseQuery('find:note in invalid_scope');
     expect(parsed.error).toContain('Unknown source "invalid_scope"');
   });
-
   it('accepts all canonical source values and catalog prefixes', () => {
-    for (const src of ['journal', 'collections', 'collection', 'feeds', 'feed', 'playground', 'all']) {
+    for (const src of ['journal', 'collections', 'collection', 'feeds', 'feed', 'playground', 'guides']) {
       const p = _parseQuery(`find:note{source:${src}}`);
       expect(p.error).toBeUndefined();
     }
@@ -582,20 +520,10 @@ describe('de-overload in with compat normalizer (C2)', () => {
     expect(r1.query).toBe('find:note{tags:pr,source:journal} last 8w');
     expect(r1.advisories.length).toBe(1);
 
-    const r2 = normalizeWql('rows:{result:r1}');
-    expect(r2.query).toBe('rows:all{result:r1}');
-    expect(r2.advisories.length).toBe(1);
-
     const r3 = normalizeWql('sum:totalVolume{} in kg last 4w');
     expect(r3.query).toBe('sum:totalVolume{} in kg last 4w');
     expect(r3.advisories.length).toBe(0);
   });
-
-  it('preserves by/rollup on legacy rows queries so they loudly error at parse', () => {
-    const parsed = _parseQuery('rows:all{result:r1} in journal by {day}');
-    expect(parsed.error).toContain('Rows queries return raw statements');
-  });
-
   it('propagates deprecation advisory from legacy where join find clause', () => {
     const parsed = _parseQuery('sum:totalVolume{} where find:note in journal');
     expect(parsed.error).toBeUndefined();

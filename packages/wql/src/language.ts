@@ -13,8 +13,9 @@
  */
 
 import { LRLanguage, LanguageSupport, syntaxTree, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { autocompletion, CompletionContext, CompletionResult, Completion, snippetCompletion } from "@codemirror/autocomplete";
+import { autocompletion, CompletionContext, CompletionResult, Completion, snippetCompletion, startCompletion } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
+import type { EditorView } from "@codemirror/view";
 import { styleTags, tags as t } from "@lezer/highlight";
 import type { SyntaxNode } from "@lezer/common";
 import { parser } from "./grammar/wql.parser";
@@ -31,6 +32,7 @@ import {
   WQL_GRAINS,
   WQL_ROLLUP_PERIODS,
   WQL_SOURCE_VALUES,
+  WQL_FIND_TARGETS,
 } from "./vocabulary";
 
 // The vocabulary tables live in ./vocabulary (no editor deps); re-export
@@ -43,7 +45,6 @@ export {
   WQL_CALC_TARGETS,
   WQL_FIND_TARGETS,
   WQL_RESULT_PLANES,
-  WQL_ROWS_TARGETS,
   WQL_SOURCE_VALUES,
   WQL_CONTENT_FILTER_KEYS,
   WQL_AGGREGATORS,
@@ -102,6 +103,19 @@ export interface WqlCompletionOptions {
    */
   effortNames?: () => readonly string[];
   /**
+   * Dynamic values for the frontmatter typed-tag filters (`{domain:…}`,
+   * `{format:…}`, `{equipment:…}`, `{quality:…}`, `{intent:…}`) — fed from
+   * the tags store's `by-type` index:
+   * `async key => (await storage.getAllFromIndex('tags', 'by-type', key)).map(t => t.label)`.
+   * Absent or empty results fall through to catalog discovery.
+   */
+  tagTypeValues?: (key: string) => Promise<readonly string[]> | readonly string[];
+  /**
+   * Host-supplied values for a filter key (e.g. the composer's suggestion
+   * feeds). Non-empty results win over the static vocabularies below.
+   */
+  values?: (key: string) => Promise<readonly Completion[]>;
+  /**
    * Injected field catalog (ticket 15): discovered typed variants join the
    * static metric vocabulary, and categorical values back filter-value
    * suggestions for discovered fields. Bounded prefix lookups only — the
@@ -122,8 +136,34 @@ function options(labels: readonly (string | Completion)[]): Completion[] {
   return labels.map((label) => (typeof label === 'string' ? { label } : label));
 }
 
+/**
+ * Accepting a head aggregator or a filter key also writes its separator and
+ * reopens the list, so the next slot (metric/target, filter value) is
+ * offered immediately — typing becomes picking.
+ */
+function chained(list: readonly Completion[], suffix: string): Completion[] {
+  return list.map((c) => ({
+    ...c,
+    apply: (view: EditorView, _c: Completion, from: number, to: number) => {
+      const text = typeof c.apply === 'string' ? c.apply : c.label;
+      const present = view.state.sliceDoc(to, to + suffix.length) === suffix;
+      view.dispatch({
+        changes: { from, to, insert: present ? text : text + suffix },
+        selection: { anchor: from + text.length + suffix.length },
+        userEvent: 'input.complete',
+      });
+      startCompletion(view);
+    },
+  }));
+}
+
+const AGGREGATOR_OPTIONS: Completion[] = [
+  { label: 'find', detail: 'content query', type: 'keyword' },
+  ...WQL_AGGREGATORS.map((label) => ({ label, type: 'keyword' })),
+];
+
 export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
-  const { effortNames, catalog } = options_;
+  const { effortNames, tagTypeValues, catalog, values: hostValues } = options_;
 
   /** Discovered typed variants for the typed metric word — bounded lookup. */
   const catalogMetricOptions = async (typed: string): Promise<Completion[]> => {
@@ -165,7 +205,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     ];
   };
 
-  const tagValueOptions = (key: string): Completion[] | null => {
+  const tagValueOptions = (key: string): Completion[] | Promise<Completion[] | null> | null => {
     switch (key) {
       case 'effort': return options(effortNames?.() ?? []);
       case 'discipline': return options(EFFORT_DISCIPLINES);
@@ -173,12 +213,43 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       case 'grain': return options(WQL_GRAINS);
       case 'metric': return metricOptions();
       case 'source': return options(WQL_SOURCE_VALUES);
+      case 'domain':
+      case 'format':
+      case 'equipment':
+      case 'quality':
+      case 'intent': {
+        if (!tagTypeValues) return null;
+        return Promise.resolve(tagTypeValues(key)).then((values) => (values.length ? options(values) : null));
+      }
       default: return null; // note/page/block/result/tags — free-form
     }
   };
-  function source(context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
+  function staticValues(key: string, word: { from: number }, context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
+    const valueOptions = tagValueOptions(key);
+    if (valueOptions) {
+      if (valueOptions instanceof Promise) {
+        return valueOptions.then((resolved) => (
+          resolved ? { from: word.from, options: resolved, validFor: /^[\w*-]*$/ } : null
+        ));
+      }
+      return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
+    }
+    // Discovered categorical fields back filter-value suggestions
+    // (original spellings — ticket 15).
+    if (catalog) {
+      const typed = context.state.sliceDoc(word.from, context.pos);
+      return catalogValueOptions(key, typed).then((opts) => (
+        opts.length ? { from: word.from, options: opts, validFor: /^[\w*-]*$/ } : null
+      ));
+    }
+    return null;
+  }
+
+  function inner(context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
     const word = context.matchBefore(/[\w.*-]*/)!;
-    if (!word || (word.from === word.to && !context.explicit)) return null;
+    // Structural characters open the next slot immediately, no keystroke needed.
+    const opens = word.from > 0 && /[{,:|(]/.test(context.state.sliceDoc(word.from - 1, word.from));
+    if (!word || (word.from === word.to && !context.explicit && !opens)) return null;
     const tree = syntaxTree(context.state);
     const node = tree.resolveInner(context.pos, -1);
 
@@ -191,23 +262,18 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
         const keyWord = context.matchBefore(/[\w-]*/)!;
         return {
           from: keyWord.from,
-          options: options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })),
+          options: chained(options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })), ':'),
           validFor: /^[\w-]*$/,
           ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
         };
       }
       const key = filterText.slice(0, colonIndex).replace(/^!/, '').trim();
-      const valueOptions = tagValueOptions(key);
-      if (valueOptions) return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
-      // Discovered categorical fields back filter-value suggestions
-      // (original spellings — ticket 15).
-      if (catalog) {
-        const typed = context.state.sliceDoc(word.from, context.pos);
-        return catalogValueOptions(key, typed).then((opts) => (
-          opts.length ? { from: word.from, options: opts, validFor: /^[\w*-]*$/ } : null
+      if (hostValues) {
+        return hostValues(key).then((items) => (
+          items.length ? { from: word.from, options: [...items], validFor: /^[\w*-]*$/ } : staticValues(key, word, context)
         ));
       }
-      return null;
+      return staticValues(key, word, context);
     }
 
     // Inside Filters braces but not in a parsed Filter yet (e.g. `{` + cursor).
@@ -215,7 +281,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       const keyWord = context.matchBefore(/[\w-]*/)!;
       return {
         from: keyWord.from,
-        options: options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })),
+        options: chained(options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })), ':'),
         validFor: /^[\w-]*$/,
         ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
       };
@@ -243,6 +309,9 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     const inMetric = node.name === 'Metric' || (node.name === 'Word' && node.parent?.name === 'Metric');
 
     if (inMetric) {
+      if (head && context.state.sliceDoc(head.from, head.to).trimStart().startsWith('find:')) {
+        return { from: word.from, options: options(WQL_FIND_TARGETS), validFor: /^[\w.-]*$/ };
+      }
       // Discovered typed variants join the static vocabulary (ticket 15) —
       // the bounded catalog lookup merges with the static option list.
       if (catalog) {
@@ -267,10 +336,11 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       const typedPastMetric = metricWord !== null && metricWord !== undefined
         && /\s/.test(context.state.sliceDoc(metricWord.to, context.pos));
       if (afterColon && !typedPastMetric) {
-        return { from: word.from, options: metricOptions(), validFor: /^[\w.-]*$/ };
+        const find = context.state.sliceDoc(head.from, context.pos).trimStart().startsWith('find:');
+        return { from: word.from, options: find ? options(WQL_FIND_TARGETS) : metricOptions(), validFor: /^[\w.-]*$/ };
       }
       if (!afterColon) {
-        return { from: word.from, options: options(WQL_AGGREGATORS).map((c) => ({ ...c, type: 'keyword' })), validFor: /^[\w-]*$/ };
+        return { from: word.from, options: chained(AGGREGATOR_OPTIONS, ':'), validFor: /^[\w-]*$/ };
       }
     }
 
@@ -286,7 +356,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     // Query start — no head yet → aggregators. Past a complete head →
     // structural suffixes.
     if (!head) {
-      return { from: word.from, options: options(WQL_AGGREGATORS).map((c) => ({ ...c, type: 'keyword' })), validFor: /^[\w-]*$/ };
+      return { from: word.from, options: chained(AGGREGATOR_OPTIONS, ':'), validFor: /^[\w-]*$/ };
     }
 
     // Top level after the head: structural suffixes.
@@ -298,6 +368,17 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       ],
       validFor: /^[\w.-]*$/,
     };
+  }
+
+  /** A non-empty selection means "replace this token": offer every option for
+   *  the slot (unfiltered) over the selected range. */
+  function source(context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
+    const selection = context.state.selection.main;
+    if (selection.empty) return inner(context);
+    // Evaluate at the selection end so the slot resolved is the selected token's.
+    const result = inner(new CompletionContext(context.state, selection.to, true));
+    const widen = (r: CompletionResult | null) => r && { ...r, from: selection.from, to: selection.to, filter: false, validFor: undefined };
+    return result instanceof Promise ? result.then(widen) : widen(result);
   }
 
   return source;

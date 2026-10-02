@@ -1,68 +1,87 @@
 # WQL (Wod Query Language) Reference
 
-**WQL** is a Datadog-inspired declarative query language designed to explore training documents, raw statement execution logs, and cross-workout telemetry facts.
+**WQL** is a Datadog-inspired declarative query language designed to explore training documents, session runs, and cross-workout telemetry facts.
+
+Every query answers four questions, in the same order:
+
+```
+WHAT{WHICH} WHEN by {GROUP} | SHAPE
+```
 
 ---
 
-## 1. Query Families
+## 1. Query Kinds
 
-WQL has three distinct query families, each addressing a specific layer of the domain:
+WQL has two query kinds — things or numbers:
 
 ```
-find:<target>{filters} [where ...] [window]     ← Discovery (notes, blocks, efforts, pages)
-rows:<target>{filters} [where ...] [window]     ← Raw execution statement stream
-<agg>:<metric>{filters} [by {dim}] [where ...]  ← Analytics facts & time-series
+find:<noun>{filters} [window] [by {dims}] [| pipes]      ← Things
+<agg>:<metric>{filters} [window] [by {dims}] [.rollup]   ← Numbers
 ```
+
+* **Things**: `find:note`, `find:block`, `find:effort`, `find:session`, `find:segment`, `find:event`.
+* **Numbers**: `sum|avg|min|max|count|last|delta:<metric>`.
+
+The noun decides the result shape: `session` returns grouped run cards, `segment` and `event` return flat tables, the content nouns return lists.
 
 ---
 
 ## 2. Discovery Queries (`find:`)
 
-Used to find authored documents and catalog assets:
-
 ```wql
 find:note{category:benchmark}
 find:note{equipment:barbell, source:journal}
-find:block{effort:thruster}
+find:block{effort:thruster} last 8w | limit 20
 find:effort{discipline:strength, intensity:high}
-find:page{category:benchmark}
 ```
 
-### Targets (`find:<target>`)
-* `note`: Discovers notes filtered by tags, types, or frontmatter properties.
-* `block`: Discovers parsed workout blocks from `block_index`.
-* `effort`: Discovers movements from the effort registry.
-* `page`: Discovers parent pages joined through `page_notes`.
+### Nouns (`find:<noun>`)
+* `note`: Notes filtered by tags, types, or frontmatter properties.
+* `block`: Parsed workout blocks from `block_index`.
+* `effort`: Movements from the effort registry.
+* `session`: Completed workout sessions — run cards grouped per result.
+* `segment`: Cross-workout table at segment grain.
+* `event`: Cross-workout table at event grain.
 
----
+### Sessions & tables
+```wql
+find:session{} last 4w                              ← sessions in a window
+find:session{result:r1}                             ← one session's run
+find:session{result:r1, plane:segment}              ← narrowed to one output plane
+find:segment{effort:snatch} last 12w                ← cross-workout table
+find:segment{effort:snatch} by {effort} in lb       ← grouped rows, converted units
+```
 
-## 3. Execution Statement Queries (`rows:`)
+`plane:` accepts the known output types (`segment`, `system`, `load`, `event`, `compiler`, `completion`, `analytics`, `wellness`) and supports `|` OR and `!` NOT.
 
-Used to inspect raw round-by-round statements, split times, and telemetry emitted during workout runs:
+### Pipes (`| select / order by / limit`)
+The parser accepts presentation pipes on find queries. Segment/event tables apply `select`, `order by`, `limit` and `offset`; note/block/effort apply ordering and pagination but not column selection; sessions apply pagination only. The composer preserves existing pipes when editing unrelated clauses, including standalone offsets.
 
 ```wql
-rows:all{note:note-uuid}
-rows:segment{block:block-content-id}
-rows:segment [last 8w]
-rows:all where find:note{equipment:kettlebell}
+find:note{source:collections} | order by title | limit 50
+find:block{effort:back*} last 8w | limit 20
+find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5
 ```
 
-### Targets (`rows:<target>`)
-* `all`: Returns all statement output types without filtering.
-* `segment`: Returns round intervals and movement completion events.
-* `event`, `summary`, `load`, `analytics`: Filters by promoted `outputType`.
+```wql
+find:segment{effort:snatch} by {effort} in lb last 2w | select resistance in lb, effort | order by resistance desc | limit 5 offset 2
+find:note{source:collections} | offset 20
+```
+
+Find target and storage scope are independent: `find:block{source:collections}` queries blocks stored in collections; `find:note{type:collection}` filters page type, not storage location. Guided choices reflect executor support rather than every key the parser can accept. Effort queries have no time dimension; `plane:` narrows sessions, not segment/event tables. Display units apply to aggregates and segment/event tables. Registered custom fact dimensions are available on aggregates and segment/event tables, not content or registry queries.
 
 ---
 
-## 4. Analytics Queries (`<agg>:<metric>`)
+## 3. Analytics Queries (`<agg>:<metric>`)
 
 Evaluates aggregations over `EventRecord` telemetry facts:
 
 ```wql
 sum:totalVolume{} by {week} last 12w
 max:resistance{effort:back-squat}
-avg:pace{effort:run} by {month}
+avg:pace{effort:run} by {week}
 count:reps{discipline:gymnastics} last 4w
+sum:sessionLoad{} by {intensity, week}
 ```
 
 ### Head Aggregators
@@ -75,7 +94,7 @@ count:reps{discipline:gymnastics} last 4w
 
 ---
 
-## 5. Filter Vocabulary
+## 4. Filter Vocabulary
 
 Filters are comma-separated within curly braces `{key:value}`:
 
@@ -87,30 +106,65 @@ Filters are comma-separated within curly braces `{key:value}`:
 | `origin` | Producer provenance | `{origin:user}`, `{origin:runtime}` |
 | `tags` | Tag label | `{tags:pr}`, `{tags:benchmark}` |
 | `<tagType>` | Any registered dynamic tag type | `{equipment:barbell}`, `{category:girl}` |
-| `source` | Content source scope | `{source:journal}`, `{source:collections}` |
+| `source` | Where a note lives | `{source:journal}`, `{source:collections}` |
+| `plane` | Output type on sessions | `{plane:segment}`, `{!plane:compiler}` |
+| `result` / `block` / `note` | Session scope | `{result:r1}`, `{note:n1}` |
+
+`source:` accepts exactly `journal | collections | feeds | guides | playground`. Page-ness is expressed with `type:`.
 
 ### Filter Modifiers
-* **OR**: Use pipe `|` (`{effort:fran|helen}`) or repeat keys (`effort:fran, effort:helen`).
+* **OR**: Use pipe `|` (`{effort:fran|helen}`).
 * **NOT**: Prefix with exclamation mark `!` (`{!discipline:recovery}`).
+* **Prefix**: Trailing `*` (`{effort:back*}`).
 
 ---
 
-## 6. Time Windows & Buckets
+## 5. Time Windows & Buckets
 
-* **Relative windows**: `last 2w`, `last 30d`, `last 6m`, `last 1y`.
-* **Fixed intervals**: `.rollup(1d)`, `.rollup(1w)`.
-* **Grouping Dimensions**: `by {day}`, `by {week}`, `by {month}`, `by {session}`, `by {effort}`.
+* **Relative windows**: `last 2w`, `last 30d`.
+* **Civil ranges**: `from 2026-09-01 to 2026-09-30`.
+* **Time buckets**: `by {day}`, `by {week}` — civil days and Monday-aligned weeks in the user's timezone. Combine with other dims: `by {intensity, week}`.
+* **Multi-unit rollups**: `.rollup(2w)`, `.rollup(7d)` for widths other than one, aligned to civil Mondays / civil days.
+
+The window always filters on *when it happened*: a note's own `date` (falling back to `createdAt`), a block's parent note date, a session's completion time, a fact's metric date.
 
 ---
 
-## 7. Cross-Store Relational Joins (`where`)
+## 6. Cross-Store Relational Joins (`where`)
 
-Queries can join content discovery with telemetry facts:
+Queries join content discovery with telemetry facts — the right-hand side is always the other kind:
 
 ```wql
-// Find notes owning workouts that exceeded 5000kg total volume
-find:note{source:journal} where sum:totalVolume{} > 5000
+// Numbers, restricted to these things
+sum:totalVolume{} where find:note{format:emom}
 
-// Show session rows from notes tagged with kettlebell
-rows:all where find:note{equipment:kettlebell}
+// Things, restricted by a number
+find:note{intent:benchmark} where sum:totalVolume{} > 5000
 ```
+
+---
+
+## 7. Dashboard Widgets
+
+Chart and value widgets take numbers (`<agg>:` queries); `table` and `list` widgets take things (`find:` queries):
+
+````
+```query:table
+find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5
+```
+````
+
+---
+
+## Editor typeahead
+
+The composer's text editor offers the next slot as you type and every alternative when you click a token: click `find` for the head aggregators and `find`, click a target for all `find:` targets, click a filter key for all keys, click a value for that key's values. Picking replaces the token; picking an aggregator or key adds `:` and opens the next list. Unparseable drafts are never written to the URL.
+
+## 8. Removed forms
+
+* `rows:all{…}` / `rows:<plane>{…}` — removed; use `find:session{…}` (add `plane:<plane>` for plane narrowing).
+* `rows:segment{…}` unscoped — removed; use `find:segment{…}`.
+* `rows:event{…}` — removed; use `find:event{…}`.
+* `find:page` — removed; page-ness is `type:` (e.g. `find:note{type:collection}`).
+* `source:page` / `source:pages` / `source:all` — removed; omit `source:` for all sources.
+* `.rollup(1d)` / `.rollup(1w)` — removed; use `by {day}` / `by {week}`.

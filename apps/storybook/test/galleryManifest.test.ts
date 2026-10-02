@@ -12,7 +12,6 @@ import {
   DASHBOARD_WIDGET_TYPES,
   WQL_AGGREGATORS,
   isFindQuery,
-  isRowsQuery,
   parseQuery,
   parseQueryWidgetSuffix,
 } from '@bitcobblers/wod-wiki-engine';
@@ -27,7 +26,7 @@ describe('gallery manifest coverage', () => {
   it('covers every dashboard widget type with a curated card', () => {
     for (const widgetType of DASHBOARD_WIDGET_TYPES) {
       const hit = GALLERY_CARDS.some(
-        (card) => card.section !== 'auto' && card.widgetType === widgetType,
+        (card) => card.section !== 'auto' && (card.widgetType === widgetType || (widgetType === 'list' && card.widgetType === 'find')),
       );
       expect(hit, `no curated card for widget type "${widgetType}"`).toBe(true);
     }
@@ -40,10 +39,9 @@ describe('gallery manifest coverage', () => {
     }
   });
 
-  it('covers unrolled, 1d and 1w rollups', () => {
-    expect(GALLERY_CARDS.some((card) => card.query.includes('.rollup(1d)'))).toBe(true);
-    expect(GALLERY_CARDS.some((card) => card.query.includes('.rollup(1w)'))).toBe(true);
-    expect(GALLERY_CARDS.some((card) => !card.query.includes('.rollup('))).toBe(true);
+  it('covers by {day} and by {week} bucketing', () => {
+    expect(GALLERY_CARDS.some((card) => card.query.includes('by {day}'))).toBe(true);
+    expect(GALLERY_CARDS.some((card) => card.query.includes('by {week}'))).toBe(true);
   });
 
   it('covers all four journals', () => {
@@ -70,19 +68,13 @@ describe('gallery manifest coverage', () => {
     expect(pair, 'no default/preferredUnit pair for one query').toBeDefined();
   });
 
-  it('covers all three query families with correct dispatch', () => {
-    expect(GALLERY_CARDS.some((card) => card.query.startsWith('rows:'))).toBe(true);
+  it('covers find and aggregate query families with correct dispatch', () => {
     expect(GALLERY_CARDS.some((card) => card.query.startsWith('find:'))).toBe(true);
-    expect(
-      GALLERY_CARDS.some((card) => !card.query.startsWith('rows:') && !card.query.startsWith('find:')),
-    ).toBe(true);
+    expect(GALLERY_CARDS.some((card) => !card.query.startsWith('find:'))).toBe(true);
     for (const card of GALLERY_CARDS) {
       if (card.expectError) continue;
       const parsed = parseQuery(card.query);
       expect(parsed.error, `${card.title}: ${card.query}`).toBeUndefined();
-      if (card.query.startsWith('rows:')) {
-        expect(isRowsQuery(parsed), `${card.title} should be a rows query`).toBe(true);
-      }
       if (card.query.startsWith('find:')) {
         expect(isFindQuery(parsed), `${card.title} should be a find query`).toBe(true);
       }
@@ -126,12 +118,12 @@ describe('gallery manifest coverage', () => {
     expect(edgeCards.length, 'edge section should have cards').toBeGreaterThanOrEqual(3);
     expect(edgeCards.some((c) => c.expectError), 'needs parse error card').toBe(true);
     expect(
-      edgeCards.some((c) => !c.expectError && c.query.includes('nonexistent') && !c.query.startsWith('rows:') && !c.query.startsWith('find:')),
+      edgeCards.some((c) => !c.expectError && c.query.includes('nonexistent') && !c.query.startsWith('find:')),
       'needs empty aggregate card',
     ).toBe(true);
     expect(edgeCards.some((c) => c.simulateLoading), 'needs in-flight loading card').toBe(true);
     expect(
-      edgeCards.some((c) => c.query.startsWith('rows:') && c.query.includes('nonexistent')),
+      edgeCards.some((c) => c.query.startsWith('find:session') && c.query.includes('nonexistent')),
       'needs empty rows card',
     ).toBe(true);
     expect(

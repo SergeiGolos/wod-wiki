@@ -3,7 +3,6 @@ import {
   parseQuery,
   serialize,
   isFindQuery,
-  isRowsQuery,
   QueryService,
   WQL_KEYWORDS,
   WQL_CALC_TARGETS,
@@ -41,7 +40,6 @@ import {
   type QueryServiceStores,
   type ParsedAggregateQuery,
   type ParsedFindQuery,
-  type ParsedRowsQuery,
   type DashboardDocument,
 } from '../src/index';
 
@@ -52,13 +50,12 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
     expect(isFindQuery(findAst)).toBe(true);
     expect((findAst as ParsedFindQuery).target).toBe('note');
 
-    const rowsAst = parseQuery('rows:segment{block:bc-1}');
-    expect(isRowsQuery(rowsAst)).toBe(true);
-    expect((rowsAst as ParsedRowsQuery).outputType).toBe('segment');
+    const sessionAst = parseQuery('find:session{block:bc-1}');
+    expect(isFindQuery(sessionAst)).toBe(true);
+    expect((sessionAst as ParsedFindQuery).target).toBe('session');
 
-    const analyticsAst = parseQuery('sum:totalVolume{discipline:strength} by {week}.rollup(1w) in kg');
+    const analyticsAst = parseQuery('sum:totalVolume{discipline:strength} by {week} in kg');
     expect(isFindQuery(analyticsAst)).toBe(false);
-    expect(isRowsQuery(analyticsAst)).toBe(false);
     expect((analyticsAst as ParsedAggregateQuery).agg).toBe('sum');
     expect((analyticsAst as ParsedAggregateQuery).metric).toBe('totalVolume');
     expect(serialize(parseQuery('sum:tis{}'))).toBe('sum:tis{}');

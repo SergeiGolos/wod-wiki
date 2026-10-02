@@ -53,7 +53,7 @@ describe('routeWqlConfig — pure read/write/clear', () => {
 
     expect(readRouteWqlConfig('/journal')).toEqual({
       defaultWql: 'find:note last 6w',
-      typeOptions: ['notes', 'journal'],
+      typeOptions: ['note', 'journal'],
       groupByOptions: ['week'],
     })
   })
@@ -102,7 +102,7 @@ describe('routeWqlConfig — pure read/write/clear', () => {
       getRouteWqlStorageKey('/journal'),
       JSON.stringify({ typeOptions: ['notes', 42, null, 'journal'] }),
     )
-    expect(readRouteWqlConfig('/journal')).toEqual({ typeOptions: ['notes', 'journal'] })
+    expect(readRouteWqlConfig('/journal')).toEqual({ typeOptions: ['note', 'journal'] })
   })
 
   it('clear removes the stored config', () => {
@@ -121,23 +121,74 @@ describe('routeWqlConfig — pure read/write/clear', () => {
   })
 })
 
+describe('routeWqlConfig — narrow favorites migration (work item 3)', () => {
+  it('migrates persisted plural-noun ids to canonical singular targets', () => {
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/library'),
+      JSON.stringify({ typeOptions: ['notes', 'blocks', 'efforts'] }),
+    )
+    expect(readRouteWqlConfig('/library')).toEqual({ typeOptions: ['note', 'block', 'effort'] })
+  })
+
+  it('keeps storage scopes as scopes, preserving priority order and deduping', () => {
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/library'),
+      JSON.stringify({ typeOptions: ['journal', 'notes', 'collections', 'journal'] }),
+    )
+    expect(readRouteWqlConfig('/library')).toEqual({ typeOptions: ['journal', 'note', 'collections'] })
+  })
+
+  it('reports stored ids that are neither canonical nor migratable', () => {
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/journal'),
+      JSON.stringify({ typeOptions: ['rows', 'journal', 'garbage'] }),
+    )
+    expect(readRouteWqlConfig('/journal')).toEqual({
+      typeOptions: ['journal'],
+      invalidTypeOptions: ['rows', 'garbage'],
+    })
+  })
+
+  it('reports unsupported group-by ids without dropping the supported ones', () => {
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/efforts'),
+      JSON.stringify({ groupByOptions: ['week', 'nonsense'] }),
+    )
+    expect(readRouteWqlConfig('/efforts')).toEqual({
+      groupByOptions: ['week'],
+      invalidGroupByOptions: ['nonsense'],
+    })
+  })
+})
+
 describe('routeWqlConfig — resolution', () => {
-  it('overrides profile defaultWql and typeOptions per field', () => {
+  it('overrides profile defaultWql and scopeOptions per field', () => {
     writeRouteWqlConfig('/library', { defaultWql: 'find:note{source:feeds} last 1w' })
     const applied = applyRouteWqlConfig(LIBRARY_STREAM_PROFILE)
 
     expect(applied.defaultWql).toBe('find:note{source:feeds} last 1w')
     // Unconfigured fields keep the system value.
-    expect(applied.typeOptions).toEqual(LIBRARY_STREAM_PROFILE.typeOptions)
+    expect(applied.scopeOptions).toEqual(LIBRARY_STREAM_PROFILE.scopeOptions)
     expect(applied.route).toBe('/library')
   })
 
-  it('replaces typeOptions wholesale, including the empty nudge state', () => {
+  it('replaces scopeOptions wholesale, including the empty nudge state', () => {
     writeRouteWqlConfig('/library', { typeOptions: [] })
-    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).typeOptions).toEqual([])
+    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual([])
 
     writeRouteWqlConfig('/library', { typeOptions: ['feeds'] })
-    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).typeOptions).toEqual(['feeds'])
+    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual(['feeds'])
+  })
+
+  it('treats migrated target favorites as inert for the scope overlay', () => {
+    // `notes` migrates to the canonical `note` target; the route's target is
+    // fixed, so only scope entries overlay. An all-target stored list leaves
+    // no scope favorites — the deliberate "no predefined options" nudge.
+    writeRouteWqlConfig('/library', { typeOptions: ['notes'] })
+    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual([])
+
+    writeRouteWqlConfig('/library', { typeOptions: ['notes', 'journal'] })
+    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual(['journal'])
   })
 
   it('returns the same profile object when no config exists', () => {

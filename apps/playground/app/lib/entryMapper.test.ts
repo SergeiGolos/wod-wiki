@@ -391,9 +391,9 @@ describe('rowsQueryResultToEntries', () => {
     ],
   }
 
-  it('dispatches rows:all to session-level entries', () => {
-    const qr: RowsQueryResult = {
-      parsed: { family: 'rows', raw: 'rows:all{result:res-1}', filters: [] } as ParsedRowsQuery,
+  it('dispatches find:session to session-level entries', () => {
+    const qr: any = {
+      parsed: { family: 'find', raw: 'find:session{result:res-1}', target: 'session', filters: [] },
       runs: [run],
     }
     const entries = rowsQueryResultToEntries(qr)
@@ -401,9 +401,14 @@ describe('rowsQueryResultToEntries', () => {
     expect(entries[0]!.kind).toBe('result')
   })
 
-  it('dispatches rows:segment to segment-level entries', () => {
-    const qr: RowsQueryResult = {
-      parsed: { family: 'rows', raw: 'rows:segment{result:res-1}', outputType: 'segment', filters: [] } as ParsedRowsQuery,
+  it('dispatches find:session with plane:segment to segment-level entries', () => {
+    const qr: any = {
+      parsed: {
+        family: 'find',
+        raw: 'find:session{result:res-1, plane:segment}',
+        target: 'session',
+        filters: [{ key: 'plane', negate: false, values: [{ value: 'segment', wildcard: false }] }],
+      },
       runs: [run],
     }
     const entries = rowsQueryResultToEntries(qr)

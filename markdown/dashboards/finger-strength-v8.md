@@ -24,7 +24,7 @@ max:calc.mvcBw{}
 Is the strength block working? Retest every 4–8 weeks.
 
 ```query:timeseries-2
-last:calc.mvcBw{} by {week}.rollup(1w)
+last:calc.mvcBw{} by {week}
 ```
 
 ## Grade pyramid

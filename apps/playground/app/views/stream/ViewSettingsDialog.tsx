@@ -4,7 +4,7 @@ import { EditorDialog } from '@bitcobblers/wod-wiki-ui'
 import { Button } from '@/components/atoms/primitives/button'
 import { type EntityLevel, getFieldsForLevel } from '../../lib/fieldProjection'
 import type { ViewSettings, LayoutMode } from '../../lib/viewSettingsStorage'
-import { readRouteWqlConfig } from '../../lib/routeWqlConfig'
+import { GROUP_BY_FAVORITE_OPTIONS, readRouteWqlConfig } from '../../lib/routeWqlConfig'
 
 export interface ViewSettingsDialogProps {
   open: boolean
@@ -15,19 +15,15 @@ export interface ViewSettingsDialogProps {
   onLayoutChange: (layout: LayoutMode) => void
   onGroupByChange?: (groupBy: string) => void
   activeGroupBy?: string
+  /** WQL grouping dimensions while the query owns grouping (work item 7):
+   *  the fallback arrangement is disabled and shown unselected until the
+   *  query grouping is removed or changed through the shared editor. */
+  queryGrouping?: string[] | null
+  /** Opens the shared query editor from the "Controlled by query" notice. */
+  onEditQuery?: () => void
   onToggleField: (fieldId: string) => void
   onReset: () => void
 }
-
-const DEFAULT_GROUP_BY_OPTIONS: { id: string; label: string }[] = [
-  { id: 'date', label: 'Date' },
-  { id: 'week', label: 'Week' },
-  { id: 'month', label: 'Month' },
-  { id: 'year', label: 'Year' },
-  { id: 'discipline', label: 'Discipline' },
-  { id: 'tag', label: 'Tags' },
-  { id: 'source', label: 'Source' },
-]
 
 export function ViewSettingsDialog({
   open,
@@ -38,18 +34,22 @@ export function ViewSettingsDialog({
   onLayoutChange,
   onGroupByChange,
   activeGroupBy,
+  queryGrouping,
+  onEditQuery,
   onToggleField,
   onReset,
 }: ViewSettingsDialogProps) {
   const availableFields = useMemo(() => getFieldsForLevel(level), [level])
   const visibleSet = useMemo(() => new Set(settings.visibleFields), [settings.visibleFields])
-  // Group-By vocabulary: the route's stored Route WQL Config wins; unknown
-  // configured ids fall back to a capitalized label.
+  const queryControlsGrouping = (queryGrouping?.length ?? 0) > 0
+  // Group-By vocabulary: the route's stored favorites reorder/prioritize the
+  // shared fallback list; unknown configured ids fall back to a capitalized
+  // label (reported as invalid in Settings ▸ Query Defaults).
   const groupOptions = useMemo<{ id: string; label: string }[]>(() => {
     const configured = readRouteWqlConfig(route).groupByOptions
-    if (!configured) return DEFAULT_GROUP_BY_OPTIONS
+    if (!configured) return [...GROUP_BY_FAVORITE_OPTIONS]
     return configured.map(
-      id => DEFAULT_GROUP_BY_OPTIONS.find(o => o.id === id) ?? { id, label: id.charAt(0).toUpperCase() + id.slice(1) },
+      id => GROUP_BY_FAVORITE_OPTIONS.find(o => o.id === id) ?? { id, label: id.charAt(0).toUpperCase() + id.slice(1) },
     )
   }, [route])
   const levelLabel = level.charAt(0).toUpperCase() + level.slice(1)
@@ -109,23 +109,43 @@ export function ViewSettingsDialog({
           </div>
         </fieldset>
         <fieldset>
-          <legend className="text-xs font-semibold text-muted-foreground mb-2">Group By</legend>
+          <legend className="text-xs font-semibold text-muted-foreground mb-2">Arrange cards by</legend>
+          {queryControlsGrouping && (
+            <div
+              data-testid="view-settings-query-grouped"
+              className="flex items-center justify-between gap-2 mb-2 rounded-md border border-primary/30 bg-primary/[0.04] px-3 py-2"
+            >
+              <span className="text-xs text-foreground">
+                Controlled by query — grouped by{' '}
+                <span className="font-mono">{queryGrouping!.join(', ')}</span>
+              </span>
+              {onEditQuery && (
+                <Button variant="outline" size="sm" onClick={onEditQuery} data-testid="view-settings-edit-query">
+                  Edit query
+                </Button>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1.5 p-1 bg-muted/40 rounded-lg border border-border/60">
             {groupOptions.map(opt => {
               const currentGroup = (activeGroupBy || settings.groupBy || (level === 'effort' ? 'discipline' : 'date')).toLowerCase()
-              const isSelected = currentGroup === opt.id
+              // While the query owns grouping no fallback option may appear
+              // selected — clearing the query grouping reveals the saved one.
+              const isSelected = !queryControlsGrouping && currentGroup === opt.id
               return (
                 <button
                   key={opt.id}
                   type="button"
                   aria-pressed={isSelected}
+                  disabled={queryControlsGrouping}
+                  title={queryControlsGrouping ? 'Grouping is set by the query — edit the query to change it' : undefined}
                   onClick={() => onGroupByChange?.(opt.id)}
                   data-testid={`view-settings-group-${opt.id}`}
                   className={`min-h-11 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
                     isSelected
                       ? 'bg-card text-foreground shadow-sm border border-border/80 font-bold'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  } disabled:opacity-50 disabled:pointer-events-none`}
                 >
                   {opt.label}
                 </button>

@@ -54,7 +54,7 @@ avg:calc.acwr{} by {day}
 Mileage building ≤10%/week?
 
 ```query:timeseries
-sum:totalDistance{discipline:running} by {week}.rollup(1w)
+sum:totalDistance{discipline:running} by {week}
 ```
 
 ## Longest run

@@ -3,10 +3,12 @@
  *
  * Renders the shared WqlComposer organism exported from @bitcobblers/wod-wiki-ui.
  *
- * Shared omni command bar (Variant B3, issue #829) — token-slot pills with
- * placeholder guidance, clause popovers, add-filter menu, and a where-join
- * editor composing a WQL query. Tab / Shift+Tab traverses slots,
- * Up/Down cycles options, Enter selects, Escape dismisses.
+ * Shared omni command bar (option A cutover) — clause chips with
+ * placeholder guidance, one shared searchable picker, add-filter catalog, and a
+ * where-join editor composing a WQL query. Arrows move through rendered
+ * options, Enter selects an explicitly active option, Escape dismisses one
+ * level; Tab moves focus natively. Run/Apply/Save actions consume the
+ * synchronously resolved draft.
  *
  * Stories — interaction model:
  *  1. Default — uncontrolled, seeded from an initial WQL string
@@ -14,18 +16,18 @@
  *  3. CustomSlots — consumer-supplied extension content inside the bar
  *  4. RegisteredSlot — ComposerRegistry date-range picker plugin (issue #830)
  *  5. LiveDiagnostics — diagnostics strip with debounced stage counts (issue #832)
- *  6. AnalyticsComposition — metrics-plane pivot with aggregate pills (issue #838)
+ *  6. AnalyticsComposition — metrics-plane pivot with aggregate chips (issue #838)
  *
  * Stories — host configurations (one per production embedding; the review
  * surface for "the composer as used across the app". Each mirrors the exact
  * prop configuration of its host, with live stage counts over the seeded
  * corpus journals via the gallery's inMemoryEventStore → QueryService):
- *  7. HostLibraryPage — controlled + execute + hidden source clause (/library)
- *  8. HostEffortsCatalog — effort plane, hidden source clause (/efforts)
- *  9. HostAnalyticsExplorer — run-on-submit split, diagnostics off, Run/Save slots
+ *  7. HostLibraryPage — controlled + execute + hidden where-stored clause (/library)
+ *  8. HostEffortsCatalog — effort plane, hidden where-stored clause (/efforts)
+ *  9. HostAnalyticsExplorer — run-on-submit split, diagnostics off, composer-owned Run
  * 10. HostQueryToDashboard — uncontrolled seed + key remount per subset
  * 11. HostDashboardWidgetEditor — controlled editor whose validity gates Save
- * 12. HostCommandPalette — per-open remount, autoFocus, palette wiring
+ * 12. HostCommandPalette — per-open remount, palette wiring
  * 13. HostQueryInspectorModal — the ui-package modal embedder (QueryBlockView)
  * 14. HostWorkbenchFilter — the minimal query/onQueryChange embedding
  */
@@ -57,13 +59,11 @@ type Story = StoryObj<typeof WqlComposer>;
 // ── Live corpus executor ─────────────────────────────────────────────────────
 // The gallery's round trip (journal fixtures → inMemoryEventStore →
 // QueryService) drives stage counts, so every host story shows real numbers.
-// Corpus timestamps are fixed (June–July 2026); find windows anchor to the
-// newest corpus record so relative `last Nw` seeds stay meaningful (#857).
 const journalService = buildServiceForJournal(JOURNALS.crossfit);
 
 const anchoredExecutor: QueryExecutor = {
   runQuery: (query, options) => journalService.runQuery(query, options),
-  runFind: (parsed, options) => journalService.runFind(parsed, { ...options, anchor: 'latest-activity' }),
+  runFind: (parsed, options) => journalService.runFind(parsed, options),
   runRows: (parsed, options) => journalService.runRows(parsed, options),
 };
 
@@ -149,7 +149,7 @@ const RegisteredSlotHarness: React.FC = () => {
       </div>
       <p className="text-[10px] text-muted-foreground">
         The “Date Range” entry in Add Filter comes from the ComposerRegistry demo
-        slot (dateRangeSlot). Pick start + end, Set Range — the pill serializes
+        slot (dateRangeSlot). Pick start + end, Set Range — the clause serializes
         the range and the composer emits a parseable `daterange:` fragment.
       </p>
     </div>
@@ -184,9 +184,9 @@ const LiveDiagnosticsHarness: React.FC = () => {
     <div className="max-w-3xl space-y-2">
       <WqlComposer execute={execute} />
       <p className="text-[10px] text-muted-foreground">
-        The strip under the bar re-parses on every pill change: green/red
-        validity badge (red names the offending slot), AST summary
-        (source · window · join), and debounced (150ms) matched/selected
+        The strip under the bar re-parses on every clause change: green/red
+        validity badge (red names the offending clause), AST summary
+        (target · window · join), and debounced (150ms) matched/selected
         stage counts. Type “garbage” into a Metric Join slot to see the error
         attribution; add Tag filters to move the counts.
       </p>
@@ -199,7 +199,7 @@ export const LiveDiagnostics: Story = {
 };
 
 const AnalyticsCompositionHarness: React.FC = () => {
-  const [wql, setWql] = useState('sum:totalVolume{} by {week}.rollup(1w)');
+  const [wql, setWql] = useState('sum:totalVolume{} by {week}');
 
   const execute: WqlExecutor = async (ast: AnyParsedQuery) => {
     return {
@@ -214,8 +214,8 @@ const AnalyticsCompositionHarness: React.FC = () => {
     <div className="max-w-3xl space-y-2">
       <WqlComposer query={wql} onQueryChange={setWql} execute={execute} />
       <p className="text-[10px] text-muted-foreground">
-        Analytics composition (issue #838): the source pill pivots to the
-        metrics plane, revealing the aggregate head (agg · metric · groupby ·
+        Analytics composition (issue #838): the Kind control pivots to the
+        Measure plane, revealing the aggregate head (agg · metric · groupby ·
         rollup). The diagnostics strip shows aggregate chips and the aggregate
         stage counts (selected · buckets · aggregated · groups).
       </p>
@@ -231,40 +231,41 @@ export const AnalyticsComposition: Story = {
 // One story per production embedding, mirroring the exact prop configuration
 // of the host. Captions name the host file; the composer props are the point.
 
-/** The scope radio's source vocabulary — `notes` is the identity source. */
-const LIBRARY_SOURCES = ['notes', 'journal', 'collections', 'feeds'] as const;
-type LibrarySource = (typeof LIBRARY_SOURCES)[number];
+/** Canonical Where-stored scopes (WQL_SOURCE_VALUES); "all" is no scope
+ *  filter at all — the bare `find:note` head. */
+const LIBRARY_SCOPES = ['journal', 'collections', 'feeds'] as const;
+type LibraryScope = (typeof LIBRARY_SCOPES)[number] | 'all';
 
 /**
- * HostLibraryPage — apps/playground/app/views/library/LibraryPage.tsx
- * (`/library`): controlled composer + live `execute`, with the source head
- * clause kept in the query model but hidden — the SourceScopeRadio above the
- * bar owns its UI and re-pivots the query. The radio mock applies the same
- * content-plane serialization as the page: journal/collections/feeds fold
- * into a `source:` filter; `notes` is the bare `find:note`.
+ * HostLibraryPage — apps/playground/app/views/stream/QueriableStreamView.tsx
+ * (`/library`): controlled composer + live `execute`, with the Where-stored
+ * scope clause kept in the query model but hidden — the scope picker above
+ * the bar owns its UI and re-writes the `source:` filter. "All" emits no
+ * source filter; scopes are the canonical WQL_SOURCE_VALUES storage
+ * locations (never plural-noun targets).
  */
 const LibraryHarness: React.FC = () => {
   const [wql, setWql] = useState('find:note last 2w');
-  const [source, setSource] = useState<LibrarySource>('notes');
+  const [scope, setScope] = useState<LibraryScope>('all');
 
-  const pickSource = (next: LibrarySource) => {
-    setSource(next);
+  const pickScope = (next: LibraryScope) => {
+    setScope(next);
     const window = wql.match(/last \S+/)?.[0] ?? '';
-    const filters = next === 'notes' ? '' : `{source:${next}}`;
+    const filters = next === 'all' ? '' : `{source:${next}}`;
     setWql(`find:note${filters}${window ? ` ${window}` : ''}`);
   };
 
   return (
     <div className="max-w-3xl space-y-2">
       <div className="flex gap-1">
-        {LIBRARY_SOURCES.map((s) => (
+        {(['all', ...LIBRARY_SCOPES] as const).map((s) => (
           <button
             key={s}
             type="button"
-            onClick={() => pickSource(s)}
+            onClick={() => pickScope(s)}
             className={
               'rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors ' +
-              (s === source
+              (s === scope
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:text-foreground')
             }
@@ -280,9 +281,9 @@ const LibraryHarness: React.FC = () => {
         hiddenClauseTypes={['source']}
       />
       <p className="text-[10px] text-muted-foreground">
-        Mirrors LibraryPage: the scope radio owns the source head clause (kept
-        in the model, hidden from the pill row); edits flow back through
-        onQueryChange and stage counts run live over the seeded corpus.
+        Mirrors the library stream: the scope picker owns the Where-stored
+        clause (kept in the model, hidden from the chip row); edits flow back
+        through onQueryChange and stage counts run live over the seeded corpus.
       </p>
     </div>
   );
@@ -293,7 +294,7 @@ export const HostLibraryPage: Story = {
 };
 
 /**
- * HostEffortsCatalog — apps/playground/app/pages/EffortsCatalogPage.tsx
+ * HostEffortsCatalog — apps/playground/app/views/stream/QueriableStreamView.tsx
  * (`/efforts`): same shape as the library but on the effort plane —
  * `find:effort{…}`, with text/discipline/intensity/origin filters
  * applied engine-side (QueryService.runFindEffort vocabulary).
@@ -310,7 +311,7 @@ const EffortsHarness: React.FC = () => {
         hiddenClauseTypes={['source']}
       />
       <p className="text-[10px] text-muted-foreground">
-        Mirrors EffortsCatalogPage: the effort find plane over the bundled
+        Mirrors the efforts stream: the effort find plane over the bundled
         registry. Try the Add Filter → Intensity / Discipline entries — counts
         move without any host-side filtering.
       </p>
@@ -323,18 +324,19 @@ export const HostEffortsCatalog: Story = {
 };
 
 const EXPLORER_EXAMPLES = [
-  'sum:totalVolume{} by {week}.rollup(1w)',
+  'sum:totalVolume{} by {week}',
   'sum:tis{} by {discipline}',
-  'avg:heartRate{} by {day}.rollup(1d)',
+  'avg:heartRate{} by {day}',
 ];
 
 /**
  * HostAnalyticsExplorer — apps/playground/app/views/analytics/
  * AnalyticsExplorerPage.tsx (`/analytics/explorer`): the run-on-submit
  * split. The composer only reports the draft (`query`/`onQueryChange`);
- * execution happens on Enter (`onSubmit`) or the Run button in customSlots;
- * the strip is suppressed (`showDiagnostics={false}`) in favor of the page's
- * meta line, and the Save action rides diagnosticsActions.
+ * execution happens on Enter (`onSubmit`) or the composer-owned Run button
+ * (`actionLabel`) — both receive the resolved valid draft on the first
+ * action; the strip is suppressed (`showDiagnostics={false}`) in favor of
+ * the page's meta line, and the Save action rides diagnosticsActions.
  */
 const ExplorerHarness: React.FC = () => {
   const [draft, setDraft] = useState(EXPLORER_EXAMPLES[0]);
@@ -361,17 +363,9 @@ const ExplorerHarness: React.FC = () => {
         onQueryChange={setDraft}
         onValidationChange={(s) => setValid(s.valid)}
         onSubmit={(wql) => setLastRun(wql)}
+        actionLabel="Run"
         showDiagnostics={false}
         placeholder="agg:metric{filters} by {dims} .rollup(period)"
-        customSlots={
-          <button
-            type="button"
-            onClick={() => setLastRun(draft)}
-            className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm shrink-0"
-          >
-            ▶ Run
-          </button>
-        }
         diagnosticsActions={
           <button
             type="button"
@@ -387,9 +381,10 @@ const ExplorerHarness: React.FC = () => {
         last run: {lastRun ?? '—'}
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Mirrors AnalyticsExplorerPage: Enter with no pending free text fires
-        onSubmit — the bar itself never executes. Save is disabled while the
-        draft is invalid.
+        Mirrors AnalyticsExplorerPage: Run and Enter submit the current
+        resolved draft immediately — no debounce between typing and the first
+        action, and invalid drafts never run. Save is disabled while the draft
+        is invalid.
       </p>
     </div>
   );
@@ -400,8 +395,8 @@ export const HostAnalyticsExplorer: Story = {
 };
 
 const DASHBOARD_SUBSETS = [
-  { label: 'whole store', seed: 'sum:totalVolume{} by {week}.rollup(1w)' },
-  { label: 'effort:fran', seed: 'sum:totalVolume{effort:fran} by {week}.rollup(1w)' },
+  { label: 'whole store', seed: 'sum:totalVolume{} by {week}' },
+  { label: 'effort:fran', seed: 'sum:totalVolume{effort:fran} by {week}' },
 ];
 
 /**
@@ -409,7 +404,7 @@ const DASHBOARD_SUBSETS = [
  * QueryToDashboardDialog.tsx (step 2, “Calculation — over the subset”):
  * uncontrolled usage. The seed query arrives from the parent (the store
  * subset picked in step 1) and a `key` on the seed remounts a fresh composer
- * rather than mutating pill state in place.
+ * rather than mutating clause state in place.
  */
 const QueryToDashboardHarness: React.FC = () => {
   const [subset, setSubset] = useState(DASHBOARD_SUBSETS[0]);
@@ -451,8 +446,8 @@ const QueryToDashboardHarness: React.FC = () => {
       </div>
       <p className="text-[10px] text-muted-foreground">
         Mirrors QueryToDashboardDialog: switching subsets re-keys the composer
-        — internal pills rebuild from the new seed; onQueryChange feeds the
-        combined-query preview.
+        — internal clause state rebuilds from the new seed; onQueryChange
+        feeds the combined-query preview.
       </p>
     </div>
   );
@@ -468,7 +463,7 @@ export const HostQueryToDashboard: Story = {
  * whose validity gates the Save button, with live stage counts while editing.
  */
 const WidgetEditorHarness: React.FC = () => {
-  const [editWql, setEditWql] = useState('sum:totalVolume{} by {week}.rollup(1w)');
+  const [editWql, setEditWql] = useState('sum:totalVolume{} by {week}');
   const [isValid, setIsValid] = useState(true);
   const [saved, setSaved] = useState<string | null>(null);
 
@@ -519,8 +514,9 @@ export const HostDashboardWidgetEditor: Story = {
  * HostCommandPalette — apps/playground/src/components/organisms/
  * command-palette/PaletteShell.tsx: the palette embeds the composer in its
  * dialog header — per-open remount (`key` on a request sequence), seed query
- * from the palette mode config, autoFocus, and configurable diagnostics/
- * customSlots/execute supplied by the opening command.
+ * from the palette mode config, and configurable diagnostics/
+ * customSlots/execute supplied by the opening command. No autoFocus: focus
+ * starts on a non-input heading so mobile keyboards stay closed.
  */
 const PaletteHarness: React.FC = () => {
   const [seq, setSeq] = useState(0);
@@ -544,14 +540,12 @@ const PaletteHarness: React.FC = () => {
           initialQuery="find:note last 2w"
           onQueryChange={setWql}
           execute={liveExecute}
-          autoFocus
         />
       </div>
       <div className="font-mono text-[10px] text-muted-foreground">{wql || '—'}</div>
       <p className="text-[10px] text-muted-foreground">
-        Mirrors PaletteShell: each “open” re-keys the composer (fresh pill
-        state from the seed) and autoFocus lands in the free-text input, as in
-        the real dialog.
+        Mirrors PaletteShell: each “open” re-keys the composer (fresh clause
+        state from the seed); the dialog opens without forcing the keyboard.
       </p>
     </div>
   );

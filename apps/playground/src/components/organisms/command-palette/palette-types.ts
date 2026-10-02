@@ -22,6 +22,11 @@ export interface PaletteWqlConfig {
    * and no query is executed. */
   execute?: WqlExecutor;
   /**
+   * Picker favorites (e.g. the /palette route config's stored options) —
+   * sort shared-picker choices to the top without excluding valid rows.
+   */
+  preferredChoices?: readonly string[];
+  /**
    * Query-crafting mode (header query bar): when provided, the palette
    * renders an "Apply query" action (and Enter applies) that receives the
    * composed WQL and closes the palette — the caller writes the query back

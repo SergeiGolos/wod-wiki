@@ -20,7 +20,8 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { seedNote, getResults, WOD_DB } from '../helpers/wodwikiDb';
+import { seedNote, WOD_DB } from '../helpers/wodwikiDb';
+import { clearSessions, getSessions } from '../utils/sessionsDb';
 import { installFastClock } from '../utils/fastClock';
 import { TEST_IDS } from '../contracts/TestIdContract';
 
@@ -73,11 +74,11 @@ async function deleteNoteAndResults(page: Page, noteId: string | null): Promise<
       const req = indexedDB.open(dbName);
       req.onsuccess = () => {
         const db = req.result;
-        const stores = ['notes', 'segments', 'note_tags', 'results']
+        const stores = ['notes', 'segments', 'note_tags', 'results', 'sessions']
           .filter(s => db.objectStoreNames.contains(s));
         const tx = db.transaction(stores, 'readwrite');
         tx.objectStore('notes').delete(noteId);
-        for (const storeName of ['segments', 'note_tags', 'results']) {
+        for (const storeName of ['segments', 'note_tags', 'results', 'sessions']) {
           if (!stores.includes(storeName)) continue;
           const cursorReq = tx.objectStore(storeName).index('by-note').openCursor(IDBKeyRange.only(noteId));
           cursorReq.onsuccess = (e) => {
@@ -106,16 +107,37 @@ async function clickPlayOnBlock(page: Page, blockText: string) {
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 test.describe('Collection Workout — run and record', () => {
+  // Fresh browser profiles re-run the seed corpus import (~25s in dev) before
+  // /c/:collection/:workout resolves its content, so the default 45s is too tight.
+  test.setTimeout(120_000);
+
   // Fast clock (20×): the 0:03 AMRAP completes in ~150ms wall time; the
   // 10:00 AMRAP stop-early flow is unaffected (it never runs to completion).
   test.beforeEach(async ({ page }) => {
     await installFastClock(page);
   });
 
+  /**
+   * Boot the app and wait for the background seed import to settle before
+   * seeding test notes — otherwise the importer's collection chunk overwrites
+   * the E2E content and /c/… pages render fallback markdown mid-race.
+   */
+  async function gotoHomeAfterSeedImport(page: Page): Promise<void> {
+    const seedSettled = page
+      .waitForEvent('console', {
+        predicate: (m) => /\[seedSync\] outcome: (imported|current|server-stale)/.test(m.text()),
+        timeout: 60_000,
+      })
+      .then(() => true)
+      .catch(() => false);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await seedSettled;
+  }
+
   test('creates a journal record on start; stopping early saves and displays results', async ({ page }, testInfo) => {
     const today = todayKey();
 
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await gotoHomeAfterSeedImport(page);
     await seedNote(page, STOP_NOTE_ID, STOP_CONTENT, { title: 'E2E Stop Run' });
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, STOP_TITLE));
 
@@ -144,10 +166,10 @@ test.describe('Collection Workout — run and record', () => {
     await page.getByTestId(TEST_IDS.TIMER_STOP_SESSION).click();
 
     await expect
-      .poll(async () => (await getResults(page, noteUuid!)).length, { timeout: 10_000 })
+      .poll(async () => (await getSessions(page, noteUuid!)).length, { timeout: 10_000 })
       .toBe(1);
-    const results = await getResults(page, noteUuid!);
-    expect(results[0]?.data?.completed, 'manual stop records an incomplete result').toBe(false);
+    const sessions = await getSessions(page, noteUuid!);
+    expect(sessions[0]?.completed, 'manual stop records an incomplete result').toBe(false);
 
     // Results are displayed on the note page: the inline result panel renders
     // under the WOD block (a review overlay may also open when the run has
@@ -177,7 +199,7 @@ test.describe('Collection Workout — run and record', () => {
   test('completing a short workout saves a completed result and shows the results view', async ({ page }, testInfo) => {
     const today = todayKey();
 
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await gotoHomeAfterSeedImport(page);
     await seedNote(page, COMPLETE_NOTE_ID, COMPLETE_CONTENT, { title: 'E2E Complete Run' });
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, COMPLETE_TITLE));
 
@@ -198,10 +220,10 @@ test.describe('Collection Workout — run and record', () => {
     await page.screenshot({ path: testInfo.outputPath('collection-run-complete.png') });
 
     await expect
-      .poll(async () => (await getResults(page, noteUuid!)).length, { timeout: 10_000 })
+      .poll(async () => (await getSessions(page, noteUuid!)).length, { timeout: 10_000 })
       .toBe(1);
-    const results = await getResults(page, noteUuid!);
-    expect(results[0]?.data?.completed, 'natural finish records a completed result').toBe(true);
+    const sessions = await getSessions(page, noteUuid!);
+    expect(sessions[0]?.completed, 'natural finish records a completed result').toBe(true);
 
     await deleteNoteAndResults(page, noteUuid);
   });

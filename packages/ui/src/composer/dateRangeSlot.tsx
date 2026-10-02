@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { parseQuery } from '@bitcobblers/wod-wiki-wql';
 import type {
   CustomSlotDefinition,
   CustomSlotEditorProps,
@@ -12,43 +13,64 @@ export interface DateRange {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function DateRangeEditor({ value, onChange, onClose }: CustomSlotEditorProps<DateRange>) {
+  const id = useId();
   const [start, setStart] = useState(value?.start ?? '');
   const [end, setEnd] = useState(value?.end ?? '');
-  const ready = ISO_DATE.test(start) && ISO_DATE.test(end);
+  // Real grammar + civil-calendar validation: the parser rejects 02-30,
+  // month 13, and other regex-passing strings via Date component round-trip.
+  // The shape check only guards which message to show, not acceptance.
+  const shaped = ISO_DATE.test(start) && ISO_DATE.test(end);
+  const parseError = shaped
+    ? parseQuery(`find:note from ${start} to ${end}`).error
+    : undefined;
+  const orderError = shaped && start > end ? 'Date range end must not precede its start' : undefined;
+  const error = parseError ?? orderError;
+  const ready = shaped && !error;
 
   return (
     <div className="space-y-2 text-xs" data-testid="date-range-editor">
       <div className="grid grid-cols-2 gap-1.5">
         <div>
-          <label className="text-[9px] uppercase font-bold text-muted-foreground">Start</label>
+          <label htmlFor={`${id}-start`} className="text-[10px] uppercase font-bold text-muted-foreground">
+            Start
+          </label>
           <input
+            id={`${id}-start`}
             type="date"
             value={start}
             onChange={(e) => setStart(e.target.value)}
-            className="w-full rounded border border-border bg-background px-1.5 py-1 text-xs font-mono"
+            className="w-full min-h-12 rounded border border-border bg-background px-1.5 text-base font-mono"
             data-testid="date-range-start"
           />
         </div>
         <div>
-          <label className="text-[9px] uppercase font-bold text-muted-foreground">End</label>
+          <label htmlFor={`${id}-end`} className="text-[10px] uppercase font-bold text-muted-foreground">
+            End
+          </label>
           <input
+            id={`${id}-end`}
             type="date"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
-            className="w-full rounded border border-border bg-background px-1.5 py-1 text-xs font-mono"
+            className="w-full min-h-12 rounded border border-border bg-background px-1.5 text-base font-mono"
             data-testid="date-range-end"
           />
         </div>
       </div>
-      <div className="pt-1 flex items-center justify-between border-t border-border/50">
-        <code className="text-[10px] font-mono text-muted-foreground">
+      {error && (
+        <p role="alert" className="text-[11px] text-destructive" data-testid="date-range-error">
+          {error}
+        </p>
+      )}
+      <div className="pt-1 flex items-center justify-between gap-2 border-t border-border/50">
+        <code className="text-[10px] font-mono text-muted-foreground truncate">
           {ready ? `daterange:${start}_${end}` : 'daterange: <start>_<end>'}
         </code>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-2.5 py-1 rounded border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="min-h-12 px-3 rounded border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel
           </button>
@@ -56,7 +78,7 @@ function DateRangeEditor({ value, onChange, onClose }: CustomSlotEditorProps<Dat
             type="button"
             disabled={!ready}
             onClick={() => onChange({ start, end })}
-            className="px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
+            className="min-h-12 px-3 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-40"
             data-testid="date-range-apply"
           >
             Set Range

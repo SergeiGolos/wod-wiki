@@ -10,16 +10,17 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
  */
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 
-const runRows = mock(async (parsed: { filters: { key: string; values: { value: string }[] }[] }) => ({
+const runFind = mock(async (parsed: { filters: { key: string; values: { value: string }[] }[] }) => ({
   parsed,
   runs: [],
+  notes: [],
+  blocks: [],
 }));
 
 mock.module('@/services/queryService', () => ({
   queryService: {
-    runRows,
+    runFind,
     runQuery: async () => ({ parsed: {}, series: [] }),
-    runFind: async () => ({ parsed: {}, notes: [], blocks: [] }),
   },
 }));
 
@@ -34,7 +35,7 @@ const zeroRect = { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, h
 (window.Range.prototype as any).getBoundingClientRect ??= () => zeroRect;
 (window.Element.prototype as any).getClientRects ??= () => [];
 
-const DOC = 'Intro prose.\n\n```query:table\nrows:{result:abc-123}\n```\n';
+const DOC = 'Intro prose.\n\n```query:table\nfind:session{result:abc-123}\n```\n';
 
 afterEach(() => cleanup());
 
@@ -48,8 +49,8 @@ describe('NoteEditor query block executor wiring', () => {
     expect(screen.queryByText('Loading rows…')).toBeNull();
 
     // The executor saw the block's result scope.
-    await waitFor(() => expect(runRows).toHaveBeenCalled());
-    const parsed = runRows.mock.calls[0][0] as { filters: { key: string; values: { value: string }[] }[] };
+    await waitFor(() => expect(runFind).toHaveBeenCalled());
+    const parsed = runFind.mock.calls[0][0] as { filters: { key: string; values: { value: string }[] }[] };
     const scope = parsed.filters.find((f) => f.key === 'result');
     expect(scope?.values[0]?.value).toBe('abc-123');
   });
@@ -58,8 +59,8 @@ describe('NoteEditor query block executor wiring', () => {
     render(<NoteEditor value={DOC} onChange={() => {}} noteId="journal/2026-08-02" />);
     await screen.findByText('No workout logs matched this rows query.');
 
-    runRows.mock.calls.length = 0;
+    runFind.mock.calls.length = 0;
     notifyResultSaved({ id: 'r1' } as never);
-    await waitFor(() => expect(runRows).toHaveBeenCalled());
+    await waitFor(() => expect(runFind).toHaveBeenCalled());
   });
 });

@@ -132,8 +132,7 @@ export function computeCacheKey(
             // queries even with identical aggregates.
             ? [parsed.agg, parsed.metric, parsed.filters, parsed.groupBy, parsed.rollup ?? null, parsed.window ?? null, parsed.displayUnit ?? null, parsed.join ?? null]
             : null,
-        parsed.family === 'find' ? [parsed.target, parsed.filters, parsed.window ?? null, parsed.join ?? null] : null,
-        parsed.family === 'rows' ? [parsed.target ?? null, parsed.outputType ?? null, parsed.filters, parsed.window ?? null, parsed.pipes ?? null] : null,
+        parsed.family === 'find' ? [parsed.target, parsed.filters, parsed.window ?? null, parsed.groupBy ?? null, parsed.displayUnit ?? null, parsed.pipes ?? null, parsed.join ?? null] : null,
     ]);
     return JSON.stringify([
         canonical,

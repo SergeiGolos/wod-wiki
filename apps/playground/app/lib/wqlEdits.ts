@@ -1,8 +1,10 @@
 /**
- * wqlEdits — structural WQL edits over the engine's C6 surface (wayfinder
- * ticket 013): parse to the AST, mutate fields, emit through the serializer.
- * Replaces the retired clause-compiler helpers the app used to import from
- * the ui package (`pivotClauses`, `setMetricClause`, `clauseValue`).
+ * wqlEdits — app-side structural WQL edits over the engine's parse/serialize
+ * surface: parse to the AST, mutate the one targeted field, emit through the
+ * serializer. Kind/target pivots and occurrence-level filter edits live in
+ * the shared composer (resolveQueryDraft/editQueryClause); this module keeps
+ * only the stream host's scope/time/filter-clear helpers and the explorer's
+ * metric edit.
  *
  * Every edit is total: unparseable input is returned unchanged, so a
  * transient invalid draft is never destroyed by a structural edit.
@@ -12,141 +14,59 @@ import {
   serialize,
   isAggregateQuery,
   isFindQuery,
-  isRowsQuery,
   type AnyParsedQuery,
-  type FindPredicate,
-  type MetricPredicate,
-  type QueryWindow,
-  type TagFilter,
 } from '@bitcobblers/wod-wiki-engine';
+import { editQueryClause } from '@bitcobblers/wod-wiki-ui';
 
-/** What an edit can carry across planes: shared filters (provenance excluded
- * — the source: filter IS the plane), the C1 window, and the plane-matched
- * join half. */
-interface CarriedState {
-  filters: TagFilter[];
-  window?: QueryWindow;
-  findJoin?: FindPredicate;   // content half — legal on aggregate queries
-  metricJoin?: MetricPredicate; // metric half — legal on find queries
-}
+/** Content targets that carry a Where-stored storage scope. */
+const SCOPED_TARGETS = new Set(['note', 'block']);
 
-function carry(parsed: AnyParsedQuery): CarriedState {
-  if (parsed.error) return { filters: [] };
-  const filters = parsed.filters.filter((f) => f.key !== 'source' && !(f.key === 'type' && f.values.some((v) => v.value === 'collection')));
-  if (isAggregateQuery(parsed)) return { filters, window: parsed.window, findJoin: parsed.join };
-  if (isFindQuery(parsed)) return { filters, window: parsed.window, metricJoin: parsed.join };
-  return { filters, window: parsed.window }; // rows: no joins (C4)
-}
-
-function sourceFilterFor(source: string): TagFilter[] {
-  if (source === 'notes' || source === 'blocks' || source === 'efforts') return [];
-  if (source === 'collections') {
-    return [
-      {
-        key: 'source',
-        negate: false,
-        values: [{ value: 'page', wildcard: false }],
-      },
-      {
-        key: 'type',
-        negate: false,
-        values: [{ value: 'collection', wildcard: false }],
-      },
-    ];
-  }
-  return [
-    {
-      key: 'source',
-      negate: false,
-      values: source.split('|').map((v) => ({ value: v, wildcard: false })),
-    },
-  ];
-}
-
-function contentTarget(source: string): string {
-  return source === 'blocks' ? 'block' : source === 'efforts' ? 'effort' : 'note';
-}
-
-/** The composer's source-plane value for a query (radio/heading state). */
-export function sourceOfQuery(query: string): string {
+/** The query's Where-stored scope (the single non-negated `source:` filter
+ *  value) or null when the query is all-sources, not a scoped content find,
+ *  or carries anything the scope picker cannot represent (multi-value or
+ *  negated scope). Type filters are separate from scope and never infer
+ *  one. The composer's radio/heading state for the storage scope. */
+export function scopeOfQuery(query: string): string | null {
   const parsed = parseQuery(query);
-  if (parsed.error) return 'notes';
-  if (isAggregateQuery(parsed)) return 'metrics';
-  if (isRowsQuery(parsed)) return 'rows';
+  if (parsed.error || !isFindQuery(parsed) || !SCOPED_TARGETS.has(parsed.target)) return null;
   const sf = parsed.filters.find((f) => f.key === 'source' && !f.negate);
-  const tf = parsed.filters.find((f) => f.key === 'type' && !f.negate);
-  if (tf?.values.some((v) => v.value === 'collection')) return 'collections';
-  if (parsed.target === 'block') return 'blocks';
-  if (parsed.target === 'effort') return 'efforts';
-  if (!sf || sf.values.every((v) => v.value === 'all')) return 'notes';
-  return sf.values.map((v) => v.value).join('|');
+  if (!sf || sf.values.length !== 1 || sf.values[0].value === 'all') return null;
+  return sf.values[0].value;
 }
 
-/** Pivot the query onto a new source plane: shared filters and the window
- * survive (C1 — one window clause on every family); the metrics head drops
- * off the metrics plane, and a pivot TO metrics seeds agg=sum with the old
- * metric when one exists. */
-export function pivotSourceQuery(query: string, source: string): string {
+/** Set or clear the Where-stored scope (`source:` filter) on a scoped
+ *  content find. A targeted occurrence edit through the shared
+ *  `editQueryClause`: the FIRST actual source occurrence is replaced (or
+ *  spliced when clearing) in place; sibling filters, window, grouping, pipes
+ *  and join survive, and queries needing Edit WQL are returned unchanged.
+ *  Collections is the canonical `source:collections` storage scope — never
+ *  `source:page` + `type:collection`. Other targets/kinds are returned
+ *  unchanged: scope is not a target pivot. */
+export function setScopeFilter(query: string, scope: string | null): string {
   const parsed = parseQuery(query);
-  if (parsed.error) return query;
-  if (sourceOfQuery(query) === source) return query;
-  const { filters, window, findJoin, metricJoin } = carry(parsed);
-
-  if (source === 'metrics') {
-    return serialize({
-      family: 'aggregate',
-      raw: '',
-      agg: isAggregateQuery(parsed) ? parsed.agg : 'sum',
-      metric: isAggregateQuery(parsed) ? parsed.metric : '',
-      filters,
-      groupBy: isAggregateQuery(parsed) ? parsed.groupBy : [],
-      rollup: isAggregateQuery(parsed) ? parsed.rollup : undefined,
-      displayUnit: isAggregateQuery(parsed) ? parsed.displayUnit : undefined,
-      window,
-      join: findJoin,
-    });
-  }
-
-  if (source === 'rows') {
-    return serialize({
-      family: 'rows',
-      raw: '',
-      outputType: isRowsQuery(parsed) ? parsed.outputType : undefined,
-      filters,
-      window,
-    });
-  }
-
-  const sourceFilters = sourceFilterFor(source);
-  return serialize({
-    family: 'find',
-    raw: '',
-    target: contentTarget(source),
-    filters: sourceFilters.length ? [...sourceFilters, ...filters] : filters,
-    window,
-    join: metricJoin,
-  });
+  if (parsed.error || !isFindQuery(parsed) || !SCOPED_TARGETS.has(parsed.target)) return query;
+  const index = parsed.filters.findIndex((f) => f.key === 'source' && !f.negate);
+  return editQueryClause(
+    query,
+    {
+      id: 'stream-scope',
+      type: 'source',
+      label: 'Where stored',
+      value: scopeOfQuery(query) ?? 'all',
+      ...(index >= 0 ? { filterIndex: index } : {}),
+    },
+    scope?.trim() || 'all',
+  ).wql;
 }
 
-/** Set the aggregate metric, pivoting onto the metrics plane when needed
- * (shared filters and the window survive). */
+/** Set the aggregate metric on an aggregate (metrics-plane) query. Find
+ *  queries are returned unchanged — pivoting onto the metrics plane is a
+ *  kind pivot owned by the shared composer's pivot flow (with its
+ *  incompatibility prompt), never a silent side effect of a metric pick. */
 export function setMetricQuery(query: string, metric: string): string {
   const parsed = parseQuery(query);
-  if (parsed.error) return query;
-  if (isAggregateQuery(parsed)) {
-    return serialize({ ...parsed, metric });
-  }
-  const { filters, window, findJoin } = carry(parsed);
-  return serialize({
-    family: 'aggregate',
-    raw: '',
-    agg: 'sum',
-    metric,
-    filters,
-    groupBy: [],
-    window,
-    join: findJoin,
-  });
+  if (parsed.error || !isAggregateQuery(parsed)) return query;
+  return serialize({ ...parsed, metric });
 }
 
 /** Drop the time-selection window. */
@@ -157,69 +77,9 @@ export function withoutWindow(query: string): string {
 }
 
 /** Drop every non-provenance filter (the source: filter stays — it carries
- * the plane, and clearing it would silently widen the search). */
+ *  the plane, and clearing it would silently widen the search). */
 export function withoutFilters(query: string): string {
   const parsed = parseQuery(query);
   if (parsed.error) return query;
   return serialize({ ...parsed, filters: parsed.filters.filter((f) => f.key === 'source') });
-}
-
-/** Drop the filter at `index` (query-bar chip ✕). The index refers to
- * `parseQuery(query).filters` of the same string — a stale or out-of-range
- * index is a no-op returning the query unchanged. */
-export function withoutFilterIndex(query: string, index: number): string {
-  const parsed = parseQuery(query);
-  if (parsed.error) return query;
-  if (index < 0 || index >= parsed.filters.length) return query;
-  const filters = parsed.filters.filter((_, i) => i !== index);
-  return serialize({ ...parsed, filters } as AnyParsedQuery);
-}
-
-/** Add, update, or remove the text: filter on a query. */
-export function setTextFilter(query: string, text: string): string {
-  const parsed = parseQuery(query);
-  if (parsed.error) return query;
-  const clean = text.trim();
-  const filtersWithoutText = parsed.filters.filter((f) => f.key !== 'text');
-  if (!clean) {
-    return serialize({ ...parsed, filters: filtersWithoutText } as AnyParsedQuery);
-  }
-  const textFilter: TagFilter = {
-    key: 'text',
-    negate: false,
-    values: [{ value: clean, wildcard: false }],
-  };
-  return serialize({ ...parsed, filters: [...filtersWithoutText, textFilter] } as AnyParsedQuery);
-}
-
-/** Add or update a filter clause, time window, or text search on a query. */
-export function addFilterClause(query: string, input: string): string {
-  const parsed = parseQuery(query);
-  if (parsed.error) return query;
-  const clean = input.trim();
-  if (!clean) return query;
-
-  // 1. Time window: e.g. "last 2w", "from 2026-01-01"
-  const windowParsed = parseQuery(`find:note ${clean}`);
-  if (!windowParsed.error && windowParsed.window) {
-    return serialize({ ...parsed, window: windowParsed.window } as AnyParsedQuery);
-  }
-
-  // 2. Structured filter: e.g. "tags:strength", "!tags:metcon", "text:foo"
-  const filterParsed = parseQuery(`find:note{${clean}}`);
-  if (!filterParsed.error && filterParsed.filters.length > 0) {
-    const newFilters = [...parsed.filters];
-    for (const newF of filterParsed.filters) {
-      const idx = newFilters.findIndex((f) => f.key === newF.key);
-      if (idx >= 0) {
-        newFilters[idx] = newF;
-      } else {
-        newFilters.push(newF);
-      }
-    }
-    return serialize({ ...parsed, filters: newFilters } as AnyParsedQuery);
-  }
-
-  // 3. Fallback: treat as text search filter (e.g. "deadlift", "snatch")
-  return setTextFilter(query, clean);
 }

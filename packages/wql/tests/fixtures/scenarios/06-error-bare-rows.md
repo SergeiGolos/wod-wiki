@@ -11,4 +11,4 @@ rows:
 
 ## Errors
 
-- "Bare \"rows:\" is retired"
+- "\"rows:\" query family is retired"

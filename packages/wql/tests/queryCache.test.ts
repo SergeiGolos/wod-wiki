@@ -11,6 +11,21 @@ describe('ticket 20 — structural cache keys', () => {
     expect(keyA).toBe(keyB);
   });
 
+  it('find presentation edits cannot reuse results from another suffix', () => {
+    const context = { generation: 1 };
+    const queries = [
+      'find:segment{effort:snatch}',
+      'find:segment{effort:snatch} by {effort}',
+      'find:segment{effort:snatch} in lb',
+      'find:segment{effort:snatch} | select effort',
+      'find:segment{effort:snatch} | order by effort desc',
+      'find:segment{effort:snatch} | limit 5',
+      'find:segment{effort:snatch} | offset 2',
+    ];
+    const keys = queries.map((query) => computeCacheKey(parseQuery(query), context));
+    expect(new Set(keys).size).toBe(queries.length);
+  });
+
   it('every context dimension participates: range, timezone, instant, generation, units', () => {
     const parsed = parseQuery('sum:totalVolume{}');
     const base = { rangeStart: 0, rangeEnd: 100, timeZone: 'UTC', instant: 5, generation: 1 };

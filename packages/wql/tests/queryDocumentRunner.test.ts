@@ -13,7 +13,7 @@ describe('ticket 19 — QueryDocumentRunner', () => {
       runs: [],
       table: { columns: [{ name: 'date', type: 'date' }], rows: [{ date: '2026-09-07' }], totalCount: 1 },
     }),
-    runFind: async () => ({ parsed: {} as never, notes: [], blocks: [], stages: { selected: 0, matched: 0 } }),
+    runFind: async () => ({ parsed: {} as never, notes: [], blocks: [], stages: { selected: 0, matched: 0 }, table: { columns: [{ name: 'date', type: 'date' }], rows: [{ date: '2026-09-07' }], totalCount: 1 } }),
     rollupEnsure: async () => { rollupEnsures += 1; },
   });
   let rollupEnsures = 0;
@@ -26,9 +26,9 @@ describe('ticket 19 — QueryDocumentRunner', () => {
     expect(result.outputs[0]!.series![0]!.points[0]!.value).toBe(42);
   });
 
-  it('rows queries dispatch to runRows and surface the TabularResult', async () => {
-    const result = await runner.run('rows:segment{discipline:running} | limit 5');
-    expect(result.outputs[0]!.kind).toBe('rows');
+  it('table queries dispatch to runFind and surface the TabularResult', async () => {
+    const result = await runner.run('find:segment{discipline:running} | limit 5');
+    expect(result.outputs[0]!.kind).toBe('find');
     expect(result.outputs[0]!.table?.totalCount).toBe(1);
   });
 

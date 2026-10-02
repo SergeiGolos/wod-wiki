@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StoredOutputStatement, EventRecord } from '@bitcobblers/wod-wiki-core';
-import { parseQuery, isRowsQuery, type ParsedRowsQuery } from '../src/wql';
+import { parseQuery, type ParsedFindQuery } from '../src/wql';
 import { toEventRows } from '../src/derivation';
 import { QueryService, type EventStore } from '../src/QueryService';
 
@@ -44,112 +44,74 @@ function makeService(resultCalls: string[] = []) {
   return new QueryService(eventStore, noteStore, blockStore, effortStore);
 }
 
-function rows(raw: string) {
+function findQuery(raw: string): ParsedFindQuery {
   const parsed = parseQuery(raw);
-  if (!isRowsQuery(parsed)) throw new Error(`expected rows query, got ${JSON.stringify(parsed)}`);
-  return parsed;
+  if (parsed.family !== 'find') throw new Error(`expected find query, got ${JSON.stringify(parsed)}`);
+  return parsed as ParsedFindQuery;
 }
 
-/** Hand-built rows AST — the programmatic surface stays open to custom
- *  outputType values the C7 text surface rejects (prototype: closed enum). */
-function rowsAst(outputType: string, scopeKey: 'result' | 'block' | 'note', scopeValue: string): ParsedRowsQuery {
-  return {
-    family: 'rows',
-    raw: `rows:${outputType}{${scopeKey}:${scopeValue}}`,
-    outputType,
-    filters: [{ key: scopeKey, negate: false, values: [{ value: scopeValue, wildcard: false }] }],
-  };
-}
-
-describe('parseQuery — rows family', () => {
-  it('parses the explicit all target with a result scope', () => {
-    const p = rows('rows:all{result:abc}');
-    expect(p.error).toBeUndefined();
-    expect(p.outputType).toBeUndefined();
-    expect(p.filters).toEqual([{ key: 'result', negate: false, values: [{ value: 'abc', wildcard: false }] }]);
+describe('rows: retirement and replacement hints (#1044)', () => {
+  it('rows:all{result:r} fails to parse with a message pointing to find:session{result:r}', () => {
+    const p = parseQuery('rows:all{result:r1}');
+    expect(p.error).toContain('rows:all{…} is retired — use find:session{result:r1} instead.');
   });
 
-  it('parses the output-type target and block scope', () => {
-    const p = rows('rows:segment{block:bc-1}');
-    expect(p.error).toBeUndefined();
-    expect(p.outputType).toBe('segment');
-    expect(p.filters[0]).toMatchObject({ key: 'block' });
+  it('rows:segment without scope points to find:segment', () => {
+    const p = parseQuery('rows:segment{effort:snatch}');
+    expect(p.error).toContain('rows:segment{…} is retired — use find:segment{effort:snatch} instead.');
   });
 
-  it('parses the note scope with a last window', () => {
-    const p = rows('rows:all{note:n1} last 8w');
-    expect(p.error).toBeUndefined();
-    expect(p.window).toEqual({ kind: 'relative', size: 8, unit: 'w' });
+  it('rows:segment with scope points to find:session with plane:segment', () => {
+    const p = parseQuery('rows:segment{result:r1}');
+    expect(p.error).toContain('rows:segment{…} is retired — use find:session{result:r1, plane:segment} instead.');
   });
 
-  it('rejects aggregation suffixes — rows never aggregates', () => {
-    expect(rows('rows:all{result:x} by {session}').error).toContain('no where / by / rollup');
-    expect(rows('rows:all{result:x} where find:note{}').error).toContain('no where / by / rollup');
-    expect(rows('rows:all{result:x} .rollup(1w)').error).toContain('no where / by / rollup');
+  it('rows:load with scope points to find:session with plane:load', () => {
+    const p = parseQuery('rows:load{result:r1}');
+    expect(p.error).toContain('rows:load{…} is retired — use find:session{result:r1, plane:load} instead.');
   });
 
-  it('rejects malformed heads and filters', () => {
-    expect(rows('rows foo').error).toBeDefined();
-    expect(rows('rows:all{result:').error).toBeDefined();
+  it('bare rows: points to replacements', () => {
+    const p = parseQuery('rows:');
+    expect(p.error).toContain('The "rows:" query family is retired — use find:session, find:segment, or find:event instead.');
   });
 });
 
-describe('QueryService.runRows', () => {
+describe('QueryService.runFind for find:session (#1041/#1042)', () => {
   it('result scope returns the single session with all statement types', async () => {
-    const res = await makeService().runRows(rows('rows:all{result:rA}'));
-    expect(res.error).toBeUndefined();
-    expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
-    expect(res.runs[0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment', 'milestone']);
+    const res = await makeService().runFind(findQuery('find:session{result:rA}'));
+    expect(res.runs).toBeDefined();
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA']);
+    expect(res.runs![0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment', 'milestone']);
   });
 
   it('block scope unions all versions, newest first', async () => {
-    const res = await makeService().runRows(rows('rows:all{block:bc-1}'));
-    expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB']);
+    const res = await makeService().runFind(findQuery('find:session{block:bc-1}'));
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('note scope returns every run in the note', async () => {
-    const res = await makeService().runRows(rows('rows:all{note:n1}'));
-    expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB']);
+    const res = await makeService().runFind(findQuery('find:session{note:n1}'));
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('scopes OR within a key and union across keys, deduped by result id', async () => {
-    const res = await makeService().runRows(rows('rows:all{result:rA|rC, block:bc-1}'));
-    expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB', 'rC']);
+    const res = await makeService().runFind(findQuery('find:session{result:rA|rC, block:bc-1}'));
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB', 'rC']);
   });
 
-  it('output-type narrowing filters statements, not runs', async () => {
-    const res = await makeService().runRows(rows('rows:segment{result:rA}'));
-    expect(res.runs[0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment']);
-    // Custom stored type: the TEXT surface is a closed enum (C7 rejects
-    // rows:milestone at parse), but runRows still narrows by any column
-    // value when handed the AST programmatically.
-    const milestoneOnly = await makeService().runRows(rowsAst('milestone', 'result', 'rA'));
-    expect(milestoneOnly.runs[0]!.events).toHaveLength(1);
+  it('plane filter narrows statements, not runs', async () => {
+    const res = await makeService().runFind(findQuery('find:session{result:rA, plane:segment}'));
+    expect(res.runs![0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment']);
   });
 
   it('drops runs whose narrowing leaves no statements', async () => {
-    const res = await makeService().runRows(rowsAst('nonexistent-type', 'block', 'bc-1'));
+    const res = await makeService().runFind(findQuery('find:session{block:bc-1, plane:nonexistent}'));
     expect(res.runs).toEqual([]);
-  });
-
-  it('rows: rejects unknown targets at parse (C7)', () => {
-    expect(rows('rows:milestone{result:rA}').error).toContain('Unknown rows target "milestone"');
-    expect(rows('rows:nonexistent-type{block:bc-1}').error).toContain('Unknown rows target');
   });
 
   it('last window filters by canonical workout time', async () => {
-    const res = await makeService().runRows(rows('rows:all{block:bc-1} last 6d'), { anchorNow: day0 });
-    expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
-  });
-
-  // Parse-level filter/scope rejection is pinned once in wql.test.ts
-  // (C4 block); here the runtime contract is error propagation only:
-
-  it('propagates parse errors without touching stores', async () => {
-    const calls: string[] = [];
-    const res = await makeService(calls).runRows(rows('rows:all{tags:x}'));
-    expect(res.error).toBeDefined();
-    expect(res.runs).toEqual([]);
-    expect(calls).toEqual([]);
+    const res = await makeService().runFind(findQuery('find:session{block:bc-1} last 6d'), { anchorNow: day0 });
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA']);
   });
 });

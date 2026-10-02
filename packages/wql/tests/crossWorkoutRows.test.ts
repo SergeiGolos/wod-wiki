@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EventRecord } from '@bitcobblers/wod-wiki-core';
-import { buildDrillDownQuery, parseQuery, isRowsQuery } from '../src/wql';
+import { buildDrillDownQuery, parseQuery } from '../src/wql';
 import { QueryService, type EventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
@@ -51,36 +51,37 @@ function makeService(): QueryService {
   return new QueryService({ eventStore: store(ROWS) });
 }
 
-function parseRows(text: string) {
+function parseFind(text: string) {
   const parsed = parseQuery(text);
-  if (!isRowsQuery(parsed)) throw new Error(`expected rows query: ${text}`);
+  if (parsed.family !== 'find') throw new Error(`expected find query: ${text}`);
   return parsed;
 }
 
-describe('ticket 18 — cross-workout rows', () => {
-  it('rows:segment with tag filters is valid without a session scope (acceptance 1)', async () => {
-    const parsed = parseRows('rows:segment{discipline:running} last 4w');
+describe('cross-workout find:segment table (#1042)', () => {
+  it('find:segment with tag filters is valid without a session scope (acceptance 1)', async () => {
+    const parsed = parseFind('find:segment{discipline:running} last 4w');
     expect(parsed.error).toBeUndefined();
-    const result = await makeService().runRows(parsed);
-    expect(result.error).toBeUndefined();
+    const result = await makeService().runFind(parsed);
     expect(result.table).toBeDefined();
   });
 
-  it('rows:all without scope still requires a scope (single-session behavior kept)', () => {
-    const parsed = parseRows('rows:all{}');
-    expect(parsed.error).toContain('scope');
+  it('unscoped find:session{} returns sessions in window (#1041)', async () => {
+    const parsed = parseFind('find:session{} last 4w');
+    expect(parsed.error).toBeUndefined();
+    const result = await makeService().runFind(parsed);
+    expect(result.runs).toBeDefined();
   });
 
   it('each row is one segment observation; totalCount reports the full match', async () => {
-    const result = await makeService().runRows(parseRows('rows:segment{effort:running}'));
+    const result = await makeService().runFind(parseFind('find:segment{effort:running}'));
     expect(result.table).toBeDefined();
     expect(result.table!.totalCount).toBe(2);
     expect(result.table!.rows.map((r) => r.distance)).toEqual([5000, 3000]);
   });
 
   it('pipes govern presentation only: limit/offset page without dropping totalCount', async () => {
-    const result = await makeService().runRows(
-      parseRows('rows:segment{effort:running} | order by distance desc | limit 1 offset 1'),
+    const result = await makeService().runFind(
+      parseFind('find:segment{effort:running} | order by distance desc | limit 1 offset 1'),
     );
     const table = result.table!;
     expect(table.totalCount).toBe(2);
@@ -96,13 +97,13 @@ describe('ticket 18 — cross-workout rows', () => {
       segmentRow('r9:1', 'r9', 'segment', 'distance', 400),
     ];
     const result = await new QueryService({ eventStore: store(rows) })
-      .runRows(parseRows('rows:segment{} | select distance | limit 2'));
+      .runFind(parseFind('find:segment{} | select distance | limit 2'));
     expect(result.table!.rows.map((r) => r.distance)).toEqual([400, 400]);
     expect(result.table!.columns.map((c) => c.name)).toEqual(['distance']);
   });
 
   it('a missing column value renders absent while a recorded zero renders 0 (acceptance 5)', async () => {
-    const result = await makeService().runRows(parseRows('rows:segment{} | select distance, effort'));
+    const result = await makeService().runFind(parseFind('find:segment{} | select distance, effort'));
     const noEffort = result.table!.rows.find((r) => r.__id === 'r2:1');
     expect(noEffort).toBeUndefined(); // milestone narrowed away by target
     const cycling = result.table!.rows.find((r) => r.__id === 'r2:0')!;
@@ -117,9 +118,33 @@ describe('ticket 18 — cross-workout rows', () => {
       segmentRow('rA:1', 'rA', 'segment', 'distance', 2000, { timestamp: T0 + DAY }),
     ];
     const result = await new QueryService({ eventStore: store(rows) })
-      .runRows(parseRows('rows:segment{} | order by date'), { context: { instant: T0, timeZone: 'America/New_York' } });
+      .runFind(parseFind('find:segment{} | order by date'), { context: { instant: T0, timeZone: 'America/New_York' } });
     const dates = result.table!.rows.map((r) => r.date);
     expect(dates[0]).not.toBe(dates[1]);
+  });
+});
+
+describe('#1048 — by {…} and in kg|lb on table nouns', () => {
+  const load = (id: string, effort: string, kg: number): EventRecord => ({
+    id, resultId: id, noteId: 'n1', timestamp: 1000, grain: 'event', outputType: 'segment', effortSlug: effort,
+    metrics: [{ type: 'weight', value: kg, unit: 'kg', metadata: { canonicalKey: 'weight' } }],
+  } as unknown as EventRecord);
+
+  it('find:segment{effort:snatch} by {effort} groups table rows per effort', async () => {
+    const rows = [load('a:0', 'snatch', 60), load('b:0', 'clean', 100)];
+    const result = await new QueryService({ eventStore: store(rows) })
+      .runFind(parseFind('find:segment{} by {effort}'));
+    expect(result.table!.groups!.map((g) => g.label).sort()).toEqual(['clean', 'snatch']);
+  });
+
+  it('find:segment{…} in lb converts load columns from stored kg', async () => {
+    const rows = [load('a:0', 'snatch', 60), load('b:0', 'clean', 100)];
+    const result = await new QueryService({ eventStore: store(rows) })
+      .runFind(parseFind('find:segment{} in lb | select weight'));
+    const values = result.table!.rows.map((r) => r.weight as number).sort((a, b) => a - b);
+    expect(values[0]).toBeCloseTo(132.28, 1);
+    expect(values[1]).toBeCloseTo(220.46, 1);
+    expect(result.table!.columns[0]!.unit).toBe('lb');
   });
 });
 
@@ -131,7 +156,7 @@ describe('ticket 18 — drill-down construction', () => {
       endIso: '2026-08-30',
       limit: 50,
     });
-    expect(query).toContain('rows:segment{discipline:running}');
+    expect(query).toContain('find:segment{discipline:running}');
     expect(query).toContain('from 2026-08-24 to 2026-08-30');
     expect(query).toContain('| limit 50');
   });

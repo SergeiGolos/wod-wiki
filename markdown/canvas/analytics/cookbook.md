@@ -13,7 +13,7 @@ Copy canonical WQL queries and learn how to build dashboards directly inside you
 
 ### Weekly Strength Volume
 ```wql
-sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+sum:totalVolume{discipline:strength} by {week}
 ```
 
 ### Top Volume Movements
@@ -23,7 +23,7 @@ sum:totalVolume{} by {effort}
 
 ### Training Intensity Score (TIS) Trend
 ```wql
-avg:tis{} by {week}.rollup(1w)
+avg:tis{} by {week}
 ```
 
 ### Acute:Chronic Workload Ratio (ACWR)
@@ -42,7 +42,7 @@ You can insert a WQL query directly into any note. The editor renders it inline 
 
 ````markdown
 ```query
-sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+sum:totalVolume{discipline:strength} by {week}
 ```
 ````
 
@@ -68,7 +68,7 @@ avg:tis{}
 Is volume rising?
 
 ```query:timeseries-2
-sum:totalVolume{} by {week}.rollup(1w)
+sum:totalVolume{} by {week}
 ```
 
 ## Volume by effort

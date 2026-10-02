@@ -3,7 +3,7 @@
 //   <aggregator>:<metric.namespace>{<tag filters>} by {<dimensions>} .rollup(<period>)
 //   find:<target>{<tag filters>,source:<scope>} last <n>w
 //
-//   sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w)
+//   sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(2w)
 //   avg:tis{effort:back*} by {session}
 //   find:note{tags:pr,source:journal} last 8w
 //

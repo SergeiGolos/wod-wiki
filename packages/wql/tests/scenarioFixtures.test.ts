@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { QueryService } from '../src/QueryService';
-import { parseQuery, isRowsQuery, isFindQuery } from '../src/wql';
+import { parseQuery, isFindQuery } from '../src/wql';
 import { loadJournal, journalStores } from './harness/corpus';
 import { parseScenarioFile } from './harness/scenarioFixture/scenarioFile';
 import { compareScenarioResult, type ActualScenarioResult } from './harness/scenarioFixture/compare';
@@ -41,8 +41,6 @@ describe('wql scenario catalog', () => {
         const parsed = parseQuery(scenario.query);
         if (parsed.error) {
           actual = { error: parsed.error };
-        } else if (isRowsQuery(parsed)) {
-          actual = await service.runRows(parsed);
         } else if (isFindQuery(parsed)) {
           actual = await service.runFind(parsed) as any;
         } else {

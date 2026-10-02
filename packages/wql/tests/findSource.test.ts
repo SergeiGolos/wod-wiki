@@ -91,10 +91,9 @@ describe('source: filter — runFind (Note[])', () => {
     expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
-  it('source:all returns all notes across journal and static stores', async () => {
-    const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{source:all}') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+  it('source:all fails to parse with a hint', () => {
+    const parsed = parseQuery('find:note{source:all}');
+    expect(parsed.error).toContain('source:all is retired');
   });
 
   it('keeps only playground entries when source:playground is set (sourceId convention and legacy type)', async () => {
@@ -108,10 +107,9 @@ describe('source: filter — runFind (Note[])', () => {
     expect(parsed.error).toBeUndefined();
   });
 
-  it('find:page targets notes with type page', async () => {
-    const service = makeService();
-    const result = await service.runFind(parseQuery('find:page') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id)).toEqual(['page-1']);
+  it('find:page fails to parse with a hint', () => {
+    const parsed = parseQuery('find:page');
+    expect(parsed.error).toContain('find:page is retired');
   });
 
   it('find:note{type:page} targets notes with type page', async () => {
@@ -126,10 +124,9 @@ describe('source: filter — runFind (Note[])', () => {
     expect(result.notes.map(n => n.id)).toEqual(['page-1']);
   });
 
-  it('find:page{source:collections} targets collection pages', async () => {
-    const service = makeService();
-    const result = await service.runFind(parseQuery('find:page{source:collections}') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id)).toEqual(['page-1']);
+  it('source:page fails to parse with a hint', () => {
+    const parsed = parseQuery('find:note{source:page}');
+    expect(parsed.error).toContain('source:page is retired');
   });
 });
 

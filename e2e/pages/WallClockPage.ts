@@ -174,15 +174,16 @@ export async function startWorkoutFromPlayground(page: Page, id: string, wodScri
   await expect(pauseIconButton(page)).toBeVisible({ timeout: 8_000 });
 }
 
-/** Click Next until the app lands on /review/ (or fail after maxClicks). */
+/** Click Next until the app lands on the completion route (/sessions/:id,
+ *  retired /review, or /results — or fail after maxClicks). */
 export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<void> {
   for (let i = 0; i < maxClicks; i++) {
-    if (/\/(dashboard|review|results)/.test(page.url())) return;
+    if (/\/(dashboard|review|results|sessions?)/.test(page.url())) return;
     const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
     if ((await next.count()) === 0) break;
     await next.click().catch(() => {});
-    await page.waitForURL(/\/(dashboard|review|results)/, { timeout: 8_000 }).catch(() => {});
-    if (/\/(dashboard|review|results)/.test(page.url())) return;
+    await page.waitForURL(/\/(dashboard|review|results|sessions?)/, { timeout: 8_000 }).catch(() => {});
+    if (/\/(dashboard|review|results|sessions?)/.test(page.url())) return;
     // Bounded wait for the advanced block's Next control to mount — replaces
     // the fixed 1.5s settle between clicks.
     await page
@@ -191,5 +192,5 @@ export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<voi
       .waitFor({ state: 'visible', timeout: 5_000 })
       .catch(() => {});
   }
-  await page.waitForURL(/\/(dashboard|review|results)/, { timeout: 5_000 });
+  await page.waitForURL(/\/(dashboard|review|results|sessions?)/, { timeout: 5_000 });
 }

@@ -11,7 +11,7 @@
 import type { BlockIndexRow, Note } from '@/types/storage';
 import type { NoteQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
-import { setSuggestionBinding, catalogIdsFromBlocks } from '@bitcobblers/wod-wiki-ui';
+import { setSuggestionBinding, getSuggestionBinding, catalogIdsFromBlocks } from '@bitcobblers/wod-wiki-ui';
 import { storageService } from '@/services/storage';
 import { getScriptCollections } from '@/repositories/script-collections';
 let corpusBlocksPromise: Promise<BlockIndexRow[]> | null = null;
@@ -223,3 +223,51 @@ for (const type of ['domain', 'format', 'equipment', 'quality', 'intent']) {
         emptyText: `No ${type}s indexed yet`,
     });
 }
+
+// Effort origins — the distinct registrySource values across stored effort
+// rows (engine type is open: 'bundled' | 'user' | string), never a hardcoded
+// enum. Open slot: unindexed origins remain typeable.
+setSuggestionBinding('origin', {
+    load: async () => {
+        try {
+            const efforts = await storageService.getAllEfforts();
+            const origins = new Set<string>();
+            for (const effort of efforts) {
+                if (effort.registrySource) origins.add(effort.registrySource);
+            }
+            return Array.from(origins).sort().map((o) => ({ value: o, label: o }));
+        } catch {
+            return [];
+        }
+    },
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No effort origins indexed yet — type one to filter',
+});
+
+// Registered dynamic tag keys: user-created tag types beyond the standard
+// typed keys become real suggestion-backed filter/dimension sources. Types
+// already bound (standard keys, discipline, block types) keep their source.
+void (async () => {
+    try {
+        const types = await storageService.getAllTagTypes();
+        for (const tagType of types) {
+            if (getSuggestionBinding(tagType.name)) continue;
+            setSuggestionBinding(tagType.name, {
+                load: async () => {
+                    try {
+                        const tags = await storageService.getTags(tagType.name);
+                        return tags.map((t) => ({ value: t.label, label: t.label }));
+                    } catch {
+                        return [];
+                    }
+                },
+                cache: { ttlMs: 60_000 },
+                open: true,
+                emptyText: `No ${tagType.label}s indexed yet`,
+            });
+        }
+    } catch {
+        // IndexedDB not ready in isolated test environments
+    }
+})();

@@ -18,7 +18,6 @@ import {
   parseQuery,
   isAggregateQuery,
   isFindQuery,
-  isRowsQuery,
   type QueryResult,
   inMemoryEventStore,
   type NoteQueryStore,
@@ -1624,7 +1623,7 @@ export function DashboardQueryCard({
     runQuery: (query) => {
       const parsed = parseQuery(query);
       if (parsed.error) return Promise.reject(new Error(parsed.error));
-      if (isFindQuery(parsed) || isRowsQuery(parsed)) {
+      if (isFindQuery(parsed)) {
         return Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.'));
       }
       if (segment.dataSource === 'session') {
@@ -1655,7 +1654,7 @@ export function DashboardQueryCard({
           return;
         }
 
-        if (isFindQuery(parsed) || isRowsQuery(parsed)) {
+        if (isFindQuery(parsed)) {
           setError('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.');
           setResult(undefined);
           return;
@@ -1826,7 +1825,7 @@ export function DashboardAnalyticsSection({
     runQuery: (query) => {
       const parsed = parseQuery(query);
       if (parsed.error) return Promise.reject(new Error(parsed.error));
-      if (isFindQuery(parsed) || isRowsQuery(parsed)) {
+      if (isFindQuery(parsed)) {
         return Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.'));
       }
       const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));

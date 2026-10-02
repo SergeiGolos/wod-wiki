@@ -309,13 +309,16 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
     ],
   }
 
-  it('dispatches rows:all to runRows and maps to session-level result entries', async () => {
-    runRowsImpl = async parsed => ({
+  it('dispatches find:session to runFind and maps to session-level result entries', async () => {
+    runFindImpl = async parsed => ({
       parsed,
       runs: [sampleRun],
+      notes: [],
+      blocks: [],
+      stages: { selected: 1, matched: 1 },
     })
 
-    const entries = await searchEntries('rows:all{result:res-42}')
+    const entries = await searchEntries('find:session{result:res-42}')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.kind).toBe('result')
     expect(entries[0]!.id).toBe('res-42')
@@ -325,13 +328,16 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
     expect(entries[0]!.execution?.reps).toBe(42)
   })
 
-  it('dispatches rows:segment to runRows and maps to segment-level entries', async () => {
-    runRowsImpl = async parsed => ({
+  it('dispatches find:session with plane:segment to segment-level entries', async () => {
+    runFindImpl = async parsed => ({
       parsed,
       runs: [sampleRun],
+      notes: [],
+      blocks: [],
+      stages: { selected: 1, matched: 1 },
     })
 
-    const entries = await searchEntries('rows:segment{result:res-42}')
+    const entries = await searchEntries('find:session{result:res-42, plane:segment}')
     expect(entries).toHaveLength(2)
     expect(entries[0]!.kind).toBe('segment')
     expect(entries[0]!.id).toBe('res-42:0')
@@ -342,16 +348,19 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
   })
 
   it('resolves note titles via noteTitleResolver in StreamQueryEngine options', async () => {
-    runRowsImpl = async parsed => ({
+    runFindImpl = async parsed => ({
       parsed,
       runs: [sampleRun],
+      notes: [],
+      blocks: [],
+      stages: { selected: 1, matched: 1 },
     })
 
     const engine = new StreamQueryEngine({
       noteTitleResolver: async noteId => (noteId === 'crossfit-girls/fran' ? 'Custom Fran Title' : undefined),
     })
 
-    const entries = await engine.query('rows:all{result:res-42}')
+    const entries = await engine.query('find:session{result:res-42}')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.title).toBe('Custom Fran Title')
   })

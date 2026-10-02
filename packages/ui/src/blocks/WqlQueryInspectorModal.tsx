@@ -1,15 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
-import { X } from 'lucide-react';
-import { WqlComposer, type WqlExecutor } from '../composer';
-import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
-import { isFindQuery } from '@bitcobblers/wod-wiki-wql';
+/**
+ * WqlQueryInspectorModal — edit a ```query block's WQL through the shared
+ * composer, hosted on the shared EditorDialog (sheet presentation on
+ * mobile: no autofocus, footer outside the scroll body).
+ *
+ * The draft is controlled and its validity tracked synchronously alongside
+ * every change; Apply re-validates the exact draft text at action time and
+ * hands it to the host — the fence patcher upstream preserves the rest of
+ * the note source. A rejected write keeps the dialog open with the draft
+ * intact and the error visible; Cancel (or Escape) never writes.
+ */
+import { useCallback, useEffect, useState } from 'react';
+import { EditorDialog } from '../dialog/EditorDialog';
+import { WqlComposer, type WqlExecutor, type WqlValidationState } from '../composer';
+import { isFindQuery, parseQuery } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 
 export interface WqlQueryInspectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialQuery: string;
-  onApply: (newQuery: string) => void;
+  /** Persist the applied query. A returned Promise gates the button until
+   *  it settles; a rejection keeps the dialog open with the error visible. */
+  onApply: (newQuery: string) => void | Promise<void>;
   title?: string;
   subtitle?: string;
   /** Label for the confirm button (defaults to "Apply to Block"). */
@@ -28,93 +40,89 @@ export function WqlQueryInspectorModal({
   executor,
 }: WqlQueryInspectorModalProps) {
   const [wql, setWql] = useState<string>(initialQuery);
-  const [isValid, setIsValid] = useState<boolean>(true);
+  const [validation, setValidation] = useState<WqlValidationState>({
+    valid: !parseQuery(initialQuery).error,
+  });
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) setWql(initialQuery);
+    if (isOpen) {
+      setWql(initialQuery);
+      setValidation({ valid: !parseQuery(initialQuery).error });
+      setError(null);
+    }
   }, [isOpen, initialQuery]);
 
   const diagnosticsExecutor = useCallback<WqlExecutor>(
     (ast) => {
-      if (executor) {
-        return isFindQuery(ast) ? executor.runFind(ast) : executor.runQuery(ast.raw);
-      }
-      return Promise.resolve({
-        parsed: ast,
-        series: [],
-        stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
-        matched: [],
-      } as unknown as QueryResult);
+      if (!executor) throw new Error('No executor provided');
+      return isFindQuery(ast) ? executor.runFind(ast) : executor.runQuery(ast.raw);
     },
     [executor],
   );
 
-  const handleApply = () => {
-    if (!isValid) return;
-    onApply(wql);
-    onClose();
+  const handleApply = async () => {
+    // Validate the exact draft at action time; the composer's synchronous
+    // state is not relied on within the same event.
+    if (applying || parseQuery(wql).error) return;
+    setApplying(true);
+    setError(null);
+    try {
+      await onApply(wql);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setApplying(false);
+    }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="wql-inspector-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
-    >
-      <div className="w-full max-w-2xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-muted/20">
-          <div>
-            <h2 id="wql-inspector-title" className="text-base font-semibold text-foreground">
-              {title}
-            </h2>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+    <EditorDialog
+      open={isOpen}
+      onClose={onClose}
+      presentation="sheet"
+      title={title}
+      description={subtitle}
+      footer={
+        <>
+          <div className="flex-1 min-w-0 truncate font-mono text-xs text-muted-foreground" data-testid="wql-inspector-draft">
+            {wql}
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="min-h-12 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg border border-border hover:bg-muted transition-colors"
           >
-            <X className="w-4 h-4" />
+            Cancel
           </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto space-y-4">
-          <WqlComposer
-            query={wql}
-            onQueryChange={setWql}
-            onValidationChange={(v) => setIsValid(v.valid)}
-            execute={diagnosticsExecutor}
-            showDiagnostics
-          />
-        </div>
-
-        <div className="flex items-center justify-between px-6 py-3 border-t border-border/80 bg-muted/10">
-          <div className="text-xs text-muted-foreground font-mono">
-            {wql}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg border border-border hover:bg-muted transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleApply}
-              disabled={!isValid}
-              className="px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow transition-colors"
-            >
-              {applyLabel}
-            </button>
-          </div>
-        </div>
+          <button
+            type="button"
+            data-testid="wql-inspector-apply"
+            onClick={() => void handleApply()}
+            disabled={!validation.valid || applying}
+            className="min-h-12 px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow transition-colors"
+          >
+            {applying ? 'Applying…' : applyLabel}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <WqlComposer
+          query={wql}
+          onQueryChange={setWql}
+          onValidationChange={setValidation}
+          execute={executor ? diagnosticsExecutor : undefined}
+          showDiagnostics
+        />
+        {error && (
+          <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive font-mono">
+            {error}
+          </p>
+        )}
       </div>
-    </div>
+    </EditorDialog>
   );
 }

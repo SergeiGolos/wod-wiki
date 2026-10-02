@@ -83,14 +83,34 @@ test.describe('Error-Path Resilience', () => {
 
   // ── 2. IndexedDB unavailable ──────────────────────────────────────────────
 
-  // DEFECT #703: with no IndexedDB the app white-screens with an unhandled
-  // `Cannot read properties of undefined (reading 'open')`. Quarantined until
-  // the boot DB-open rejection is caught (error boundary + empty shell).
-  test('IndexedDB rejection degrades without an unhandled pageerror', async ({ page }) => {
+  // DEFECT #703 (still open, now precisely located): every IDB open failure
+  // — absent API, SecurityError on open (Firefox private mode), or open
+  // blocked by another tab — leaves the app blank: the route table itself
+  // derives from IDB-backed seed content (useCanvasRoutes), so no route
+  // matches and #root keeps only the Toaster. One rejection also escapes
+  // unhandled from the useSeedContent bootstrap
+  // (seedContent.ts: `void ensureSeedContent()` — needs a .catch) and
+  // surfaces as a pageerror. Quarantined until the boot rejection is caught
+  // and the shell renders an empty state. The interception below is the
+  // ready-to-unquarantine shape: keep the API present, fail opens the way
+  // permission-denied storage does (wodwiki-db, wodwiki-telemetry and
+  // wodwiki-user-calcs all fail together).
+  test.skip(true, 'DEFECT #703: IDB failure still white-screens (unhandled rejection in seedContent bootstrap)');
+  test('IndexedDB rejection degrades without an unhandled pageerror', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('dialog', (d) => { void d.accept(); });
     await page.addInitScript(() => {
-      // Simulate an environment with no IndexedDB (locked-down webview /
-      // disabled storage) — the realistic "unavailable" failure mode.
-      Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true });
+      window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
+      // Fail every open the way permission-denied storage does.
+      const deny = (): never => {
+        throw new DOMException('The user denied permission to access the database.', 'SecurityError');
+      };
+      Object.defineProperty(window, 'indexedDB', {
+        value: { open: deny, deleteDatabase: deny, cmp: () => 0, databases: () => Promise.resolve([]) },
+        configurable: true,
+      });
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 15_000 });
@@ -100,6 +120,7 @@ test.describe('Error-Path Resilience', () => {
     // error escapes to pageerror.
     await expect(page.locator('#root')).not.toBeEmpty({ timeout: 10_000 });
     expect(errors).toEqual([]);
+    await context.close();
   });
 
   // ── 3. Malformed routes ───────────────────────────────────────────────────

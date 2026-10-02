@@ -3,10 +3,10 @@
  * (issue #833, decision #828; string-state rework for wayfinder ticket 013).
  *
  * The composer state IS the WQL string (the C6 AST's canonical form): the
- * `q` query parameter holds it verbatim, edits push a history entry (so
- * browser back/forward restores the exact query), and URL changes hydrate
- * the composer directly. No salvage parser is needed — the string round-
- * trips losslessly by construction, and the composer itself decides
+ * `q` query parameter holds it verbatim. Each editing spell pushes one
+ * scratch entry and replaces subsequent edits; browser Back/Forward
+ * restores the composer directly. No salvage parser is needed. The string
+ * round-trips losslessly by construction, and the composer itself decides
  * pill-expressibility (unexpressible-but-valid queries ride its free-text
  * escape hatch).
  *
@@ -28,7 +28,7 @@ import { parseQuery } from '@bitcobblers/wod-wiki-engine'
 export interface ComposerQueryState {
   /** The composed WQL — the composer state (canonical text at rest). */
   query: string
-  /** Edit the query; pushes `?q=` when the text actually changed. */
+  /** Edit `?q=` in one scratch history entry per editing spell. */
   setQuery: (wql: string) => void
   /** Set when the URL's `q` fails to parse — the query was rejected and the
    *  default took its place (#854). Cleared on the next edit or parseable
@@ -62,6 +62,10 @@ function urlQueryErrorFor(q: string): string | null {
   if (!parsed.error) return null
   return `Couldn't parse "${q}" — ${parsed.error}`
 }
+
+/** Idle period after which the current history entry settles into the
+ *  checkpoint and the next edit starts a fresh spell. */
+const URL_SPELL_SETTLE_MS = 1000
 
 export function useComposerQueryState(config: ComposerQueryStateConfig): ComposerQueryState {
   // Config via ref: adapters pass inline literals; effects must not re-fire
@@ -113,26 +117,60 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
     setSearchParams(next, { replace: true })
   }, [setSearchParams])
 
-  // URL → query (back/forward, external navigation, migration). Content-
-  // compared: echoes of our own setQuery pushes restore the same text and
-  // are skipped, so a transient edit is never clobbered.
+  // Editing spells: the first edit after a committed state pushes one scratch
+  // history entry; the burst's further edits replace it in place — never one
+  // history entry per keystroke. After a short idle the entry settles into
+  // the checkpoint (the stream has no explicit Run), so a later discrete edit
+  // pushes anew and Back lands on the last settled query.
+  const urlIsCheckpoint = useRef(true)
+  const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // URL → query. Skip our own URL echoes without clobbering transient edits.
   const prevQRef = useRef(q)
   useEffect(() => {
     if (q === prevQRef.current) return
     prevQRef.current = q
+    urlIsCheckpoint.current = true
+    clearTimeout(settleRef.current)
+    settleRef.current = null
     setUrlQueryError(urlQueryErrorFor(q))
     const restored = q && !parseQuery(q).error ? q : configRef.current.defaultQuery()
     setQueryState(current => (current === restored ? current : restored))
   }, [q])
 
-  // Query → URL. Pushes a history entry only when the text actually changed
-  // (a transient edit that re-emits the same text must not spam history).
+  useEffect(() => {
+    const restore = () => {
+      const restoredQ = new URLSearchParams(window.location.search).get('q') ?? ''
+      prevQRef.current = restoredQ
+      urlIsCheckpoint.current = true
+      clearTimeout(settleRef.current)
+      settleRef.current = null
+      setUrlQueryError(urlQueryErrorFor(restoredQ))
+      setQueryState(restoredQ && !parseQuery(restoredQ).error ? restoredQ : configRef.current.defaultQuery())
+    }
+    window.addEventListener('popstate', restore)
+    return () => {
+      window.removeEventListener('popstate', restore)
+      clearTimeout(settleRef.current)
+    }
+  }, [])
+
+  // Invalid drafts stay in the composer; only parseable queries reach the URL
+  // (a half-typed query must not become history or a page error).
   const setQuery = useCallback(
     (next: string) => {
+      if (parseQuery(next).error) return
       if (next !== queryRef.current) {
         const params = new URLSearchParams(searchParamsRef.current)
         params.set('q', next)
-        setSearchParams(params)
+        prevQRef.current = next
+        setSearchParams(params, { replace: !urlIsCheckpoint.current })
+        urlIsCheckpoint.current = false
+        clearTimeout(settleRef.current)
+        settleRef.current = setTimeout(() => {
+          urlIsCheckpoint.current = true
+          settleRef.current = null
+        }, URL_SPELL_SETTLE_MS)
       }
       setQueryState(next)
     },

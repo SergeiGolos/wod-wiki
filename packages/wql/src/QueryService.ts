@@ -24,7 +24,6 @@ import { normalizeFieldComponent } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,
-  isRowsQuery,
   type Aggregator,
   type ComparisonOp,
   type ParsedAggregateQuery,
@@ -37,7 +36,7 @@ import {
   type SeriesPoint,
   type TagFilter,
 } from './wql';
-import { WQL_FIND_TARGETS } from './vocabulary';
+import { WQL_TYPED_TAG_KEYS, type WqlTypedTagKey } from './vocabulary';
 import { convertViaCatalog, resolveOutputUnit } from './units';
 import { projectEventToFacts } from './derivation';
 import { dedupeById, selectContributions, type CoverageReport } from './selection';
@@ -71,11 +70,7 @@ export type {
   QueryServiceStores,
 };
 
-const DAY = 86_400_000;
 
-/** Rows content planes (C4): targets that scope by content ownership rather
- *  than the outputType column — no statement narrowing for these. */
-const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(WQL_FIND_TARGETS);
 /** Extract the catalog directory id from a Note or BlockIndexRow.
  *  Uses explicit `catalog` when present; falls back to parsing `sourceId`
  *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`. */
@@ -160,6 +155,11 @@ function effectiveTimeWindow(
   const resolved = window ? resolveWindowRange(window, ctx) : range;
   return inRange(createdAt, resolved);
 }
+function sessionCompletedAt(rows: EventRecord[]): number {
+  const completion = rows.find((r) => r.outputType === 'completion');
+  if (completion?.timestamp) return completion.timestamp;
+  return rows[0]?.timestamp ?? 0;
+}
 
 const defaultEventStore: EventStore = {
   getEventsByTimeRange: async () => [],
@@ -192,6 +192,10 @@ export interface FindQueryResult {
   blocks: BlockIndexRow[];
   /** Registry rows for find:effort queries. */
   efforts?: IEffort[];
+  /** Session run cards for find:session queries (#1041). */
+  runs?: RowsRun[];
+  /** Tabular output for find:segment and find:event queries (#1042). */
+  table?: TabularResult;
   stages: { selected: number; matched: number };
 }
 
@@ -295,9 +299,16 @@ function nextLocalMidnight(iso: string, timeZone: string): number {
 /** The stable tabular shape consumed by table widgets (ticket 19 wires
  *  widgets): bounded page + full match count. Missing column values are
  *  ABSENT (undefined) — strictly distinct from a recorded 0. */
+export interface TabularGroup {
+  key: string;
+  label: string;
+  rows: Array<Record<string, unknown>>;
+}
+
 export interface TabularResult {
   columns: TabularColumn[];
   rows: Array<Record<string, unknown>>;
+  groups?: TabularGroup[];
   totalCount: number;
   limit?: number;
   offset?: number;
@@ -529,40 +540,54 @@ export class QueryService {
         series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
       };
     }
-    if (isRowsQuery(parsed)) {
-      return {
-        parsed: { family: 'aggregate', raw, agg: 'count', metric: 'rows', filters: [], groupBy: [] },
-        series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
-      };
-    }
     return this.run(parsed, options);
   }
+
   /**
-   * Execute a rows query (rows:<target>{…}, #949/C4) — the session results
-   * table plane. Filter rules are validated at parse; this executes only.
-   * Reads event rows directly over the unified store: outputType narrowing
-   * hits the promoted column; content-plane targets scope by content.
+   * Legacy rows-family executor kept for hand-built ASTs (RowsTable, CLI).
+   * Text `rows:…` no longer parses (#1044); this delegates to the find paths
+   * so a programmatic ParsedRowsQuery still resolves.
    */
   async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number; context?: ExecutionContext } = {}): Promise<RowsQueryResult> {
-    const empty: RowsQueryResult = { parsed, runs: [] };
-    if (parsed.error) return { ...empty, error: parsed.error };
+    // Hand-built rows AST → find noun: `all`/missing → find:session; a result
+    // plane (segment/load/…) narrows via plane: on find:session; rows:segment
+    // without a scope is the cross-workout table (find:segment).
+    const scope = parsed.filters.some((f) => ['result', 'block', 'note'].includes(f.key));
+    const plane = parsed.outputType ?? (parsed.target !== 'all' ? parsed.target : undefined);
+    let target: string;
+    let filters = parsed.filters;
+    if (!plane) {
+      target = 'session';
+    } else if (plane === 'segment' && !scope) {
+      target = 'segment';
+    } else {
+      target = 'session';
+      filters = [...parsed.filters, { key: 'plane', negate: false, values: [{ value: plane, wildcard: false }] }];
+    }
+    const asFind: ParsedFindQuery = {
+      family: 'find',
+      raw: parsed.raw,
+      target,
+      filters,
+      ...(parsed.window ? { window: parsed.window } : {}),
+      ...(parsed.pipes ? { pipes: parsed.pipes } : {}),
+      ...(parsed.error ? { error: parsed.error } : {}),
+    };
+    const res = await this.runFind(asFind, options);
+    return { parsed, runs: res.runs ?? [], ...(res.table ? { table: res.table } : {}) };
+  }
 
+  /**
+   * Execute a find:session query (#1041/#1042) — grouped run cards per completed session.
+   */
+  async runFindSession(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
+    const ctx = runContext(options);
     const scopeValues = (key: string) =>
       parsed.filters.filter((f) => f.key === key).flatMap((f) => f.values.map((v) => v.value));
     const resultIds = scopeValues('result');
     const blockIds = scopeValues('block');
     const noteIds = scopeValues('note');
 
-    // Ticket 18 — cross-workout form: rows:segment with no result:/block:/
-    // note: scope explores segments across every workout in the window.
-    if (resultIds.length + blockIds.length + noteIds.length === 0) {
-      if (parsed.target === 'segment') {
-        return this.runRowsCrossWorkout(parsed, options);
-      }
-      return { ...empty, runs: [] };
-    }
-
-    // Scope → event rows, grouped per result (insertion order = first seen).
     const byResult = new Map<string, EventRecord[]>();
     const collect = (rows: EventRecord[]) => {
       for (const row of rows) {
@@ -571,77 +596,115 @@ export class QueryService {
         else byResult.set(row.resultId, [row]);
       }
     };
-    for (const id of resultIds) collect(await this.store.getEventsByResult(id));
-    for (const blockContentId of blockIds) collect(await this.store.getEventsByContent(blockContentId));
-    for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
+
+    if (resultIds.length + blockIds.length + noteIds.length === 0) {
+      const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : (options.range ? options.range : undefined);
+      const eventRows = range
+        ? await this.store.getEventsByTimeRange(range.start, range.end)
+        : await this.store.scanAll();
+      collect(eventRows);
+    } else {
+      for (const id of resultIds) collect(await this.store.getEventsByResult(id));
+      for (const blockContentId of blockIds) collect(await this.store.getEventsByContent(blockContentId));
+      for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
+    }
+
     let groups = [...byResult.entries()].filter(([, rows]) => rows.length > 0);
 
-    if (parsed.window) {
-      const ctx = runContext(options);
+    if (parsed.window || options.range) {
       groups = groups.filter(([, rows]) =>
-        effectiveTimeWindow(rows[0].timestamp, parsed.window, undefined, ctx),
+        effectiveTimeWindow(sessionCompletedAt(rows), parsed.window, options.range, ctx),
       );
     }
-    groups.sort((a, b) => b[1][0].timestamp - a[1][0].timestamp);
+    groups.sort((a, b) => sessionCompletedAt(b[1]) - sessionCompletedAt(a[1]));
 
-    const runs = groups
-      .map(([resultId, rows]) => ({
-        resultId,
-        noteId: rows[0].noteId,
-        timestamp: rows[0].timestamp,
-        events: parsed.outputType && !ROWS_CONTENT_PLANES.has(parsed.outputType)
-          ? rows.filter((row) => row.outputType === parsed.outputType)
-          : rows,
-      }))
+    const planeFilters = parsed.filters.filter((f) => f.key === 'plane');
+    let runs: RowsRun[] = groups
+      .map(([resultId, rows]) => {
+        let events = rows;
+        if (planeFilters.length > 0) {
+          events = events.filter((row) =>
+            planeFilters.every((f) => {
+              const matchesAny = f.values.some((v) => v.value === row.outputType);
+              return f.negate ? !matchesAny : matchesAny;
+            }),
+          );
+        }
+        return {
+          resultId,
+          noteId: rows[0].noteId,
+          timestamp: sessionCompletedAt(rows),
+          events,
+        };
+      })
       .filter((run) => run.events.length > 0);
-    return { parsed, runs };
+    const pipes = parsed.pipes;
+    if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
+      const offset = pipes.offset ?? 0;
+      runs = pipes.limit !== undefined ? runs.slice(offset, offset + pipes.limit) : runs.slice(offset);
+    }
+
+    return {
+      parsed,
+      notes: [],
+      blocks: [],
+      runs,
+      stages: { selected: groups.length, matched: runs.length },
+    };
   }
 
   /**
-   * Ticket 18 — cross-workout `rows:segment{<tag/metadata filters>}
-   * [window]`: one row per segment observation across all workouts, identity
-   * `resultId:segmentIndex`; the date column is the segment's own metric
-   * date. Pipes (select / order by / limit offset) govern PRESENTATION only
-   * — the underlying match and totalCount are unaffected by paging.
+   * Execute a find:segment or find:event query (#1042/#1048) — flat cross-workout table.
    */
-  private async runRowsCrossWorkout(
-      parsed: ParsedRowsQuery,
-      options: { anchorNow?: number; context?: ExecutionContext },
-  ): Promise<RowsQueryResult> {
+  async runFindTable(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     const ctx = runContext(options);
-    // Indexed candidate selection: windowed fetch through by-timestamp,
-    // all-time scan otherwise (the same SELECT strategy as aggregates).
-    const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : undefined;
-    const eventRows = range
-      ? await this.store.getEventsByTimeRange(range.start, range.end)
-      : await this.store.scanAll();
+    const scopeValues = (key: string) =>
+      parsed.filters.filter((f) => f.key === key).flatMap((f) => f.values.map((v) => v.value));
+    const resultIds = scopeValues('result');
+    const blockIds = scopeValues('block');
+    const noteIds = scopeValues('note');
 
-    // Eligible segment observations, deduped by stable record identity —
-    // overlapping scope fetches contribute each segment exactly once.
-    const seen = new Set<string>();
-    const segments: EventRecord[] = [];
-    for (const row of eventRows) {
-      if (row.grain !== 'event') continue;
-      if (parsed.outputType && row.outputType !== parsed.outputType) continue;
-      if (seen.has(row.id)) continue;
-      seen.add(row.id);
-      segments.push(row);
+    let eventRows: EventRecord[] = [];
+    if (resultIds.length + blockIds.length + noteIds.length === 0) {
+      const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : (options.range ? options.range : undefined);
+      eventRows = range
+        ? await this.store.getEventsByTimeRange(range.start, range.end)
+        : await this.store.scanAll();
+    } else {
+      const seen = new Set<string>();
+      const collect = (rows: EventRecord[]) => {
+        for (const row of rows) {
+          if (!seen.has(row.id)) {
+            seen.add(row.id);
+            eventRows.push(row);
+          }
+        }
+      };
+      for (const id of resultIds) collect(await this.store.getEventsByResult(id));
+      for (const blockContentId of blockIds) collect(await this.store.getEventsByContent(blockContentId));
+      for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
     }
 
-    // Tag/metadata filters read the segment's promoted fields directly —
-    // no per-row fact allocation on the hot path (ticket 20 budgets).
+    const seen = new Set<string>();
+    const eligibleRecords: EventRecord[] = [];
+    for (const row of eventRows) {
+      if (row.grain !== 'event') continue;
+      if (parsed.target === 'segment' && row.outputType !== 'segment') continue;
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      eligibleRecords.push(row);
+    }
+
     const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
-    const eligible = segments.filter((row) => {
-      if (parsed.filters.length === 0) return true;
-      // A row matches when ANY of its projected facts satisfies the filters
-      // (projection emits one fact per metric; the row is the observation).
+    const tagFilters = parsed.filters.filter((f) => !['result', 'block', 'note', 'plane'].includes(f.key));
+    const eligible = eligibleRecords.filter((row) => {
+      if (tagFilters.length === 0) return true;
       const facts = projectEventToFacts(row);
       if (facts.length === 0) return false;
-      return facts.some((fact) => matchesFilters(fact, parsed.filters, noteTags));
+      return facts.some((fact) => matchesFilters(fact, tagFilters, noteTags));
     });
 
     const totalCount = eligible.length;
-    // Civil-date memo: one formatToParts per distinct instant per run.
     const civilDateCache = new Map<number, string>();
     const dateOf = (row: EventRecord): string => {
       const temporal = row.metricTemporal?.[0];
@@ -653,7 +716,6 @@ export class QueryService {
       return computed;
     };
 
-    // Default columns when no | select: date, effort, discipline, + numeric metrics.
     const unitByMetric = new Map<string, string>();
     const numericMetrics = new Set<string>();
     for (const row of eligible) {
@@ -661,8 +723,10 @@ export class QueryService {
         if (m.type && m.type !== 'label' && typeof m.value === 'number') {
           numericMetrics.add(m.type);
           const key = typeof m.metadata?.canonicalKey === 'string' ? m.metadata.canonicalKey : undefined;
-          if (key && m.unit) unitByMetric.set(key, m.unit);
-          if (m.unit) unitByMetric.set(m.type, m.unit);
+          if (m.unit) {
+            unitByMetric.set(m.type, m.unit);
+            if (key) unitByMetric.set(key, m.unit);
+          }
         }
       }
     }
@@ -672,7 +736,7 @@ export class QueryService {
       'date', 'effort', 'discipline', ...numericMetrics,
     ];
     const unitFor = (col: string): string | undefined =>
-      pipes?.select?.find((s) => s.col === col)?.unit ?? unitByMetric.get(col);
+      pipes?.select?.find((s) => s.col === col)?.unit ?? (parsed.displayUnit ? parsed.displayUnit : unitByMetric.get(col));
 
     const columns: TabularColumn[] = selectCols.map((col) => {
       if (col === 'date') return { name: 'date', type: 'date' as const };
@@ -696,10 +760,22 @@ export class QueryService {
           const m = (row.metrics as Array<{ metadata?: Record<string, unknown> }>).find((m) => m.metadata?.effortDiscipline);
           record.discipline = m?.metadata?.effortDiscipline;
         } else {
-          const m = (row.metrics as Array<{ type?: string; value?: unknown; metadata?: Record<string, unknown> }>).find(
+          const m = (row.metrics as Array<{ type?: string; value?: unknown; unit?: string; metadata?: Record<string, unknown> }>).find(
             (m) => m.type === col || m.metadata?.canonicalKey === col,
           );
-          record[col] = m ? m.value : undefined; // absent ≠ 0
+          if (m && typeof m.value === 'number') {
+            let val = m.value;
+            if (parsed.displayUnit && m.unit && m.unit !== parsed.displayUnit) {
+              try {
+                val = convertViaCatalog(val, m.unit, parsed.displayUnit);
+              } catch {
+                // ponytail: pass-through if conversion fails; full unit graph handled by units.ts
+              }
+            }
+            record[col] = val;
+          } else {
+            record[col] = m ? m.value : undefined;
+          }
         }
       }
       record.__id = row.id;
@@ -707,7 +783,6 @@ export class QueryService {
       return record;
     });
 
-    // Order by — deterministic tie-break by resultId, segmentIndex (id).
     for (const order of [...(pipes?.order ?? [])].reverse()) {
       const dir = order.dir === 'desc' ? -1 : 1;
       records = [...records].sort((a, b) => {
@@ -718,20 +793,37 @@ export class QueryService {
       });
     }
 
+    let groups: Array<{ key: string; label: string; rows: Array<Record<string, unknown>> }> | undefined;
+    if (parsed.groupBy && parsed.groupBy.length > 0) {
+      const groupMap = new Map<string, Array<Record<string, unknown>>>();
+      for (const rec of records) {
+        const groupVals = parsed.groupBy.map((dim) => String(rec[dim] ?? 'unassigned'));
+        const key = groupVals.join(' · ');
+        const existing = groupMap.get(key);
+        if (existing) existing.push(rec);
+        else groupMap.set(key, [rec]);
+      }
+      groups = [...groupMap.entries()].map(([key, rows]) => ({ key, label: key, rows }));
+    }
+
     const offset = pipes?.offset ?? 0;
     const limit = pipes?.limit;
     const page = limit !== undefined ? records.slice(offset, offset + limit) : records.slice(offset);
 
     return {
       parsed,
+      notes: [],
+      blocks: [],
       runs: [],
       table: {
         columns,
         rows: page,
+        ...(groups ? { groups } : {}),
         totalCount,
         ...(limit !== undefined ? { limit } : {}),
         ...(offset > 0 ? { offset } : {}),
       },
+      stages: { selected: eligible.length, matched: totalCount },
     };
   }
 
@@ -751,20 +843,27 @@ export class QueryService {
     if (parsed.target === 'effort') {
       return this.runFindEffort(parsed);
     }
+    if (parsed.target === 'session') {
+      return this.runFindSession(parsed, options);
+    }
+    if (parsed.target === 'segment' || parsed.target === 'event') {
+      return this.runFindTable(parsed, options);
+    }
     let notes: Note[] = [];
     notes = notes.concat(await this.noteStore.getAllNotes());
     if (this.staticNoteStore) {
       notes = notes.concat(await this.staticNoteStore.getAllNotes());
     }
     notes = applySourceFilter(notes, parsed.filters);
-    const isPageTarget = parsed.target === 'page';
     const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
-    const hasPageSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'page' || v.value === 'pages'));
+    const hasCollectionSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'collection' || v.value === 'collections'));
     const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
-    if (isPageTarget || hasPageSource) {
-      notes = notes.filter(isPage);
-    } else if (parsed.target === 'note' && !hasTypeFilter) {
-      notes = notes.filter(n => !isPage(n));
+    if (parsed.target === 'note' && !hasTypeFilter) {
+      if (hasCollectionSource) {
+        notes = notes.filter(n => n.type !== 'page');
+      } else {
+        notes = notes.filter(n => !isPage(n));
+      }
     }
     const selectedCount = notes.length;
     const ctx = runContext(options);
@@ -794,7 +893,7 @@ export class QueryService {
           ids.forEach(id => matchingIds.add(id));
         }
         notes = notes.filter(n => matchingIds.has(n.id));
-      } else if (['domain', 'format', 'equipment', 'quality', 'intent'].includes(filter.key) && !filter.negate) {
+      } else if (WQL_TYPED_TAG_KEYS.includes(filter.key as WqlTypedTagKey) && !filter.negate) {
         const matchingIds = new Set<string>();
         for (const v of filter.values) {
           const ids = await this.getNoteIdsForTypedTag(filter.key, v.value);
@@ -852,7 +951,7 @@ export class QueryService {
     // Time window (ticket 12 precedence): an explicit query window wins; the
     // host `range` option supplies the default when the query has none.
     if (parsed.window || options.range) {
-      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.window, options.range, ctx));
+      notes = notes.filter(n => effectiveTimeWindow(n.date ?? n.createdAt, parsed.window, options.range, ctx));
     }
 
     // Cross-store join (direction 1): keep notes owning a wod block whose
@@ -861,6 +960,24 @@ export class QueryService {
       const joined = await this.applyMetricJoin(parsed, notes, []);
       notes = joined.notes;
     }
+
+    if (parsed.pipes?.order) {
+      for (const order of [...parsed.pipes.order].reverse()) {
+        const dir = order.dir === 'desc' ? -1 : 1;
+        notes = [...notes].sort((a, b) => {
+          const av = (a as unknown as Record<string, unknown>)[order.col] ?? '';
+          const bv = (b as unknown as Record<string, unknown>)[order.col] ?? '';
+          if (av === bv) return 0;
+          return ((av as string | number) > (bv as string | number) ? 1 : -1) * dir;
+        });
+      }
+    }
+    const pipes = parsed.pipes;
+    if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
+      const offset = pipes.offset ?? 0;
+      notes = pipes.limit !== undefined ? notes.slice(offset, offset + pipes.limit) : notes.slice(offset);
+    }
+
     return { parsed, notes, blocks: [], stages: { selected: selectedCount, matched: notes.length } };
   }
 
@@ -932,9 +1049,15 @@ export class QueryService {
       }
     }
 
-    // Time window (ticket 12 precedence): explicit query window wins over host.
+    // Time window: parent note's date, falling back to note createdAt, falling back to block createdAt
     if (parsed.window || options.range) {
-      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.window, options.range, ctx));
+      let allNotes: Note[] = [];
+      allNotes = allNotes.concat(await this.noteStore.getAllNotes());
+      if (this.staticNoteStore) {
+        allNotes = allNotes.concat(await this.staticNoteStore.getAllNotes());
+      }
+      const noteTimeMap = new Map<string, number>(allNotes.map((n) => [n.id, n.date ?? n.createdAt]));
+      blocks = blocks.filter(b => effectiveTimeWindow(noteTimeMap.get(b.noteId) ?? b.createdAt, parsed.window, options.range, ctx));
     }
 
     // Cross-store join (direction 1): keep blocks whose raw-log metric
@@ -942,6 +1065,23 @@ export class QueryService {
     if (parsed.join) {
       const joined = await this.applyMetricJoin(parsed, [], blocks);
       blocks = joined.blocks;
+    }
+
+    if (parsed.pipes?.order) {
+      for (const order of [...parsed.pipes.order].reverse()) {
+        const dir = order.dir === 'desc' ? -1 : 1;
+        blocks = [...blocks].sort((a, b) => {
+          const av = (a as unknown as Record<string, unknown>)[order.col] ?? '';
+          const bv = (b as unknown as Record<string, unknown>)[order.col] ?? '';
+          if (av === bv) return 0;
+          return ((av as string | number) > (bv as string | number) ? 1 : -1) * dir;
+        });
+      }
+    }
+    const pipes = parsed.pipes;
+    if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
+      const offset = pipes.offset ?? 0;
+      blocks = pipes.limit !== undefined ? blocks.slice(offset, offset + pipes.limit) : blocks.slice(offset);
     }
 
     return { parsed, notes: [], blocks, stages: { selected: selectedCount, matched: blocks.length } };
@@ -984,6 +1124,23 @@ export class QueryService {
         const hit = filter.values.some(v => matches(effort, filter.key, v.value, v.wildcard));
         return filter.negate ? !hit : hit;
       });
+    }
+
+    if (parsed.pipes?.order) {
+      for (const order of [...parsed.pipes.order].reverse()) {
+        const dir = order.dir === 'desc' ? -1 : 1;
+        efforts = [...efforts].sort((a, b) => {
+          const av = (a as unknown as Record<string, unknown>)[order.col] ?? '';
+          const bv = (b as unknown as Record<string, unknown>)[order.col] ?? '';
+          if (av === bv) return 0;
+          return ((av as string | number) > (bv as string | number) ? 1 : -1) * dir;
+        });
+      }
+    }
+    const pipes = parsed.pipes;
+    if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
+      const offset = pipes.offset ?? 0;
+      efforts = pipes.limit !== undefined ? efforts.slice(offset, offset + pipes.limit) : efforts.slice(offset);
     }
 
     return { parsed, notes: [], blocks: [], efforts, stages: { selected: selectedCount, matched: efforts.length } };
@@ -1044,9 +1201,15 @@ export class QueryService {
       (queryMetric === 'rep' && metricKey === 'reps') ||
       (queryMetric === 'reps' && metricKey === 'rep');
 
+    const factTime = (row: AnalyticsDataPoint): number => {
+      if (row.metricDate) return zonedNoon(row.metricDate, ctx.timeZone);
+      return row.timestamp;
+    };
+
     const candidates = eventRows
       .flatMap(projectEventToFacts)
-      .filter(row => matchesMetric(row.metricKey, parsed.metric));
+      .filter(row => matchesMetric(row.metricKey, parsed.metric))
+      .filter(row => !range || inRange(factTime(row), range));
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
     const noteTags = await this.loadNoteTags(candidates, touchesTags);
@@ -1079,12 +1242,7 @@ export class QueryService {
     // presentation-only — never join keys.
     const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
     const tagDims = parsed.groupBy.filter((d) => d !== 'day' && d !== 'week');
-    const rollupMs = timeDim
-      ? null
-      : parsed.rollup
-        ? parsed.rollup.size * (parsed.rollup.unit === 'w' ? 7 : 1) * DAY
-        : null;
-    const DAY_MS = 86_400_000;
+    const rollup = parsed.rollup;
 
     /** The observation's own temporal anchor: its recorded metric date when
      *  it carries one (date-only facts keep their civil date), else the
@@ -1094,17 +1252,27 @@ export class QueryService {
     const bucketKey = (row: AnalyticsDataPoint): string => {
       if (timeDim === 'day') return `d:${anchorDate(row)}`;
       if (timeDim === 'week') return `w:${civilMonday(anchorDate(row))}`;
-      if (rollupMs !== null) return `r:${Math.floor(row.timestamp / rollupMs)}`;
+      if (rollup) {
+        const ad = anchorDate(row);
+        if (rollup.unit === 'w') {
+          const m = civilMonday(ad);
+          const weeksSince = Math.floor(civilDateDiff('1970-01-05', m) / 7);
+          const bucketIndex = Math.floor(weeksSince / rollup.size);
+          const bucketStart = civilDateAdd('1970-01-05', bucketIndex * rollup.size * 7);
+          return `w:${bucketStart}`;
+        }
+        if (rollup.unit === 'd') {
+          const daysSince = civilDateDiff('1970-01-01', ad);
+          const bucketIndex = Math.floor(daysSince / rollup.size);
+          const bucketStart = civilDateAdd('1970-01-01', bucketIndex * rollup.size);
+          return `d:${bucketStart}`;
+        }
+      }
       return '';
     };
     /** Presentation-only representative instant for a structural key. */
     const bucketDisplayTs = (key: string): number => {
-      if (key.startsWith('d:')) return zonedNoon(key.slice(2), ctx.timeZone);
-      if (key.startsWith('w:')) return zonedNoon(key.slice(2), ctx.timeZone);
-      if (key.startsWith('r:')) {
-        const b = Number(key.slice(2));
-        return (rollupMs ?? DAY_MS) * b + (rollupMs ?? DAY_MS) / 2;
-      }
+      if (key.startsWith('d:') || key.startsWith('w:')) return zonedNoon(key.slice(2), ctx.timeZone);
       return Number.MAX_SAFE_INTEGER;
     };
 
@@ -1117,22 +1285,23 @@ export class QueryService {
     const MAX_DOMAIN = 10_000;
     const bareDate = (key: string): string => (key.startsWith('d:') || key.startsWith('w:') ? key.slice(2) : key);
     const calendarDomain = (observed: string[]): string[] => {
-      if (!timeDim || observed.length === 0) return observed;
+      const activeDim = timeDim ?? (rollup?.unit === 'w' ? 'week' : rollup?.unit === 'd' ? 'day' : undefined);
+      if (!activeDim || observed.length === 0) return observed;
       const bounds = range && range.end !== Number.MAX_SAFE_INTEGER
         ? {
             startIso: civilDateOf(range.start, ctx.timeZone),
             endIso: range.endExclusive ? civilDateOf(range.end - 1, ctx.timeZone) : civilDateOf(range.end, ctx.timeZone),
           }
         : { startIso: bareDate(observed[0]!), endIso: bareDate(observed[observed.length - 1]!) };
-      const first = timeDim === 'week' ? civilMonday(bounds.startIso) : bounds.startIso;
-      const last = timeDim === 'week' ? civilMonday(bounds.endIso) : bounds.endIso;
-      const step = timeDim === 'week' ? 7 : 1;
+      const first = activeDim === 'week' ? civilMonday(bounds.startIso) : bounds.startIso;
+      const last = activeDim === 'week' ? civilMonday(bounds.endIso) : bounds.endIso;
+      const step = activeDim === 'week' ? 7 * (rollup?.size ?? 1) : (rollup?.size ?? 1);
       const span = civilDateDiff(first, last);
       if (span < 0 || span / step > MAX_DOMAIN) return observed;
       const domain: string[] = [];
       for (let cursor = first; ; cursor = civilDateAdd(cursor, step)) {
-        domain.push(timeDim === 'week' ? `w:${cursor}` : `d:${cursor}`);
-        if (cursor === last) break;
+        domain.push(activeDim === 'week' ? `w:${cursor}` : `d:${cursor}`);
+        if (cursor >= last) break;
       }
       return domain;
     };
@@ -1208,7 +1377,7 @@ export class QueryService {
           return { ts: bucketDisplayTs(b), value: 0, missing: true };
         }
         return {
-          ts: timeDim || rollupMs !== null
+          ts: timeDim || rollup
             ? bucketDisplayTs(b)
             : Math.min(...members.map((m) => m.timestamp)),
           // Unrounded — renderers format (ticket 13 precision policy).
@@ -1226,11 +1395,9 @@ export class QueryService {
     const aggregated = series.reduce((n, s) => n + s.points.length, 0);
     const scalar = series.length === 1 && series[0].points.length === 1 ? series[0].points[0].value : undefined;
     const resultUnit = series.length > 0 ? series[0].unit : undefined;
-    const bucketCount = timeDim
+    const bucketCount = timeDim || rollup
       ? (series[0]?.points.length ?? 0)
-      : rollupMs !== null
-        ? new Set(matched.map((p) => bucketKey(p))).size
-        : (matched.length ? 1 : 0);
+      : (matched.length ? 1 : 0);
 
     const insufficient = coverage?.insufficientScopes ?? [];
     const resultError = series.find((s) => s.error)?.error

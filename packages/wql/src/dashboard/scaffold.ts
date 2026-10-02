@@ -24,7 +24,7 @@ dashboard.metric:
 How does $metric trend week over week?
 
 \`\`\`query:timeseries
-sum:\$metric{} by {week}.rollup(1w)
+sum:$metric{} by {week}
 \`\`\`
 `;
 }

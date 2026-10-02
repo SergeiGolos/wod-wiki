@@ -7,6 +7,8 @@
  */
 import type { Entry } from './entryMapper'
 import { todayKey, formatDateHeader } from './dateFormat'
+import { parseQuery, type AnyParsedQuery } from '@bitcobblers/wod-wiki-engine'
+import { CONTENT_GROUPING_DIMENSIONS } from '@bitcobblers/wod-wiki-ui'
 
 export const UNDATED_KEY = '(undated)'
 
@@ -35,16 +37,13 @@ export function groupEntriesByDate(entries: Entry[]): [string, Entry[]][] {
   return Array.from(map.entries())
 }
 
-/** Parse grouping dimension from WQL query string or parsed AST */
-export function parseGroupingDimension(query: string, parsed?: any): string | null {
-  if (parsed && Array.isArray(parsed.groupBy) && parsed.groupBy.length > 0) {
-    return String(parsed.groupBy[0]).toLowerCase()
-  }
-  const match = query.match(/\bby\s+\{?([a-zA-Z0-9_-]+)\}?/i)
-  if (match?.[1]) {
-    return match[1].toLowerCase()
-  }
-  return null
+/** Parse the ordered grouping dimensions from a WQL query string or a
+ *  already-parsed AST (`by {a, b}` is ordered). Null when the query is
+ *  invalid or carries no grouping — the view-settings fallback applies. */
+export function parseGroupingDimensions(query: string, parsed?: AnyParsedQuery): string[] | null {
+  const ast = parsed ?? parseQuery(query)
+  if (ast.error) return null
+  return ast.groupBy?.length ? ast.groupBy.map(d => String(d).toLowerCase()) : null
 }
 
 function safeSlug(text: string): string {
@@ -52,14 +51,52 @@ function safeSlug(text: string): string {
 }
 
 /**
- * Group entries by a specified dimension (date, week, month, year, discipline, origin, kind, source, tag).
+ * Group stream entries by one or more ordered dimensions. Multi-dimension
+ * queries (`by {discipline, week}`) produce composite groups: the second and
+ * further dimensions sub-divide each parent group ("Strength / Week of …").
+ * The undated shelf is never sub-grouped.
  */
 export function groupEntriesByDimension(
   entries: Entry[],
-  dimension = 'date',
+  dimension: string | readonly string[] = 'date',
   options?: { shelfVisible?: boolean },
 ): StreamGroup[] {
-  const dim = dimension.toLowerCase()
+  const dims = (Array.isArray(dimension) ? dimension : [dimension])
+    .map(d => String(d).toLowerCase())
+    .filter(Boolean)
+  if (dims.length === 0) dims.push('date')
+
+  const build = (es: Entry[], rest: string[]): StreamGroup[] => {
+    const groups = groupByDimension(es, rest[0]!, options)
+    if (rest.length === 1) return groups
+    return groups.flatMap(group =>
+      group.key === 'shelf'
+        ? [group]
+        : build(group.entries, rest.slice(1)).map(sub => ({
+            ...sub,
+            key: `${group.key}/${sub.key}`,
+            id: `${group.id}--${sub.id}`,
+            label: `${group.label} / ${sub.label}`,
+            isToday: group.isToday || sub.isToday,
+          })),
+    )
+  }
+  return build(entries, dims)
+}
+
+/**
+ * Group entries by one dimension — the vocabulary-backed primitive
+ * (CONTENT_GROUPING_DIMENSIONS). Unknown dimensions execute as the tag
+ * bucket: favorites/pickers never widen what the consumer can honor.
+ */
+function groupByDimension(
+  entries: Entry[],
+  dimension: string,
+  options?: { shelfVisible?: boolean },
+): StreamGroup[] {
+  const dim = (CONTENT_GROUPING_DIMENSIONS as readonly string[]).includes(dimension.toLowerCase())
+    ? dimension.toLowerCase()
+    : 'tag'
   const today = todayKey()
   const locale = 'en'
 

@@ -1,28 +1,26 @@
 /**
- * StreamQueryEngine — unified query intake across content, efforts, and rows planes.
+ * StreamQueryEngine — unified query intake across content, effort, and session planes.
  * (Tickets #833/#834 deepened per Wayfinder Ticket 001).
  *
  * Provides a single, deep intake seam that:
- *   1. Accepts any valid find or rows WQL query string or AST (find:note,
- *      find:block, find:effort, rows:all, rows:segment, rows:event).
+ *   1. Accepts any valid find WQL query string or AST (find:note,
+ *      find:block, find:effort, find:session, find:segment, find:event).
  *   2. Dispatches to the appropriate query service method (runFind,
- *      runFindEffort, or runRows) transparently behind a single seam.
+ *      runFindEffort) transparently behind a single seam.
  *   3. Maps all returned records into an extended, uniform Entry model
  *      carrying optional execution metrics or effort metadata.
  *   4. Preserves secondary text searching (e.g. searching block bodies
  *      alongside note titles when text: is present).
  *
- * Invalid WQL (parse error or non-find/non-rows query) resolves to an empty list;
+ * Invalid WQL (parse error or non-find query) resolves to an empty list;
  * callers surface the error separately via their own parse.
  */
 import { queryService } from '@/services/queryService';
 import {
   parseQuery,
   isFindQuery,
-  isRowsQuery,
   type AnyParsedQuery,
   type ParsedFindQuery,
-  type ParsedRowsQuery,
   type FindQueryResult,
   type RowsQueryResult,
 } from '@bitcobblers/wod-wiki-engine';
@@ -119,6 +117,21 @@ export class StreamQueryEngine {
         const result = await this.service.runFind(parsed);
         return [...result.blocks].sort((a, b) => b.createdAt - a.createdAt).map(blockToEntry);
       }
+      // find:session — session runs grouped into cards (#1041/#1042)
+      if (parsed.target === 'session') {
+        const result = await this.service.runFind(parsed);
+        let noteTitles: Map<string, string> | undefined;
+        if (this.noteTitleResolver && result.runs) {
+          noteTitles = new Map();
+          for (const run of result.runs) {
+            if (!noteTitles.has(run.noteId)) {
+              const title = await this.noteTitleResolver(run.noteId);
+              if (title) noteTitles.set(run.noteId, title);
+            }
+          }
+        }
+        return rowsQueryResultToEntries(result as unknown as RowsQueryResult, { noteTitles });
+      }
 
       // find:note (or other content target)
       const hasText = parsed.filters.some(f => f.key === 'text' && !f.negate);
@@ -197,25 +210,6 @@ export class StreamQueryEngine {
       }
 
       return entries;
-    }
-
-    // 2. Execution Analytics Telemetry Plane (rows:)
-    if (isRowsQuery(parsed)) {
-      if (!this.service.runRows) return [];
-      const result = await this.service.runRows(parsed);
-
-      let noteTitles: Map<string, string> | undefined;
-      if (this.noteTitleResolver && result.runs) {
-        noteTitles = new Map();
-        for (const run of result.runs) {
-          if (!noteTitles.has(run.noteId)) {
-            const title = await this.noteTitleResolver(run.noteId);
-            if (title) noteTitles.set(run.noteId, title);
-          }
-        }
-      }
-
-      return rowsQueryResultToEntries(result, { noteTitles });
     }
 
     // Unsupported query family (e.g. aggregate queries)

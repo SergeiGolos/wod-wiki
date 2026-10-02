@@ -159,8 +159,14 @@ export function DashboardView({
           next[widget.key] = { error: parsed.error };
           continue;
         }
+        const resolvedType = resolveWidgetType(widget.type);
         if (isFindQuery(parsed)) {
-          next[widget.key] = { error: 'find: queries render inline in notes, not as dashboard widgets' };
+          if (resolvedType !== 'table' && resolvedType !== 'list') {
+            next[widget.key] = { error: 'find: queries return things — use a table or list widget instead' };
+            continue;
+          }
+        } else if (resolvedType === 'list') {
+          next[widget.key] = { error: 'aggregate queries return numbers — use a chart or value widget instead' };
           continue;
         }
         runnable.push({ widget, query });
@@ -182,9 +188,19 @@ export function DashboardView({
       await Promise.all(
         runnable.map(async ({ widget, query }) => {
           try {
-            next[widget.key] = {
-              result: await executor.runQuery(query, { rangeStart, rangeEnd, preferredUnit }),
-            };
+            const parsed = parseQuery(query);
+            if (isFindQuery(parsed) && executor.runFind) {
+              const res = await executor.runFind(parsed, {
+                range: rangeStart !== undefined ? { start: rangeStart, end: rangeEnd ?? Number.MAX_SAFE_INTEGER, endExclusive: false } : undefined,
+              });
+              next[widget.key] = {
+                result: res as unknown as QueryResult,
+              };
+            } else {
+              next[widget.key] = {
+                result: await executor.runQuery(query, { rangeStart, rangeEnd, preferredUnit }),
+              };
+            }
           } catch (err) {
             next[widget.key] = { error: err instanceof Error ? err.message : String(err) };
           }

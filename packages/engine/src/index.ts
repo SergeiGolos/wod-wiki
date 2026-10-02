@@ -237,7 +237,6 @@ export {
   // Parser & AST
   parseQuery,
   isFindQuery,
-  isRowsQuery,
   isAggregateQuery,
   wqlParser,
   wqlTerms,
@@ -275,9 +274,7 @@ export {
   WQL_CONTENT_FILTER_KEYS,
   WQL_FIND_TARGETS,
   WQL_SOURCE_VALUES,
-  WQL_ROWS_SCOPE_KEYS,
   WQL_RESULT_PLANES,
-  WQL_ROWS_TARGETS,
   WQL_GRAINS,
   WQL_KEYWORDS,
   PLANNED_WIDGET_TYPES,

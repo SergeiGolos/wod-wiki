@@ -16,7 +16,6 @@ import {
   QueryService,
   parseQuery,
   isFindQuery,
-  isRowsQuery,
   type QueryResult,
   type RowsQueryResult,
   type FindQueryResult,
@@ -276,12 +275,8 @@ export async function runQueryCli(
 
   if (isFindQuery(parsed)) {
     const result = await service.runFind(parsed);
-    return createIRFile('find-result', result, { source: options.sourceLabel ?? 'cli:wod query' });
-  }
-
-  if (isRowsQuery(parsed)) {
-    const result = await service.runRows(parsed);
-    return createIRFile('rows-result', result, { source: options.sourceLabel ?? 'cli:wod query' });
+    const kind = parsed.target === 'session' ? 'rows-result' : 'find-result';
+    return createIRFile(kind as any, result as any, { source: options.sourceLabel ?? 'cli:wod query' });
   }
 
   const result = await service.runQuery(wqlString, {

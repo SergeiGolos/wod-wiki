@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import type { BlockIndexRow } from '@bitcobblers/wod-wiki-core';
 
 export interface SuggestionItem {
@@ -65,48 +66,6 @@ export function mergeTagSuggestions(userLabels: string[], corpusLabels: string[]
 }
 
 const builtinBindings: Record<string, SuggestionBinding> = {
-  tag: {
-    load: async () => [],
-    cache: { ttlMs: 30_000 },
-    open: true,
-    emptyText: 'No tags yet — type one to filter by it',
-  },
-  effort: {
-    load: async () => [],
-    cache: { ttlMs: 60_000 },
-    open: true,
-    emptyText: 'No efforts yet — create one on an effort page',
-  },
-  domain: {
-    load: async () => [],
-    cache: { ttlMs: 60_000 },
-    open: true,
-    emptyText: 'No domains indexed yet',
-  },
-  format: {
-    load: async () => [],
-    cache: { ttlMs: 60_000 },
-    open: true,
-    emptyText: 'No formats indexed yet',
-  },
-  equipment: {
-    load: async () => [],
-    cache: { ttlMs: 60_000 },
-    open: true,
-    emptyText: 'No equipment indexed yet',
-  },
-  quality: {
-    load: async () => [],
-    cache: { ttlMs: 60_000 },
-    open: true,
-    emptyText: 'No qualities indexed yet',
-  },
-  intent: {
-    load: async () => [],
-    cache: { ttlMs: 60_000 },
-    open: true,
-    emptyText: 'No intents indexed yet',
-  },
   discipline: {
     load: async () => [
       { value: 'crossfit', label: 'CrossFit' },
@@ -137,15 +96,33 @@ const builtinBindings: Record<string, SuggestionBinding> = {
     open: false,
     emptyText: 'No indexed block types yet',
   },
-  has: {
-    load: async () => ['timer', 'image', 'metric', 'rx'].map((value) => ({ value })),
-    cache: 'static',
-    open: false,
-    emptyText: 'No features available',
-  },
 };
 
 export const SUGGESTION_BINDINGS: Record<string, SuggestionBinding> = { ...builtinBindings };
+
+/** Clause types with a registered suggestion source — lets catalogs offer
+ *  binding-backed fields without hardcoding type lists. */
+export function suggestionBoundTypes(): string[] {
+  return Object.keys(SUGGESTION_BINDINGS);
+}
+
+// Reactive availability of binding-backed clause types: async app
+// registrations (dynamic tag types, origins) notify subscribers so pickers
+// render sources once loaded, not only at module init.
+const bindingListeners = new Set<() => void>();
+let boundTypesSnapshot = Object.keys(SUGGESTION_BINDINGS);
+
+export function subscribeSuggestionBoundTypes(listener: () => void): () => void {
+  bindingListeners.add(listener);
+  return () => {
+    bindingListeners.delete(listener);
+  };
+}
+
+/** useSyncExternalStore-compatible snapshot of registered binding types. */
+export function useSuggestionBoundTypes(): string[] {
+  return useSyncExternalStore(subscribeSuggestionBoundTypes, () => boundTypesSnapshot);
+}
 
 export function setSuggestionBinding(type: string, binding: SuggestionBinding | undefined): void {
   if (binding) {
@@ -156,6 +133,8 @@ export function setSuggestionBinding(type: string, binding: SuggestionBinding | 
     delete SUGGESTION_BINDINGS[type];
   }
   invalidateSuggestions(type);
+  boundTypesSnapshot = Object.keys(SUGGESTION_BINDINGS);
+  for (const listener of bindingListeners) listener();
 }
 
 export function getSuggestionBinding(type: string): SuggestionBinding | undefined {

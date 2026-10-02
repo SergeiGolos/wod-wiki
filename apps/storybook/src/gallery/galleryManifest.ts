@@ -77,7 +77,7 @@ export const SECTION_META: Record<GallerySection, { title: string; blurb: string
   },
   timeseries: {
     title: 'Timeseries',
-    blurb: 'Time-bucketed series: unrolled, .rollup(1d), .rollup(1w), and the calc.* weekly line.',
+    blurb: 'Time-bucketed series: unrolled, by {day}, by {week}, and the calc.* weekly line.',
   },
   bar: {
     title: 'Bar',
@@ -124,8 +124,8 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   // ── Auto Inference — WQL decides alone ────────────────────────────────
   { section: 'auto', widgetType: 'auto', title: 'Average TIS', question: 'How hard?', journal: 'crossfit', query: 'avg:tis{}' },
   { section: 'auto', widgetType: 'auto', title: 'Session load by effort', question: 'Which move dominates?', journal: 'crossfit', query: 'sum:sessionLoad{} by {effort}' },
-  { section: 'auto', widgetType: 'auto', title: 'Weekly strain', question: 'Is load accumulating?', journal: 'crossfit', query: 'sum:calc.strain{} by {week}.rollup(1w)' },
-  { section: 'auto', widgetType: 'auto', title: 'Load by intensity over time', question: 'Polarized training?', journal: 'climb', query: 'sum:sessionLoad{} by {intensity}.rollup(1w)' },
+  { section: 'auto', widgetType: 'auto', title: 'Weekly strain', question: 'Is load accumulating?', journal: 'crossfit', query: 'sum:calc.strain{} by {week}' },
+  { section: 'auto', widgetType: 'auto', title: 'Load by intensity over time', question: 'Polarized training?', journal: 'climb', query: 'sum:sessionLoad{} by {intensity, week}' },
 
   // ── Value — scalar aggregators + units pair ───────────────────────────
   { section: 'value', widgetType: 'value', title: 'Average sleep', question: 'Restored?', journal: 'wellness', query: 'avg:sleep{}' },
@@ -138,9 +138,9 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   { section: 'value', widgetType: 'value', title: 'Total tonnage (kg)', question: 'Same query, preferred unit kg', journal: 'crossfit', query: 'sum:totalVolume{}', preferredUnit: 'kg' },
 
   // ── Timeseries ────────────────────────────────────────────────────────
-  { section: 'timeseries', widgetType: 'timeseries', title: 'Weekly tonnage', question: 'Rising?', journal: 'crossfit', query: 'sum:totalVolume{} by {week}.rollup(1w)' },
-  { section: 'timeseries', widgetType: 'timeseries', title: 'Daily distance', question: 'Consistent?', journal: 'endurance', query: 'sum:distance{}.rollup(1d)' },
-  { section: 'timeseries', widgetType: 'timeseries', title: 'Weekly strain', question: 'Accumulating?', journal: 'crossfit', query: 'sum:calc.strain{} by {week}.rollup(1w)' },
+  { section: 'timeseries', widgetType: 'timeseries', title: 'Weekly tonnage', question: 'Rising?', journal: 'crossfit', query: 'sum:totalVolume{} by {week}' },
+  { section: 'timeseries', widgetType: 'timeseries', title: 'Daily distance', question: 'Consistent?', journal: 'endurance', query: 'sum:distance{} by {day}' },
+  { section: 'timeseries', widgetType: 'timeseries', title: 'Weekly strain', question: 'Accumulating?', journal: 'crossfit', query: 'sum:calc.strain{} by {week}' },
 
   // ── Bar ───────────────────────────────────────────────────────────────
   { section: 'bar', widgetType: 'bar', title: 'Volume by effort', question: 'Which move?', journal: 'crossfit', query: 'sum:totalVolume{} by {effort}' },
@@ -151,24 +151,24 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   { section: 'toplist', widgetType: 'toplist', title: 'Volume by session', question: 'Which session was biggest?', journal: 'crossfit', query: 'sum:totalVolume{} by {note}' },
 
   // ── Stacked Bar ───────────────────────────────────────────────────────
-  { section: 'stacked-bar', widgetType: 'stacked-bar', title: 'Load by intensity', question: 'Polarized?', journal: 'climb', query: 'sum:tis{} by {intensity}.rollup(1w)' },
+  { section: 'stacked-bar', widgetType: 'stacked-bar', title: 'Load by intensity', question: 'Polarized?', journal: 'climb', query: 'sum:tis{} by {intensity, week}' },
 
   // ── Goal Rings — target rides the / param ─────────────────────────────
   { section: 'goal-rings', widgetType: 'goal-rings', title: 'Sends vs target', question: 'Hit 10 sends?', journal: 'climb', query: 'sum:calc.sends{}', params: ['10'] },
   { section: 'goal-rings', widgetType: 'goal-rings', title: 'Sleep vs 8h', question: 'Resting enough?', journal: 'wellness', query: 'avg:sleep{}', params: ['8'] },
 
   // ── Zone Distribution — zone targets ride the / params ────────────────
-  { section: 'zone-distribution', widgetType: 'zone-distribution', title: 'Load distribution', question: 'Polarized 70/20/10?', journal: 'climb', query: 'sum:tis{} by {intensity}.rollup(1w)', params: ['70', '20', '10'] },
+  { section: 'zone-distribution', widgetType: 'zone-distribution', title: 'Load distribution', question: 'Polarized 70/20/10?', journal: 'climb', query: 'sum:tis{} by {intensity, week}', params: ['70', '20', '10'] },
 
   // ── Table ─────────────────────────────────────────────────────────────
   { section: 'table', widgetType: 'table', title: 'Load by effort', question: 'The breakdown, as rows', journal: 'crossfit', query: 'sum:sessionLoad{} by {effort}' },
-  { section: 'table', widgetType: 'table', title: 'Weekly tonnage', question: 'The trend, as rows', journal: 'crossfit', query: 'sum:totalVolume{}.rollup(1w)' },
+  { section: 'table', widgetType: 'table', title: 'Weekly tonnage', question: 'The trend, as rows', journal: 'crossfit', query: 'sum:totalVolume{} by {week}' },
 
   // ── Rows — raw statement runs through the real RowsTable ──────────────
-  { section: 'rows', widgetType: 'rows', title: 'Fran session statements', question: 'The summary facts behind Fran\'s first bar in Weekly tonnage', journal: 'crossfit', query: 'rows:all{result:res-fran-w0}' },
-  { section: 'rows', widgetType: 'rows', title: 'Segment plane — Fran round 5', question: 'Only segment-grain statements, via the rows:segment plane', journal: 'crossfit', query: 'rows:segment{result:res-fran-w5}' },
-  { section: 'rows', widgetType: 'rows', title: 'Boulder session statements', question: 'The send rows feeding Sends by grade', journal: 'climb', query: 'rows:all{result:res-boulder-w4}' },
-  { section: 'rows', widgetType: 'rows', title: 'Wellness day statements', question: 'A user-authored wellness note, note-scoped', journal: 'wellness', query: 'rows:all{note:note-well-2026-06-03}' },
+  { section: 'rows', widgetType: 'rows', title: 'Fran session statements', question: 'The summary facts behind Fran\'s first bar in Weekly tonnage', journal: 'crossfit', query: 'find:session{result:res-fran-w0}' },
+  { section: 'rows', widgetType: 'rows', title: 'Segment plane — Fran round 5', question: 'Only segment-grain statements, via the plane:segment filter', journal: 'crossfit', query: 'find:session{result:res-fran-w5, plane:segment}' },
+  { section: 'rows', widgetType: 'rows', title: 'Boulder session statements', question: 'The send rows feeding Sends by grade', journal: 'climb', query: 'find:session{result:res-boulder-w4}' },
+  { section: 'rows', widgetType: 'rows', title: 'Wellness day statements', question: 'A user-authored wellness note, note-scoped', journal: 'wellness', query: 'find:session{note:note-well-2026-06-03}' },
 
   // ── Find — content discovery over the content plane ───────────────────
   { section: 'find', widgetType: 'find', title: 'Notes by tag', question: 'Which notes are benchmarks?', journal: 'crossfit', query: 'find:note{tags:benchmark}' },
@@ -179,7 +179,7 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   { section: 'edge', widgetType: 'value', title: 'Empty aggregate', question: 'No data for filter — WqlEmptyState renders live with stages telemetry', journal: 'crossfit', query: 'sum:totalVolume{effort:nonexistent}' },
   { section: 'edge', widgetType: 'auto', title: 'Malformed query (auto)', question: 'Syntax error (all engine validation is parse-time) — useChartShape error branch renders live', journal: 'crossfit', query: 'sum:totalVolume by', expectError: true },
   { section: 'edge', widgetType: 'value', title: 'In-flight query (loading)', question: 'Async query in flight — natural suspense via WqlEmptyState', journal: 'crossfit', query: 'sum:totalVolume{}', simulateLoading: true },
-  { section: 'edge', widgetType: 'rows', title: 'Empty rows plane', question: 'No workout runs match the filter — RowsTable empty state', journal: 'crossfit', query: 'rows:all{result:nonexistent}' },
+  { section: 'edge', widgetType: 'rows', title: 'Empty rows plane', question: 'No workout runs match the filter — RowsTable empty state', journal: 'crossfit', query: 'find:session{result:nonexistent}' },
   { section: 'edge', widgetType: 'find', title: 'Empty find plane', question: 'No content matches the filter — FindResultList empty state', journal: 'crossfit', query: 'find:note{tags:nonexistent}' },
 ];
 

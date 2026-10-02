@@ -15,7 +15,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { parseQuery, serialize, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { appendWidget, type WidgetSpec } from '@bitcobblers/wod-wiki-wql'
 import { dashboardSlug, DEFAULT_DASHBOARD_TITLE } from '@bitcobblers/wod-wiki-wql'
 import { journalNotes } from '../../services/journalNotes'
@@ -31,9 +30,15 @@ export interface QueryToDashboardDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /**
-   * The subset query from the page — the find WQL that selects the data
-   * source. Null when the page query has no find half (whole-store
-   * calculation); the calculation composer then seeds without a join.
+   * The page's current draft — seeds the calculation composer verbatim.
+   * Never a reconstruction: whatever the author sees is what they edit
+   * and save.
+   */
+  initialQuery: string
+  /**
+   * The subset summary for the read-only dataset step (the find WQL that
+   * selects the data source). Null when the page query has no find half
+   * (whole-store calculation).
    */
   subsetQuery: string | null
   /** Board-matching preview context (same range/units the explorer ran). */
@@ -51,6 +56,7 @@ export function QueryToDashboardDialog(props: QueryToDashboardDialogProps) {
 
 function SaveFlow({
   onOpenChange,
+  initialQuery,
   subsetQuery,
   rangeStart,
   rangeEnd,
@@ -76,7 +82,7 @@ function SaveFlow({
       spanCols: spec.spanCols,
       spanFull: spec.spanFull,
       wql: spec.wql,
-      params: spec.params,
+      attributes: spec.attributes,
     }
     try {
       if (destination === NEW_DASHBOARD) {
@@ -107,7 +113,7 @@ function SaveFlow({
       open
       onClose={close}
       mode="add"
-      initialWql={seedQuery(subsetQuery)}
+      initialWql={initialQuery}
       subsetQuery={subsetQuery}
       rangeStart={rangeStart}
       rangeEnd={rangeEnd}
@@ -174,31 +180,4 @@ function SaveFlow({
       }
     />
   )
-}
-
-/**
- * Seed the calculation composer: metrics head + the subset as its `where`
- * join — built structurally, emitted through the serializer, so the saved
- * widget's WQL is decoupled from the data source (the subset picks WHICH
- * workouts; the calculation runs over just that subset).
- */
-function seedQuery(subsetQuery: string | null): string {
-  if (!subsetQuery) return 'sum:{}'
-  const subset = parseQuery(subsetQuery)
-  if (!isFindQuery(subset) || subset.error) return 'sum:{}'
-  return serialize({
-    family: 'aggregate',
-    raw: '',
-    agg: 'sum',
-    metric: '',
-    filters: [],
-    groupBy: [],
-    join: {
-      target: subset.target,
-      filters: subset.filters,
-      last: subset.window?.kind === 'relative'
-        ? { size: subset.window.size, unit: subset.window.unit }
-        : undefined,
-    },
-  })
 }

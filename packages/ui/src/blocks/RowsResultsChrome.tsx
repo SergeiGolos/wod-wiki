@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { type EventRecord, MetricType } from '@bitcobblers/wod-wiki-core';
-import { parseQuery, isRowsQuery, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isFindQuery, type RowsQueryResult, type RowsRun, type ParsedFindQuery } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { cn } from '../utils/cn';
@@ -136,12 +136,11 @@ export function RowsResultsChrome({
       return;
     }
     let cancelled = false;
-    const wideQuery = parseQuery(`rows:all{block:${blockContentId}}`);
-    if (!isRowsQuery(wideQuery)) return;
+    const wideQuery = parseQuery(`find:session{block:${blockContentId}}`);
+    if (!isFindQuery(wideQuery)) return;
 
-    void executor
-      .runRows(wideQuery)
-      .then((res) => {
+    void (executor.runFind ? executor.runFind(wideQuery as ParsedFindQuery) : (executor as any).runRows(wideQuery))
+      .then((res: any) => {
         if (!cancelled) setWideResult(res);
       })
       .catch(() => {

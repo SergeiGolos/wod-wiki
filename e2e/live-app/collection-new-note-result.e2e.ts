@@ -125,19 +125,23 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
       page.locator('.cm-content[contenteditable="true"], h1').first(),
     ).toBeAttached({ timeout: 10_000 });
 
-    // Inject a result via the fixed path (indexedDBService.saveResult with full key)
+    // Inject a result via the fixed path (StorageService.saveSession with full key)
     await page.evaluate(async ({ db, fullNoteId }) => {
       await new Promise<void>((resolve, reject) => {
         const req = indexedDB.open(db);
         req.onsuccess = () => {
           const idb = req.result;
-          if (!idb.objectStoreNames.contains('results')) { idb.close(); resolve(); return; }
-          const tx = idb.transaction('results', 'readwrite');
-          tx.objectStore('results').put({
+          if (!idb.objectStoreNames.contains('sessions')) { idb.close(); resolve(); return; }
+          const tx = idb.transaction('sessions', 'readwrite');
+          tx.objectStore('sessions').put({
             id: 'e2e-collection-test-001',
             noteId: fullNoteId,     // ← the critical field: must use 'journal/DATE' not just 'DATE'
             segmentId: 'wod-fran',
-            data: { startTime: Date.now() - 300_000, endTime: Date.now(), completed: true, logs: [], metrics: [] },
+            blockContentId: 'wod-fran',
+            startTime: Date.now() - 300_000,
+            endTime: Date.now(),
+            completed: true,
+            status: 'completed',
             createdAt: Date.now(),
           });
           tx.oncomplete = () => { idb.close(); resolve(); };

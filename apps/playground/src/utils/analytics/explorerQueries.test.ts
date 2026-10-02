@@ -13,7 +13,7 @@ const parseAgg = (raw: string): ParsedAggregateQuery => _pq(raw) as ParsedAggreg
 describe('explorerQueries', () => {
   describe('serializeQuery', () => {
     it('round-trips a complete query', () => {
-      const q = 'sum:totalVolume{discipline:strength} by {week}.rollup(1w)';
+      const q = 'sum:totalVolume{discipline:strength} by {week}';
       expect(serializeQuery(parseQuery(q))).toBe(q);
     });
 
@@ -22,7 +22,7 @@ describe('explorerQueries', () => {
     });
 
     it('serializes multiple filters preserving order', () => {
-      const q = 'sum:totalVolume{discipline:strength,effort:back-squat} by {week}.rollup(1w)';
+      const q = 'sum:totalVolume{discipline:strength,effort:back-squat} by {week}';
       expect(serializeQuery(parseQuery(q))).toBe(q);
     });
 

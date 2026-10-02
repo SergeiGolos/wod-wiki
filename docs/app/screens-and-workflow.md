@@ -43,3 +43,19 @@ The WOD Wiki application follows a continuous loop: **Plan → Track → Analyze
 * **Settings & Tags Management (`/settings`, `/settings/tags`)**:
   - Appearance and audio preferences.
   - Registered tag types CRUD and full filterable/editable tags table.
+
+## WQL editing
+
+Find target (`note`, `block`, `effort`, `session`, `segment`, `event`), query kind (Find or Measure), and Where stored (`source:`) are separate choices. Changing storage scope does not change the target. Settings favorites prioritize choices; they do not define valid WQL.
+
+The draft string is authoritative. Chips project its AST; editing one clause preserves unrelated filters, grouping, units, time windows, joins and presentation pipes. Edit WQL retains exact invalid or unsupported text. Invalid drafts cannot execute or save. Kind/target changes that discard incompatible clauses require confirmation.
+
+- Add condition and chip editing use the same searchable value picker. Opening it does not insert an empty clause.
+- Arrow keys select an active option; Enter chooses it or the exact typed value. Ctrl/Command+Enter submits the current valid draft. Tab and Shift+Tab move native focus; Escape closes one editor level and returns focus to its opener.
+- Empty-input Backspace focuses the preceding chip. Delete/Backspace on that chip removes it; Undo removal restores the previous query.
+- Group By is an ordered multi-selection. Move up/down controls change precedence; Done ends field editing without saving a host dialog.
+- When WQL supplies grouping, View Settings names the controlling dimensions and offers Edit query. Its saved card-arrangement fallback becomes available again after WQL grouping is removed.
+
+Inline stream edits update the query URL in one scratch history entry per editing spell; subsequent keystrokes replace that entry until an idle checkpoint. Back/Forward restores the explicit URL query without replaying pending text. Stream query dialogs keep a local draft until Apply; Cancel leaves the page unchanged. Explorer Run executes the latest draft, while Save chooses a destination. Widget and note-block editors write only through their final save action; a rejected write leaves the dialog open with its draft and error. Settings saves browser-local defaults and favorites, not the active page query; an explicit URL query takes precedence.
+
+Mobile query dialogs use the existing sheet host: non-input initial focus, explicit Search, large selection targets, and final actions outside the scrolling body. Browser emulation checks layout and focus; it does not establish real iOS/Android keyboard or screen-reader behavior.

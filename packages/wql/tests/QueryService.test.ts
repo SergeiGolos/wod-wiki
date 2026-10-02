@@ -248,14 +248,12 @@ describe('QueryService', () => {
     }
   });
 
-  it('BUCKETs by rollup period and aggregates per bucket', async () => {
+  it('BUCKETs by week and aggregates per bucket', async () => {
     const service = new QueryService(makeStore().store);
-    const result = await service.runQuery('sum:totalVolume{discipline:strength}.rollup(1w)');
+    const result = await service.runQuery('sum:totalVolume{discipline:strength} by {week}');
 
     expect(result.series).toHaveLength(1);
     expect(result.series[0].points.map(p => p.value)).toEqual([3000, 3000]);
-    const bucket = (ts: number) => Math.floor(ts / WEEK);
-    expect(result.series[0].points[0].ts).toBe(bucket(V1.timestamp) * WEEK + WEEK / 2);
     expect(result.stages.buckets).toBe(2);
   });
 

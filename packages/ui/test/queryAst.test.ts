@@ -1,225 +1,89 @@
-/**
- * queryAst — the composer's projection layer (ticket 013).
- *
- * Composer state IS the C6 AST: restore is `parseQuery` + `astToPills`,
- * emit is `pillsToAst` + the engine serializer. These tests pin the
- * projection contract — round-trips are asserted against the property-tested
- * serializer, never against hand-rolled text builders.
- */
 import { describe, expect, it } from 'vitest';
-import { parseQuery, serialize } from '@bitcobblers/wod-wiki-wql';
-import {
-  astToPills,
-  pillsToAst,
-  wqlToPills,
-  pillsToWql,
-  pivotPills,
-  setMetricPill,
-  defaultPills,
-  defaultMetricsPills,
-  pillValue,
-} from '../src/composer/queryAst';
+import { parseQuery } from '@bitcobblers/wod-wiki-wql';
+import { astToPills, editQueryClause, pivotQuery, resolveQueryDraft } from '../src/composer/queryAst';
 
-const pill = (pills: { type: string }[] | null, type: string) =>
-  pills?.filter((c) => c.type === type) ?? [];
+function edit(query: string, type: string, value: string | null, occurrence = 0) {
+  const clauses = astToPills(parseQuery(query));
+  expect(clauses).not.toBeNull();
+  const clause = clauses?.filter((item) => item.type === type)[occurrence];
+  if (!clause) throw new Error(`Missing ${type} occurrence ${occurrence}`);
+  return editQueryClause(query, clause, value);
+}
 
-describe('defaults', () => {
-  it('default content pills compile to the modern canonical find', () => {
-    expect(pillsToWql(defaultPills())).toBe('find:note last 2w');
+function semantics(query: string) {
+  const { raw: _raw, advisories: _advisories, ...ast } = parseQuery(query);
+  return ast;
+}
+
+describe('lossless targeted WQL edits', () => {
+  it('retains grouping, unit and every pipe after changing only the window', () => {
+    const query = 'find:segment{effort:snatch} by {effort} in lb | select resistance in lb, effort | order by resistance desc, effort | limit 5 offset 2';
+    const result = edit(query, 'time', 'last 3w');
+    expect(result.valid).toBe(true);
+    expect(semantics(result.wql)).toEqual({ ...semantics(query), window: { kind: 'relative', size: 3, unit: 'w' } });
   });
 
-  it('default metrics pills compile the empty aggregate head', () => {
-    expect(pillsToWql(defaultMetricsPills())).toBe('sum:{}');
-  });
-});
-
-describe('wqlToPills — restore via parseQuery', () => {
-  it('restores a canonical find query', () => {
-    const pills = wqlToPills('find:note{tags:pr} last 8w');
-    expect(pill(pills, 'source')[0]?.value).toBe('notes');
-    expect(pill(pills, 'time')[0]?.value).toBe('last 8w');
-    expect(pill(pills, 'tag')[0]?.value).toBe('pr');
+  it('edits a repeated-key occurrence without merging its sibling', () => {
+    const query = 'find:note{tags:strength,tags:benchmark}';
+    const result = edit(query, 'tag', 'competition', 1);
+    expect(result.ast.filters).toEqual([
+      { key: 'tags', negate: false, values: [{ value: 'strength', wildcard: false }] },
+      { key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] },
+    ]);
   });
 
-  it('folds a source: filter into the source pill (C2)', () => {
-    const pills = wqlToPills('find:note{source:journal,tags:pr}');
-    expect(pill(pills, 'source')[0]?.value).toBe('journal');
-    expect(pill(pills, 'tag')).toHaveLength(1);
+  it('storage scope does not change target or unrelated filters', () => {
+    const query = 'find:block{source:journal,text:snatch}';
+    const result = edit(query, 'source', 'collections|feeds');
+    expect(result.ast).toMatchObject({ family: 'find', target: 'block', filters: [
+      { key: 'source', values: [{ value: 'collections', wildcard: false }, { value: 'feeds', wildcard: false }] },
+      { key: 'text', values: [{ value: 'snatch', wildcard: false }] },
+    ] });
   });
 
-  it('restores blocks/efforts targets to their source values', () => {
-    expect(pill(wqlToPills('find:block{text:"air squats"}'), 'source')[0]?.value).toBe('blocks');
-    expect(pill(wqlToPills('find:effort{discipline:kettlebell}'), 'source')[0]?.value).toBe('efforts');
+  it('retains negation, wildcard and civil range during an unrelated edit', () => {
+    const query = 'find:note{!tags:back*} from 2026-01-01 to 2026-02-01';
+    const result = edit(query, 'tag', 'front*');
+    expect(result.ast).toMatchObject({ window: { kind: 'range', start: '2026-01-01', end: '2026-02-01' }, filters: [{ negate: true, values: [{ value: 'front', wildcard: true }] }] });
   });
 
-  it('restores the metrics plane — agg, metric, filters, dims, rollup, unit', () => {
-    const pills = wqlToPills('sum:totalVolume{discipline:strength} by {week}.rollup(1w) in kg');
-    expect(pill(pills, 'source')[0]?.value).toBe('metrics');
-    expect(pill(pills, 'agg')[0]?.value).toBe('sum');
-    expect(pill(pills, 'metric')[0]?.value).toBe('totalVolume');
-    expect(pill(pills, 'discipline')[0]?.value).toBe('strength');
-    expect(pill(pills, 'groupby')[0]?.value).toBe('week');
-    expect(pill(pills, 'rollup')[0]?.value).toBe('1w');
-    expect(pill(pills, 'unit')[0]?.value).toBe('kg');
-  });
-
-  it('restores a metrics-plane window into the time pill (C1 — one clause, every family)', () => {
-    const pills = wqlToPills('sum:tis{} by {week} last 6w');
-    expect(pill(pills, 'time')[0]?.value).toBe('last 6w');
-  });
-
-  it('restores the rows plane — source, output, scope filters, window', () => {
-    const pills = wqlToPills('rows:segment{result:abc-123} last 4w');
-    expect(pill(pills, 'source')[0]?.value).toBe('rows');
-    expect(pill(pills, 'output')[0]?.value).toBe('segment');
-    expect(pill(pills, 'result')[0]?.value).toBe('abc-123');
-    expect(pill(pills, 'time')[0]?.value).toBe('last 4w');
-  });
-
-  it('restores join pills in both directions', () => {
-    const findPills = wqlToPills('find:note{tags:pr} where sum:totalVolume{} > 5000');
-    expect(pill(findPills, 'where')[0]?.value).toBe('sum:totalVolume{} > 5000');
-    const aggPills = wqlToPills('sum:totalVolume{} by {week} where find:note{tags:competition}');
-    expect(pill(aggPills, 'where')[0]?.value).toBe('find:note{tags:competition}');
-  });
-
-  it('rejects non-composer states — negation, range windows, conflicts, unknown targets', () => {
-    expect(wqlToPills('find:note{!tags:pr}')).toBeNull();          // negation not pill-expressible
-    expect(wqlToPills('find:note from 2026-01-01')).toBeNull();     // range windows stay raw-text
-    expect(wqlToPills('find:note last 2w last 3w')).toBeNull();     // C3 conflict
-    expect(wqlToPills('find:wod{tags:pr}')).toBeNull();             // C7 unknown target
-  });
-
-  it('rejects parse errors outright — diagnostics own them, not restore', () => {
-    expect(wqlToPills('sum totalVolume by {week}')).toBeNull();
-  });
-});
-
-describe('pillsToWql — emit via the serializer', () => {
-  const cases = [
-    'find:note last 2w',
-    'find:note{tags:pr} last 8w',
-    'find:note{source:journal,tags:pr}',
-    'find:block{text:"air squats",!source:feeds}', // negated source — pillsToWql drops nothing, see below
-    'find:effort{discipline:kettlebell,intensity:high}',
-    'find:note{source:journal} where sum:totalVolume{discipline:strength} > 5000',
-    'sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w) last 6w',
-    'avg:tis{effort:back*} by {session}',
-    'max:resistance{effort:back-squat} in kg',
-    'sum:totalVolume{} by {week} where find:note{tags:competition,source:journal}',
-    'rows:all{result:abc123}',
-    'rows:segment{block:content-id-xyz}',
-    'rows:all{note:note-uuid} last 4w',
-  ];
-
-  for (const wql of cases) {
-    it(`round-trips ${wql}`, () => {
-      // Only pill-expressible queries participate — filter out the negated one.
-      const pills = wqlToPills(wql);
-      if (pills === null) return; // covered by the rejection suite
-      // The emitted text IS the serializer's canonical form of the parse.
-      expect(pillsToWql(pills)).toBe(serialize(parseQuery(wql)));
-    });
-  }
-
-  it('emits find without legacy scope syntax — provenance rides in source:', () => {
-    const pills = wqlToPills('find:note{source:journal} last 8w');
-    const wql = pillsToWql(pills!);
-    expect(wql).toBe('find:note{source:journal} last 8w');
-    expect(wql).not.toContain(' in journal');
-  });
-});
-
-describe('pivotPills', () => {
-  it('pivots content → metrics keeping shared filters and the window (C1)', () => {
-    const pills = wqlToPills('find:note{tags:pr,effort:back-squat} last 8w')!;
-    const pivoted = pivotPills(pills, 'metrics');
-    expect(pill(pivoted, 'source')[0]?.value).toBe('metrics');
-    expect(pill(pivoted, 'agg')[0]?.value).toBe('sum');
-    expect(pill(pivoted, 'tag')[0]?.value).toBe('pr');
-    expect(pill(pivoted, 'effort')[0]?.value).toBe('back-squat');
-    expect(pill(pivoted, 'time')[0]?.value).toBe('last 8w');
-  });
-
-  it('pivots metrics → content dropping the head slots', () => {
-    const pills = wqlToPills('sum:totalVolume{effort:back-squat} by {week} last 6w')!;
-    const pivoted = pivotPills(pills, 'journal');
-    expect(pill(pivoted, 'source')[0]?.value).toBe('journal');
-    expect(pill(pivoted, 'agg')).toHaveLength(0);
-    expect(pill(pivoted, 'groupby')).toHaveLength(0);
-    expect(pill(pivoted, 'time')[0]?.value).toBe('last 6w');
-    expect(pill(pivoted, 'effort')[0]?.value).toBe('back-squat');
-  });
-
-  it('pivots to rows keeping scope-expressible filters', () => {
-    const pills = wqlToPills('find:note{note:note-uuid} last 4w')!;
-    const pivoted = pivotPills(pills, 'rows');
-    expect(pill(pivoted, 'source')[0]?.value).toBe('rows');
-    expect(pill(pivoted, 'output')[0]?.value).toBe('all');
-    expect(pill(pivoted, 'note')[0]?.value).toBe('note-uuid');
-  });
-});
-
-describe('setMetricPill', () => {
-  it('sets the metric, pivoting to the metrics plane when needed', () => {
-    const pills = wqlToPills('find:note{tags:pr} last 2w')!;
-    const next = setMetricPill(pills, 'totalVolume');
-    expect(pillsToWql(next)).toBe('sum:totalVolume{tags:pr} last 2w');
-  });
-});
-
-describe('pillValue', () => {
-  it('reads the first pill of a type with fallback', () => {
-    const pills = wqlToPills('find:note{tags:pr} last 8w')!;
-    expect(pillValue(pills, 'time')).toBe('last 8w');
-    expect(pillValue(pills, 'where', 'none')).toBe('none');
-  });
-});
-
-describe('pillsToAst', () => {
-  it('produces the parse of the canonical text — state IS the AST', () => {
-    const pills = wqlToPills('sum:totalVolume{discipline:strength} by {week} last 6w')!;
-    const ast = pillsToAst(pills);
-    expect(ast.family).toBe('aggregate');
-    if (ast.family === 'aggregate') {
-      expect(ast.agg).toBe('sum');
-      expect(ast.window).toEqual({ kind: 'relative', size: 6, unit: 'w' });
+  it('preserves exact untouched and invalid text', () => {
+    for (const query of ['find:segment{effort:snatch}  by {effort} in lb | offset 2', 'find:note{tags:']) {
+      expect(resolveQueryDraft(query).wql).toBe(query);
     }
-  });
-});
-
-describe('empty-metric salvage (composer placeholder state)', () => {
-  it('restores an empty-metric aggregate with pills intact', () => {
-    const pills = wqlToPills('sum:{} where find:note{tags:pr,source:journal}');
-    expect(pills).not.toBeNull();
-    expect(pill(pills, 'agg')[0]?.value).toBe('sum');
-    expect(pill(pills, 'metric')[0]?.value).toBe('');
-    expect(pill(pills, 'where')[0]?.value).toBe('find:note{tags:pr,source:journal}');
-    // …and re-emits the placeholder state unchanged.
-    expect(pillsToWql(pills!)).toBe('sum:{} where find:note{tags:pr,source:journal}');
+    expect(resolveQueryDraft('find:note', 'find:note{tags:').valid).toBe(false);
   });
 
-  it('still rejects genuinely unparseable text', () => {
-    expect(wqlToPills('sum totalVolume by {week}')).toBeNull();
-  });
-});
-
-describe('non-expressible provenance states reject honestly', () => {
-  it('rejects a source: filter on block/effort targets (pill cannot carry it)', () => {
-    expect(wqlToPills('find:block{source:feeds,tags:pr}')).toBeNull();
-    expect(wqlToPills('find:effort{source:journal}')).toBeNull();
+  it('repeated free-search edits replace the intended text occurrence only', () => {
+    const first = resolveQueryDraft('find:note{tags:strength}', 'snatch');
+    const second = resolveQueryDraft(first.wql, 'clean');
+    expect(second.ast.filters).toEqual([
+      { key: 'tags', negate: false, values: [{ value: 'strength', wildcard: false }] },
+      { key: 'text', negate: false, values: [{ value: 'clean', wildcard: false }] },
+    ]);
   });
 
-  it('rejects a source: filter on rows (the source pill is the plane selector)', () => {
-    expect(wqlToPills('rows:all{source:journal,result:abc-123}')).toBeNull();
+  it('rejects quote-containing literals instead of changing their meaning', () => {
+    const query = 'find:note{text:snatch}';
+    const result = edit(query, 'text', 'a"quoted" value');
+    expect(result.valid).toBe(false);
+    expect(result.wql).toBe(query);
   });
-});
 
-describe('identity source absorbs on every target', () => {
-  it('absorbs source:all (and legacy in all) on effort/block targets', () => {
-    expect(wqlToPills('find:effort{discipline:strength} in all')).not.toBeNull();
-    expect(pillsToWql(wqlToPills('find:effort{discipline:strength} in all')!)).toBe(
-      'find:effort{discipline:strength}',
-    );
+  it('reports unsupported target suffixes and preserves compatible joins', () => {
+    const query = 'find:note{tags:strength} by {week} last 2w where sum:tis{} > 0';
+    const block = pivotQuery(query, 'target', 'block');
+    expect(block.removed).toEqual([]);
+    expect(block.draft.ast).toMatchObject({ target: 'block', join: parseQuery(query).join, groupBy: ['week'] });
+    const effort = pivotQuery(query, 'target', 'effort');
+    expect(effort.removed).toEqual(expect.arrayContaining(['Time window', 'Group By', 'Join']));
+    expect(effort.draft.ast.window).toBeUndefined();
+    expect(effort.draft.ast.groupBy).toBeUndefined();
+  });
+
+  it('parser-recognized fragments change only their field', () => {
+    const query = 'find:segment{effort:snatch} by {effort} in lb | limit 5';
+    expect(resolveQueryDraft(query, 'last 7d').ast).toMatchObject({ window: { kind: 'relative', size: 7, unit: 'd' }, groupBy: ['effort'], displayUnit: 'lb', pipes: { limit: 5 } });
+    expect(resolveQueryDraft(query, 'effort:clean').ast.filters).toEqual([{ key: 'effort', negate: false, values: [{ value: 'clean', wildcard: false }] }]);
   });
 });

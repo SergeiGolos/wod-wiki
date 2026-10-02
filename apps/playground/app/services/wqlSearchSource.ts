@@ -101,6 +101,12 @@ export function withWqlText(source: PaletteDataSource): PaletteDataSource {
 export function searchPaletteQuery(): string {
   return readRouteWqlConfig(PALETTE_ROUTE_ID).defaultWql ?? PALETTE_SEED_QUERY;
 }
+
+/** Stored scope favorites for the palette's shared pickers — sort priority
+ *  only, never a validity filter. */
+export function palettePreferredChoices(): readonly string[] {
+  return readRouteWqlConfig(PALETTE_ROUTE_ID).typeOptions ?? [];
+}
 /** Stage-count executor for the palette's diagnostics strip, wired at the
  *  service layer so the generic PaletteShell stays decoupled from analytics.
  *  Dispatches on query kind: find queries run the find engine, aggregate
