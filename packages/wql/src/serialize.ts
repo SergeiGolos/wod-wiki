@@ -99,9 +99,12 @@ export function serialize(parsed: AnyParsedQuery): string {
     return text;
   }
   if (parsed.family === 'find') {
-    const parts = [serializeFindHead(parsed), serializeWindow(parsed.window)];
+    // Suffix order mirrors the parser's end-anchored extraction (wqlSuffix):
+    // head, by, in-unit, window, where-join — pipes trail after `|`.
+    const parts = [serializeFindHead(parsed)];
     if (parsed.groupBy?.length) parts.push(`by {${parsed.groupBy.join(', ')}}`);
     if (parsed.displayUnit) parts.push(`in ${parsed.displayUnit}`);
+    parts.push(serializeWindow(parsed.window));
     if (parsed.join) parts.push(`where ${serializeMetricHalf(parsed.join)}`);
     let text = parts.filter(Boolean).join(' ');
     if (parsed.pipes) {
@@ -113,7 +116,9 @@ export function serialize(parsed: AnyParsedQuery): string {
         pipeParts.push(`order by ${parsed.pipes.order.map((o) => o.dir === 'desc' ? `${o.col} desc` : o.col).join(', ')}`);
       }
       if (parsed.pipes.limit !== undefined) {
-        pipeParts.push(`limit ${parsed.pipes.limit}${parsed.pipes.offset ? ` offset ${parsed.pipes.offset}` : ''}`);
+        pipeParts.push(`limit ${parsed.pipes.limit}${parsed.pipes.offset !== undefined ? ` offset ${parsed.pipes.offset}` : ''}`);
+      } else if (parsed.pipes.offset !== undefined) {
+        pipeParts.push(`offset ${parsed.pipes.offset}`);
       }
       if (pipeParts.length > 0) {
         text += ` | ${pipeParts.join(' | ')}`;

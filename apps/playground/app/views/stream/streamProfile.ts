@@ -8,6 +8,7 @@
 import type { EntityLevel } from '../../lib/fieldProjection'
 import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
 import type { ComposerLegacyConfig } from '../../hooks/useComposerQueryState'
+import type { WqlFindTarget, WqlSourceValue } from '@bitcobblers/wod-wiki-engine'
 import { noteByIdPath, playgroundPath, sessionDetailPath } from '../../lib/routes'
 import type { MenuSpec } from '../../nav/menuModel'
 
@@ -22,11 +23,17 @@ export interface StreamProfile {
   defaultWql: string
   /** Active entity level for field projection and view settings. */
   level: EntityLevel
-  /** Source-plane options the header query bar's type selector offers
-   * (wqlEdits vocabulary: notes/journal/collections/feeds/blocks/efforts/
-   * rows). A single-entry list locks the route to that data type — the
-   * selector still renders, stating what the page returns. */
-  typeOptions: readonly string[]
+  /** Canonical find target (singular WQL_FIND_TARGETS value) this surface
+   *  queries — kind is always `find` on stream surfaces. */
+  target: WqlFindTarget
+  /** Canonical Where-stored scope favorites (WQL_SOURCE_VALUES subset) the
+   *  header query bar presets/prioritizes. Favorites reorder choices — they
+   *  never define grammar validity: every canonical scope stays reachable
+   *  and free text queries are unaffected. Empty = no predefined options —
+   *  the route nudges for a pick but never blocks. Replaces the old
+   *  plural-noun typeOptions vocabulary (notes/blocks/efforts were targets,
+   *  not scopes). */
+  scopeOptions: readonly WqlSourceValue[]
   /** When true, renders the undated Sessions shelf alongside the dated stream. */
   shelfVisible?: boolean
   /** Optional message displayed when query yields zero results. */
@@ -100,7 +107,8 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   title: 'Journal',
   defaultWql: 'find:note{source:journal} last 4w',
   level: 'note',
-  typeOptions: ['journal'],
+  target: 'note',
+  scopeOptions: ['journal'],
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('journal'),
 }
@@ -110,7 +118,8 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   title: 'Collections',
   defaultWql: 'find:note{source:collections} by {tag}',
   level: 'session',
-  typeOptions: ['collections'],
+  target: 'note',
+  scopeOptions: ['collections'],
   shelfVisible: false,
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('collections'),
@@ -121,7 +130,8 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   title: 'Feeds',
   defaultWql: 'find:note{source:feeds} last 2w',
   level: 'note',
-  typeOptions: ['feeds', 'collections'],
+  target: 'note',
+  scopeOptions: ['feeds', 'collections'],
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('feeds'),
 }
@@ -133,7 +143,10 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   // stream); `?q=` deep links still override the default explicitly.
   defaultWql: 'find:note{source:collections} last 4w',
   level: 'note',
-  typeOptions: ['notes', 'journal', 'collections', 'feeds', 'playground', 'blocks'],
+  target: 'note',
+  // All five storage scopes; the old `notes`/`blocks` entries were the bare
+  // note head and a different target, not scopes, so they don't carry over.
+  scopeOptions: ['journal', 'collections', 'feeds', 'guides', 'playground'],
   shelfVisible: true,
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig(),
@@ -144,7 +157,8 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   title: 'Efforts',
   defaultWql: 'find:effort',
   level: 'effort',
-  typeOptions: ['efforts'],
+  target: 'effort',
+  scopeOptions: [],
   emptyMessage: 'No efforts match your search.',
   secondary: RECENT_ENTRIES_MENU,
   legacy: EFFORTS_LEGACY_CONFIG,
@@ -155,7 +169,8 @@ export const SESSIONS_STREAM_PROFILE: StreamProfile = {
   title: 'Sessions',
   defaultWql: 'find:session{} last 4w',
   level: 'result',
-  typeOptions: ['session'],
+  target: 'session',
+  scopeOptions: [],
   emptyMessage: 'No completed session results recorded in this period.',
   secondary: [
     {
@@ -174,7 +189,8 @@ export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
   title: 'Playgrounds',
   defaultWql: 'find:note{source:playground} last 4w',
   level: 'note',
-  typeOptions: ['playground'],
+  target: 'note',
+  scopeOptions: ['playground'],
   shelfVisible: true,
   secondary: [
     {
@@ -195,7 +211,8 @@ export function createSessionDateProfile(date: string): StreamProfile {
     route: `/session/${date}`,
     defaultWql: `find:session{} from ${date} to ${date}`,
     level: 'result',
-    typeOptions: ['session'],
+    target: 'session',
+    scopeOptions: [],
     emptyMessage: `No session results recorded on ${date}.`,
   }
 }
@@ -205,7 +222,8 @@ export function createResultDetailProfile(resultId: string): StreamProfile {
     route: `/sessions/${resultId}`,
     defaultWql: `find:session{result:${resultId}, plane:segment}`,
     level: 'segment',
-    typeOptions: ['session'],
+    target: 'session',
+    scopeOptions: [],
     emptyMessage: `No segment records found for result ${resultId}.`,
   }
 }

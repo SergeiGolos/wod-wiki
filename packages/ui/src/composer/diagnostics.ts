@@ -1,11 +1,8 @@
-import { serialize, type ParsedFindQuery, type ParsedAggregateQuery } from '@bitcobblers/wod-wiki-wql';
-import { composerRegistry } from './ComposerRegistry';
-import { pillsToAst } from './queryAst';
-import type { QueryClause } from './queryClauses';
+import { type ParsedFindQuery, type ParsedAggregateQuery } from '@bitcobblers/wod-wiki-wql';
 import type { AnyParsedQuery } from './useWqlStageCounts';
 export interface WqlDiagnostics {
   valid: boolean;
-  /** The composed WQL string (serializer output) for the current pills. */
+  /** Exact resolved draft text, including invalid input. */
   wql: string;
   ast: AnyParsedQuery;
   error?: string;
@@ -59,48 +56,3 @@ export function summarizeAggregate(ast: ParsedAggregateQuery): WqlAggregateSumma
   };
 }
 
-function customSlotError(clause: QueryClause): string | null {
-  const custom = composerRegistry.getSlot(clause.type);
-  if (!custom) return null;
-  const value = clause.value.trim();
-  if (!value) return null;
-  const parsed = custom.parseValue ? custom.parseValue(value) : value;
-  if (parsed === undefined) return `Invalid ${custom.label} value`;
-  return custom.validate ? custom.validate(parsed) : null;
-}
-
-/** Diagnose the composer's working pills: per-slot custom validation first
- * (attributes the error to the offending pill), then the parser's own error
- * on the AST the pills compile to. */
-export function diagnosePills(pills: QueryClause[]): WqlDiagnostics {
-  for (const pill of pills) {
-    const error = customSlotError(pill);
-    if (error) {
-      return {
-        valid: false,
-        wql: serialize(pillsToAst(pills)),
-        ast: { family: 'aggregate', raw: '', agg: 'sum', metric: '', filters: [], groupBy: [], error },
-        error,
-        offendingClauseId: pill.id,
-      };
-    }
-  }
-
-  const ast = pillsToAst(pills);
-  const wql = serialize(ast);
-
-  if (ast.error) {
-    return {
-      valid: false,
-      wql,
-      ast,
-      error: ast.error,
-    };
-  }
-
-  return {
-    valid: true,
-    wql,
-    ast,
-  };
-}

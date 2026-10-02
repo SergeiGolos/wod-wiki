@@ -6,8 +6,11 @@
  * no lossiness; the composer handles pill-expressibility itself.
  *
  * Two tracked values:
- *   - `?q=` mirrors the LIVE composer draft: every WQL-changing edit pushes
- *     a history entry, so browser back/forward restores the exact query.
+ *   - `?q=` mirrors the LIVE composer draft. Editing replaces the URL in
+ *     place within an editing spell (no history entry per keystroke); the
+ *     first edit after a committed state pushes one scratch entry, so a
+ *     deliberate Run/Apply can convert that entry into the checkpoint
+ *     without destroying the previous checkpoint.
  *   - `submitted` is the last-run query snapshot. It alone gates the page's
  *     run effect (runQuery/runFind dispatch) and the post-run telemetry
  *     (PipelineAnatomy); editing the draft never re-runs. A popstate restore
@@ -39,11 +42,14 @@ export const DEFAULT_EXPLORER_WEEKS: ExplorerRangeWeeks = 16
 export interface ExplorerQueryState {
   /** Live composer draft WQL (the composer's controlled `query` prop). */
   draft: string
-  /** Edit the draft; pushes `?q=` when the text actually changed. */
+  /** Edit the draft; replaces `?q=` in place (one scratch entry per
+   *  editing spell — never one history entry per keystroke). */
   setDraft: (wql: string) => void
   /** The last submitted query (gates the run effect and post-run telemetry). */
   submitted: string
-  /** Mark a query as run. Defaults to the current draft. */
+  /** Mark a query as run (defaults to the current draft) and convert the
+   *  current history entry into the deliberate checkpoint. Invalid queries
+   *  are refused. */
   submit: (wql?: string) => void
   /** Analytics range in weeks (from `?weeks=`, default 16). */
   weeks: ExplorerRangeWeeks
@@ -74,37 +80,64 @@ export function useExplorerQueryState(): ExplorerQueryState {
   draftRef.current = draft
   const searchParamsRef = useRef(searchParams)
   searchParamsRef.current = searchParams
+  // True while the current history entry holds a committed (run) state.
+  // Editing a committed entry would destroy the checkpoint, so the first
+  // edit pushes a scratch entry instead; further edits of the spell replace
+  // it in place. A deliberate submit converts the scratch entry into the
+  // next checkpoint.
+  const urlIsCheckpoint = useRef(true)
+  const qRef = useRef(q)
+  qRef.current = q
 
   // URL → draft + submitted (back/forward, external navigation). Content-
-  // compared: echoes of our own setDraft pushes restore the same text and
-  // are skipped — they are edits, not submissions, and must neither clobber
-  // a transient edit nor re-run the query.
+  // compared: echoes of our own writes carry the draft text and are skipped
+  // — they are edits, not submissions, and must neither clobber a transient
+  // edit nor re-run the query. Any other q change is an external restore:
+  // it re-runs what it restored (legacy behavior) and the restored entry
+  // counts as committed.
   const prevQRef = useRef(q)
   useEffect(() => {
     if (q === prevQRef.current) return
     prevQRef.current = q
     if (draftRef.current === q) return
+    urlIsCheckpoint.current = true
     setDraftState(q && !parseQuery(q).error ? q : DEFAULT_EXPLORER_QUERY)
-    // An external URL change re-runs what it restored (legacy behavior).
     setSubmitted(q)
   }, [q])
 
-  // Draft → URL. Pushes a history entry only when the text actually changed.
+  // Draft → URL. Replace within an editing spell; one scratch entry per
+  // spell so checkpoints survive (never a history entry per keystroke).
   const setDraft = useCallback(
     (next: string) => {
-      if (next !== draftRef.current) {
-        const params = new URLSearchParams(searchParamsRef.current)
-        params.set('q', next)
-        setSearchParams(params)
-      }
+      if (next === draftRef.current) return
+      const params = new URLSearchParams(searchParamsRef.current)
+      params.set('q', next)
+      setSearchParams(params, { replace: !urlIsCheckpoint.current })
+      urlIsCheckpoint.current = false
       setDraftState(next)
     },
     [setSearchParams],
   )
 
-  const submit = useCallback((wql?: string) => {
-    setSubmitted(wql ?? draftRef.current)
-  }, [])
+  // Run/Apply checkpoint: commit the snapshot and mark the current entry as
+  // the new checkpoint (replace — the scratch spell collapses into it).
+  // Invalid queries never execute.
+  const submit = useCallback(
+    (wql?: string) => {
+      const next = wql ?? draftRef.current
+      if (parseQuery(next).error) return
+      if (urlIsCheckpoint.current && qRef.current === next) {
+        setSubmitted(next)
+        return
+      }
+      const params = new URLSearchParams(searchParamsRef.current)
+      params.set('q', next)
+      setSearchParams(params, { replace: true })
+      urlIsCheckpoint.current = true
+      setSubmitted(next)
+    },
+    [setSearchParams],
+  )
 
   const setWeeks = useCallback(
     (next: ExplorerRangeWeeks) => {

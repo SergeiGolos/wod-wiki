@@ -1,22 +1,29 @@
 /**
  * QueryDefaultsSection — Settings ▸ Query Defaults (/settings/queries).
  *
- * Per-surface override of the landing default WQL plus the source and
- * Group-By option lists, persisted client-side via routeWqlConfig. Each
- * card shows the in-code system default read-only; an empty query field
- * means "use the system default" and resetting discards the override. An
- * emptied custom option list is the deliberate "no predefined options"
- * state — the route nudges for a pick but never blocks.
+ * Per-surface override of the landing default WQL plus the Where-stored scope
+ * and fallback arrangement option lists, persisted client-side via
+ * routeWqlConfig. Each card shows the in-code system default read-only; an
+ * empty query field means "use the system default" and resetting discards the
+ * override. The query field is text-first: any WQL is allowed and validated
+ * with the shared parser (resolveQueryDraft); invalid exact text is shown and
+ * blocks the save. Option lists are supported-value favorites, not freeform
+ * text — they reorder/prioritize choices and never define grammar validity.
+ * A stored id that is neither canonical nor migratable is reported on the
+ * card instead of silently turning into a query clause. An emptied custom
+ * option list is the deliberate "no predefined options" state. Stored in
+ * this browser only.
  */
 import { useMemo, useState } from 'react'
-import { parseQuery } from '@bitcobblers/wod-wiki-engine'
-import { Plus, RotateCcw, X } from 'lucide-react'
+import { resolveQueryDraft, SOURCE_OPTIONS, TARGET_OPTIONS } from '@bitcobblers/wod-wiki-ui'
+import { RotateCcw, X } from 'lucide-react'
 import { Button } from '@/components/atoms/primitives/button'
 import { Switch } from '@/components/atoms/primitives/switch'
 import {
   readRouteWqlConfig,
   writeRouteWqlConfig,
   clearRouteWqlConfig,
+  GROUP_BY_FAVORITE_OPTIONS,
   PALETTE_ROUTE_ID,
   type RouteWqlConfig,
 } from '../lib/routeWqlConfig'
@@ -76,26 +83,32 @@ function stateToConfig(state: EditorState): RouteWqlConfig {
   }
 }
 
-function StringListEditor({
+const LABEL_BY_TYPE_OPTION: Record<string, string> = Object.fromEntries(
+  [...SOURCE_OPTIONS, ...TARGET_OPTIONS].map(o => [o.value, o.label]),
+)
+const LABEL_BY_GROUP_OPTION: Record<string, string> = Object.fromEntries(
+  GROUP_BY_FAVORITE_OPTIONS.map(o => [o.id, o.label]),
+)
+
+/**
+ * Supported-value favorites editor: selected values render as removable chips
+ * (order = priority), remaining supported choices render as add buttons.
+ * Values outside `choices` (e.g. a migrated canonical target) still render as
+ * chips so nothing silently disappears.
+ */
+function FavoriteOptionsEditor({
   values,
+  choices,
+  labels,
   onChange,
-  placeholder,
   testPrefix,
 }: {
   values: string[]
+  choices: readonly { value: string; label: string }[]
+  labels: Record<string, string>
   onChange: (next: string[]) => void
-  placeholder: string
   testPrefix: string
 }) {
-  const [draft, setDraft] = useState('')
-
-  const add = () => {
-    const value = draft.trim()
-    if (!value || values.includes(value)) return
-    onChange([...values, value])
-    setDraft('')
-  }
-
   return (
     <div className="space-y-2">
       {values.length > 0 && (
@@ -106,7 +119,7 @@ function StringListEditor({
               data-testid={`${testPrefix}-chip-${value}`}
               className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs font-medium"
             >
-              {value}
+              {labels[value] ?? value}
               <button
                 type="button"
                 aria-label={`Remove ${value}`}
@@ -120,24 +133,21 @@ function StringListEditor({
           ))}
         </div>
       )}
-      <div className="flex gap-2">
-        <input
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              add()
-            }
-          }}
-          placeholder={placeholder}
-          data-testid={`${testPrefix}-input`}
-          className="flex min-h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs"
-        />
-        <Button variant="outline" size="sm" onClick={add} data-testid={`${testPrefix}-add`}>
-          <Plus className="size-3.5" />
-          <span>Add</span>
-        </Button>
+      <div className="flex flex-wrap gap-1.5">
+        {choices
+          .filter(c => !values.includes(c.value))
+          .map(c => (
+            <button
+              key={c.value}
+              type="button"
+              aria-label={`Add ${c.value}`}
+              data-testid={`${testPrefix}-add-${c.value}`}
+              onClick={() => onChange([...values, c.value])}
+              className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40"
+            >
+              + {c.label}
+            </button>
+          ))}
       </div>
     </div>
   )
@@ -145,7 +155,8 @@ function StringListEditor({
 
 function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
   const systemDefaultWql = surface.profile?.defaultWql ?? PALETTE_SEED_QUERY
-  const systemTypeOptions = surface.profile?.typeOptions ?? []
+  const systemTarget = surface.profile?.target
+  const systemScopeOptions = surface.profile?.scopeOptions ?? []
 
   const [state, setState] = useState<EditorState>(() => stateFromConfig(readRouteWqlConfig(surface.id)))
   const [savedConfig, setSavedConfig] = useState<RouteWqlConfig>(() => readRouteWqlConfig(surface.id))
@@ -153,15 +164,23 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
   const wqlError = useMemo(() => {
     const text = state.defaultWql.trim()
     if (!text) return null
-    return parseQuery(text).error ?? null
+    return resolveQueryDraft(text).error ?? null
   }, [state.defaultWql])
 
   const nextConfig = stateToConfig(state)
   const dirty = JSON.stringify(nextConfig) !== JSON.stringify(savedConfig)
   const hasOverride = Object.values(savedConfig).some(v => v !== undefined)
+  const invalidReport = [
+    ...(savedConfig.invalidTypeOptions ?? []),
+    ...(savedConfig.invalidGroupByOptions ?? []),
+  ]
 
+  // Text-first validation: the save action validates the current draft with
+  // the shared parser rather than relying on render-time state visibility.
   const save = () => {
-    if (wqlError || !dirty) return
+    if (!dirty) return
+    const text = state.defaultWql.trim()
+    if (text && resolveQueryDraft(text).error) return
     writeRouteWqlConfig(surface.id, nextConfig)
     setSavedConfig(readRouteWqlConfig(surface.id))
   }
@@ -206,10 +225,17 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
         )}
       </div>
 
+      {invalidReport.length > 0 && (
+        <p className="text-xs text-amber-600 dark:text-amber-400" data-testid={`query-defaults-invalid-${surface.id}`}>
+          Stored options no longer recognized: {invalidReport.join(', ')} — remove them; they are never
+          turned into query clauses.
+        </p>
+      )}
+
       {surface.profile && (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-muted-foreground">Source options</label>
+          <label className="text-xs font-semibold text-muted-foreground">Where-stored options</label>
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             Custom
             <Switch
@@ -219,13 +245,16 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
             />
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">System: {systemTypeOptions.join(', ') || '—'}</p>
+        <p className="text-xs text-muted-foreground">
+          System: target {systemTarget}, scopes {systemScopeOptions.join(', ') || '—'}
+        </p>
         {state.customType && (
           <>
-            <StringListEditor
+            <FavoriteOptionsEditor
               values={state.typeOptions}
+              choices={systemTarget === 'note' ? SOURCE_OPTIONS : []}
+              labels={LABEL_BY_TYPE_OPTION}
               onChange={typeOptions => setState({ ...state, typeOptions })}
-              placeholder="e.g. notes"
               testPrefix={`query-defaults-type-${surface.id}`}
             />
             {state.typeOptions.length === 0 && (
@@ -241,7 +270,7 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
       {surface.profile && (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-muted-foreground">Group-By options</label>
+          <label className="text-xs font-semibold text-muted-foreground">Arrange-cards-by options</label>
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             Custom
             <Switch
@@ -252,10 +281,11 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
           </label>
         </div>
         {state.customGroup && (
-          <StringListEditor
+          <FavoriteOptionsEditor
             values={state.groupByOptions}
+            choices={GROUP_BY_FAVORITE_OPTIONS.map(o => ({ value: o.id, label: o.label }))}
+            labels={LABEL_BY_GROUP_OPTION}
             onChange={groupByOptions => setState({ ...state, groupByOptions })}
-            placeholder="e.g. week"
             testPrefix={`query-defaults-group-${surface.id}`}
           />
         )}
@@ -288,9 +318,10 @@ export function QueryDefaultsSection() {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-foreground">Query Defaults</h2>
         <p className="text-sm text-muted-foreground">
-          Override the landing query and the source / Group-By options per surface. An empty query uses the
-          system default; an emptied options list nudges you to pick instead of presetting one. Stored in this
-          browser only.
+          Override the landing query and the Where-stored / arrangement options per surface. An empty query
+          uses the system default; an emptied options list nudges you to pick instead of presetting one.
+          Option lists are favorites — they reorder choices, they don't change what queries mean. Stored in
+          this browser only.
         </p>
       </div>
       {CONFIGURABLE_SURFACES.map(surface => (

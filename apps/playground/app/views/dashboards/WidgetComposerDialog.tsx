@@ -136,6 +136,8 @@ function ComposerSession({
   applyLabel = mode === 'edit' ? 'Apply changes' : 'Add widget',
 }: Omit<WidgetComposerDialogProps, 'open'>) {
   const readOnly = mode === 'inspect';
+  // Controlled composer draft: the exact text (invalid included) — the
+  // final action re-validates it before writing.
   const [wql, setWql] = useState(initialWql);
   const [title, setTitle] = useState(initial?.title ?? '');
   const [question, setQuestion] = useState(initial?.question ?? '');
@@ -150,6 +152,9 @@ function ComposerSession({
     Object.entries(initial?.attributes ?? {}).map(([k, v]) => `${k}=${v}`).join(' '),
   );
   const [applying, setApplying] = useState(false);
+  // The composer's synchronous verdict, including transient editor states
+  // (unresolved pivot confirm) that a fresh parse cannot see.
+  const [composerValid, setComposerValid] = useState(() => !parseQuery(initialWql).error);
   // A refused write (e.g. the note changed while this dialog was open) stays
   // on screen; the draft is untouched and the author can retry or cancel.
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +179,9 @@ function ComposerSession({
 
   useEffect(() => {
     if (!widgetReady || !executor) {
-      setPreview({ status: 'idle' });
+      // An invalid draft never resets the preview to idle: the last valid
+      // result stays on screen, marked stale below.
+      setPreview((prev) => (prev.status === 'ok' ? prev : { status: 'idle' }));
       return;
     }
     const substituted = substituteTokens(wql.trim(), tokenValues ?? {});
@@ -199,8 +206,17 @@ function ComposerSession({
     return () => clearTimeout(timer);
   }, [wql, widgetReady, executor, rangeStart, rangeEnd, preferredUnit, tokenValues]);
 
+  // The preview answers the last VALID draft; an invalid edit makes it stale
+  // until the draft parses again.
+  const previewStale = !widgetReady && preview.status === 'ok';
+
+  const applyReady = widgetReady && composerValid;
+
   const handleApply = async () => {
-    if (!widgetReady || !onApply || applying) return;
+    if (!applyReady || !onApply || applying) return;
+    // Validate the current draft text at action time — state set by the
+    // composer's synchronous callback in the same event is not relied on.
+    if (parseQuery(wql.trim()).error || wql.trim() === '') return;
     setApplying(true);
     setError(null);
     try {
@@ -227,6 +243,7 @@ function ComposerSession({
     <EditorDialog
       open
       onClose={onClose}
+      presentation="sheet"
       title={mode === 'inspect' ? 'Inspect widget' : mode === 'edit' ? 'Edit widget' : 'Add widget'}
       description={
         readOnly
@@ -243,17 +260,17 @@ function ComposerSession({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg border border-border hover:bg-muted transition-colors"
+                  className="min-h-12 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg border border-border hover:bg-muted transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   data-testid="widget-composer-apply"
-                  disabled={!widgetReady || applying}
+                  disabled={!applyReady || applying}
                   title={parsed.error ? parsed.error : undefined}
                   onClick={() => void handleApply()}
-                  className="px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow transition-colors"
+                  className="min-h-12 px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow transition-colors"
                 >
                   {applying ? 'Applying…' : applyLabel}
                 </button>
@@ -299,9 +316,9 @@ function ComposerSession({
             </code>
           ) : (
             <WqlComposer
-              initialQuery={initialWql}
+              query={wql}
               onQueryChange={setWql}
-              autoFocus
+              onValidationChange={(v) => setComposerValid(v.valid)}
               showDiagnostics
               {...(executor ? { execute: (ast) => executor.runQuery(ast.raw, { rangeStart, rangeEnd, preferredUnit }) } : {})}
             />
@@ -436,8 +453,13 @@ function ComposerSession({
         )}
 
         <section>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-2">
             Preview
+            {previewStale && (
+              <span data-testid="widget-preview-stale" className="font-medium normal-case tracking-normal text-amber-600">
+                stale — showing the last valid query
+              </span>
+            )}
           </div>
           <div className="rounded-lg border border-border bg-background/50 p-3 h-56 overflow-hidden">
             {preview.status === 'idle' &&

@@ -20,7 +20,7 @@
  * (calc.* metrics resolve directly against the unified event store).
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
+import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
 import { parseQuery, serialize, isAggregateQuery, isFindQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
@@ -51,6 +51,7 @@ import {
   windowLabel,
 } from '@/components/organisms/analytics';
 import { setMetricQuery } from '../../lib/wqlEdits';
+import { readRouteWqlConfig } from '../../lib/routeWqlConfig';
 import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
@@ -149,7 +150,14 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const [efforts, setEfforts] = useState<IEffort[] | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [dashOpen, setDashOpen] = useState(false);
+  // The composer's own synchronous verdict: parse errors AND transient
+  // editor states (an unresolved kind/target pivot confirm) — Save must
+  // honor both, not just a fresh parse of the draft text.
+  const [composerValid, setComposerValid] = useState(true);
   const vocabulary = useExplorerVocabulary();
+  // Route-configured type favorites (the /dashboards surface) prioritize the
+  // composer's picker rows without excluding anything.
+  const preferredChoices = useMemo(() => readRouteWqlConfig('/dashboards').typeOptions, []);
   const liveParsed = useMemo(() => parseQuery(draft), [draft]);
   const scopeLabel = sourceFilterLabel(isFindQuery(liveParsed) ? liveParsed.filters : []);
   const findWindowLabel = isFindQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
@@ -158,6 +166,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   // The subset for the Query→Dashboard flow: a find draft IS the subset; an
   // analytics draft contributes its where-join find half when present.
   const draftValid = !liveParsed.error && draft.trim().length > 0;
+  const saveReady = draftValid && composerValid;
   const subsetQuery = useMemo(() => {
     if (!draftValid) return null;
     if (isFindQuery(liveParsed)) return draft;
@@ -352,27 +361,20 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
           <WqlComposer
             query={draft}
             onQueryChange={setDraft}
+            onValidationChange={(v) => setComposerValid(v.valid)}
             onSubmit={(wql) => submit(wql)}
+            actionLabel="Run"
+            preferredChoices={preferredChoices}
             showDiagnostics={false}
             placeholder={WQL_GRAMMAR_PLACEHOLDER}
-            customSlots={
-              <button
-                type="button"
-                data-testid="run-query"
-                onClick={() => submit()}
-                className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm shrink-0"
-              >
-                <Play size={12} /> Run
-              </button>
-            }
             diagnosticsActions={
               <button
                 type="button"
                 data-testid="save-query"
-                disabled={!draftValid}
+                disabled={!saveReady}
                 onClick={() => setDashOpen(true)}
                 title="Save this query — decide where it lands (dashboard, …)"
-                className="flex items-center gap-1.5 rounded-lg border border-primary/40 text-primary px-3 py-1 text-[11px] font-semibold hover:bg-primary/10 transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
+                className="flex min-h-12 items-center gap-1.5 rounded-lg border border-primary/40 text-primary px-3 text-[11px] font-semibold hover:bg-primary/10 transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <Save size={12} /> Save
               </button>
@@ -400,9 +402,15 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
             <button
               key={key}
               type="button"
+              disabled={!saveReady || !isAggregateQuery(liveParsed)}
+              title={
+                draftValid && !isAggregateQuery(liveParsed)
+                  ? 'Metric shortcuts apply to measure queries — pivot the kind through the composer first'
+                  : undefined
+              }
               onClick={() => selectMetric(key)}
               className={cn(
-                'rounded-full border px-2 py-0.5 text-[11px] font-mono transition-colors',
+                'rounded-full border px-2 py-0.5 text-[11px] font-mono transition-colors disabled:opacity-40 disabled:hover:bg-transparent',
                 draft.includes(key)
                   ? 'border-primary/60 bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted',
@@ -466,6 +474,15 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="mt-3">
                 <SampleDataPrompt layout="banner" refreshKey={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />
               </div>
+
+              {liveParsed.error && submitted && (
+                <div
+                  data-testid="explorer-results-stale"
+                  className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700"
+                >
+                  Stale — showing the last run's results; the current draft is invalid and not applied.
+                </div>
+              )}
 
               <div className="mt-3">
                 <WidgetFrame title="Query result" question={exampleQuestion} query={submitted || '(empty)'}>
@@ -558,6 +575,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
       <QueryToDashboardDialog
         open={dashOpen}
         onOpenChange={setDashOpen}
+        initialQuery={draft}
         subsetQuery={subsetQuery}
         rangeStart={Date.now() - activeWeeks * 7 * DAY}
         rangeEnd={Date.now()}

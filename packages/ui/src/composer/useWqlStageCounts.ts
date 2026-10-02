@@ -19,6 +19,7 @@ export function useWqlStageCounts(
   debounceMs: number = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
 ): WqlStageCounts | undefined {
   const [stages, setStages] = useState<WqlStageCounts | undefined>(undefined);
+  const countedAst = useRef<AnyParsedQuery | undefined>(undefined);
 
   const executorRef = useRef(execute);
   executorRef.current = execute;
@@ -36,6 +37,7 @@ export function useWqlStageCounts(
       executorRef.current?.(ast)
         .then((result) => {
           if (cancelled) return;
+          countedAst.current = ast;
           setStages(
             isFindQuery(ast)
               ? { kind: 'find', ...(result as FindQueryResult).stages }
@@ -52,5 +54,5 @@ export function useWqlStageCounts(
     };
   }, [ast, runnable, debounceMs]);
 
-  return runnable ? stages : undefined;
+  return runnable && countedAst.current === ast ? stages : undefined;
 }

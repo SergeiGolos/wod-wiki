@@ -245,11 +245,12 @@ describe('SettingsPage — Query Defaults tab', () => {
     expect((screen.getByTestId('query-defaults-wql-/journal') as HTMLTextAreaElement).value).toBe('')
   })
 
-  it('persists custom source options, including the emptied nudge state', () => {
+  it('persists custom scope options, including the emptied nudge state', () => {
     writeRouteWqlConfig('/library', { typeOptions: ['notes', 'journal'] })
     renderSettings('/settings/queries')
 
-    fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-notes'))
+    // `notes` shows migrated to the canonical `note` target favorite.
+    fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-note'))
     fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-journal'))
     expect(screen.getByTestId('query-defaults-type-empty-/library')).toBeDefined()
     fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
@@ -257,16 +258,35 @@ describe('SettingsPage — Query Defaults tab', () => {
     expect(readRouteWqlConfig('/library').typeOptions).toEqual([])
   })
 
-  it('adds a source option via the list editor and persists it', () => {
+  it('adds a supported scope option and persists it', () => {
     renderSettings('/settings/queries')
 
     fireEvent.click(screen.getByTestId('query-defaults-type-custom-/library'))
-    fireEvent.change(screen.getByTestId('query-defaults-type-/library-input'), {
-      target: { value: 'feeds' },
-    })
-    fireEvent.click(screen.getByTestId('query-defaults-type-/library-add'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/library-add-feeds'))
     fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
 
     expect(readRouteWqlConfig('/library').typeOptions).toEqual(['feeds'])
+  })
+
+  it('restricts Group-By favorites to the supported arrangement dimensions', () => {
+    renderSettings('/settings/queries')
+
+    fireEvent.click(screen.getByTestId('query-defaults-group-custom-/efforts'))
+    fireEvent.click(screen.getByTestId('query-defaults-group-/efforts-add-week'))
+    fireEvent.click(screen.getByTestId('query-defaults-group-/efforts-add-discipline'))
+    fireEvent.click(screen.getByTestId('query-defaults-save-/efforts'))
+
+    expect(readRouteWqlConfig('/efforts').groupByOptions).toEqual(['week', 'discipline'])
+  })
+
+  it('reports stored option ids that are neither canonical nor migratable', () => {
+    writeRouteWqlConfig('/library', { typeOptions: ['rows', 'journal'] })
+    renderSettings('/settings/queries')
+
+    const report = screen.getByTestId('query-defaults-invalid-/library')
+    expect(report.textContent).toContain('rows')
+    // The invalid id never becomes a favorite — only the canonical scope does.
+    expect(screen.queryByTestId('query-defaults-type-/library-chip-rows')).toBeNull()
+    expect(screen.getByTestId('query-defaults-type-/library-chip-journal')).toBeDefined()
   })
 })

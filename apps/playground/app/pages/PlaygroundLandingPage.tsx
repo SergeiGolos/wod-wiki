@@ -10,6 +10,7 @@ import {
   wqlSearchSource,
   withWqlText,
   searchPaletteQuery,
+  palettePreferredChoices,
   paletteExecute,
   navigatePaletteResult,
 } from '../services/wqlSearchSource'
@@ -126,7 +127,11 @@ export function PlaygroundLandingPage() {
   const canvasRouteList = useCanvasRoutes()
   const openSearch = useCallback(async () => {
     const result = await usePaletteStore.getState().open({
-      wql: { initialQuery: searchPaletteQuery(), execute: paletteExecute },
+      wql: {
+        initialQuery: searchPaletteQuery(),
+        execute: paletteExecute,
+        preferredChoices: palettePreferredChoices(),
+      },
       sources: [
         wqlSearchSource(),
         withWqlText(canvasRouteSource(canvasRouteList)),

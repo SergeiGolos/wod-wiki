@@ -1,4 +1,4 @@
-export { WqlComposer, LIVE_QUERY_DEBOUNCE_MS, type WqlComposerProps, type WqlValidationState } from './WqlComposer';
+export { WqlComposer, type WqlComposerProps, type WqlValidationState } from './WqlComposer';
 export {
   matchFilterTypeahead,
   type FilterTypeaheadCandidate,
@@ -6,13 +6,9 @@ export {
 } from './filterTypeahead';
 export {
   TokenSlotPill,
-  ClausePopover,
-  CustomSlotPopover,
-  AddFilterDropdown,
-  AddCalcDropdown,
-  MULTI_VALUE_TYPES,
   type TokenSlotPillProps,
 } from './QueryPalette';
+export { MULTI_VALUE_TYPES } from './clauseVocab';
 export {
   ComposerRegistry,
   composerRegistry,
@@ -57,16 +53,18 @@ export {
   type ClauseType,
   type ClauseMeta,
   type QueryClause,
-  CONTENT_SOURCES,
   SOURCE_OPTIONS,
+  KIND_OPTIONS,
+  TARGET_OPTIONS,
   TIME_OPTIONS,
   AGG_OPTIONS,
   ROLLUP_OPTIONS,
   GROUPBY_OPTIONS,
+  CONTENT_GROUPING_DIMENSIONS,
   METRIC_OPTIONS,
   UNIT_OPTIONS,
   WHERE_AGGREGATORS,
   WHERE_METRICS,
-  sourcePlane,
+  PLANE_OPTIONS,
 } from './queryClauses';
-export { wqlToPills, pillsToWql } from './queryAst';
+export { wqlToPills, resolveQueryDraft, editQueryClause, type QueryDraft } from './queryAst';

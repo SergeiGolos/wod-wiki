@@ -1,76 +1,83 @@
 /**
- * wqlEdits — app-side structural WQL edits over the engine's C6 surface
- * (wayfinder ticket 013): parse to the AST, mutate fields, emit through the
- * serializer. These replace the retired clause-compiler helpers the app used
- * to import from the ui package (`pivotClauses`, `setMetricClause`,
- * `clauseValue`).
+ * wqlEdits — app-side structural WQL edits over the engine's parse/serialize
+ * surface. These cover the stream host's scope/time/filter-clear helpers and
+ * the explorer's metric edit; kind/target pivots and occurrence-level filter
+ * edits live in the shared composer (resolveQueryDraft/editQueryClause).
  */
 import { describe, expect, it } from 'bun:test';
 import {
-  addFilterClause,
-  pivotSourceQuery,
+  scopeOfQuery,
+  setScopeFilter,
   setMetricQuery,
-  sourceOfQuery,
-  withoutFilterIndex,
   withoutWindow,
   withoutFilters,
 } from '../lib/wqlEdits';
 
-describe('sourceOfQuery', () => {
-  it('reads the content-plane source from target + source filter', () => {
-    expect(sourceOfQuery('find:note last 2w')).toBe('notes');
-    expect(sourceOfQuery('find:note{source:journal}')).toBe('journal');
-    expect(sourceOfQuery('find:note{source:feeds,tags:pr} last 8w')).toBe('feeds');
-    expect(sourceOfQuery('find:block{text:"cindy"}')).toBe('blocks');
-    expect(sourceOfQuery('find:effort{discipline:kettlebell}')).toBe('efforts');
+describe('scopeOfQuery', () => {
+  it('reads the canonical Where-stored scope from the source filter', () => {
+    expect(scopeOfQuery('find:note last 2w')).toBeNull();
+    expect(scopeOfQuery('find:note{source:journal}')).toBe('journal');
+    expect(scopeOfQuery('find:note{source:collections,tags:pr} last 2w')).toBe('collections');
+    expect(scopeOfQuery('find:note{source:playground} last 4w')).toBe('playground');
+    expect(scopeOfQuery('find:block{source:journal}')).toBe('journal');
   });
 
-  it('reads the metrics and session planes', () => {
-    expect(sourceOfQuery('sum:totalVolume{} by {week}')).toBe('metrics');
-    expect(sourceOfQuery('find:session{result:abc-123}')).toBe('session');
-  });
-
-  it('falls back to notes for unparseable text', () => {
-    expect(sourceOfQuery('not a query')).toBe('notes');
+  it('is null for non-scoped targets, aggregates and unrepresentable scopes', () => {
+    expect(scopeOfQuery('find:effort{source:journal}')).toBeNull();
+    expect(scopeOfQuery('find:session{result:abc-123}')).toBeNull();
+    expect(scopeOfQuery('sum:totalVolume{} by {week}')).toBeNull();
+    expect(scopeOfQuery('find:note{!source:journal}')).toBeNull();
+    expect(scopeOfQuery('find:note{source:journal|feeds}')).toBeNull();
+    expect(scopeOfQuery('not a query')).toBeNull();
   });
 });
 
-describe('pivotSourceQuery', () => {
-  it('pivots content → scoped content, keeping filters and the window', () => {
-    expect(pivotSourceQuery('find:note{tags:pr} last 8w', 'journal')).toBe(
-      'find:note{source:journal,tags:pr} last 8w',
+describe('setScopeFilter', () => {
+  it('sets the scope on an all-sources query, keeping filters and window', () => {
+    expect(setScopeFilter('find:note{text:"fran",tags:pr} last 2w', 'journal')).toBe(
+      'find:note{text:fran,tags:pr,source:journal} last 2w',
     );
   });
 
-  it('pivots scoped content → all notes, dropping the source filter', () => {
-    expect(pivotSourceQuery('find:note{source:feeds,tags:pr} last 8w', 'notes')).toBe(
+  it('replaces the first source occurrence in place and preserves every other clause', () => {
+    expect(setScopeFilter('find:note{source:feeds,tags:pr} by {tag} last 8w', 'collections')).toBe(
+      'find:note{source:collections,tags:pr} by {tag} last 8w',
+    );
+  });
+
+  it('does not merge or drop a second source occurrence', () => {
+    expect(setScopeFilter('find:note{source:journal,text:"fran",source:feeds}', 'collections')).toBe(
+      'find:note{source:collections,text:fran,source:feeds}',
+    );
+  });
+
+  it('emits the canonical source:collections scope — never source:page or type:collection', () => {
+    const next = setScopeFilter('find:note{tags:pr} last 2w', 'collections');
+    expect(next).toBe('find:note{tags:pr,source:collections} last 2w');
+    expect(next).not.toContain('source:page');
+    expect(next).not.toContain('type:collection');
+  });
+
+  it('clears the scope occurrence without touching the rest', () => {
+    expect(setScopeFilter('find:note{source:journal,tags:pr} last 8w', null)).toBe(
       'find:note{tags:pr} last 8w',
     );
+    expect(setScopeFilter('find:note{source:journal,tags:pr}', '')).toBe('find:note{tags:pr}');
   });
 
-  it('pivots to blocks/efforts targets, dropping the source filter', () => {
-    expect(pivotSourceQuery('find:note{source:journal,text:"fran"}', 'blocks')).toBe(
-      'find:block{text:fran}',
-    );
-    expect(pivotSourceQuery('find:note{tags:strength}', 'efforts')).toBe('find:effort{tags:strength}');
-  });
-
-  it('pivots metrics → content, keeping shared filters and the window (C1)', () => {
-    expect(pivotSourceQuery('sum:totalVolume{effort:back-squat} by {week} last 6w', 'journal')).toBe(
-      'find:note{source:journal,effort:back-squat} last 6w',
+  it('edits block scopes like note scopes', () => {
+    expect(setScopeFilter('find:block{text:"cindy"}', 'collections')).toBe(
+      'find:block{text:cindy,source:collections}',
     );
   });
 
-  it('pivots content → metrics with an empty metric for placeholder guidance', () => {
-    expect(pivotSourceQuery('find:note{tags:pr} last 2w', 'metrics')).toBe('sum:{tags:pr} last 2w');
-  });
-
-  it('keeps the metric plane head when pivoting metrics → metrics', () => {
-    expect(pivotSourceQuery('sum:tis{} by {week} last 6w', 'metrics')).toBe('sum:tis{} by {week} last 6w');
-  });
-
-  it('leaves unparseable text untouched', () => {
-    expect(pivotSourceQuery('not a query', 'journal')).toBe('not a query');
+  it('leaves other targets, aggregates and unparseable text untouched', () => {
+    expect(setScopeFilter('find:effort{discipline:strength}', 'journal')).toBe(
+      'find:effort{discipline:strength}',
+    );
+    expect(setScopeFilter('find:session{} last 4w', 'journal')).toBe('find:session{} last 4w');
+    expect(setScopeFilter('sum:totalVolume{} by {week}', 'journal')).toBe('sum:totalVolume{} by {week}');
+    expect(setScopeFilter('not a query', 'journal')).toBe('not a query');
   });
 });
 
@@ -81,28 +88,17 @@ describe('setMetricQuery', () => {
     );
   });
 
-  it('pivots a content query onto the metrics plane with shared filters', () => {
+  it('never pivots a find query — kind pivots run through the composer warned flow', () => {
     expect(setMetricQuery('find:note{tags:pr} last 2w', 'totalVolume')).toBe(
-      'sum:totalVolume{tags:pr} last 2w',
+      'find:note{tags:pr} last 2w',
     );
-  });
-});
-
-describe('withoutFilterIndex', () => {
-  it('drops the filter at the parsed index, keeping order and window', () => {
-    expect(withoutFilterIndex('find:note{source:collections,text:"fran",tags:pr} last 2w', 1)).toBe(
-      'find:note{source:collections,tags:pr} last 2w',
+    expect(setMetricQuery('find:note{source:journal,tags:pr} last 2w', 'totalVolume')).toBe(
+      'find:note{source:journal,tags:pr} last 2w',
     );
   });
 
-  it('can drop the source-carrier filter too', () => {
-    expect(withoutFilterIndex('find:note{source:collections,tags:pr}', 0)).toBe('find:note{tags:pr}');
-  });
-
-  it('is a no-op for out-of-range indices and unparseable queries', () => {
-    const q = 'find:note{tags:pr}';
-    expect(withoutFilterIndex(q, 5)).toBe(q);
-    expect(withoutFilterIndex('not a query', 0)).toBe('not a query');
+  it('returns unparseable input untouched', () => {
+    expect(setMetricQuery('not a query', 'tis')).toBe('not a query');
   });
 });
 
@@ -115,24 +111,5 @@ describe('withoutWindow / withoutFilters', () => {
     expect(withoutFilters('find:note{source:journal,tags:pr,text:"fran"} last 8w')).toBe(
       'find:note{source:journal} last 8w',
     );
-  });
-});
-
-describe('addFilterClause', () => {
-  it('adds plain text as a text filter', () => {
-    expect(addFilterClause('find:note', 'deadlift')).toBe('find:note{text:deadlift}');
-    expect(addFilterClause('find:note{tags:strength}', 'deadlift')).toBe('find:note{tags:strength,text:deadlift}');
-  });
-
-  it('adds or updates structured filters', () => {
-    expect(addFilterClause('find:note', 'tags:strength')).toBe('find:note{tags:strength}');
-    expect(addFilterClause('find:note{tags:strength}', 'tags:metcon')).toBe('find:note{tags:metcon}');
-    expect(addFilterClause('find:note{tags:strength}', '!tags:metcon')).toBe('find:note{!tags:metcon}');
-    expect(addFilterClause('find:note{tags:strength}', 'difficulty:hard')).toBe('find:note{tags:strength,difficulty:hard}');
-  });
-
-  it('updates time window clauses', () => {
-    expect(addFilterClause('find:note{tags:strength}', 'last 2w')).toBe('find:note{tags:strength} last 2w');
-    expect(addFilterClause('find:note last 4w', 'last 2w')).toBe('find:note last 2w');
   });
 });

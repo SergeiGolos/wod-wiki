@@ -1,20 +1,21 @@
 /**
  * StreamQueryBar — the header query bar's observable contract.
  *
- * 1. The type selector states the current plane (via sourceOfQuery) and
- *    pivots the query through onQueryChange when another type is picked.
- * 2. Chips mirror parsed.filters (minus the source-carrier) + the window;
- *    ✕ removes exactly that clause.
- * 3. Tapping the bar (or the compact variant) opens the command palette in
- *    WQL mode seeded with the current query — crafting happens there, and
- *    Apply writes the composed WQL back through onQueryChange.
+ * 1. The bar hosts the shared compact WqlComposer: no header-local draft
+ *    parser, no separate scope dropdown — scope favorites flow into the
+ *    composer as preferredChoices and kind/target/scope editing happens in
+ *    the composer's one searchable picker.
+ * 2. Typing resolves synchronously through onQueryChange: valid filter
+ *    fragments emit the resolved query, invalid text emits its exact draft.
+ * 3. ⌘K (and the compact mobile row) open the command palette in WQL mode
+ *    seeded with the current query; Apply writes the composed WQL back
+ *    through onQueryChange.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { StreamQueryBar } from './StreamQueryBar'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
-import { sourceOfQuery } from '../../lib/wqlEdits'
 
 let lastQuery = ''
 
@@ -24,11 +25,11 @@ function Bar(props: Partial<Parameters<typeof StreamQueryBar>[0]> = {}) {
   return (
     <MemoryRouter>
       <StreamQueryBar
-        query='find:note{text:"deadlift",tags:strength} last 2w'
+        query='find:note{source:journal,text:"deadlift"} last 2w'
         onQueryChange={(w) => {
           lastQuery = w
         }}
-        options={['notes', 'journal', 'collections', 'feeds', 'blocks']}
+        scopeOptions={['journal', 'collections', 'feeds']}
         execute={noopExecute}
         {...props}
       />
@@ -44,90 +45,51 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('StreamQueryBar', () => {
-  it('labels the current data type and renders chips for filters + window', () => {
+  it('hosts the shared composer — no separate scope dropdown or draft input', () => {
     render(<Bar />)
-    expect(screen.getByTestId('stream-query-type').textContent).toContain('All Notes')
-    const chips = screen.getAllByTestId('stream-query-chip').map((c) => c.textContent)
-    expect(chips.some((c) => c?.includes('text:deadlift'))).toBe(true)
-    expect(chips.some((c) => c?.includes('tags:strength'))).toBe(true)
-    expect(chips.some((c) => c?.includes('last 2w'))).toBe(true)
+    expect(screen.getByTestId('stream-query-bar')).toBeDefined()
+    expect(screen.getByPlaceholderText('Filter or search…')).toBeDefined()
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(screen.queryByTestId('stream-query-type')).toBeNull()
   })
 
-  it('labels a locked route by its single data type', () => {
-    render(<Bar query='find:effort' options={['efforts']} />)
-    expect(screen.getByTestId('stream-query-type').textContent).toContain('Efforts')
-  })
-
-  it('pivots the query head when another data type is selected', () => {
+  it('emits the resolved query synchronously when a filter fragment is typed', () => {
     render(<Bar />)
-    fireEvent.click(screen.getByTestId('stream-query-type'))
-    fireEvent.click(screen.getByTestId('stream-query-type-journal'))
-    expect(lastQuery).not.toBe('')
-    expect(sourceOfQuery(lastQuery)).toBe('journal')
-    // Shared filters and window survive the pivot.
-    expect(lastQuery).toContain('deadlift')
+    const input = screen.getByPlaceholderText('Filter or search…')
+    fireEvent.change(input, { target: { value: 'tags:strength' } })
+    // Same parsing as the dialog: the fragment becomes a real clause while
+    // the scope filter and window survive untouched.
+    expect(lastQuery).toContain('tags:strength')
+    expect(lastQuery).toContain('source:journal')
     expect(lastQuery).toContain('last 2w')
   })
 
-  it('removes a filter chip without touching the rest', () => {
+  it('emits invalid text unchanged — no parse attempt, no default pills', () => {
     render(<Bar />)
-    const chip = screen
-      .getAllByTestId('stream-query-chip')
-      .find((c) => c?.textContent?.includes('text:deadlift'))
-    fireEvent.click(chip!.querySelector('button')!)
-    expect(lastQuery).toBe('find:note{tags:strength} last 2w')
+    const input = screen.getByPlaceholderText('Filter or search…')
+    fireEvent.change(input, { target: { value: 'find:note{oops' } })
+    expect(lastQuery).toBe('find:note{oops')
   })
 
-  it('removes the time window chip', () => {
+  it('opens the command palette WQL mode with the current query via ⌘K', () => {
     render(<Bar />)
-    const chip = screen
-      .getAllByTestId('stream-query-chip')
-      .find((c) => c?.textContent?.includes('last 2w'))
-    fireEvent.click(chip!.querySelector('button')!)
-    // Serializer emits the canonical (unquoted) value token.
-    expect(lastQuery).toBe('find:note{text:deadlift,tags:strength}')
+    fireEvent.click(screen.getByTitle('Edit query (⌘K)'))
+    const state = usePaletteStore.getState()
+    expect(state.isOpen).toBe(true)
+    expect(state.request?.wql?.initialQuery).toBe('find:note{source:journal,text:"deadlift"} last 2w')
+    expect(state.request?.wql?.onApply).toBeDefined()
   })
 
-  it('shows the raw query when it does not parse (escape hatch, nothing removable)', () => {
-    render(<Bar query='find:note{oops' />)
-    expect(screen.getByTestId('stream-query-raw').textContent).toBe('find:note{oops')
-    expect(screen.queryAllByTestId('stream-query-chip')).toHaveLength(0)
-  })
-
-  it('focuses the input and does not open the command palette on bar click', () => {
+  it('does not open the command palette on a plain bar click', () => {
     render(<Bar />)
     fireEvent.click(screen.getByTestId('stream-query-bar'))
     expect(usePaletteStore.getState().isOpen).toBe(false)
   })
 
-  it('opens the command palette WQL mode when clicking the ⌘K button', () => {
-    render(<Bar />)
-    fireEvent.click(screen.getByTitle('Edit query (⌘K)'))
-    const state = usePaletteStore.getState()
-    expect(state.isOpen).toBe(true)
-    expect(state.request?.wql?.initialQuery).toBe('find:note{text:"deadlift",tags:strength} last 2w')
-    expect(state.request?.wql?.onApply).toBeDefined()
-  })
-
-  it('adds a filter clause or text search when entered in the inline input', () => {
-    render(<Bar />)
-    const input = screen.getByTestId('wql-composer-input')
-    fireEvent.change(input, { target: { value: 'tags:hypertrophy' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(lastQuery).toContain('tags:hypertrophy')
-  })
-
-  it('removes the last filter chip on Backspace when input is empty', () => {
-    render(<Bar />)
-    const input = screen.getByTestId('wql-composer-input')
-    fireEvent.keyDown(input, { key: 'Backspace' })
-    expect(lastQuery).toBe('find:note{text:deadlift,tags:strength}')
-  })
-
   it('compact variant summarizes the query and opens the palette on tap', () => {
     render(<Bar compact />)
     expect(screen.getByTestId('stream-query-summary').textContent).toBe(
-      'find:note{text:"deadlift",tags:strength} last 2w',
+      'find:note{source:journal,text:"deadlift"} last 2w',
     )
     fireEvent.click(screen.getByTestId('stream-query-bar'))
     expect(usePaletteStore.getState().isOpen).toBe(true)

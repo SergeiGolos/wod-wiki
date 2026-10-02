@@ -31,11 +31,11 @@ import {
   useMobileQuerySlot,
 } from '@/panels/page-shells'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { StreamQueryBar } from './StreamQueryBar'
+import { StreamQueryBar, openStreamQueryEditor } from './StreamQueryBar'
 import type { Entry } from '../../lib/entryMapper'
 import {
   groupEntriesByDimension,
-  parseGroupingDimension,
+  parseGroupingDimensions,
 } from '../../lib/entryGrouping'
 import { defaultStreamQueryEngine, StreamQueryEngine } from '../../lib/entrySearch'
 import { useNav } from '../../nav/NavContext'
@@ -76,6 +76,10 @@ function BatchingSentinel({
     </div>
   )
 }
+
+/** Host-owned execution debounce for stream queries — the composer resolves
+ *  drafts synchronously; only the run coalesces (existing 150ms behavior). */
+const STREAM_EXECUTE_DEBOUNCE_MS = 150
 
 export interface QueriableStreamViewProps {
   /** Configuration profile for this stream route. */
@@ -229,50 +233,60 @@ export function QueriableStreamView({
     [],
   )
 
-  // Query execution pipeline
+  // Query execution pipeline. The draft resolves synchronously; only the RUN
+  // is debounced (host-owned 150ms, coalescing per-keystroke composer
+  // emissions). Invalid drafts never execute — previous results stay visible
+  // (stale, flagged by the query error banner), and loading never wedges.
   useEffect(() => {
+    if (parsed.error) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
-    const engine = activeEngine
-
-    setLoading(true)
-    engine
-      .query(query)
-      .then((results: Entry[]) => {
-        if (!cancelled) setEntries(results)
-      })
-      .catch(() => {
-        if (!cancelled) setEntries([])
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
+    const timer = setTimeout(() => {
+      setLoading(true)
+      activeEngine
+        .query(query)
+        .then((results: Entry[]) => {
+          if (!cancelled) setEntries(results)
+        })
+        .catch(() => {
+          if (!cancelled) setEntries([])
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
+    }, STREAM_EXECUTE_DEBOUNCE_MS)
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
-  }, [query, activeEngine])
+  }, [query, activeEngine, parsed])
 
-  // Grouping dimension: query `by {dim}` or view setting or default
-  const groupDim = useMemo(() => {
-    const fromQuery = parseGroupingDimension(query, parsed)
-    if (fromQuery) return fromQuery
-    if (settings.groupBy) return settings.groupBy
-    if (profile.level === 'effort') return 'discipline'
-    return 'date'
-  }, [query, parsed, settings.groupBy, profile.level])
+  // Grouping: the query's ordered `by {}` dimensions win; otherwise the view
+  // setting, then the level default.
+  const queryGrouping = useMemo(
+    () => (parsed.error ? null : parseGroupingDimensions(query, parsed)),
+    [query, parsed],
+  )
+  const groupDims = useMemo<string[]>(() => {
+    if (queryGrouping?.length) return queryGrouping
+    if (settings.groupBy) return [settings.groupBy]
+    return [profile.level === 'effort' ? 'discipline' : 'date']
+  }, [queryGrouping, settings.groupBy, profile.level])
 
   // Full dataset grouped by dimension
   const shelfVisible = profile.shelfVisible && !isPlaygroundScope
   const allGroups = useMemo(
-    () => groupEntriesByDimension(entries, groupDim, { shelfVisible }),
-    [entries, groupDim, shelfVisible],
+    () => groupEntriesByDimension(entries, groupDims, { shelfVisible }),
+    [entries, groupDims, shelfVisible],
   )
 
   // Progressive DOM batching
   const entriesBatch = useBatchedItems(entries)
   const visibleGroups = useMemo(
-    () => groupEntriesByDimension(entriesBatch.visible, groupDim, { shelfVisible }),
-    [entriesBatch.visible, groupDim, shelfVisible],
+    () => groupEntriesByDimension(entriesBatch.visible, groupDims, { shelfVisible }),
+    [entriesBatch.visible, groupDims, shelfVisible],
   )
   const groupCountMap = useMemo(() => new Map(allGroups.map(g => [g.id, g.entries.length])), [allGroups])
 
@@ -407,7 +421,7 @@ export function QueriableStreamView({
           <StreamQueryBar
             query={query}
             onQueryChange={setQuery}
-            options={profile.typeOptions}
+            scopeOptions={profile.scopeOptions}
             execute={execute}
           />
         }
@@ -415,8 +429,8 @@ export function QueriableStreamView({
 
       {/* ponytail: the nudge is a passive hint — upgrade to an inline source
           picker when the "Empty-option nudge UX" ticket lands. An empty
-          typeOptions list is a deliberate Route WQL Config state. */}
-      {profile.typeOptions.length === 0 && (
+          scopeOptions list is a deliberate Route WQL Config state. */}
+      {profile.scopeOptions.length === 0 && (
         <p
           data-testid="route-wql-empty-options"
           className="px-4 pt-3 text-xs text-muted-foreground sm:px-6 lg:px-8"
@@ -429,7 +443,7 @@ export function QueriableStreamView({
           <StreamQueryBar
             query={query}
             onQueryChange={setQuery}
-            options={profile.typeOptions}
+            scopeOptions={profile.scopeOptions}
             execute={execute}
             compact
           />,
@@ -599,7 +613,9 @@ export function QueriableStreamView({
         route={profile.route}
         level={profile.level}
         settings={settings}
-        activeGroupBy={groupDim}
+        activeGroupBy={groupDims[0]}
+        queryGrouping={queryGrouping}
+        onEditQuery={() => openStreamQueryEditor(query, execute, setQuery)}
         onGroupByChange={handleGroupByChange}
         onLayoutChange={setLayout}
         onToggleField={toggleField}

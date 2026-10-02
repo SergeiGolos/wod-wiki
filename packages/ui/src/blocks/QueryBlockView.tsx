@@ -20,8 +20,10 @@ export interface QueryBlockViewProps {
   executor?: QueryExecutor;
   /** Optional callback or subscription hook for when a result is saved, replacing hardcoded resultRecorder coupling. */
   onResultSaved?: (callback: () => void) => (() => void) | void;
-  /** Present when the query block is editable — opens the WQL composer. */
-  onSaveQuery?: (nextQuery: string) => void;
+  /** Present when the query block is editable — opens the WQL composer.
+   *  May return the write's Promise so a rejected save keeps the editor
+   *  open; a plain void write is fire-and-forget. */
+  onSaveQuery?: (nextQuery: string) => void | Promise<void>;
   /** When multiple queries appear in one block, the index of this query. */
   queryIndex?: number;
   /** When true, editing the query is disallowed. */
@@ -230,9 +232,7 @@ export function QueryBlockView({
           onClose={() => setIsModalOpen(false)}
           initialQuery={effectiveQuery}
           executor={executor}
-          onApply={(nextQuery) => {
-            onSaveQuery(nextQuery);
-          }}
+          onApply={(nextQuery) => onSaveQuery(nextQuery)}
         />
       )}
     </div>

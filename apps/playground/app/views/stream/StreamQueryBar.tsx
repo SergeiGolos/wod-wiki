@@ -2,145 +2,70 @@
  * StreamQueryBar — the single-line WQL query bar that lives IN the header
  * (Stitch redesign, `prototypes/header-query-bar/`).
  *
- * One line, three zones:
- *   [data-type ▾]  [query chips … +N]  [⌘K]
+ * Desktop: the shared WqlComposer in compact mode IS the bar — kind, target
+ * and Where-stored scope chips with one searchable picker; favorites
+ * (`scopeOptions`) prioritize choices without ever defining validity. There
+ * is no header-local parser, draft text or separate scope dropdown. ⌘K opens
+ * the same query in the palette dialog; Apply writes the composed WQL back
+ * through `onQueryChange` (URL `?q=` follows).
  *
- * - The type selector states what kind of data the page returns and pivots
- *   the query's head clause through `pivotSourceQuery` (notes / journal /
- *   collections / feeds / blocks / efforts / rows).
- * - Chips are the committed filters + time window. Chips that don't fit the
- *   bar collapse behind a `+N` chip. ✕ removes a chip in place.
- * - Everything else — crafting, adding filters, overflow detail — opens the
- *   command palette in WQL mode seeded with the current query; Apply writes
- *   the composed WQL back through `onQueryChange` (URL `?q=` follows).
- *
- * `compact` (mobile) renders the bar that portals into the app navbar:
- * type pill + truncated WQL; tapping opens the same palette dialog
- * (view settings lives in the mobile dock, owned by ResponsiveActions).
+ * `compact` (mobile) renders the summary row that portals into the app
+ * navbar: tapping opens the shared palette dialog (view settings lives in
+ * the mobile dock, owned by ResponsiveActions).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Clock3, Command, Search } from 'lucide-react'
-import { parseQuery, type QueryWindow } from '@bitcobblers/wod-wiki-engine'
-import { SOURCE_OPTIONS, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
+import { useCallback } from 'react'
+import { ChevronUp, Command, Search } from 'lucide-react'
+import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/atoms/primitives/dropdown-menu'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
-import { addFilterClause, pivotSourceQuery, sourceOfQuery, withoutFilterIndex, withoutWindow } from '../../lib/wqlEdits'
-
-/** Semantic dot hue per source plane (Mineral Arctic metric hues). */
-const SOURCE_DOT: Record<string, string> = {
-  notes: '#375f85',
-  journal: '#508860',
-  collections: '#7C62A0',
-  feeds: '#5980A8',
-  playground: '#B0653A',
-  blocks: '#A87040',
-  efforts: '#948030',
-  metrics: '#5980A8',
-  session: '#A05858',
-}
-
-// SOURCE_OPTIONS (ui package) covers the classic planes; the playground
-// plane entered the WQL vocabulary after that table was frozen — label it
-// here rather than forking the shared option list.
-const SOURCE_LABEL: Record<string, string> = {
-  ...Object.fromEntries(SOURCE_OPTIONS.map((o) => [o.value, o.label])),
-  playground: 'Playground',
-  // wqlEdits.sourceOfQuery returns these plural scope keys for the content plane.
-  notes: 'All Notes',
-  blocks: 'Blocks',
-  efforts: 'Efforts',
-  metrics: 'Metrics',
-}
-
-function windowLabel(w: QueryWindow): string {
-  if (w.kind === 'relative') return `last ${w.size}${w.unit}`
-  return w.end ? `from ${w.start} to ${w.end}` : `from ${w.start}`
-}
 
 export interface StreamQueryBarProps {
   /** The controlled WQL string (the composer query state). */
   query: string
   onQueryChange: (wql: string) => void
-  /** Source-plane options the type selector offers (wqlEdits vocabulary). */
-  options: readonly string[]
+  /** Where-stored scope favorites for this route (streamProfile.scopeOptions)
+   *  — picker sort priority only, never a validity filter. */
+  scopeOptions: readonly string[]
   /** Stage-count executor handed to the palette composer. */
   execute: WqlExecutor
-  /** Compact (mobile) variant — summary line instead of chips. */
+  /** Compact (mobile) variant — summary line instead of the composer. */
   compact?: boolean
   className?: string
+}
+
+/** Open the shared query dialog (palette WQL mode) on `query`; Apply writes
+ *  the composed WQL through `onApply`. Also the ViewSettingsDialog "Edit
+ *  query" action. */
+export function openStreamQueryEditor(
+  query: string,
+  execute: WqlExecutor,
+  onApply: (wql: string) => void,
+): void {
+  void usePaletteStore.getState().open({
+    placeholder: 'Craft the query…',
+    wql: { initialQuery: query, execute, onApply },
+    sources: [wqlSearchSource()],
+  })
 }
 
 export function StreamQueryBar({
   query,
   onQueryChange,
-  options,
+  scopeOptions,
   execute,
   compact = false,
   className,
 }: StreamQueryBarProps) {
-  const [typeMenuOpen, setTypeMenuOpen] = useState(false)
-  const parsed = useMemo(() => parseQuery(query), [query])
-  const sourceValue = sourceOfQuery(query)
-
-  const openEditor = useCallback(() => {
-    void usePaletteStore.getState().open({
-      placeholder: 'Craft the query…',
-      wql: { initialQuery: query, execute, onApply: onQueryChange },
-      sources: [wqlSearchSource()],
-    })
-  }, [query, execute, onQueryChange])
-
-  const typeMenu = (
-    <DropdownMenu open={typeMenuOpen} onOpenChange={setTypeMenuOpen}>
-      <DropdownMenuTrigger
-        data-testid="stream-query-type"
-        className={cn(
-          'flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-card shadow-xs hover:border-border',
-          compact ? 'px-3 py-1.5 text-xs' : 'px-2.5 py-1 text-[11px] font-semibold text-foreground',
-        )}
-      >
-        <span
-          aria-hidden
-          className="size-2 shrink-0 rounded-full"
-          style={{ background: SOURCE_DOT[sourceValue] ?? 'var(--primary)' }}
-        />
-        <span className="max-w-32 truncate">{SOURCE_LABEL[sourceValue] ?? sourceValue}</span>
-        <ChevronDown className="size-3 text-muted-foreground" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()} className="min-w-44">
-        {options.map((value) => (
-          <DropdownMenuItem
-            key={value}
-            data-testid={`stream-query-type-${value}`}
-            onClick={() => {
-              setTypeMenuOpen(false)
-              onQueryChange(pivotSourceQuery(query, value))
-            }}
-            className={cn('gap-2 text-xs', value === sourceValue && 'font-semibold text-primary')}
-          >
-            <span
-              aria-hidden
-              className="size-2 rounded-full"
-              style={{ background: SOURCE_DOT[value] ?? 'var(--primary)' }}
-            />
-            {SOURCE_LABEL[value] ?? value}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+  const openEditor = useCallback(
+    () => openStreamQueryEditor(query, execute, onQueryChange),
+    [query, execute, onQueryChange],
   )
 
   if (compact) {
     // Mobile thumb-footer button row — the whole row is one tappable control
-    // (opens the WQL palette); the source pill stays a nested menu.
+    // (48px target) that opens the WQL palette.
     return (
       <div
         role="button"
@@ -154,12 +79,11 @@ export function StreamQueryBar({
           }
         }}
         className={cn(
-          'flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border/70 bg-muted/40 px-3 text-left shadow-xs transition-colors hover:bg-muted/70',
+          'flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border/70 bg-muted/40 px-3 text-left shadow-xs transition-colors hover:bg-muted/70',
           className,
         )}
       >
         <Search className="size-4 shrink-0 text-muted-foreground" />
-        {typeMenu}
         <span
           data-testid="stream-query-summary"
           className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
@@ -172,177 +96,20 @@ export function StreamQueryBar({
   }
 
   return (
-    <DesktopBar
-      query={query}
-      parsed={parsed}
-      onQueryChange={onQueryChange}
-      openEditor={openEditor}
-      typeMenu={typeMenu}
-      className={className}
-    />
-  )
-}
-
-interface Chip {
-  key: string
-  label: string
-  remove: () => void
-}
-
-function DesktopBar({
-  query,
-  parsed,
-  onQueryChange,
-  openEditor,
-  typeMenu,
-  className,
-}: {
-  query: string
-  parsed: ReturnType<typeof parseQuery>
-  onQueryChange: (wql: string) => void
-  openEditor: () => void
-  typeMenu: ReactNode
-  className?: string
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const chipsRef = useRef<HTMLDivElement>(null)
-  const [hiddenCount, setHiddenCount] = useState(0)
-  const [draftText, setDraftText] = useState('')
-  const chips = useMemo<Chip[]>(() => {
-    if (parsed.error) return []
-    const out: Chip[] = parsed.filters.map((f, index) => ({
-      key: `f${index}`,
-      label: `${f.negate ? '!' : ''}${f.key}:${f.values.map((v) => v.value).join('|')}`,
-      remove: () => onQueryChange(withoutFilterIndex(query, index)),
-    }))
-    if (parsed.window) {
-      out.push({
-        key: 'window',
-        label: windowLabel(parsed.window),
-        remove: () => onQueryChange(withoutWindow(query)),
-      })
-    }
-    return out
-  }, [parsed, query, onQueryChange])
-
-  // Overflow: hide right-most chips that don't fit behind a +N chip.
-  // Single deterministic pass over accumulated chip widths (scrollWidth
-  // races font loading; offsets are stable once fonts settle, so re-measure
-  // on document.fonts.ready too).
-  useEffect(() => {
-    const el = chipsRef.current
-    if (!el) return
-    const measure = () => {
-      const kids = Array.from(el.querySelectorAll<HTMLElement>('[data-chip]'))
-      kids.forEach((k) => (k.style.display = ''))
-      const gap = 4
-      const moreReserve = 44 // room for the +N chip whenever something hides
-      let used = 0
-      let hidden = 0
-      for (let i = 0; i < kids.length; i++) {
-        const w = kids[i].offsetWidth
-        const projected = used + (used > 0 ? gap : 0) + w + (i < kids.length - 1 ? moreReserve : 0)
-        // The first chip always stays visible — an empty bar tells nothing.
-        if (i > 0 && projected > el.clientWidth) {
-          for (let j = i; j < kids.length; j++) {
-            kids[j].style.display = 'none'
-            hidden++
-          }
-          break
-        }
-        used = projected
-      }
-      setHiddenCount(hidden)
-    }
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    measure()
-    document.fonts?.ready.then(measure).catch(() => {})
-    return () => ro.disconnect()
-  }, [chips])
-
-  return (
     <div
       data-testid="stream-query-bar"
-      onClick={() => inputRef.current?.focus()}
-      className={cn(
-        'flex h-9 min-w-0 flex-1 cursor-text items-center gap-1 rounded-full border border-border/60 bg-muted/30 px-1 text-xs',
-        className,
-      )}
+      className={cn('flex min-w-0 flex-1 items-center gap-1 text-xs', className)}
     >
-      {typeMenu}
-
-      <div ref={chipsRef} className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden px-0.5">
-        {parsed.error ? (
-          <span
-            className="min-w-0 flex-1 truncate px-1 font-mono text-[11px] text-destructive"
-            data-testid="stream-query-raw"
-          >
-            {query}
-          </span>
-        ) : (
-          chips.map((chip) => (
-            <span
-              key={chip.key}
-              data-chip
-              data-testid="stream-query-chip"
-              className="flex shrink-0 items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-            >
-              {chip.key === 'window' && <Clock3 className="size-3 shrink-0" />}
-              {chip.label}
-              <button
-                type="button"
-                title="Remove filter"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  chip.remove()
-                }}
-                className="ml-0.5 rounded-full p-px text-muted-foreground/60 hover:bg-muted hover:text-foreground"
-              >
-                <svg viewBox="0 0 24 24" className="size-2.5" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))
-        )}
-        {hiddenCount > 0 && (
-          <button
-            type="button"
-            data-testid="stream-query-overflow"
-            title="Show hidden query details"
-            onClick={(e) => {
-              e.stopPropagation()
-              openEditor()
-            }}
-            className="shrink-0 rounded-full border border-dashed border-primary/50 px-2 py-0.5 font-mono text-[11px] font-semibold text-primary"
-          >
-            +{hiddenCount}
-          </button>
-        )}
-      </div>
-      <input
-        ref={inputRef}
-        type="text"
-        data-testid="wql-composer-input"
+      {/* Shared composer — same parsing, catalog and searchable picker as the
+          dialog; the header has no separate draft text or scope menu. */}
+      <WqlComposer
+        query={query}
+        onQueryChange={onQueryChange}
+        compact
+        showDiagnostics={false}
+        preferredChoices={scopeOptions}
         placeholder="Filter or search…"
-        value={draftText}
-        onChange={(e) => setDraftText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            const trimmed = draftText.trim()
-            if (trimmed) {
-              onQueryChange(addFilterClause(query, trimmed))
-              setDraftText('')
-            }
-          } else if (e.key === 'Backspace' && !draftText && chips.length > 0) {
-            e.preventDefault()
-            chips[chips.length - 1].remove()
-          }
-        }}
-        onClick={(e) => e.stopPropagation()}
-        className="min-w-[80px] flex-1 bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+        className="min-w-0 flex-1"
       />
 
       <button
@@ -352,7 +119,7 @@ function DesktopBar({
           e.stopPropagation()
           openEditor()
         }}
-        className="mr-0.5 flex shrink-0 items-center gap-1 rounded-full bg-background/80 px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground"
+        className="flex shrink-0 items-center gap-1 rounded-full bg-background/80 px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground"
       >
         <Command className="size-3" />
         K

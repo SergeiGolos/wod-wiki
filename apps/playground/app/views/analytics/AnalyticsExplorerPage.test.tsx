@@ -130,6 +130,16 @@ function renderPage(initialQuery: string) {
 
 const pageRuns = () => runQueryCalls.filter((c) => c.hasOptions).map((c) => c.raw);
 
+/** The widget composer's query editor: the exact-WQL textarea for
+ *  non-guided drafts, otherwise the guided combobox input. */
+async function composerEditor(dialog: HTMLElement): Promise<HTMLTextAreaElement | HTMLInputElement> {
+  return waitFor(() => {
+    const textarea = within(dialog).queryByTestId('wql-composer-wql');
+    if (textarea) return textarea as HTMLTextAreaElement;
+    return within(dialog).getByTestId('wql-composer-input') as HTMLInputElement;
+  });
+}
+
 /** Examples live in the command-bar combo box — open it first. */
 async function clickExample(label: string) {
   fireEvent.click(screen.getByTestId('explorer-examples'));
@@ -213,7 +223,7 @@ describe('AnalyticsExplorerPage', () => {
     expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5');
   });
 
-  it('Save opens the composer flow seeded with the subset and a live combined WQL', async () => {
+  it('Save seeds the composer with the exact current draft — no reconstruction', async () => {
     renderPage('find:note{tags:pr,source:journal}');
     await waitFor(() => expect(screen.getByTestId('save-query')).toBeDefined());
 
@@ -221,12 +231,11 @@ describe('AnalyticsExplorerPage', () => {
 
     // Dataset: the find query is the subset (data source).
     expect(screen.getByTestId('widget-composer-subset').textContent).toContain('find:note{tags:pr,source:journal}');
-    // Calculation: the composer seeds the subset as its where join…
-    await waitFor(() => expect(screen.getByTestId('token-slot-where').textContent).toContain('find:note{tags:pr,source:journal}'));
-    // …and the exact composed WQL previews live (this is what gets persisted).
-    await waitFor(() => expect(screen.getByTestId('widget-composer-wql').textContent).toContain('where find:note{tags:pr,source:journal}'));
-    // The seeded head still lacks a metric — Apply stays gated until it parses.
-    expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).not.toBeNull();
+    // The calculation composer seeds the EXACT draft (never a sum:{}
+    // reconstruction) — the live preview is what gets persisted.
+    await waitFor(() => expect(screen.getByTestId('widget-composer-wql').textContent).toContain('find:note{tags:pr,source:journal}'));
+    // The seeded find is itself a valid table widget — Apply is ready.
+    expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).toBeNull();
     // Destination defaults to creating a new dashboard.
     await waitFor(() =>
       expect(screen.getByTestId('dashboard-dest-new').getAttribute('aria-pressed')).toBe('true'),
@@ -237,11 +246,10 @@ describe('AnalyticsExplorerPage', () => {
     renderPage('find:note{tags:pr,source:journal}');
     fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
 
-    // Commit a full valid calculation through the composer.
+    // Commit a full valid calculation through the composer, replacing the
+    // exact find seed.
     const dialog = await waitFor(() => screen.getByRole('dialog'));
-    const input = within(dialog).getByTestId('wql-composer-input') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.change(await composerEditor(dialog), { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
     await waitFor(() =>
       expect(screen.getByTestId('widget-composer-wql').textContent).toContain('sum:totalVolume{} where find:note{tags:pr,source:journal}'),
     );
@@ -266,9 +274,7 @@ describe('AnalyticsExplorerPage', () => {
     fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
 
     const dialog = await waitFor(() => screen.getByRole('dialog'));
-    const input = within(dialog).getByTestId('wql-composer-input') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.change(await composerEditor(dialog), { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
     await waitFor(() => expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).toBeNull());
 
     fireEvent.click(screen.getByTestId('widget-composer-apply'));
@@ -329,10 +335,9 @@ describe('AnalyticsExplorerPage', () => {
   it('hydrates the composer from ?q= and runs the query', async () => {
     renderPage('sum:totalVolume{discipline:strength} by {week}');
 
-    expect(screen.getByTestId('token-slot-source').textContent).toContain('metrics');
-    expect(screen.getByTestId('token-slot-metric').textContent).toContain('totalVolume');
-    expect(screen.getByTestId('token-slot-discipline').textContent).toContain('strength');
-
+    // The draft hydrated verbatim (valid indicator, no rewrite)…
+    await waitFor(() => expect(screen.getByTestId('draft-validity').textContent).toContain('valid'));
+    // …and the deep-linked query ran.
     await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{discipline:strength} by {week}'));
   });
 
@@ -364,8 +369,8 @@ describe('AnalyticsExplorerPage', () => {
     await waitFor(() => expect(screen.getByTestId('token-slot-metric')).toBeDefined());
     expect(pageRuns()).not.toContain('sum:totalVolume{} by {week}');
 
-    // Submit via the Run button — the page runs the edited draft.
-    fireEvent.click(screen.getByTestId('run-query'));
+    // Submit via the composer-owned Run button — the page runs the edited draft.
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
     await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{} by {week}'));
   });
 

@@ -23,6 +23,11 @@ export interface CommandListViewProps<TPayload> {
    */
   searchRow?: React.ReactNode;
   /**
+   * Sticky actions rendered after the results, outside the scrolling body
+   * (e.g. Cancel / Apply in the palette's query-dialog mode).
+   */
+  footer?: React.ReactNode;
+  /**
    * Client-side filter results by `query` (default true). Set false when the
    * sources already interpret the query (WQL mode) — the query string is WQL
    * syntax, not display text, so substring filtering would drop every hit.
@@ -49,6 +54,7 @@ export function CommandListView<TPayload>({
   onClose,
   header,
   searchRow,
+  footer,
   filterResults = true,
   placeholder = 'Search…',
   actions,
@@ -58,6 +64,10 @@ export function CommandListView<TPayload>({
   className,
 }: CommandListViewProps<TPayload>) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // Results own keyboard navigation ONLY while focused: ArrowDown from the
+  // search row explicitly moves ownership here, and composer/editing keys
+  // never activate a result.
+  const resultsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -106,15 +116,37 @@ export function CommandListView<TPayload>({
     state.setQuery(filterResults ? query : '');
   }, [query, filterResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep the active result visible while navigating.
+  useEffect(() => {
+    if (!state.activeId) return;
+    const el = resultsRef.current?.querySelector(`[data-item-id="${CSS.escape(state.activeId)}"]`);
+    el?.scrollIntoView?.({ block: 'nearest' });
+  }, [state.activeId]);
+
   if (!isOpen) return null;
 
-  function handleKeyDown(e: React.KeyboardEvent) {
+  // Search-row keys: Escape closes; ArrowDown moves keyboard ownership into
+  // the results region. Composer-handled keys (its own suggestion list)
+  // preventDefault and never reach this boundary.
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+    if (e.key === 'ArrowDown' && !e.defaultPrevented && state.visibleItems.length > 0) {
+      e.preventDefault();
+      state.setActiveId(state.visibleItems[0].id);
+      resultsRef.current?.focus();
+    }
+  };
+
+  const handleResultsKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
       return;
     }
     state.onKeyDown(e);
-  }
+  };
 
   return (
     <div
@@ -124,42 +156,57 @@ export function CommandListView<TPayload>({
         'flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900',
         className,
       )}
-      onKeyDown={handleKeyDown}
+      onKeyDown={(e) => {
+        // Container-level: Escape only. Result activation is owned by the
+        // focused results region — editing keys in the search row never
+        // select a result.
+        if (e.key === 'Escape') onClose();
+      }}
     >
       {/* Search row (default input or a custom composer) */}
-      {searchRow ?? (
-        <div className="flex items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-700">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={e => onQueryChange(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-          />
-          {mobileClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              data-testid="palette-cancel"
-              className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:text-foreground sm:hidden"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-          <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
-            esc
-          </kbd>
-        </div>
-      )}
+      <div onKeyDown={handleSearchKeyDown}>
+        {searchRow ?? (
+          <div className="flex items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-700">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={e => onQueryChange(e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+            />
+            {mobileClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                data-testid="palette-cancel"
+                className="-mr-1 rounded-md p-1.5 text-muted-foreground hover:text-foreground sm:hidden"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
+              esc
+            </kbd>
+          </div>
+        )}
+      </div>
 
       {/* Optional contextual header (e.g. statement builder segment UI) */}
       {header}
 
-      {/* Results */}
-      <div className="flex-1 overflow-y-auto p-1" role="listbox">
+      {/* Results — a labelled focus region with its own keyboard ownership */}
+      <div
+        ref={resultsRef}
+        role="listbox"
+        aria-label="Results"
+        aria-activedescendant={state.activeId ?? undefined}
+        tabIndex={-1}
+        onKeyDown={handleResultsKeyDown}
+        className="min-h-0 flex-1 overflow-y-auto p-1 outline-none"
+      >
         {/* Group headers */}
         {state.visibleItems.length === 0
           ? (emptyState ?? (
@@ -196,6 +243,7 @@ export function CommandListView<TPayload>({
                   return (
                     <div
                       key={item.id}
+                      id={item.id}
                       data-item-id={item.id}
                       className="group"
                       onMouseEnter={() => state.setActiveId(item.id)}
@@ -207,6 +255,9 @@ export function CommandListView<TPayload>({
               </div>
             ))}
       </div>
+
+      {/* Sticky actions (query dialog footer) — outside the scrolling body */}
+      {footer}
     </div>
   );
 }

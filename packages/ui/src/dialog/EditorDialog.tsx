@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { cn } from '../utils/cn';
 import { useVisualViewportRect } from './visualViewport';
 
 export interface EditorDialogProps {
@@ -15,6 +16,10 @@ export interface EditorDialogProps {
   children: ReactNode;
   /** Sticky footer (e.g. Cancel/Save) — pinned above the keyboard on mobile. */
   footer?: ReactNode;
+  /** 'default' (centered/full-screen, unchanged) or 'sheet' (mobile bottom
+   *  sheet over the lower visible viewport, non-input initial focus,
+   *  safe-area footer; desktop keeps the centered panel). */
+  presentation?: 'default' | 'sheet';
 }
 
 const FOCUSABLE_SELECTOR =
@@ -24,10 +29,11 @@ const FOCUSABLE_SELECTOR =
  * EditorDialog — accessible editor surface shared by dashboard/effort/note
  * editing flows.
  *
- * Deliberately NOT a native `<dialog>`: the top layer would obscure
- * body-portaled popovers (the WQL composer's ClausePopover portals to
- * `document.body`). This renders a plain fixed overlay via portal, so those
- * popovers keep painting and receiving clicks/focus above it.
+ * Deliberately NOT a native `<dialog>`: the top layer would obscure any
+ * body-portaled surfaces a host renders above it (the WQL composer's
+ * hover/touch affordances, palette results). This renders a plain fixed
+ * overlay via portal, so portaled content keeps painting and receiving
+ * clicks/focus above it.
  *
  * Focus containment is lenient by the same constraint: Tab cycles within the
  * dialog only while focus is inside it — focus that moves into a body-portaled
@@ -46,14 +52,18 @@ export function EditorDialog({
   description,
   children,
   footer,
+  presentation = 'default',
 }: EditorDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<Element | null>(null);
   const viewport = useVisualViewportRect();
+  const sheet = presentation === 'sheet';
 
   // Background scroll lock + initial focus while open; restore on close.
+  // Sheet presentation never pulls focus into an input — the keyboard must
+  // stay closed until an explicit tap — so it skips [data-autofocus].
   useEffect(() => {
     if (!open) return;
     restoreFocusRef.current = document.activeElement;
@@ -62,8 +72,10 @@ export function EditorDialog({
     const frame = requestAnimationFrame(() => {
       const panel = panelRef.current;
       if (!panel) return;
-      const autoFocus = panel.querySelector<HTMLElement>('[data-autofocus]');
-      (autoFocus ?? panel).focus();
+      const target = sheet
+        ? panel
+        : (panel.querySelector<HTMLElement>('[data-autofocus]') ?? panel);
+      target.focus();
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -71,7 +83,7 @@ export function EditorDialog({
       const restore = restoreFocusRef.current;
       if (restore instanceof HTMLElement && document.contains(restore)) restore.focus();
     };
-  }, [open]);
+  }, [open, sheet]);
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -112,7 +124,10 @@ export function EditorDialog({
 
   return createPortal(
     <div
-      className="fixed left-0 right-0 z-50 flex flex-col bg-black/40 dark:bg-black/60 sm:items-center sm:justify-center sm:bg-background/80 sm:p-4 sm:backdrop-blur-sm"
+      className={cn(
+        'fixed left-0 right-0 z-50 flex flex-col bg-black/40 dark:bg-black/60 sm:items-center sm:justify-center sm:bg-background/80 sm:p-4 sm:backdrop-blur-sm',
+        sheet && 'max-sm:justify-end',
+      )}
       style={viewportStyle}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -126,8 +141,21 @@ export function EditorDialog({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-card outline-none sm:max-h-full sm:max-w-2xl sm:flex-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl"
+        className={cn(
+          'flex min-h-0 w-full flex-col overflow-hidden bg-card outline-none sm:max-h-full sm:max-w-2xl sm:flex-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl',
+          // Sheet: bottom-anchored at its natural height over the lower
+          // visible viewport (expands toward full height as content needs),
+          // with a rounded top edge; desktop keeps the centered panel.
+          sheet
+            ? 'max-sm:flex-none max-sm:min-h-[66%] max-sm:max-h-full max-sm:rounded-t-2xl'
+            : 'flex-1 sm:max-h-full',
+        )}
       >
+        {sheet && (
+          <div aria-hidden className="flex justify-center pt-2 sm:hidden">
+            <div className="h-1 w-10 rounded-full bg-border" />
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3 border-b border-border/80 px-4 py-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
             <h2 id={titleId} className="text-base font-semibold text-foreground">
@@ -150,7 +178,21 @@ export function EditorDialog({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
         {footer && (
-          <div className="border-t border-border/80 bg-muted/10 px-4 py-3 sm:px-6 max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11">{footer}</div>
+          <div
+            className={cn(
+              'border-t border-border/80 bg-muted/10 px-4 py-3 sm:px-6',
+              // 44px default mobile density; sheet actions get the full
+              // 48px touch target.
+              sheet
+                ? 'max-sm:[&_button]:min-h-12 max-sm:[&_button]:min-w-11'
+                : 'max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11',
+              // Sheet rides the visual viewport bottom; clear the home
+              // indicator / gesture area.
+              sheet && 'max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+            )}
+          >
+            {footer}
+          </div>
         )}
       </div>
     </div>,

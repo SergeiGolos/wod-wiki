@@ -5,13 +5,35 @@ import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
-import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
+import { parseQuery } from '@bitcobblers/wod-wiki-engine';
+import { useVisualViewportRect, WqlComposer, type WqlValidationState } from '@bitcobblers/wod-wiki-ui';
 
-/** Mobile palette floats just below the viewport top edge (the overlay covers
- *  the page nav, so docking under it would read as glued to a dimmed bar). */
-const MOBILE_TOP_PX = 2;
-/** Gap kept between the palette's bottom edge and the soft keyboard. */
-const MOBILE_BOTTOM_GAP_PX = 8;
+/** Host-owned execution debounce: the composer resolves drafts synchronously;
+ *  only the source search coalesces (#1010 kept at the existing 150ms). */
+const SEARCH_DEBOUNCE_MS = 150;
+
+/** Mobile bottom sheet: opens at roughly the lower two-thirds of the visual
+ *  viewport and may expand toward full height when content needs it. Both
+ *  bounds track the visual viewport, so the sticky footer stays above the
+ *  soft keyboard. */
+const SHEET_MIN_VH = 0.66;
+const SHEET_MAX_VH = 0.92;
+
+/** The palette is a search-first surface on desktop (type immediately); on
+ *  mobile it opens without claiming the keyboard — Search is an explicit
+ *  tap (modal hosts never autofocus). */
+function useIsDesktopViewport(): boolean {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window === 'undefined' || window.matchMedia('(min-width: 1024px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return isDesktop;
+}
 
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {
@@ -34,19 +56,38 @@ function toListItem(item: PaletteItem): IListItem<PaletteItem> {
  *   const result = await usePaletteStore.getState().open({ sources: [...] });
  *   if (!result.dismissed) { handle(result.item); }
  *
- * WQL mode (request.wql, issue #834): the plain text input is replaced by the
- * shared WqlComposer and sources receive the composed WQL string. Keyboard
- * flow end-to-end: composer autofocuses, Enter commits free text as a text
- * clause, ArrowDown moves into the result list, Enter activates the item.
+ * WQL mode (request.wql, issue #834): the plain text input is replaced by
+ * the shared WqlComposer. ONE draft: the composer's synchronous
+ * `onQueryChange` is the sole query authority (mirrored into a ref so
+ * Apply/onSubmit always consume the exact visible draft, invalid included —
+ * invalid drafts never apply or execute). Only the source search is
+ * debounced; an invalid draft keeps the previous results marked stale.
+ * Results are a separate labelled focus region: editing keys never activate
+ * a result. Query actions (Cancel / Apply) live in a sticky footer outside
+ * the scrolling content — a bottom sheet on mobile.
  */
 export const PaletteShell: React.FC = () => {
   const { isOpen, request, _select, _dismiss } = usePaletteStore();
 
+  // One draft for both modes: the WQL composer's resolved output or the
+  // plain input text. The ref mirrors state synchronously inside the event,
+  // so a first-action Apply never reads a stale render.
   const [query, setQuery] = useState('');
-  // WQL mode: the composer's debounced live emission (committed pills +
-  // pending text as a text filter) — this is the string the sources search.
-  const [liveWql, setLiveWql] = useState('');
-  const activeQuery = request?.wql ? liveWql : query;
+  const queryRef = useRef('');
+  const [validity, setValidity] = useState<WqlValidationState>({ valid: true });
+  const validityRef = useRef(validity);
+  const isDesktop = useIsDesktopViewport();
+
+  const handleQueryChange = useCallback((wql: string) => {
+    queryRef.current = wql;
+    setQuery(wql);
+  }, []);
+
+  const handleValidationChange = useCallback((state: WqlValidationState) => {
+    validityRef.current = state;
+    setValidity(state);
+  }, []);
+
   const [results, setResults] = useState<IListItem<PaletteItem>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchVersion = useRef(0);
@@ -84,44 +125,41 @@ export const PaletteShell: React.FC = () => {
   }, [isOpen, _dismiss, navigate]);
 
   const wqlConfig = request?.wql;
-  // Mobile (<lg): the palette floats near the viewport top and its height is
-  // capped to the visual viewport so the soft keyboard never covers results.
-  // Tracked live (on open + viewport resize/scroll — both fire when the
-  // keyboard opens). Desktop drops 10% and caps at 80vh so long result lists
-  // scroll in place instead of running past the bottom of the viewport.
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-  useEffect(() => {
-    if (!isOpen) return;
-    const vv = window.visualViewport;
-    const update = () => setViewportHeight(vv?.height ?? window.innerHeight);
-    update();
-    window.addEventListener('resize', update);
-    vv?.addEventListener('resize', update);
-    vv?.addEventListener('scroll', update);
-    return () => {
-      window.removeEventListener('resize', update);
-      vv?.removeEventListener('resize', update);
-      vv?.removeEventListener('scroll', update);
-    };
-  }, [isOpen]);
 
-  // Reset query + results whenever the request changes (new step) or the palette opens.
+  // Shared visual-viewport tracking (keyboard-aware sheet bounds — no
+  // duplicate viewport listeners in this host).
+  const viewport = useVisualViewportRect();
+  const sheetMinH = viewport.height ? `${Math.round(viewport.height * SHEET_MIN_VH)}px` : '66dvh';
+  const sheetMaxH = viewport.height ? `${Math.round(viewport.height * SHEET_MAX_VH)}px` : '92dvh';
+
+  // Reset the draft + results whenever the request changes (new step) or the
+  // palette opens. The composer owns further emissions; seeding here only
+  // sets the request's own initial text.
   useEffect(() => {
     if (isOpen && request) {
-      // WQL mode: seed the live query from the initial WQL — the composer
-      // owns further emissions; resetting here would clobber it.
-      if (request.wql) setLiveWql(request.wql.initialQuery ?? '');
-      else setQuery(request.initialQuery ?? '');
+      const initial = request.wql ? request.wql.initialQuery ?? '' : request.initialQuery ?? '';
+      queryRef.current = initial;
+      setQuery(initial);
+      validityRef.current = { valid: true };
+      setValidity({ valid: true });
       setResults([]);
       setIsLoading(false);
     }
   }, [isOpen, request]); // request is a new object on every open() call
 
-  // Search all sources whenever the live query changes (the composer
-  // debounces ~150ms so typing narrows results without per-keystroke runs).
+  // Search all sources for the current VALID draft. The composer emits the
+  // resolved draft synchronously; only this execution is debounced. An
+  // invalid draft keeps the previous results on screen, marked stale — a
+  // half-typed query must not blank the preview.
   useEffect(() => {
     if (!isOpen || !request) return;
-
+    if (!validity.valid) {
+      // Invalid draft: cancel any scheduled/in-flight search and keep the
+      // previous results on screen, marked stale.
+      searchVersion.current += 1;
+      setIsLoading(false);
+      return;
+    }
     const version = ++searchVersion.current;
     setIsLoading(true);
 
@@ -130,7 +168,7 @@ export const PaletteShell: React.FC = () => {
         try {
           const settled = await Promise.all(
             request.sources.map(source =>
-              Promise.resolve(source.search(activeQuery)).then(items =>
+              Promise.resolve(source.search(query)).then(items =>
                 items.map(item => ({
                   ...toListItem(item),
                   // Prefix source label as group if item has no category
@@ -149,10 +187,11 @@ export const PaletteShell: React.FC = () => {
         }
       };
       void run();
-    }, 150);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [activeQuery, isOpen, request]);
+  }, [query, validity.valid, isOpen, request]);
+
   const handleSelect = useCallback(
     (item: IListItem<PaletteItem>) => {
       _select(item.payload);
@@ -160,60 +199,84 @@ export const PaletteShell: React.FC = () => {
     [_select]
   );
 
+  // Apply consumes the exact visible draft: the composer's submit action
+  // passes its resolved snapshot; the footer button reads the synchronous
+  // ref. Either way the draft is re-validated here — invalid never writes.
+  const applyQuery = useCallback(
+    (wql?: string) => {
+      if (!wqlConfig?.onApply) return;
+      const candidate = wql ?? queryRef.current;
+      if (parseQuery(candidate).error) return;
+      wqlConfig.onApply(candidate);
+      _dismiss();
+    },
+    [wqlConfig, _dismiss],
+  );
+
   const emptyState = isLoading ? (
     <div className="py-8 text-center text-sm text-muted-foreground">Searching…</div>
-  ) : activeQuery ? (
+  ) : query ? (
     <div className="py-8 text-center text-sm text-muted-foreground">
-      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{activeQuery}&rdquo;</span>
+      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{query}&rdquo;</span>
     </div>
   ) : (
     <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
   );
-
-  const applyQuery = useCallback(() => {
-    if (!wqlConfig?.onApply) return;
-    wqlConfig.onApply(activeQuery);
-    _dismiss();
-  }, [wqlConfig, activeQuery, _dismiss]);
 
   const searchRow = wqlConfig ? (
     <div className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
       <WqlComposer
         key={requestSeqRef.current}
         initialQuery={wqlConfig.initialQuery}
-        onQueryChange={setQuery}
-        onLiveQueryChange={setLiveWql}
+        onQueryChange={handleQueryChange}
+        onValidationChange={handleValidationChange}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
+        preferredChoices={wqlConfig.preferredChoices}
         customSlots={wqlConfig.customSlots}
         diagnosticsPosition="top"
-        diagnosticsActions={
-          <>
-            {/* Cancel is the mobile close affordance (no Escape key on touch);
-                hidden on sm+ where Esc/overlay close. */}
-            <button
-              type="button"
-              onClick={_dismiss}
-              data-testid="palette-cancel"
-              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors sm:hidden dark:border-zinc-700"
-            >
-              Cancel
-            </button>
-            {wqlConfig.onApply && (
-              <button
-                type="button"
-                onClick={applyQuery}
-                data-testid="palette-apply-query"
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Apply query
-              </button>
-            )}
-          </>
-        }
         onSubmit={wqlConfig.onApply ? applyQuery : undefined}
-        autoFocus
+        autoFocus={isDesktop}
+        placeholder="Search or edit WQL…"
       />
+    </div>
+  ) : undefined;
+
+  // Sticky footer (WQL mode): Cancel + Apply outside the scrolling results,
+  // safe-area padded on mobile. The stale badge explains retained results.
+  const footer = wqlConfig ? (
+    <div
+      className="flex items-center gap-2 border-t border-zinc-200 px-3 pt-2 dark:border-zinc-700"
+      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+    >
+      {!validity.valid && (
+        <span
+          data-testid="palette-stale"
+          className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400"
+        >
+          Stale — fix the query
+        </span>
+      )}
+      <div className="flex-1" />
+      <button
+        type="button"
+        onClick={_dismiss}
+        data-testid="palette-cancel"
+        className="min-h-12 rounded-md border border-zinc-200 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors dark:border-zinc-700"
+      >
+        Cancel
+      </button>
+      {wqlConfig.onApply && (
+        <button
+          type="button"
+          onClick={() => applyQuery()}
+          disabled={!validity.valid}
+          data-testid="palette-apply-query"
+          className="min-h-12 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          Apply query
+        </button>
+      )}
     </div>
   ) : undefined;
 
@@ -222,14 +285,13 @@ export const PaletteShell: React.FC = () => {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
-          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} outline-none shadow-2xl top-[2px] lg:top-[10%] max-lg:max-h-[var(--palette-max-h)] lg:max-h-[80vh]`}
-          style={{
-            // 160px floor so the input row never collapses on short landscape
-            // viewports.
-            '--palette-max-h': viewportHeight
-              ? `${Math.max(viewportHeight - MOBILE_TOP_PX - MOBILE_BOTTOM_GAP_PX, 160)}px`
-              : undefined,
-          } as React.CSSProperties}
+          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col outline-none shadow-2xl max-lg:bottom-0 max-lg:top-auto max-lg:rounded-t-2xl max-lg:max-h-[var(--palette-max-h)] max-lg:min-h-[var(--palette-min-h)] lg:top-[10%] lg:max-h-[80vh] lg:rounded-xl ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'}`}
+          style={
+            {
+              '--palette-min-h': sheetMinH,
+              '--palette-max-h': sheetMaxH,
+            } as React.CSSProperties
+          }
         >
           <Dialog.Title className="sr-only">Command Palette</Dialog.Title>
           <Dialog.Description className="sr-only">
@@ -237,18 +299,19 @@ export const PaletteShell: React.FC = () => {
           </Dialog.Description>
 
           {/* flex-1/min-h-0: lets the results list shrink + scroll inside the
-              mobile max-height cap instead of overflowing under the keyboard. */}
+              sheet's max-height instead of overflowing under the footer. */}
           <CommandListView
             className="min-h-0 flex-1"
             items={results}
             query={query}
-            onQueryChange={setQuery}
+            onQueryChange={handleQueryChange}
             onSelect={handleSelect}
             isOpen={true}
             onClose={_dismiss}
             mobileClose
             placeholder={request?.placeholder ?? 'Search…'}
             searchRow={searchRow}
+            footer={footer}
             filterResults={!wqlConfig}
             header={request?.header}
             emptyState={emptyState}

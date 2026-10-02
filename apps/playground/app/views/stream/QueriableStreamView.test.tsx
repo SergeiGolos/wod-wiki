@@ -416,7 +416,7 @@ describe('QueriableStreamView component', () => {
           }}
         >
           <QueriableStreamView
-            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note in journal by {discipline}' }}
+            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note{source:journal} by {discipline}' }}
             queryEngine={engine}
           />
         </NavContext.Provider>

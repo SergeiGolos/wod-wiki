@@ -120,6 +120,68 @@ describe('serialize (C6 structured interface)', () => {
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
+  // ── Demonstrated loss regressions ──────────────────────────────────
+
+  it('retains a standalone offset pipe (demonstrated loss: offset without limit)', () => {
+    const a = parseQuery('find:note | offset 5');
+    expect(a.error).toBeUndefined();
+    if (a.family !== 'find' || !a.pipes) throw new Error('expected find query with pipes');
+    expect(a.pipes.offset).toBe(5);
+    expect(a.pipes.limit).toBeUndefined();
+    const text = serialize(a);
+    expect(text).toBe('find:note | offset 5');
+    expect(structurallyEqual(parseQuery(text), a)).toBe(true);
+  });
+
+  it('keeps offset 0 through a limit pipe', () => {
+    const a: ParsedFindQuery = {
+      family: 'find', raw: '', target: 'note', filters: [],
+      pipes: { limit: 0, offset: 0 },
+    };
+    const text = serialize(a);
+    expect(structurallyEqual(parseQuery(text), a)).toBe(true);
+  });
+
+  it('emits find suffixes in parser order after a time edit (G1 gate)', () => {
+    const a = parseQuery('find:segment{effort:snatch} by {effort} in lb | limit 5');
+    expect(a.error).toBeUndefined();
+    // The composer's time edit mutates only the window on the parsed AST.
+    if (a.family !== 'find') throw new Error('expected find query');
+    a.window = { kind: 'relative', size: 1, unit: 'w' };
+    const text = serialize(a);
+    expect(text).toBe('find:segment{effort:snatch} by {effort} in lb last 1w | limit 5');
+    expect(parseQuery(text).error).toBeUndefined();
+    expect(structurallyEqual(parseQuery(text), a)).toBe(true);
+  });
+
+  it('orders window before the where join with grouping (pivot note→block)', () => {
+    // Emitted as `… by {week} last 2w where sum:tis{} > 0`; the pre-fix order
+    // (`… last 2w by {week}`) wedged the window into the primary text and
+    // failed to parse.
+    const a = parseQuery('find:note{tags:strength} by {week} last 2w where sum:tis{} > 0');
+    expect(a.error).toBeUndefined();
+    const text = serialize(a);
+    expect(text).toBe('find:note{tags:strength} by {week} last 2w where sum:tis{} > 0');
+    const back = parseQuery(text);
+    expect(back.error).toBeUndefined();
+    expect(structurallyEqual(back, a)).toBe(true);
+    // The pivot edits only the target on the parsed AST; join survives.
+    if (a.family !== 'find') throw new Error('expected find query');
+    a.target = 'block';
+    const pivoted = serialize(a);
+    expect(pivoted).toBe('find:block{tags:strength} by {week} last 2w where sum:tis{} > 0');
+    expect(parseQuery(pivoted).error).toBeUndefined();
+    expect(structurallyEqual(parseQuery(pivoted), a)).toBe(true);
+  });
+
+  it('round-trips every find suffix together (group, unit, window, join, pipes)', () => {
+    const a = parseQuery('find:block{tags:strength} by {week} in lb last 2w where sum:tis{} > 0 | order by date | limit 5 offset 2');
+    expect(a.error).toBeUndefined();
+    const text = serialize(a);
+    expect(text).toBe('find:block{tags:strength} by {week} in lb last 2w where sum:tis{} > 0 | order by date | limit 5 offset 2');
+    expect(structurallyEqual(parseQuery(text), a)).toBe(true);
+  });
+
   // ── Property: parse(serialize(a)) ≡ a for generated ASTs ──────────
 
   it('round-trips generated ASTs of every family (property)', () => {
@@ -199,6 +261,23 @@ describe('serialize (C6 structured interface)', () => {
           threshold: pick(rng, THRESHOLDS),
         };
       }
+      if (maybe(rng, 0.25)) f.groupBy = [...KEYS].sort(() => rng() - 0.5).slice(0, int(rng, 1, 2));
+      if (maybe(rng, 0.2)) f.displayUnit = pick(rng, ['kg', 'lb']);
+      if (maybe(rng, 0.4)) {
+        f.pipes = {};
+        if (maybe(rng, 0.6)) {
+          f.pipes.select = Array.from({ length: int(rng, 1, 2) }, () => ({
+            col: pick(rng, ['date', 'effort', 'result']),
+            ...(maybe(rng, 0.3) ? { unit: pick(rng, ['kg', 'lb', '%']) } : {}),
+          }));
+        }
+        if (maybe(rng, 0.6)) {
+          f.pipes.order = [{ col: pick(rng, ['date', 'effort']), dir: maybe(rng, 0.5) ? 'asc' : 'desc' }];
+        }
+        if (maybe(rng, 0.4)) f.pipes.limit = int(rng, 0, 50);
+        if (maybe(rng, 0.4)) f.pipes.offset = int(rng, 0, 100);
+        if (Object.keys(f.pipes).length === 0) delete f.pipes;
+      }
       return f;
     }
 
@@ -232,6 +311,8 @@ describe('serialize (C6 structured interface)', () => {
     let windows = 0;
     let rollups = 0;
     let units = 0;
+    let pipes = 0;
+    let standalones = 0;
     for (let i = 0; i < 400; i++) {
       const a = i % 3 === 0 ? genAggregate(rng) : i % 3 === 1 ? genFind(rng) : genRows(rng);
       const text = serialize(a);
@@ -240,6 +321,10 @@ describe('serialize (C6 structured interface)', () => {
       if (a.window) windows++;
       if (a.family === 'aggregate' && a.rollup) rollups++;
       if (a.family === 'aggregate' && a.displayUnit) units++;
+      if (a.family === 'find' && a.pipes) {
+        pipes++;
+        if (a.pipes.offset !== undefined && a.pipes.limit === undefined) standalones++;
+      }
       const back = parseQuery(text);
       expect(back.error, `iteration ${i}: ${text}`).toBeUndefined();
       expect(structurallyEqual(back, a), `iteration ${i}: ${text}`).toBe(true);
@@ -251,6 +336,8 @@ describe('serialize (C6 structured interface)', () => {
     expect(windows).toBeGreaterThan(150);
     expect(rollups).toBeGreaterThan(30);
     expect(units).toBeGreaterThan(20);
+    expect(pipes).toBeGreaterThan(45);
+    expect(standalones).toBeGreaterThan(10);
   });
   it('leaves canonical corpus strings untouched (fixed-point text)', () => {
     const corpus = [

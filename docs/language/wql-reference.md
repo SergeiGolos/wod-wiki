@@ -55,13 +55,20 @@ find:segment{effort:snatch} by {effort} in lb       ← grouped rows, converted 
 `plane:` accepts the known output types (`segment`, `system`, `load`, `event`, `compiler`, `completion`, `analytics`, `wellness`) and supports `|` OR and `!` NOT.
 
 ### Pipes (`| select / order by / limit`)
-Any find query accepts presentation pipes:
+The parser accepts presentation pipes on find queries. Segment/event tables apply `select`, `order by`, `limit` and `offset`; note/block/effort apply ordering and pagination but not column selection; sessions apply pagination only. The composer preserves existing pipes when editing unrelated clauses, including standalone offsets.
 
 ```wql
 find:note{source:collections} | order by title | limit 50
 find:block{effort:back*} last 8w | limit 20
 find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5
 ```
+
+```wql
+find:segment{effort:snatch} by {effort} in lb last 2w | select resistance in lb, effort | order by resistance desc | limit 5 offset 2
+find:note{source:collections} | offset 20
+```
+
+Find target and storage scope are independent: `find:block{source:collections}` queries blocks stored in collections; `find:note{type:collection}` filters page type, not storage location. Guided choices reflect executor support rather than every key the parser can accept. Effort queries have no time dimension; `plane:` narrows sessions, not segment/event tables. Display units apply to aggregates and segment/event tables. Registered custom fact dimensions are available on aggregates and segment/event tables, not content or registry queries.
 
 ---
 

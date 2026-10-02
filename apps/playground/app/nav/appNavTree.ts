@@ -22,7 +22,7 @@ import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
 import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
-import { sourceOfQuery } from '../lib/wqlEdits'
+import { scopeOfQuery } from '../lib/wqlEdits'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
 import { SessionsNavPanel } from './panels/SessionsNavPanel'
@@ -154,7 +154,7 @@ function isLibraryPlaygroundActive(loc: Location): boolean {
   if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) {
     return false
   }
-  return sourceOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
+  return scopeOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
 }
 
 const libraryChildren: NavItem[] = [

@@ -16,7 +16,7 @@ export interface QueryBlockPreviewOptions {
   executor?: QueryExecutor;
   onResultSaved?: (callback: () => void) => (() => void) | void;
   readOnly?: boolean;
-  onSaveQuery?: (sectionId: string, nextQuery: string) => void;
+  onSaveQuery?: (sectionId: string, nextQuery: string) => void | Promise<void>;
   onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
   noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
 }
@@ -55,10 +55,10 @@ class ReactQueryBlock extends WidgetType {
 
     const handleSaveQuery = (nextQuery: string) => {
       if (this.options?.onSaveQuery) {
-        this.options.onSaveQuery(this.sectionId, nextQuery);
-      } else {
-        saveBlockQuerySource(view, this.sectionId, nextQuery);
+        return this.options.onSaveQuery(this.sectionId, nextQuery);
       }
+      const result = saveBlockQuerySource(view, this.sectionId, nextQuery);
+      if (!result.ok) throw new Error(result.message);
     };
 
     root.render(
@@ -82,10 +82,10 @@ class ReactQueryBlock extends WidgetType {
     if (!this.root) return false;
     const handleSaveQuery = (nextQuery: string) => {
       if (this.options?.onSaveQuery) {
-        this.options.onSaveQuery(this.sectionId, nextQuery);
-      } else {
-        saveBlockQuerySource(view, this.sectionId, nextQuery);
+        return this.options.onSaveQuery(this.sectionId, nextQuery);
       }
+      const result = saveBlockQuerySource(view, this.sectionId, nextQuery);
+      if (!result.ok) throw new Error(result.message);
     };
     this.root.render(
       <QueryBlockView

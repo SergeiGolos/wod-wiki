@@ -125,15 +125,17 @@
       <h3>IMPLEMENTATION MAP (WHEN THIS LANDS IN THE APP)</h3>
       <ul>
         <li><code>StickyPageHeader</code> grows a <code>queryBar</code> slot rendering left-to-right:
-            title, <code>QueryTypeSelect</code>, <code>QueryChipRow</code> (measured overflow → <code>+N</code>), actions.</li>
-        <li><code>QueryTypeSelect</code> maps stream profile → WQL head via the existing
-            <code>pivotSourceQuery</code> / <code>pivotPills</code> seam; scope profiles
-            (journal/collections/feeds) re-base the <code>source:</code> clause instead of hiding it.</li>
+            the shared <code>WqlComposer</code> (compact) and the ⌘K action — kind, target and
+            Where-stored chips live inside the composer's one searchable picker
+            (scope favorites arrive as <code>preferredChoices</code> and never gate validity).</li>
+        <li>Scope edits go through <code>wqlEdits.setScopeFilter</code>: a targeted
+            <code>source:</code> edit that never pivots the target/kind head; collections is the
+            canonical <code>source:collections</code> scope.</li>
         <li>The dialog is <code>PaletteShell</code> in WQL mode seeded with the page query
-            (<code>usePaletteStore.open({ wql: { initialQuery: q, execute } })</code>) plus an
-            Apply action; no second composer implementation.</li>
-        <li><code>SourceScopeRadio</code> and the subheader composer block retire; view settings
-            (sliders) stays a header action.</li>
+            (<code>usePaletteStore.open({ wql: { initialQuery: q, execute, onApply } })</code>);
+            Cancel/Apply live in the sticky footer and the shell owns execution debounce.</li>
+        <li><code>SourceScopeRadio</code>, <code>QueryTypeSelect</code>, <code>QueryChipRow</code> and the
+            subheader composer block retire; view settings (sliders) stays a header action.</li>
       </ul>
     </div>
   </div>
