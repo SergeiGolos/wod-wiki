@@ -18,90 +18,31 @@ export const WOD_DB = 'wodwiki-db';
 
 export interface ResultRow {
   noteId?: string;
-  data?: { completed?: boolean; logs?: unknown[]; duration?: number };
+  blockContentId?: string;
+  duration?: number;
+  completed?: boolean;
+  status?: 'completed' | 'in-progress';
   createdAt?: number;
 }
 
 /**
- * Clear rows from the `results` store — every row, or only one note's when
- * `noteId` is given. Single home for the inline copies that used to live in
- * runtime-execution / collection-* / note-persistence / review-surface.
+ * Clear completed-session rows — every row, or only one note's when
+ * `noteId` is given. V20 flatten: the canonical store is `sessions`
+ * (StorageService.saveSession); `results` is an unwritten legacy alias.
  */
 export async function clearResults(page: Page, noteId?: string): Promise<void> {
   await page.evaluate(
     async ({ dbName, noteId }) => {
-      const openWodDb = (name: string): Promise<IDBDatabase> =>
-        new Promise((resolve, reject) => {
-          const req = indexedDB.open(name);
-          req.onsuccess = () => {
-            const db = req.result;
-            if (db.objectStoreNames.length === 0) {
-              db.close();
-              const upReq = indexedDB.open(name, 16);
-              upReq.onupgradeneeded = () => {
-                const upDb = upReq.result;
-                if (!upDb.objectStoreNames.contains('notes')) {
-                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
-                  store.createIndex('by-slug', 'slug', { unique: true });
-                }
-                if (!upDb.objectStoreNames.contains('segments')) {
-                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-type', 'dataType');
-                }
-                if (!upDb.objectStoreNames.contains('results')) {
-                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
-                  store.createIndex('by-segment', 'segmentId');
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-content', 'blockContentId');
-                }
-                if (!upDb.objectStoreNames.contains('attachments')) {
-                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-time', 'createdAt');
-                }
-                if (!upDb.objectStoreNames.contains('analytics')) {
-                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
-                  store.createIndex('by-type', 'metricType');
-                  store.createIndex('by-segment', 'segmentId');
-                  store.createIndex('by-content', 'blockContentId');
-                }
-                if (!upDb.objectStoreNames.contains('efforts')) {
-                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
-                  store.createIndex('by-discipline', 'baseAttributes.discipline');
-                  store.createIndex('by-source', 'registrySource');
-                }
-                if (!upDb.objectStoreNames.contains('page')) {
-                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
-                  store.createIndex('by-date', 'date', { unique: true });
-                  store.createIndex('by-slug', 'slug', { unique: true });
-                }
-                if (!upDb.objectStoreNames.contains('tags')) {
-                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
-                  store.createIndex('by-label', 'label', { unique: true });
-                  store.createIndex('by-type', 'type');
-                }
-                if (!upDb.objectStoreNames.contains('note_tags')) {
-                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-tag', 'tagId');
-                }
-              };
-              upReq.onsuccess = () => resolve(upReq.result);
-              upReq.onerror = () => reject(upReq.error);
-            } else {
-              resolve(db);
-            }
-          };
-          req.onerror = () => reject(req.error);
-        });
-
-      const db = await openWodDb(dbName);
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open(dbName);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
       try {
+        if (!db.objectStoreNames.contains('sessions')) return;
         await new Promise<void>((resolve, reject) => {
-          if (!db.objectStoreNames.contains('results')) return resolve();
-          const tx = db.transaction('results', 'readwrite');
-          const store = tx.objectStore('results');
+          const tx = db.transaction('sessions', 'readwrite');
+          const store = tx.objectStore('sessions');
           if (noteId === undefined) {
             store.clear();
           } else {
@@ -125,82 +66,20 @@ export async function clearResults(page: Page, noteId?: string): Promise<void> {
   );
 }
 
-/** Read rows from the `results` store — every row, or only one note's. */
+/** Read session rows — every row, or only one note's. */
 export async function getResults(page: Page, noteId?: string): Promise<ResultRow[]> {
   return page.evaluate(
     async ({ dbName, noteId }) => {
-      const openWodDb = (name: string): Promise<IDBDatabase> =>
-        new Promise((resolve, reject) => {
-          const req = indexedDB.open(name);
-          req.onsuccess = () => {
-            const db = req.result;
-            if (db.objectStoreNames.length === 0) {
-              db.close();
-              const upReq = indexedDB.open(name, 16);
-              upReq.onupgradeneeded = () => {
-                const upDb = upReq.result;
-                if (!upDb.objectStoreNames.contains('notes')) {
-                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
-                  store.createIndex('by-slug', 'slug', { unique: true });
-                }
-                if (!upDb.objectStoreNames.contains('segments')) {
-                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-type', 'dataType');
-                }
-                if (!upDb.objectStoreNames.contains('results')) {
-                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
-                  store.createIndex('by-segment', 'segmentId');
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-content', 'blockContentId');
-                }
-                if (!upDb.objectStoreNames.contains('attachments')) {
-                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-time', 'createdAt');
-                }
-                if (!upDb.objectStoreNames.contains('analytics')) {
-                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
-                  store.createIndex('by-type', 'metricType');
-                  store.createIndex('by-segment', 'segmentId');
-                  store.createIndex('by-content', 'blockContentId');
-                }
-                if (!upDb.objectStoreNames.contains('efforts')) {
-                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
-                  store.createIndex('by-discipline', 'baseAttributes.discipline');
-                  store.createIndex('by-source', 'registrySource');
-                }
-                if (!upDb.objectStoreNames.contains('page')) {
-                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
-                  store.createIndex('by-date', 'date', { unique: true });
-                  store.createIndex('by-slug', 'slug', { unique: true });
-                }
-                if (!upDb.objectStoreNames.contains('tags')) {
-                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
-                  store.createIndex('by-label', 'label', { unique: true });
-                  store.createIndex('by-type', 'type');
-                }
-                if (!upDb.objectStoreNames.contains('note_tags')) {
-                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
-                  store.createIndex('by-note', 'noteId');
-                  store.createIndex('by-tag', 'tagId');
-                }
-              };
-              upReq.onsuccess = () => resolve(upReq.result);
-              upReq.onerror = () => reject(upReq.error);
-            } else {
-              resolve(db);
-            }
-          };
-          req.onerror = () => reject(req.error);
-        });
-
-      const db = await openWodDb(dbName);
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open(dbName);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
       try {
+        if (!db.objectStoreNames.contains('sessions')) return [];
         return await new Promise<ResultRow[]>((resolve, reject) => {
-          if (!db.objectStoreNames.contains('results')) return resolve([]);
-          const tx = db.transaction('results', 'readonly');
-          const store = tx.objectStore('results');
+          const tx = db.transaction('sessions', 'readonly');
+          const store = tx.objectStore('sessions');
           const req =
             noteId === undefined
               ? store.getAll()
