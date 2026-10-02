@@ -43,15 +43,22 @@ test.describe('Effort detail — /effort/:slug', () => {
     const efforts = new EffortsPage(page);
 
     await efforts.gotoDetail('burpee');
+    await efforts.waitForSeedRegistry();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await efforts.waitForDetailLoaded();
 
     await expect(efforts.detailLabel()).toHaveText('Burpee');
     await expect(efforts.detailSource()).toContainText('Bundled');
-    await expect(efforts.notebookEditor()).toContainText('slug: burpee');
-    await expect(efforts.notebookEditor()).toContainText('label: Burpee');
+    // Frontmatter renders as a structured properties panel, not raw YAML text.
+    const properties = efforts.frontmatterProperties();
+    await expect(properties).toBeVisible();
+    await expect(properties.getByText('slug', { exact: true })).toBeVisible();
+    await expect(properties.getByText('burpee', { exact: true })).toBeVisible();
+    await expect(properties.getByText('label', { exact: true })).toBeVisible();
+    await expect(properties.getByText('Burpee', { exact: true })).toBeVisible();
     await expect(efforts.notebookEditor()).toContainText('burpees');
-    await expect(efforts.detailAliases()).toHaveCount(0);
-    await expect(efforts.detailAttributes()).toHaveCount(0);
-    await expect(efforts.analyticsPlaceholder()).toHaveCount(0);
+    await expect(efforts.notebookEditor()).toContainText('Burpees are a full-body conditioning effort');
+    await expect(efforts.cloneButton()).toBeVisible();
 
     errors.expectClean();
   });

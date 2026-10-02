@@ -26,6 +26,9 @@ test.describe('Efforts catalog — /efforts', () => {
     const efforts = new EffortsPage(page);
 
     await efforts.gotoCatalog();
+    await efforts.waitForSeedRegistry();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await efforts.waitForCatalogLoaded();
 
     await expect(efforts.catalogSearch()).toBeVisible();
     await expect(efforts.createCustomButton()).toBeVisible();
@@ -59,7 +62,7 @@ test.describe('Efforts catalog — /efforts', () => {
     await efforts.gotoCatalog();
     await efforts.clickEffortRow('burpee');
 
-    await expect(page).toHaveURL(/\/effort\/burpee$/);
+    await expect(page).toHaveURL(/\/e\/burpee$/);
     await expect(efforts.detailLabel()).toHaveText('Burpee');
 
     errors.expectClean();

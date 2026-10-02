@@ -117,14 +117,26 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
       try {
         for (const { route, heading, workoutContent, dialect, workoutSegmentId, contentId, isPlayground, journalDate } of seeds) {
           await new Promise<void>((resolve, reject) => {
-            const tx = db.transaction(['page', 'notes', 'segments', 'results'], 'readwrite');
+            const storeNames = ['page', 'notes', 'segments', 'page_notes', 'sessions']
+              .filter((s) => db.objectStoreNames.contains(s));
+            const tx = db.transaction(storeNames, 'readwrite');
             const now = Date.now();
 
-            // Journal-date notes join their calendar page (N-02) — without the
-            // page row + pageId the /journal/:date list query finds no note
-            // and renders the no-editor empty state (#698).
+            // Journal-date notes join their calendar page (N-02) — the page row
+            // AND the page_notes junction (V22: journalDate is derived through
+            // it), or the /journal/:date list query finds no note and renders
+            // the no-editor empty state (#698).
             if (journalDate) {
               tx.objectStore('page').put({ id: `page/${journalDate}`, date: journalDate, title: journalDate, createdAt: now });
+              if (db.objectStoreNames.contains('page_notes')) {
+                tx.objectStore('page_notes').put({
+                  id: `pn-page/${journalDate}-${route.noteId}`,
+                  pageId: `page/${journalDate}`,
+                  noteId: route.noteId,
+                  position: 0,
+                  createdAt: now,
+                });
+              }
             }
 
             // V11 slim Note — identity + routing only; content lives in segments.
@@ -136,9 +148,10 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
               createdAt: now,
             });
 
-            // Heading segment (h1).
+            // Heading segment (h1). Key is ['id','version'] — scope the id per
+            // note so multi-route seeds can't overwrite each other.
             tx.objectStore('segments').put({
-              id: 'seg-heading',
+              id: `${workoutSegmentId}-heading`,
               version: 1,
               noteId: route.noteId,
               position: 0,
@@ -180,18 +193,19 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
             });
 
             // Result — matched via blockContentId (content-stable FNV-1a hash).
-            tx.objectStore('results').put({
+            // Canonical store since the V20 flatten: `sessions` (top-level
+            // fields, no legacy nested `data` payload).
+            tx.objectStore('sessions').put({
               id: resultId,
               noteId: route.noteId,
               segmentId: workoutSegmentId,
-              data: {
-                startTime: now - 74_000,
-                endTime: now,
-                duration: 74_000,
-                completed: true,
-                logs: [{ id: '1', outputType: 'segment', timeSpan: { started: now - 74_000, ended: now }, metrics: [] }],
-                metrics: [],
-              },
+              blockContentId: contentId,
+              startTime: now - 74_000,
+              endTime: now,
+              duration: 74_000,
+              completed: true,
+              status: 'completed',
+              createdAt: now,
             });
 
             tx.oncomplete = () => resolve();

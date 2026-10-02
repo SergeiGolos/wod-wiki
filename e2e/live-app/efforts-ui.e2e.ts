@@ -64,54 +64,48 @@ test.describe('Efforts Catalog Page', () => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await expect(page.getByTestId('wql-composer-input')).toBeVisible();
+    await expect(page.getByTestId('stream-query-bar')).toBeVisible();
+    await expect(page.getByTestId('add-filter-button')).toBeVisible();
   });
 
   test('filtering by custom shows empty state initially', async ({ page }) => {
     const efforts = new EffortsPage(page);
     await efforts.gotoCatalog();
-    await efforts.selectOrigin('Custom');
-    await page.waitForTimeout(400);
+    await efforts.applyQuery('find:effort{origin:user}');
+    await expect(page.getByTestId('stream-empty-state')).toBeVisible();
     await expect(page.getByText(/No efforts match/i)).toBeVisible();
   });
 
   test('filtering by bundled shows efforts', async ({ page }) => {
     const efforts = new EffortsPage(page);
     await efforts.gotoCatalog();
-    await efforts.selectOrigin('Bundled');
-    await page.waitForTimeout(400);
+    await efforts.applyQuery('find:effort{origin:bundled}');
     await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
   });
 
   test('search filtering narrows results', async ({ page }) => {
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
-
-    const search = page.getByTestId('wql-composer-input');
-    await search.fill('Rowing');
-    await search.press('Enter');
-    await page.waitForTimeout(400);
-    await expect(page.getByText('Rowing').first()).toBeVisible();
+    const efforts = new EffortsPage(page);
+    await efforts.gotoCatalog();
+    await efforts.searchFor('Rowing');
+    await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
+    await expect(efforts.effortRow('burpee')).toHaveCount(0);
   });
 
   test('search with no matches shows empty state', async ({ page }) => {
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
-
-    const search = page.getByTestId('wql-composer-input');
-    await search.fill('xyznonexistent');
-    await search.press('Enter');
-    await page.waitForTimeout(400);
+    const efforts = new EffortsPage(page);
+    await efforts.gotoCatalog();
+    await efforts.searchFor('xyznonexistent');
+    await expect(page.getByTestId('stream-empty-state')).toBeVisible();
     await expect(page.getByText(/No efforts match/i)).toBeVisible();
   });
 
   test('clicking an effort navigates to detail page', async ({ page }) => {
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
+    const efforts = new EffortsPage(page);
+    await efforts.gotoCatalog();
 
     await page.getByRole('main').getByRole('button', { name: /Rowing/ }).first().click();
-    await page.waitForURL(/\/effort\/rowing/, { timeout: 5_000 });
-    await expect(page.getByText('Rowing').first()).toBeVisible();
+    await page.waitForURL(/\/e\/rowing/, { timeout: 5_000 });
+    await expect(efforts.detailLabel()).toHaveText('Rowing');
   });
 });
 
@@ -120,26 +114,34 @@ test.describe('Efforts Catalog Page', () => {
 test.describe('Effort Detail Page', () => {
   test('displays bundled effort attributes', async ({ page }) => {
     const errors = setupErrorCapture(page);
-    await page.goto('/effort/rowing', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
+    const efforts = new EffortsPage(page);
+    await efforts.gotoDetail('rowing');
 
-    await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
-    await expect(page.getByText('Bundled', { exact: true })).toBeVisible();
-    // Frontmatter renders as YAML text (met: 7.0 normalizes to `met: 7`).
-    await expect(page.getByRole('main').getByText('met: 7')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Clone/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Edit/i })).not.toBeVisible();
+    await expect(efforts.detailLabel()).toHaveText('Rowing');
+    await expect(efforts.detailSource()).toHaveText('Bundled');
+    // Frontmatter renders as a structured properties panel (no raw `met: 7` line).
+    const properties = efforts.frontmatterProperties();
+    await expect(properties).toBeVisible();
+    await expect(properties.getByText('rowing', { exact: true })).toBeVisible();
+    await expect(properties.getByText('baseAttributes', { exact: true })).toBeVisible();
+    await expect(properties).toContainText('rower');
+    await expect(efforts.cloneButton()).toBeVisible();
+    await expect(efforts.editButton()).not.toBeVisible();
     expect(errors).toHaveLength(0);
   });
 
   test('shows high-intensity effort correctly', async ({ page }) => {
-    await page.goto('/effort/kettlebell-snatch', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
+    const efforts = new EffortsPage(page);
+    await efforts.gotoDetail('kettlebell-snatch');
+    await efforts.waitForSeedRegistry();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await efforts.waitForDetailLoaded();
 
-    await expect(page.getByRole('heading', { name: 'Kettlebell Snatch' })).toBeVisible();
-    // Frontmatter renders as YAML text (12.0 → `met: 12`, tier lowercased).
-    await expect(page.getByRole('main').getByText('met: 12')).toBeVisible();
-    await expect(page.getByRole('main').getByText('intensityTier: high')).toBeVisible();
+    await expect(efforts.detailLabel()).toHaveText('Kettlebell Snatch');
+    await expect(efforts.notebookEditor()).toContainText('kettlebell-snatch');
+    // Frontmatter companion surfaces the effort attributes.
+    await expect(page.getByText('12 MET')).toBeVisible();
+    await expect(page.getByLabel('Intensity tier')).toHaveValue('high');
   });
 
   test('shows effort with aliases', async ({ page }) => {

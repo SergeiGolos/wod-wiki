@@ -26,14 +26,16 @@ test.describe('Efforts nav panel', () => {
     const efforts = new EffortsPage(page);
 
     await efforts.gotoCatalog();
-    await efforts.openNavigationIfPresent();
+    await efforts.waitForSeedRegistry();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await efforts.waitForCatalogLoaded();
 
-    await expect(efforts.navOriginFilter().getByRole('button', { name: 'All', exact: true })).toHaveCount(1);
-    await expect(efforts.navDisciplineFilter().getByRole('button', { name: 'kettlebell', exact: true })).toHaveCount(1);
-
-    await efforts.selectDiscipline('kettlebell');
+    await efforts.applyQuery('find:effort{discipline:kettlebell}');
     await expect(efforts.effortRow('kettlebell-swing')).toBeVisible();
     await expect(efforts.effortRow('burpee')).toHaveCount(0);
+
+    await efforts.applyQuery('find:effort{origin:bundled}');
+    await expect(efforts.effortRow('burpee')).toBeVisible();
 
     errors.expectClean();
   });
@@ -43,6 +45,7 @@ test.describe('Efforts nav panel', () => {
     const efforts = new EffortsPage(page);
 
     await efforts.gotoCatalog();
+    await efforts.waitForSeedRegistry();
     await efforts.clearUserEfforts();
     await efforts.seedUserEffort({
       slug: 'qa-custom-effort',
@@ -54,8 +57,7 @@ test.describe('Efforts nav panel', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await efforts.waitForCatalogLoaded();
-    await efforts.openNavigationIfPresent();
-    await efforts.selectOrigin('Custom');
+    await efforts.applyQuery('find:effort{origin:user}');
 
     await expect(efforts.effortRow('qa-custom-effort')).toBeVisible();
     await expect(efforts.effortRows()).toHaveCount(1);
@@ -63,25 +65,13 @@ test.describe('Efforts nav panel', () => {
     errors.expectClean();
   });
 
-  test('shows recent workouts for the current effort on the detail route', async ({ page }) => {
+  test.fixme('shows recent workouts for the current effort on the detail route', async ({ page }) => { // e2e-remediation: EffortsNavPanel (origin/discipline filters + per-effort recent workouts) removed in 0d9c08f0 — no effort-scoped recent-workouts surface exists on the detail route
     const errors = attachErrorCapture(page);
     const efforts = new EffortsPage(page);
 
     await efforts.gotoDetail('burpee');
-    await efforts.clearRecentResults();
-    await efforts.seedRecentWorkoutForEffort({
-      slug: 'burpee',
-      label: 'Burpee',
-      noteId: 'journal/2026-05-20',
-    });
 
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await efforts.waitForDetailLoaded();
-    await efforts.openNavigationIfPresent();
-
-    await expect(efforts.recentWorkoutItems()).toHaveCount(1);
-    await efforts.recentWorkoutItems().first().evaluate((element: HTMLElement) => element.click());
-    await expect(page).toHaveURL(/\/journal\/2026-05-20$/);
+    await expect(page).toHaveURL(/\/e\/burpee$/);
 
     errors.expectClean();
   });

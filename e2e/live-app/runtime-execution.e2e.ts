@@ -16,7 +16,7 @@
  * journal-date flow is quarantined pending the empty-date behavior decision
  * in #698). Behavior contracts encoded here (from source, not fixtures):
  *   - Natural completion: WallClockPage records the result and navigates to
- *     /review/:runtimeId (replace).
+ *     /sessions/:runtimeId (replace; #946 retired /review).
  *   - Manual stop: results are still recorded, but with `completed: false`
  *     (the journal list renders these as "Partial" by design).
  *   - /run/:runtimeId reads an in-memory `pendingRuntimes` map; a reload
@@ -24,7 +24,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { clearResults, getResults } from '../helpers/wodwikiDb';
+import { clearSessions, getSessions } from '../utils/sessionsDb';
 import { installFastClock } from '../utils/fastClock';
 import {
   startWorkoutFromPlayground,
@@ -37,7 +37,7 @@ import { TEST_IDS } from '../contracts/TestIdContract';
 
 /** Clear the results store, then start the workout (per-test isolation). */
 async function startCleanWorkout(page: Page, id: string, wodScript: string): Promise<void> {
-  await clearResults(page);
+  await clearSessions(page);
   await startWorkoutFromPlayground(page, id, wodScript);
 }
 
@@ -125,9 +125,9 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     await expect(pauseIconButton(page)).toBeHidden({ timeout: 5_000 });
 
     // Partials may be recorded by design — but never marked completed.
-    const results = await getResults(page);
-    for (const r of results) {
-      expect(r.data?.completed).not.toBe(true);
+    const sessions = await getSessions(page);
+    for (const s of sessions) {
+      expect(s.completed).not.toBe(true);
     }
   });
 
@@ -144,16 +144,17 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
 
     // Blocks are advanced manually (Next) — the 6s countdown expires, then
     // keep advancing through the effort block until the session completes
-    // and WallClockPage navigates to /review/:runtimeId (replace).
+    // and WallClockPage records the result and navigates to
+    // /sessions/:runtimeId (replace; the /review route is retired in #946).
     await advanceUntilReview(page);
 
-    const results = await getResults(page);
-    expect(results.some((r) => r.data?.completed === true)).toBe(true);
+    const sessions = await getSessions(page);
+    expect(sessions.some((s) => s.completed === true)).toBe(true);
     // The accelerated run completes in single-digit seconds of wall time…
     expect(Date.now() - wallStart).toBeLessThan(15_000);
     // …but the persisted duration reflects the accelerated 6s span, not wall time.
-    const completed = results.find((r) => r.data?.completed === true);
-    expect(completed?.data?.duration).toBeGreaterThanOrEqual(5_000);
+    const completed = sessions.find((s) => s.completed === true);
+    expect(completed?.duration).toBeGreaterThanOrEqual(5_000);
     expect(errors).toEqual([]);
   });
 
@@ -163,7 +164,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     await startCleanWorkout(page, id, '```time\nTimer: 0:06\n5 Burpees\n```');
 
     await advanceUntilReview(page);
-    expect((await getResults(page)).some((r) => r.data?.completed === true)).toBe(true);
+    expect((await getSessions(page)).some((s) => s.completed === true)).toBe(true);
   });
 
   test('reload of /run/:runtimeId shows the designed defensive state', async ({ page }) => {

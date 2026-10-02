@@ -26,6 +26,9 @@ test.describe('Effort markdown seed visibility', () => {
     const efforts = new EffortsPage(page);
 
     await efforts.gotoDetail('burpee');
+    await efforts.waitForSeedRegistry();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await efforts.waitForDetailLoaded();
 
     await expect(page.getByText('Burpees are a full-body conditioning effort that combine a squat, plank, and jump.')).toBeVisible();
     await expect(page.getByText('Use this bundled note to seed markdown-backed effort detail content in the UI.')).toBeVisible();
@@ -38,6 +41,9 @@ test.describe('Effort markdown seed visibility', () => {
     const efforts = new EffortsPage(page);
 
     await efforts.gotoDetail('kettlebell-swing');
+    await efforts.waitForSeedRegistry();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await efforts.waitForDetailLoaded();
 
     await expect(page.getByText('Kettlebell swings train hip extension and cyclical power production.')).toBeVisible();
     await expect(page.getByText('The movement can be scaled as Russian or American swings depending on range of motion.')).toBeVisible();
