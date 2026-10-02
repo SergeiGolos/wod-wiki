@@ -155,8 +155,11 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
     }
   }, [])
 
+  // Invalid drafts stay in the composer; only parseable queries reach the URL
+  // (a half-typed query must not become history or a page error).
   const setQuery = useCallback(
     (next: string) => {
+      if (parseQuery(next).error) return
       if (next !== queryRef.current) {
         const params = new URLSearchParams(searchParamsRef.current)
         params.set('q', next)

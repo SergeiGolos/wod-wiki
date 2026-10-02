@@ -97,7 +97,9 @@ export function StickyPageHeader({
       </div>
 
       {subheader && (
-        <div className="border-t border-border/30 bg-background/40">
+        // Tint alone separates the band from the title row — the zone's own
+        // border-b is the single rule of the sticky chrome.
+        <div className="bg-background/40">
           {subheader}
         </div>
       )}

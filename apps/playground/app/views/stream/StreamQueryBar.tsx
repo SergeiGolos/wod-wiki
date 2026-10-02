@@ -64,22 +64,16 @@ export function StreamQueryBar({
   )
 
   if (compact) {
-    // Mobile thumb-footer button row — the whole row is one tappable control
-    // (48px target) that opens the WQL palette.
+    // Mobile thumb-footer button row — one native button control (48px
+    // target) that opens the WQL palette. Same border token as the desktop
+    // composer box so both variants read as one chrome.
     return (
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         data-testid="stream-query-bar"
         onClick={openEditor}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            openEditor()
-          }
-        }}
         className={cn(
-          'flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border/70 bg-muted/40 px-3 text-left shadow-xs transition-colors hover:bg-muted/70',
+          'flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-3 text-left shadow-xs transition-colors hover:bg-muted/70',
           className,
         )}
       >
@@ -91,7 +85,7 @@ export function StreamQueryBar({
           {query}
         </span>
         <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
-      </div>
+      </button>
     )
   }
 
@@ -119,7 +113,7 @@ export function StreamQueryBar({
           e.stopPropagation()
           openEditor()
         }}
-        className="flex shrink-0 items-center gap-1 rounded-full bg-background/80 px-2 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground"
+        className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <Command className="size-3" />
         K

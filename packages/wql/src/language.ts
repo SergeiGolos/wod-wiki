@@ -31,6 +31,7 @@ import {
   WQL_GRAINS,
   WQL_ROLLUP_PERIODS,
   WQL_SOURCE_VALUES,
+  WQL_FIND_TARGETS,
 } from "./vocabulary";
 
 // The vocabulary tables live in ./vocabulary (no editor deps); re-export
@@ -265,6 +266,9 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     const inMetric = node.name === 'Metric' || (node.name === 'Word' && node.parent?.name === 'Metric');
 
     if (inMetric) {
+      if (head && context.state.sliceDoc(head.from, head.to).trimStart().startsWith('find:')) {
+        return { from: word.from, options: options(WQL_FIND_TARGETS), validFor: /^[\w.-]*$/ };
+      }
       // Discovered typed variants join the static vocabulary (ticket 15) —
       // the bounded catalog lookup merges with the static option list.
       if (catalog) {
@@ -289,7 +293,8 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       const typedPastMetric = metricWord !== null && metricWord !== undefined
         && /\s/.test(context.state.sliceDoc(metricWord.to, context.pos));
       if (afterColon && !typedPastMetric) {
-        return { from: word.from, options: metricOptions(), validFor: /^[\w.-]*$/ };
+        const find = context.state.sliceDoc(head.from, context.pos).trimStart().startsWith('find:');
+        return { from: word.from, options: find ? options(WQL_FIND_TARGETS) : metricOptions(), validFor: /^[\w.-]*$/ };
       }
       if (!afterColon) {
         return { from: word.from, options: options(WQL_AGGREGATORS).map((c) => ({ ...c, type: 'keyword' })), validFor: /^[\w-]*$/ };

@@ -217,14 +217,14 @@ export const PaletteShell: React.FC = () => {
     <div className="py-8 text-center text-sm text-muted-foreground">Searching…</div>
   ) : query ? (
     <div className="py-8 text-center text-sm text-muted-foreground">
-      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{query}&rdquo;</span>
+      No results for <span className="font-medium text-foreground/60">&ldquo;{query}&rdquo;</span>
     </div>
   ) : (
     <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
   );
 
   const searchRow = wqlConfig ? (
-    <div className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
+    <div className="border-b border-border/80 px-3 py-2">
       <WqlComposer
         key={requestSeqRef.current}
         initialQuery={wqlConfig.initialQuery}
@@ -246,7 +246,7 @@ export const PaletteShell: React.FC = () => {
   // safe-area padded on mobile. The stale badge explains retained results.
   const footer = wqlConfig ? (
     <div
-      className="flex items-center gap-2 border-t border-zinc-200 px-3 pt-2 dark:border-zinc-700"
+      className="flex items-center gap-2 border-t border-border/80 px-3 pt-2"
       style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
     >
       {!validity.valid && (
@@ -262,7 +262,7 @@ export const PaletteShell: React.FC = () => {
         type="button"
         onClick={_dismiss}
         data-testid="palette-cancel"
-        className="min-h-12 rounded-md border border-zinc-200 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors dark:border-zinc-700"
+        className="min-h-12 rounded-md border border-border bg-background px-4 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         Cancel
       </button>
@@ -283,9 +283,9 @@ export const PaletteShell: React.FC = () => {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) _dismiss(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
         <Dialog.Content
-          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col outline-none shadow-2xl max-lg:bottom-0 max-lg:top-auto max-lg:rounded-t-2xl max-lg:max-h-[var(--palette-max-h)] max-lg:min-h-[var(--palette-min-h)] lg:top-[10%] lg:max-h-[80vh] lg:rounded-xl ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'}`}
+          className={`fixed inset-x-0 z-50 mx-auto flex w-full flex-col outline-none max-lg:bottom-0 max-lg:top-auto max-lg:rounded-t-2xl max-lg:max-h-[var(--palette-max-h)] max-lg:min-h-[var(--palette-min-h)] lg:top-[10%] lg:max-h-[80vh] lg:rounded-xl ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'}`}
           style={
             {
               '--palette-min-h': sheetMinH,
@@ -301,7 +301,7 @@ export const PaletteShell: React.FC = () => {
           {/* flex-1/min-h-0: lets the results list shrink + scroll inside the
               sheet's max-height instead of overflowing under the footer. */}
           <CommandListView
-            className="min-h-0 flex-1"
+            className="min-h-0 flex-1 border-border bg-card dark:bg-card"
             items={results}
             query={query}
             onQueryChange={handleQueryChange}

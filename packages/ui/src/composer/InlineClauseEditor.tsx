@@ -88,19 +88,19 @@ export function InlineClauseEditor({
     >
       <div className="flex items-center gap-2 px-2 pt-1 pb-1.5">
         <span aria-hidden className="text-[11px]">{meta.icon}</span>
-        <span className="text-[11px] font-semibold text-foreground font-mono">{meta.label}</span>
-        <span className="ml-auto text-[10px] text-muted-foreground/70 font-mono truncate">
+        <span className="text-xs sm:text-[11px] font-semibold text-foreground font-mono">{meta.label}</span>
+        <span className="hidden sm:block ml-auto text-[10px] text-muted-foreground/70 font-mono truncate">
           ↑↓ move · Enter {isMulti ? 'add/remove' : 'set'} · Esc done · Tab exits
         </span>
       </div>
 
       {shownValues.length > 0 && (
         <div className={cn('px-2 pb-1.5', isMulti && 'border-b border-border/50')}>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5 sm:gap-1 max-h-24 overflow-y-auto overscroll-contain touch-pan-y sm:max-h-none sm:overflow-visible">
             {shownValues.map((v, i) => (
             <span
               key={v}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono min-h-11"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-xs sm:text-[10px] font-mono min-h-11 sm:min-h-0"
             >
               <span className="max-w-40 truncate">{v}</span>
               {onReorder && shownValues.length > 1 && (
@@ -110,7 +110,7 @@ export function InlineClauseEditor({
                     aria-label={`Move ${v} up`}
                     disabled={i === 0}
                     onClick={() => reorder(i, -1)}
-                    className="px-0.5 hover:text-foreground disabled:opacity-30 min-h-11 min-w-11"
+                    className="px-0.5 hover:text-foreground disabled:opacity-30 min-h-11 min-w-11 sm:min-h-5 sm:min-w-5"
                   >
                     <ArrowUp className="w-3 h-3" />
                   </button>
@@ -119,7 +119,7 @@ export function InlineClauseEditor({
                     aria-label={`Move ${v} down`}
                     disabled={i === shownValues.length - 1}
                     onClick={() => reorder(i, 1)}
-                    className="px-0.5 hover:text-foreground disabled:opacity-30 min-h-11 min-w-11"
+                    className="px-0.5 hover:text-foreground disabled:opacity-30 min-h-11 min-w-11 sm:min-h-5 sm:min-w-5"
                   >
                     <ArrowDown className="w-3 h-3" />
                   </button>
@@ -130,7 +130,7 @@ export function InlineClauseEditor({
                   type="button"
                   onClick={() => onCommitValue(v)}
                   aria-label={`Remove ${v}`}
-                  className="hover:text-destructive min-h-11 min-w-11 -mr-1.5"
+                  className="hover:text-destructive min-h-11 min-w-11 sm:min-h-5 sm:min-w-5 -mr-1.5 sm:-mr-1"
                 >
                   <X className="w-2.5 h-2.5" />
                 </button>
@@ -139,7 +139,7 @@ export function InlineClauseEditor({
             ))}
           </div>
           {isMulti && (
-            <p className="pt-1 text-[10px] text-muted-foreground" data-testid="wql-clause-editor-multi-hint">
+            <p className="pt-1 text-xs sm:text-[10px] text-muted-foreground" data-testid="wql-clause-editor-multi-hint">
               {clause.type === 'groupby' ? 'Group in this order.' : 'Match any selected value (OR).'}
             </p>
           )}
@@ -151,7 +151,7 @@ export function InlineClauseEditor({
         role="listbox"
         aria-label={`${meta.label} options`}
         aria-multiselectable={isMulti || undefined}
-        className="max-h-44 overflow-y-auto flex flex-col gap-0.5"
+        className="max-h-[min(45svh,20rem)] sm:max-h-44 overflow-y-auto overscroll-contain touch-pan-y flex flex-col gap-0.5"
       >
         {canCommitTyped && (
           <button
@@ -164,7 +164,7 @@ export function InlineClauseEditor({
             onClick={() => onCommitTyped(typedValue)}
             data-testid={`clause-commit-typed-${clause.type}`}
             className={cn(
-              'flex items-center justify-between px-2 py-1 text-xs text-left rounded hover:bg-muted/60 transition-colors font-mono min-h-12',
+              'flex items-center justify-between px-2 py-2 sm:py-1 text-sm sm:text-xs text-left rounded hover:bg-muted/60 transition-colors font-mono min-h-12 sm:min-h-0',
               highlightIdx === typedIdx && 'bg-muted/60',
             )}
           >
@@ -189,7 +189,7 @@ export function InlineClauseEditor({
               onMouseEnter={() => onHighlight(idx)}
               onClick={() => onCommitValue(item.value)}
               className={cn(
-                'flex items-center justify-between px-2 py-1 text-xs text-left rounded transition-colors font-mono min-h-12',
+                'flex items-center justify-between px-2 py-2 sm:py-1 text-sm sm:text-xs text-left rounded transition-colors font-mono min-h-12 sm:min-h-0',
                 active ? 'bg-primary/15 font-semibold' : 'hover:bg-muted/60',
                 selected && 'text-primary',
               )}
@@ -200,17 +200,17 @@ export function InlineClauseEditor({
           );
         })}
         {emptyText && (
-          <div className="px-2 py-1.5 text-xs text-muted-foreground italic">{emptyText}</div>
+          <div className="px-2 py-2 sm:py-1.5 text-sm sm:text-xs text-muted-foreground italic">{emptyText}</div>
         )}
       </div>
 
       {isMulti && onDone && (
-        <div className="flex justify-end px-2 pt-1.5">
+        <div className="sticky bottom-0 -mx-1 -mb-1 px-3 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] bg-popover rounded-b-xl flex justify-end">
           <button
             type="button"
             onClick={onDone}
             data-testid="wql-clause-editor-done"
-            className="inline-flex items-center min-h-12 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex w-full sm:w-auto items-center justify-center min-h-12 sm:min-h-9 px-3 rounded-lg bg-primary text-primary-foreground text-sm sm:text-xs font-semibold hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Done{shownValues.length > 0 ? ` · ${shownValues.length} selected` : ''}
           </button>

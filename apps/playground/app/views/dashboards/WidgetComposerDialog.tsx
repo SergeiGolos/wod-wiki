@@ -331,6 +331,25 @@ function ComposerSession({
               {wql.trim()}
             </code>
           )}
+          {!readOnly && (
+            <label className="mt-3 flex flex-col gap-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Visualization
+              </span>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                data-testid="widget-composer-type"
+                className="min-h-12 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-primary sm:min-h-0"
+              >
+                {DASHBOARD_WIDGET_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </section>
 
         {!readOnly && (
@@ -360,23 +379,6 @@ function ComposerSession({
                 data-testid="widget-composer-question"
                 className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-primary"
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Visualization
-              </span>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                data-testid="widget-composer-type"
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-primary"
-              >
-                {DASHBOARD_WIDGET_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
             </label>
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">

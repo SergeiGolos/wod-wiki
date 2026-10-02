@@ -109,6 +109,14 @@ describe('useComposerQueryState', () => {
     await waitFor(() => expect(query()).toBe('find:note{tags:strength}'))
   })
 
+  it('never writes an unparseable draft to the URL', async () => {
+    renderAt(['/library'])
+    act(() => captured.setQuery('find:note{source:collections} backproof'))
+    expect(qParam()).toBe('')
+    act(() => captured.setQuery('find:note{tags:strength}'))
+    await waitFor(() => expect(qParam()).toBe('find:note{tags:strength}'))
+  })
+
   it('keeps a no-op edit from pushing a history entry', async () => {
     renderAt(['/library'])
     const searchBefore = search()
