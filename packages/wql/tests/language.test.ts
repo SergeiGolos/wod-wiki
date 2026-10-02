@@ -22,8 +22,8 @@ function complete(doc: string, pos = doc.length) {
 
 describe('wqlCompletionSource', () => {
   it('offers aggregators at the query start', () => {
-    expect(complete('')).toEqual(['sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
-    expect(complete('su')).toEqual(['sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
+    expect(complete('')).toEqual(['find', 'sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
+    expect(complete('su')).toEqual(['find', 'sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
   });
 
   it('offers Canonical Metric Keys after the head colon', () => {
@@ -99,6 +99,51 @@ describe('wqlCompletionSource', () => {
   it('offers structural suffixes after a complete head', () => {
     const labels = complete('sum:tis b')!;
     expect(labels).toEqual(['by {}', '.rollup()']);
+  });
+});
+
+describe('wqlCompletionSource — aggressive slots', () => {
+  const at = (doc: string, from: number, to: number) => {
+    const state = EditorState.create({ doc, selection: { anchor: from, head: to }, extensions: [wqlLanguage] });
+    ensureSyntaxTree(state, doc.length, 200);
+    const result = source(new CompletionContext(state, to, false)) as any;
+    return result && { labels: result.options.map((o: any) => o.label), from: result.from, to: result.to, filter: result.filter };
+  };
+
+  it('offers every sibling when a slot token is selected, replacing it', () => {
+    const head = at('find:note last 2w', 0, 4)!;
+    expect(head.labels).toEqual(['find', 'sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
+    expect([head.from, head.to, head.filter]).toEqual([0, 4, false]);
+
+    const target = at('find:note last 2w', 5, 9)!;
+    expect(target.labels).toEqual(['note', 'block', 'effort', 'session', 'segment', 'event']);
+    expect([target.from, target.to, target.filter]).toEqual([5, 9, false]);
+  });
+
+  it('offers values for the selected filter value and keys for the selected key', () => {
+    const doc = 'find:note{source:journal}';
+    expect(at(doc, 17, 24)!.labels).toEqual(['journal', 'collections', 'feeds', 'guides', 'playground']);
+    expect(at(doc, 10, 16)!.labels).toEqual([...WQL_TAG_KEYS]);
+  });
+
+  it('opens the next slot right after a separator without a keystroke', () => {
+    const state = EditorState.create({ doc: 'find:note{', extensions: [wqlLanguage] });
+    ensureSyntaxTree(state, 10, 200);
+    const result = source(new CompletionContext(state, 10, false)) as any;
+    expect(result.options.map((o: any) => o.label)).toEqual([...WQL_TAG_KEYS]);
+    const valueState = EditorState.create({ doc: 'find:note{source:', extensions: [wqlLanguage] });
+    ensureSyntaxTree(valueState, 17, 200);
+    const values = source(new CompletionContext(valueState, 17, false)) as any;
+    expect(values.options.map((o: any) => o.label)).toContain('journal');
+  });
+
+  it('prefers host-supplied values over static vocabularies', async () => {
+    const hosted = wqlCompletionSource({ values: async (key) => (key === 'source' ? [{ label: 'mine' }] : []) });
+    const doc = 'find:note{source:';
+    const state = EditorState.create({ doc, extensions: [wqlLanguage] });
+    ensureSyntaxTree(state, doc.length, 200);
+    const result = (await hosted(new CompletionContext(state, doc.length, true))) as any;
+    expect(result.options.map((o: any) => o.label)).toEqual(['mine']);
   });
 });
 

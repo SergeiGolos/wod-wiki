@@ -23,7 +23,9 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, autoFocus =
 
   useEffect(() => {
     if (!host.current) return;
-    const source = wqlCompletionSource();
+    const source = wqlCompletionSource({
+      values: async key => (await loadSuggestions(key === 'tags' ? 'tag' : key)).map(item => ({ label: item.value, detail: item.label, type: 'constant' })),
+    });
     const editor = new EditorView({
       parent: host.current,
       state: EditorState.create({
@@ -33,21 +35,7 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, autoFocus =
           EditorView.contentAttributes.of({ 'aria-label': 'WQL', 'data-testid': 'wql-text-input' }),
           autocompletion({
             defaultKeymap: false, selectOnOpen: false,
-            override: [async context => {
-              let node = syntaxTree(context.state).resolveInner(context.pos, -1);
-              while (node.parent && node.name !== 'Filter') node = node.parent;
-              if (node.name === 'Filter') {
-                const text = context.state.sliceDoc(node.from, context.pos);
-                const colon = text.indexOf(':');
-                if (colon >= 0) {
-                  const key = text.slice(0, colon).replace(/^!/, '').trim();
-                  const items = await loadSuggestions(key === 'tags' ? 'tag' : key);
-                  const word = context.matchBefore(/[\w.*-]*/);
-                  if (items.length && word) return { from: word.from, options: items.map(item => ({ label: item.value, detail: item.label })), validFor: /^[\w.*-]*$/ };
-                }
-              }
-              return source(context);
-            }],
+            override: [source],
           }),
           keymap.of([
             { key: 'Mod-Enter', run: () => { callbacks.current.onSubmit(); return true; } },
@@ -58,7 +46,27 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, autoFocus =
             { key: 'Escape', run: editor => closeCompletion(editor) || callbacks.current.onEscape() },
             ...historyKeymap,
           ]),
-          EditorView.domEventHandlers({ keydown: (event, editor) => {
+          EditorView.domEventHandlers({
+            // Clicking a head/target/filter token selects it and lists its alternatives;
+            // typing then replaces it, picking swaps it.
+            mouseup: (event, editor) => {
+              if (event.button !== 0) return false;
+              let { from, to } = editor.state.selection.main;
+              if (from === to) {
+                const line = editor.state.doc.lineAt(from);
+                const word = Array.from(line.text.matchAll(/[\w.*-]+/g)).find(m => line.from + m.index! <= from && from <= line.from + m.index! + m[0].length);
+                if (!word) return false;
+                from = line.from + word.index!;
+                to = from + word[0].length;
+                let node = syntaxTree(editor.state).resolveInner(to, -1);
+                while (node.parent && !['Head', 'Filter'].includes(node.name)) node = node.parent;
+                if (!['Head', 'Filter'].includes(node.name)) return false;
+                editor.dispatch({ selection: { anchor: from, head: to } });
+              }
+              startCompletion(editor);
+              return false;
+            },
+            keydown: (event, editor) => {
             if (event.isComposing && event.key === 'Enter') return true;
             if (event.isComposing) return false;
             if (event.key === 'Enter' || (['ArrowDown', 'ArrowUp'].includes(event.key) && completionStatus(editor.state) === 'active')) event.stopPropagation();
