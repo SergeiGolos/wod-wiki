@@ -1,4 +1,4 @@
-# Markdown effort-page coverage audit
+·# Markdown effort-page coverage audit
 
 Date: 2026-10-02. Editable population backlog, not a data migration.
 
