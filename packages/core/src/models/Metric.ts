@@ -92,6 +92,13 @@ export interface IMetric {
 
   /** Optional human-readable name or label */
   readonly name?: string;
+
+  /**
+   * Optional icon (emoji/glyph) for hint metrics. Hints without an icon are
+   * data-only — they never render in display surfaces; a hint WITH an icon
+   * renders as the icon alone, with the hint text on hover.
+   */
+  readonly icon?: string;
 }
 
 /**

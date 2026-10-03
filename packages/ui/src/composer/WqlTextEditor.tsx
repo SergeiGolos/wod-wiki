@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { createElement, useEffect, useRef } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { ChartNoAxesCombined, ListFilter, Search, Tag } from 'lucide-react';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { history, historyKeymap } from '@codemirror/commands';
@@ -6,6 +8,13 @@ import { acceptCompletion, autocompletion, closeCompletion, completionStatus, mo
 import { syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { wqlLanguage, wqlHighlightStyle, wqlCompletionSource } from '@bitcobblers/wod-wiki-wql';
 import { loadSuggestions } from './suggestionSources';
+
+const completionIcons = {
+  search: renderToStaticMarkup(createElement(Search, { size: 16 })),
+  metric: renderToStaticMarkup(createElement(ChartNoAxesCombined, { size: 16 })),
+  filter: renderToStaticMarkup(createElement(ListFilter, { size: 16 })),
+  value: renderToStaticMarkup(createElement(Tag, { size: 16 })),
+};
 
 export function WqlTextEditor({ value, onChange, onSubmit, onEscape, autoFocus = false }: {
   value: string;
@@ -36,6 +45,16 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, autoFocus =
           autocompletion({
             defaultKeymap: false, selectOnOpen: false,
             override: [source],
+            icons: false,
+            addToOptions: [{ position: 20, render: completion => {
+              const icon = document.createElement('span');
+              icon.className = 'wql-completion-icon';
+              icon.setAttribute('aria-hidden', 'true');
+              icon.innerHTML = completion.label === 'find' ? completionIcons.search
+                : completion.type === 'keyword' || completion.type === 'variable' ? completionIcons.metric
+                : completion.type === 'property' ? completionIcons.filter : completionIcons.value;
+              return icon;
+            } }],
           }),
           keymap.of([
             { key: 'Mod-Enter', run: () => { callbacks.current.onSubmit(); return true; } },
@@ -81,8 +100,28 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, autoFocus =
             '.cm-content': { fontFamily: 'var(--font-mono, ui-monospace, monospace)', padding: '12px 0', minHeight: '48px' },
             '.cm-line': { padding: '0 12px' },
             '.cm-scroller': { overflow: 'auto' },
-            '.cm-tooltip': { backgroundColor: 'var(--popover)', color: 'var(--popover-foreground)', border: '1px solid var(--border)', borderRadius: '8px' },
-            '.cm-tooltip-autocomplete ul li': { padding: '8px 12px' },
+            '.cm-tooltip': {
+              backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))',
+              border: '1px solid hsl(var(--border))', borderRadius: '12px',
+              boxShadow: '0 8px 24px rgb(0 0 0 / 0.16)',
+              fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)', fontSize: '14px',
+            },
+            '.cm-tooltip-autocomplete': { overflow: 'hidden', minWidth: 'min(18rem, calc(100vw - 2rem))', maxWidth: 'calc(100vw - 2rem)' },
+            '.cm-tooltip-autocomplete > ul': { padding: '4px', maxHeight: 'min(20rem, 45vh)', overscrollBehavior: 'contain' },
+            '.cm-tooltip-autocomplete > ul > li': {
+              display: 'flex', alignItems: 'center', gap: '8px', minHeight: '40px',
+              padding: '8px 10px', borderRadius: '8px', lineHeight: '20px',
+            },
+            '.cm-tooltip-autocomplete > ul > li:hover': { backgroundColor: 'hsl(var(--muted))' },
+            '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+              backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))',
+              boxShadow: 'inset 2px 0 hsl(var(--primary))',
+            },
+            '.wql-completion-icon': { display: 'inline-flex', flexShrink: '0', color: 'hsl(var(--primary))' },
+            '.cm-completionLabel': { fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis' },
+            '.cm-completionMatchedText': { textDecoration: 'none', fontWeight: '700', color: 'hsl(var(--primary))' },
+            '.cm-completionDetail': { marginLeft: 'auto', paddingLeft: '12px', fontSize: '12px', fontStyle: 'normal', color: 'hsl(var(--muted-foreground))' },
+            '@media (pointer: coarse)': { '.cm-tooltip-autocomplete > ul > li': { minHeight: '48px' } },
           }),
         ],
       }),

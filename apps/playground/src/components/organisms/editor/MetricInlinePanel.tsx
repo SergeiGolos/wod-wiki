@@ -102,6 +102,7 @@ const MetricChip: React.FC<{
   onClick?: () => void;
 }> = ({ metric, tooltip, isFocused, onClick }) => {
   const style = METRIC_STYLES[metric.type as string];
+  const isHint = metric.type === MetricType.Hint;
   const displayVal =
     metric.image ?? (metric.value !== undefined ? String(metric.value) : "");
   const label = style?.label ?? String(metric.type);
@@ -120,9 +121,9 @@ const MetricChip: React.FC<{
         isFocused && "font-bold shadow-sm",
       )}
     >
-      <span>{style?.icon ?? "•"}</span>
-      <span>{label}</span>
-      {displayVal && (
+      <span>{isHint ? metric.icon : (style?.icon ?? "•")}</span>
+      {!isHint && <span>{label}</span>}
+      {!isHint && displayVal && (
         <span className="font-semibold">{displayVal}</span>
       )}
     </span>
@@ -215,6 +216,8 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
   const statement = focus.statement;
   const visibleMetrics = statement?.metrics.filter(
     (m) => m.type !== MetricType.Sound && m.type !== MetricType.System
+      // Hints are data-only unless authored with an icon; iconed hints render as icon + hover text.
+      && !(m.type === MetricType.Hint && !m.icon)
   ) ?? [];
   // Same presentation tokens the effort widget's badges use (tooltip content).
   const tokens = presentThemedGroup(visibleMetrics, 'runtime-badge');
@@ -259,7 +262,9 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
               <MetricChip
                 key={`${metric.type}-${i}`}
                 metric={metric}
-                tooltip={tokens[i]?.tooltip}
+                tooltip={metric.type === MetricType.Hint
+                  ? String(metric.value ?? '')
+                  : tokens[i]?.tooltip}
                 isFocused={focus.focusedMetric === metric}
                 onClick={SEGMENT_FOR_METRIC[metric.type as string]
                   ? () => handleChipClick(metric)

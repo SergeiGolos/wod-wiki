@@ -160,6 +160,8 @@ find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | l
 
 The composer's text editor offers the next slot as you type and every alternative when you click a token: click `find` for the head aggregators and `find`, click a target for all `find:` targets, click a filter key for all keys, click a value for that key's values. Picking replaces the token; picking an aggregator or key adds `:` and opens the next list. Unparseable drafts are never written to the URL.
 
+Completion menus use an opaque themed popover in light and dark mode, the app's sans-serif UI font, and outline icons for search, metrics, filter keys and values. Hover and keyboard selection have distinct highlights. The query text remains monospace.
+
 ## 8. Removed forms
 
 * `rows:all{…}` / `rows:<plane>{…}` — removed; use `find:session{…}` (add `plane:<plane>` for plane narrowing).
