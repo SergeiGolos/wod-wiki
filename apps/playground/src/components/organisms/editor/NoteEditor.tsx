@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
-import { EditorState, StateEffect, type Extension } from "@codemirror/state";
+import { EditorState, Prec, StateEffect, type Extension } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
 import {
   EditorView,
@@ -31,10 +31,11 @@ import {
   history,
   historyKeymap,
   indentWithTab,
+  insertNewlineAndIndent,
 } from "@codemirror/commands";
 import { indentOnInput } from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
-import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
+import { acceptCompletion, completionKeymap, completionStatus, closeCompletion, closeBrackets, closeBracketsKeymap, startCompletion } from "@codemirror/autocomplete";
 import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 
@@ -66,7 +67,7 @@ import { cursorFocusExtension, getCursorFocusState } from "@/app/editor/cursorFo
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
 import { queryService, onResultSaved } from "@/hooks/useCastSignaling";
-import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
+import { createFileDropHandler, createFrontmatterSuggestions, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
 import { entryOpenHref } from '../../../../app/lib/entryActions';
 import { toEntry, blockToEntry } from '../../../../app/lib/entryMapper';
@@ -219,14 +220,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // Register frontmatter tag completions into the global CodeMirror completion chain
   useEffect(() => {
     const source: CustomCompletionSource = async (context: CompletionContext): Promise<CompletionResult | null> => {
-      const section = activeCursorSection(context.state);
+      if (context.view !== viewRef.current || !isLeadingFrontmatter(context.state, context.pos)) return null;
       const line = context.state.doc.lineAt(context.pos);
       const textBefore = line.text.slice(0, context.pos - line.from);
-
-      const isFrontmatter =
-        (section && section.type === 'frontmatter') ||
-        (line.number > 1 && context.state.doc.sliceString(0, 4) === '---\n');
-      if (!isFrontmatter) return null;
+      const propMatch = textBefore.match(/^([a-zA-Z][\w.-]*)$/);
+      const valueContext = frontmatterValueContext(context.state, context.pos);
+      if (!propMatch && !valueContext) return null;
 
       const [tagTypes, allTags] = await Promise.all([
         storageService.getAllTagTypes().catch(() => []),
@@ -234,53 +233,23 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ]);
       if (tagTypes.length === 0) return null;
 
-      // Pattern 1: Typing property key at line start: e.g. "equip"
-      const propMatch = textBefore.match(/^([a-zA-Z][\w.-]*)$/);
       if (propMatch) {
-        const word = propMatch[1].toLowerCase();
-        const matchingTypes = tagTypes.filter((t) => t.name.toLowerCase().startsWith(word));
-        if (matchingTypes.length > 0) {
-          return {
-            from: line.from,
-            options: matchingTypes.map((t) => ({
-              label: t.name,
-              detail: `Tag Type (${t.label})`,
-              type: 'property',
-              apply: `${t.name}:\n  - `,
-            })),
-            validFor: /^[a-zA-Z][\w.-]*$/,
-          };
-        }
+        return {
+          from: line.from,
+          options: tagTypes.map((t) => ({
+            label: t.name,
+            detail: `Tag Type (${t.label})`,
+            type: 'property',
+            apply: `${t.name}:\n  - `,
+          })),
+          validFor: (text, _from, to, state) =>
+            /^[a-zA-Z][\w.-]*$/.test(text) && isLeadingFrontmatter(state, to),
+        };
       }
 
-      // Pattern 2: Typing under a property: `  - <val>` or `<prop>: <val>`
-      let propertyKey: string | null = null;
-      let wordFrom = context.pos;
-
-      const listMatch = textBefore.match(/^\s*-\s*(.*)$/);
-      const inlineMatch = textBefore.match(/^([a-zA-Z][\w.-]*)\s*:\s*(.*)$/);
-
-      if (listMatch) {
-        for (let l = line.number - 1; l >= 1; l--) {
-          const prevLine = context.state.doc.line(l).text;
-          const keyMatch = prevLine.match(/^([a-zA-Z][\w.-]*)\s*:/);
-          if (keyMatch) {
-            propertyKey = keyMatch[1];
-            break;
-          }
-          if (prevLine.startsWith('---')) break;
-        }
-        const typedPrefix = listMatch[1];
-        wordFrom = context.pos - typedPrefix.length;
-      } else if (inlineMatch) {
-        propertyKey = inlineMatch[1];
-        const typedPrefix = inlineMatch[2];
-        wordFrom = context.pos - typedPrefix.length;
-      }
-
-      if (!propertyKey) return null;
-
-      const matchingType = tagTypes.find((t) => t.name.toLowerCase() === propertyKey?.toLowerCase());
+      if (!valueContext) return null;
+      const { propertyKey, from: wordFrom } = valueContext;
+      const matchingType = tagTypes.find((t) => t.name.toLowerCase() === propertyKey.toLowerCase());
       if (!matchingType) return null;
 
       const matchingTags = allTags.filter((t) => t.type?.toLowerCase() === matchingType.name.toLowerCase());
@@ -293,7 +262,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           detail: matchingType.label,
           type: 'constant',
         })),
-        validFor: /^[\w-]*$/,
+        validFor: (text, from, to, state) => {
+          const current = frontmatterValueContext(state, to);
+          return /^[\w-]*$/.test(text) && current?.propertyKey === propertyKey && current.from === from;
+        },
       };
     };
 
@@ -318,6 +290,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [cursorSectionId, setCursorSectionId] = useState<string | null>(null);
   const [sections, setSections] = useState<EditorSection[]>([]);
   const [cursorLine, setCursorLine] = useState(1);
+  const [cursorVersion, setCursorVersion] = useState(0);
   const effectiveActiveSectionId = externalActiveSectionId ?? cursorSectionId;
   const overlayState = useOverlayWidthState(sections, effectiveActiveSectionId);
 
@@ -468,6 +441,28 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       highlightSelectionMatches(),
 
       // Keybindings
+      Prec.highest(keymap.of([
+        {
+          key: "Tab",
+          run: (view) => {
+            if (completionStatus(view.state) === null) return false;
+            acceptCompletion(view);
+            return true;
+          },
+        },
+        {
+          key: "Enter",
+          run: (view) => {
+            const selection = view.state.selection.main;
+            const context = frontmatterValueContext(view.state, selection.head);
+            const line = view.state.doc.lineAt(selection.head);
+            if (!selection.empty || context?.value.trim() !== "" ||
+                line.text.slice(selection.head - line.from).trim()) return false;
+            closeCompletion(view);
+            return insertNewlineAndIndent(view);
+          },
+        },
+      ])),
       keymap.of([
         ...closeBracketsKeymap,
         ...defaultKeymap,
@@ -518,6 +513,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         previewDecorations,
         embedPreviewDecorations,
         frontmatterPreview,
+        createFrontmatterSuggestions(),
         markdownTablePreview,
         markdownSyntaxHiding(),
       ] : []),
@@ -590,6 +586,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           notifyBlockChanges(update.state, onBlocksChange, lastBlocksJsonRef);
         }
         if (update.selectionSet || update.docChanged) {
+          setCursorVersion((version) => version + 1);
+          if (update.transactions.some((transaction) => transaction.isUserEvent("delete.backward")) &&
+              completionStatus(update.startState) !== null && completionStatus(update.state) === null &&
+              frontmatterValueContext(update.state, update.state.selection.main.head)?.value === "") {
+            queueMicrotask(() => {
+              if (update.view.state === update.state) startCompletion(update.view);
+            });
+          }
           const { head } = update.state.selection.main;
           const line = update.state.doc.lineAt(head);
           onCursorPositionChange?.(line.number, head - line.from + 1);
@@ -843,7 +847,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           enableOverlay: it anchors to the cursor, not a section slot. */}
       <MetricInlinePanel
         view={viewInstance ?? viewRef.current}
-        cursorVersion={cursorLine}
+        cursorVersion={cursorVersion}
       />
       {fullscreenTimerBlock && viewRef.current && (
         <FullscreenTimer
@@ -867,6 +871,30 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 };
 
 // ---------- Helpers ----------
+
+function isLeadingFrontmatter(state: EditorState, pos: number): boolean {
+  const line = state.doc.lineAt(pos);
+  if (line.number === 1 || state.doc.line(1).text.trim() !== "---") return false;
+  for (let number = 2; number <= line.number; number++) {
+    if (/^(---|\.\.\.)\s*$/.test(state.doc.line(number).text)) return false;
+  }
+  return true;
+}
+
+function frontmatterValueContext(state: EditorState, pos: number): { propertyKey: string; from: number; value: string } | null {
+  if (!isLeadingFrontmatter(state, pos)) return null;
+  const line = state.doc.lineAt(pos);
+  const textBefore = line.text.slice(0, pos - line.from);
+  const inline = textBefore.match(/^([a-zA-Z][\w.-]*)\s*:\s*(.*)$/);
+  if (inline) return { propertyKey: inline[1], from: pos - inline[2].length, value: inline[2] };
+  const list = textBefore.match(/^\s*-\s*(.*)$/);
+  if (!list) return null;
+  for (let number = line.number - 1; number > 1; number--) {
+    const property = state.doc.line(number).text.match(/^([a-zA-Z][\w.-]*)\s*:/);
+    if (property) return { propertyKey: property[1], from: pos - list[1].length, value: list[1] };
+  }
+  return null;
+}
 
 /** Convert an EditorSection to a ScriptBlock for callback compatibility */
 function sectionToScriptBlock(section: EditorSection, state: EditorState): ScriptBlock | null {

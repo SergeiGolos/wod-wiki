@@ -56,6 +56,25 @@ function segmentToRawFragment(s: NoteSegment): string {
     return s.rawContent;
 }
 
+function sectionSourceFragments(content: string, sections: readonly Section[]): string[] {
+    const starts = [0];
+    for (let i = 0; i < content.length; i++) {
+        if (content[i] === '\n') starts.push(i + 1);
+    }
+    return sections.map((section, index) => content.slice(
+        starts[section.startLine],
+        index + 1 < sections.length ? starts[sections[index + 1].startLine] : content.length,
+    ));
+}
+
+function segmentsToRawContent(segments: readonly NoteSegment[], tags: string[]): string {
+    const content = segments.map((segment, index) => segment.sourceContent
+        ?? (segmentToRawFragment(segment) + (index + 1 < segments.length ? '\n' : ''))).join('');
+    return segments.some(segment => segment.sourceContent === undefined)
+        ? ensureFrontmatterTags(content, tags)
+        : content;
+}
+
 /**
  * Tags declared in the frontmatter sections of a document (T4 bridge).
  * Accepts parser Sections (`type`) and stored NoteSegments (`dataType`).
@@ -153,13 +172,10 @@ export class IndexedDBContentProvider implements IContentProvider {
         const rawContentFor = (noteId: string): string => {
             const byId = latestByNote.get(noteId);
             if (!byId) return '';
-            const base = [...byId.values()]
+            const segments = [...byId.values()]
                 .filter((s) => !s.isHistory)
-                .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
-                .map(segmentToRawFragment)
-                .join('\n');
-            const noteTags = tagsByNote.get(noteId);
-            return ensureFrontmatterTags(base, noteTags ?? []);
+                .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt));
+            return segmentsToRawContent(segments, tagsByNote.get(noteId) ?? []);
         };
 
         const resolved = notes.map(note => {
@@ -227,7 +243,6 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // V11 — content always reconstructs from segments (note.rawContent is gone).
         const segments = await this.db.getLatestSegmentsForNote(note.id);
-        const baseContent = segments.map(segmentToRawFragment).join('\n');
 
         // Derived projection fields (V22): page/slug/journalDate via page_notes junction.
         const [notePages, tags] = await Promise.all([
@@ -237,7 +252,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         const primaryPage = notePages.length > 0
             ? await this.db.getPage(notePages[0].pageId)
             : undefined;
-        const rawContent = ensureFrontmatterTags(baseContent, tags.map(t => t.label));
+        const rawContent = segmentsToRawContent(segments, tags.map(t => t.label));
 
         // Fetch latest result for this note
         const latestResults = await this.db.getResultsForNote(note.id);
@@ -328,6 +343,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             }
         }
 
+        const existingNote = entry.id ? await this.db.getNote(entry.id) : undefined;
         // Preserve recovered timestamps; mint fresh when absent.
         const createdAt = entry.createdAt ?? now;
 
@@ -351,25 +367,31 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // TRANSITION TO SEGMENTS — content lives only here (N-03/N-04).
         const sections = parseDocumentSections(entry.rawContent);
+        const sourceFragments = sectionSourceFragments(entry.rawContent, sections);
 
-        let position = 0;
-        for (const section of sections) {
-            const segment: NoteSegment = {
-                id: section.id,
-                version: 1,
-                noteId: noteId,
-                position: position++,
-                pageId,
-                dataType: toSegmentDataType(section),
-                data: section.scriptBlock || null,
-                rawContent: section.displayContent,
-                createdAt,
-                updatedAt: createdAt,
-                isHistory: false,
-            };
-            await this.db.saveSegment(segment);
+        if (existingNote) {
+            await this.updateEntry(noteId, { rawContent: entry.rawContent });
+        } else {
+            let position = 0;
+            for (const section of sections) {
+                const segment: NoteSegment = {
+                    id: section.id,
+                    version: 1,
+                    noteId: noteId,
+                    position,
+                    pageId,
+                    dataType: toSegmentDataType(section),
+                    data: section.scriptBlock || null,
+                    rawContent: section.displayContent,
+                    sourceContent: sourceFragments[position++],
+                    createdAt,
+                    updatedAt: createdAt,
+                    isHistory: false,
+                };
+                await this.db.saveSegment(segment);
+            }
         }
-        await this.db.rebuildBlockIndexForNote?.(noteId);
+        if (!existingNote) await this.db.rebuildBlockIndexForNote?.(noteId);
 
         const note: Note = {
             id: noteId,
@@ -493,6 +515,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             // Parse into sections to identify units
             const sections = parseDocumentSections(patch.rawContent);
             frontmatterTags = frontmatterTagsOf(sections, knownTypes);
+            const sourceFragments = sectionSourceFragments(patch.rawContent, sections);
             let position = 0;
 
             // Fetch current segments to compare versions — the full lineage
@@ -528,7 +551,8 @@ export class IndexedDBContentProvider implements IContentProvider {
                 if (existingSegment) consumed.add(existingSegment);
 
                 // Content changed or new segment
-                if (!existingSegment || existingSegment.rawContent !== section.displayContent) {
+                if (!existingSegment || existingSegment.rawContent !== section.displayContent
+                    || (existingSegment.sourceContent !== undefined && existingSegment.sourceContent !== sourceFragments[position])) {
                     const newVersion = (existingSegment?.version || 0) + 1;
                     const segment: NoteSegment = {
                         id: section.id,
@@ -539,6 +563,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                         dataType: toSegmentDataType(section),
                         data: section.scriptBlock || null,
                         rawContent: section.displayContent,
+                        sourceContent: sourceFragments[position],
                         createdAt: now,
                         updatedAt: now,
                         isHistory: false,
@@ -559,15 +584,29 @@ export class IndexedDBContentProvider implements IContentProvider {
                         dataType: toSegmentDataType(section),
                         data: section.scriptBlock || null,
                         rawContent: existingSegment.rawContent,
+                        sourceContent: sourceFragments[position],
                         createdAt: existingSegment.createdAt,
                         updatedAt: now,
                         isHistory: false,
                     };
                     await this.db.saveSegment(segment);
                     // The old-id row is superseded — retired by the sweep below.
-                } else if (existingSegment.isHistory) {
-                    // Identical content returned after being retired — resurrect.
-                    await this.db.saveSegment({ ...existingSegment, isHistory: false, updatedAt: now });
+                } else {
+                    const data = section.scriptBlock ? {
+                        ...section.scriptBlock,
+                        createdAt: existingSegment.data?.createdAt ?? existingSegment.createdAt,
+                        version: existingSegment.data?.version ?? existingSegment.version,
+                    } : null;
+                    const dataType = toSegmentDataType(section);
+                    const sourceContent = sourceFragments[position];
+                    if (existingSegment.isHistory || existingSegment.position !== position
+                        || existingSegment.dataType !== dataType || existingSegment.sourceContent !== sourceContent
+                        || JSON.stringify(existingSegment.data) !== JSON.stringify(data)) {
+                        await this.db.saveSegment({
+                            ...existingSegment, position, dataType, data, sourceContent,
+                            isHistory: false, updatedAt: now,
+                        });
+                    }
                 }
                 position++;
             }

@@ -92,8 +92,8 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Type-ahead & freeform Markdown.</em>
       </>
     ),
-    body: 'Markdown is open and editable. WOD Wiki notes start as freeform Markdown — as you type, live type-ahead autocomplete brings the workout onto the page and completes your script.',
-    foot: 'Markdown · type-ahead completion · freeform entry',
+    body: 'Write freeform Markdown and fenced workout blocks. Typeahead suggests fence names, frontmatter properties, and tags. Workout lines are parsed live; movement names are not autocompleted.',
+    foot: 'Markdown · property and tag suggestions · live workout parsing',
     accent: TOUR_ACCENTS.editor,
     choices: WORKOUT_PRESETS,
     choicePrompt: 'Take one for a spin ↓',

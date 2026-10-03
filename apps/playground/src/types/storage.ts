@@ -135,6 +135,8 @@ export interface NoteSegment {
     dataType: SegmentDataType;
     data: ScriptBlock | null; // Structured JSON payload (the ScriptBlock for WOD sections)
     rawContent: string;   // Original markdown / source text
+    /** Exact document fragment, including its following line separator. Absent on legacy rows. */
+    sourceContent?: string;
     createdAt: number;    // When this version was saved
     /** V10 — last time this incarnation was touched (defaults to createdAt). */
     updatedAt?: number;

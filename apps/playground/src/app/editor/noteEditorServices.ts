@@ -1,9 +1,21 @@
 import type { Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
+import { frontmatterSuggestions } from '@bitcobblers/wod-wiki-ui/extensions';
+import { storageService } from '@/services/storage';
 import { v7 as uuidv7 } from 'uuid';
 import { appWarn } from '@/lib/log';
 import { whiteboardScriptLanguage } from '@/hooks/useRuntimeParser';
 import { IndexedDBNotePersistence, type INotePersistence } from '@/services/persistence';
+
+export function createFrontmatterSuggestions(): Extension {
+  return frontmatterSuggestions.of(async () => {
+    const [types, tags] = await Promise.all([
+      storageService.getAllTagTypes(),
+      storageService.getAllTags(),
+    ]);
+    return { types: types.map((type) => type.name), tags };
+  });
+}
 
 export function resolveNotePersistence(
   cache: { current: INotePersistence | null },

@@ -260,7 +260,7 @@ sum:totalVolume{}
     await provider.updateEntry(entry.id, { tags: ['benchmark'] });
   });
 
-  it('ensures stored tags are included in frontmatter metadata of reconstructed rawContent', async () => {
+  it('keeps manual tags separate from the saved markdown body', async () => {
     const { IndexedDBContentProvider } = await providerModule;
     const provider = new IndexedDBContentProvider();
 
@@ -274,16 +274,13 @@ sum:totalVolume{}
 
     const retrieved = await provider.getEntry(entry.id);
     expect(retrieved).not.toBeNull();
-    expect(retrieved!.rawContent).toContain('tags:');
-    expect(retrieved!.rawContent).toContain('strength');
-    expect(retrieved!.rawContent).toContain('conditioning');
-    expect(retrieved!.rawContent).toMatch(/^---\r?\n/);
+    expect(retrieved!.rawContent).toBe('# Workout Without FM\nJust some notes.\n');
+    expect(retrieved!.tags).toEqual(['strength', 'conditioning']);
 
     const all = await provider.getEntries();
     const fromAll = all.find((e) => e.id === entry.id);
     expect(fromAll).toBeDefined();
-    expect(fromAll!.rawContent).toContain('tags:');
-    expect(fromAll!.rawContent).toContain('strength');
-    expect(fromAll!.rawContent).toContain('conditioning');
+    expect(fromAll!.rawContent).toBe(retrieved!.rawContent);
+    expect(fromAll!.tags).toEqual(['strength', 'conditioning']);
   });
 });

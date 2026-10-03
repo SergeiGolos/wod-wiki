@@ -33,7 +33,7 @@ export {
 } from './section-geometry';
 export { previewDecorations } from './preview-decorations';
 export { embedPreviewDecorations } from './embed-preview';
-export { frontmatterPreview, frontmatterPreviewField, DefaultFrontmatterWidget } from './frontmatter-preview';
+export { frontmatterPreview, frontmatterPreviewField, DefaultFrontmatterWidget, frontmatterSuggestions, type FrontmatterSuggestionCatalog } from './frontmatter-preview';
 export { markdownSyntaxHiding } from './markdown-syntax-hiding';
 export { markdownTablePreview } from './markdown-tables';
 export {

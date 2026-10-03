@@ -1,13 +1,133 @@
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
-import { StateField, EditorState, RangeSetBuilder } from "@codemirror/state";
+import { StateField, EditorState, RangeSetBuilder, Facet } from "@codemirror/state";
 import type { Extension } from "@codemirror/state";
 import { parseFrontmatterBody, serializeFrontmatter } from "@bitcobblers/wod-wiki-wql";
 import { sectionField } from "./section-state";
 
 // ponytail: flat scalar and string-list properties with inline commit; add schema types / drag-to-reorder when multi-type nested schemas are required.
-let pendingFocusKey: string | null = null;
-let pendingFocusTagKey: string | null = null;
+export type FrontmatterSuggestionCatalog = {
+  types: readonly string[];
+  tags: readonly { label: string; type?: string }[];
+};
+
+export const frontmatterSuggestions = Facet.define<
+  () => Promise<FrontmatterSuggestionCatalog>,
+  (() => Promise<FrontmatterSuggestionCatalog>) | null
+>({ combine: (providers) => providers[0] ?? null });
+
+const pendingFocus = new WeakMap<EditorView, { kind: "key" | "tag"; key: string }>();
+const widgetCleanup = new WeakMap<HTMLElement, (() => void)[]>();
+let suggestionId = 0;
+
+function isTagProperty(key: string): boolean {
+  return ["tag", "tags", "category"].includes(key.trim().toLowerCase());
+}
+
+function attachSuggestions(
+  input: HTMLInputElement,
+  view: EditorView,
+  root: HTMLElement,
+  kind: "key" | "value",
+  key: string,
+  excluded: readonly string[],
+  commit: () => void,
+): void {
+  const provider = view.state.facet(frontmatterSuggestions);
+  if (!provider || !input.parentElement) return;
+  const parent = input.parentElement;
+  parent.classList.add("relative");
+  const list = document.createElement("div");
+  list.id = `frontmatter-suggestions-${++suggestionId}`;
+  list.setAttribute("role", "listbox");
+  list.className = "absolute left-0 top-full z-50 max-h-48 overflow-auto rounded-md border border-border bg-background shadow-md min-w-full text-xs";
+  list.hidden = true;
+  parent.appendChild(list);
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", list.id);
+  input.setAttribute("aria-expanded", "false");
+  let generation = 0;
+  let choices: string[] = [];
+  let active = -1;
+  const close = () => {
+    generation++;
+    choices = [];
+    active = -1;
+    list.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  };
+  const select = (label: string) => {
+    input.value = label;
+    close();
+    commit();
+  };
+  const activate = (index: number) => {
+    active = index;
+    Array.from(list.children).forEach((option, i) => {
+      option.setAttribute("aria-selected", String(i === active));
+      option.classList.toggle("bg-muted", i === active);
+    });
+    const option = list.children[active];
+    if (option) {
+      input.setAttribute("aria-activedescendant", option.id);
+      if (option instanceof HTMLElement) option.scrollIntoView?.({ block: "nearest" });
+    }
+  };
+  const refresh = async () => {
+    close();
+    const request = ++generation;
+    const query = input.value.trim().toLowerCase();
+    try {
+      const catalog = await provider();
+      if (request !== generation || !input.isConnected || document.activeElement !== input) return;
+      const candidates = kind === "key"
+        ? catalog.types
+        : catalog.tags.filter((tag) => isTagProperty(key) || tag.type?.toLowerCase() === key.trim().toLowerCase()).map((tag) => tag.label);
+      const selected = new Set(excluded.map((label) => label.toLowerCase()));
+      choices = [...new Set(candidates)].filter((label) => label.toLowerCase().includes(query) && !selected.has(label.toLowerCase()));
+      active = -1;
+      input.removeAttribute("aria-activedescendant");
+      list.replaceChildren();
+      choices.forEach((label, index) => {
+        const option = document.createElement("div");
+        option.id = `${list.id}-${index}`;
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", "false");
+        option.className = "cursor-pointer px-2 py-1.5 hover:bg-muted";
+        option.textContent = label;
+        option.addEventListener("mousedown", (event) => event.preventDefault());
+        option.addEventListener("click", () => select(label));
+        list.appendChild(option);
+      });
+      list.hidden = choices.length === 0;
+      input.setAttribute("aria-expanded", String(choices.length > 0));
+    } catch {
+      if (request === generation) close();
+    }
+  };
+  input.addEventListener("focus", refresh);
+  input.addEventListener("input", refresh);
+  input.addEventListener("blur", close);
+  input.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && (event.code === "Space" || event.key === " ")) {
+      event.preventDefault();
+      void refresh();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      close();
+    } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && choices.length) {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      activate(active < 0 ? (direction === 1 ? 0 : choices.length - 1) : (active + direction + choices.length) % choices.length);
+    } else if ((event.key === "Enter" || event.key === "Tab") && active >= 0) {
+      event.preventDefault();
+      select(choices[active]);
+    }
+  });
+  widgetCleanup.get(root)?.push(close);
+}
 
 function parseTagList(val: unknown): string[] {
   if (Array.isArray(val)) {
@@ -215,6 +335,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
 
   toDOM(view: EditorView): HTMLElement {
     const root = document.createElement("div");
+    widgetCleanup.set(root, []);
     root.className = "cm-frontmatter-preview my-2 font-sans select-none";
 
     const heading = document.createElement("div");
@@ -223,7 +344,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
     root.appendChild(heading);
 
     const box = document.createElement("div");
-    box.className = "rounded-lg border border-border/80 bg-background/50 overflow-hidden text-xs shadow-xs";
+    box.className = "rounded-lg border border-border/80 bg-background/50 text-xs shadow-xs";
     root.appendChild(box);
 
     const body = this.rawContent.replace(/^---\r?\n?/, "").replace(/\r?\n?---\r?$/, "");
@@ -238,7 +359,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
     }
 
     for (const [key, value] of entries) {
-      const isTags = key.toLowerCase() === "tags" || key.toLowerCase() === "category";
+      const isTags = isTagProperty(key);
 
       const row = document.createElement("div");
       row.className =
@@ -262,6 +383,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
           "w-full bg-transparent text-xs text-foreground/90 font-medium outline-none truncate hover:bg-muted/30 focus:bg-background focus:ring-1 focus:ring-ring rounded px-1 -mx-1";
         keyInput.value = key;
         keyInput.spellcheck = false;
+        keyInput.setAttribute("aria-label", `Property name ${key}`);
 
         let currentKey = key;
         const commitKey = () => {
@@ -279,25 +401,32 @@ export class DefaultFrontmatterWidget extends WidgetType {
             if (k === currentKey) newMeta[nextKey] = v;
             else newMeta[k] = v;
           }
+          delete meta[currentKey];
+          meta[nextKey] = newMeta[nextKey];
+          currentKey = nextKey;
           updateFrontmatter(view, this.sectionId, newMeta);
         };
 
         keyInput.addEventListener("change", commitKey);
+        keyCol.appendChild(keyInput);
+        attachSuggestions(keyInput, view, root, "key", key, entries.map(([name]) => name), commitKey);
         keyInput.addEventListener("blur", commitKey);
         keyInput.addEventListener("keydown", (e) => {
+          if (e.defaultPrevented) return;
           if (e.key === "Enter") {
             e.preventDefault();
             keyInput.blur();
           }
         });
-        keyCol.appendChild(keyInput);
 
-        if (key === pendingFocusKey) {
+        const focus = pendingFocus.get(view);
+        if (focus?.kind === "key" && focus.key === key) {
           setTimeout(() => {
+            if (!keyInput.isConnected) return;
             keyInput.focus();
             keyInput.select();
           }, 0);
-          pendingFocusKey = null;
+          pendingFocus.delete(view);
         }
       }
       row.appendChild(keyCol);
@@ -342,38 +471,42 @@ export class DefaultFrontmatterWidget extends WidgetType {
           tagInput.className =
             "flex-1 min-w-[70px] bg-transparent text-xs text-foreground outline-none px-1 py-0.5 placeholder:text-muted-foreground/40";
           tagInput.placeholder = tags.length === 0 ? "Add tags…" : "Add tag…";
+          tagInput.setAttribute("aria-label", `Add tag to ${key}`);
 
           const commitNewTag = () => {
             const val = tagInput.value.trim().replace(/^,|,$/g, "");
             if (val && !tags.includes(val)) {
               meta[key] = [...tags, val];
               tagInput.value = "";
-              pendingFocusTagKey = key;
+              pendingFocus.set(view, { kind: "tag", key });
               updateFrontmatter(view, this.sectionId, meta);
             }
           };
+          valCol.appendChild(tagInput);
+          attachSuggestions(tagInput, view, root, "value", key, tags, commitNewTag);
 
           tagInput.addEventListener("keydown", (e) => {
+            if (e.defaultPrevented) return;
             if (e.key === "Enter" || e.key === ",") {
               e.preventDefault();
               commitNewTag();
             } else if (e.key === "Backspace" && !tagInput.value && tags.length > 0) {
               e.preventDefault();
               meta[key] = tags.slice(0, -1);
-              pendingFocusTagKey = key;
+              pendingFocus.set(view, { kind: "tag", key });
               updateFrontmatter(view, this.sectionId, meta);
             }
           });
           tagInput.addEventListener("blur", () => {
             if (tagInput.value.trim()) commitNewTag();
           });
-          valCol.appendChild(tagInput);
 
-          if (pendingFocusTagKey === key) {
+          const focus = pendingFocus.get(view);
+          if (focus?.kind === "tag" && focus.key === key) {
             setTimeout(() => {
-              tagInput.focus();
+              if (tagInput.isConnected) tagInput.focus();
             }, 0);
-            pendingFocusTagKey = null;
+            pendingFocus.delete(view);
           }
         }
       } else {
@@ -389,6 +522,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
             "w-full bg-transparent text-xs text-foreground outline-none py-0.5 hover:bg-muted/20 focus:bg-background focus:ring-1 focus:ring-ring rounded px-1 -mx-1 transition-colors";
           valInput.value = strVal;
           valInput.spellcheck = false;
+          valInput.setAttribute("aria-label", `Value for ${key}`);
 
           let committedVal = strVal;
           const commitVal = () => {
@@ -402,14 +536,16 @@ export class DefaultFrontmatterWidget extends WidgetType {
           };
 
           valInput.addEventListener("change", commitVal);
+          valCol.appendChild(valInput);
+          attachSuggestions(valInput, view, root, "value", key, [strVal], commitVal);
           valInput.addEventListener("blur", commitVal);
           valInput.addEventListener("keydown", (e) => {
+            if (e.defaultPrevented) return;
             if (e.key === "Enter") {
               e.preventDefault();
               valInput.blur();
             }
           });
-          valCol.appendChild(valInput);
         }
       }
       row.appendChild(valCol);
@@ -438,10 +574,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
     }
 
     if (!this.readOnly) {
-      const hasTagsProperty = entries.some(([k]) => {
-        const lower = k.toLowerCase();
-        return lower === "tags" || lower === "category" || lower === "tag";
-      });
+      const existingTagKey = entries.find(([key]) => isTagProperty(key))?.[0];
 
       const actionsRow = document.createElement("div");
       actionsRow.className = "mt-2 flex items-center gap-3";
@@ -465,13 +598,13 @@ export class DefaultFrontmatterWidget extends WidgetType {
           count++;
           newKey = `property_${count}`;
         }
-        pendingFocusKey = newKey;
+        pendingFocus.set(view, { kind: "key", key: newKey });
         const newMeta = { ...meta, [newKey]: "" };
         updateFrontmatter(view, this.sectionId, newMeta);
       });
       actionsRow.appendChild(addBtn);
 
-      if (!hasTagsProperty) {
+      {
         const addTagBtn = document.createElement("button");
         addTagBtn.type = "button";
         addTagBtn.setAttribute("aria-label", "Add tag");
@@ -485,7 +618,12 @@ export class DefaultFrontmatterWidget extends WidgetType {
         addTagBtn.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          pendingFocusTagKey = "tags";
+          if (existingTagKey) {
+            const input = Array.from(root.querySelectorAll("input")).find((element) => element.getAttribute("aria-label") === `Add tag to ${existingTagKey}`);
+            input?.focus();
+            return;
+          }
+          pendingFocus.set(view, { kind: "tag", key: "tags" });
           const newMeta = { ...meta, tags: [] };
           updateFrontmatter(view, this.sectionId, newMeta);
         });
@@ -496,6 +634,11 @@ export class DefaultFrontmatterWidget extends WidgetType {
     }
 
     return root;
+  }
+
+  destroy(dom: HTMLElement): void {
+    widgetCleanup.get(dom)?.forEach((close) => close());
+    widgetCleanup.delete(dom);
   }
 }
 
@@ -533,7 +676,7 @@ class EmptyFrontmatterWidget extends WidgetType {
     addBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      pendingFocusKey = "property";
+      pendingFocus.set(view, { kind: "key", key: "property" });
       updateFrontmatter(view, "new", { property: "" });
     });
     actionsRow.appendChild(addBtn);
@@ -551,7 +694,7 @@ class EmptyFrontmatterWidget extends WidgetType {
     addTagBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      pendingFocusTagKey = "tags";
+      pendingFocus.set(view, { kind: "tag", key: "tags" });
       updateFrontmatter(view, "new", { tags: [] });
     });
     actionsRow.appendChild(addTagBtn);
