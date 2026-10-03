@@ -75,12 +75,18 @@ describe('ChallengeHeaderBadge', () => {
     fireEvent.pointerEnter(badge, { pointerType: 'touch' })
     expect(screen.queryByText('Pending quest')).toBeNull()
 
-    // Tapping the badge should toggle the menu open
+    // Tapping the badge should open the menu
     fireEvent.click(badge)
     expect(screen.queryByText('Pending quest')).not.toBeNull()
 
-    // Clicking the badge again should close it
+    // Clicking the badge again keeps it open: on desktop hover already
+    // opens the menu, so a toggle would instantly close what the user
+    // just opened and the click would appear to do nothing.
     fireEvent.click(badge)
+    expect(screen.queryByText('Pending quest')).not.toBeNull()
+
+    // Escape closes the menu and returns focus to the badge
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByText('Pending quest')).toBeNull()
   })
 

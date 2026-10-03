@@ -79,7 +79,16 @@ export function SessionsNavPanel(_props: NavPanelProps | Record<string, unknown>
       {loading ? (
         <div className="px-3 py-2 text-xs text-muted-foreground/60">Loading…</div>
       ) : pages.length === 0 ? (
-        <div className="px-3 py-2 text-xs text-muted-foreground/60">No sessions recorded yet.</div>
+        <>
+          <div className="px-3 py-2 text-xs text-muted-foreground/60">No sessions recorded yet.</div>
+          <button
+            type="button"
+            onClick={() => navigate(ROUTE_PATTERNS.collections)}
+            className="mx-3 mb-1 rounded-lg border border-border/60 px-3 py-1.5 text-left text-xs font-medium text-primary transition-colors hover:bg-muted/60"
+          >
+            Browse workouts to run your first session
+          </button>
+        </>
       ) : (
         pages.map((p) => (
           <NavRow
