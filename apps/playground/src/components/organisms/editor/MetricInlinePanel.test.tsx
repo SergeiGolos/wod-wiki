@@ -186,6 +186,34 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
     expect(screen.getByText(/no metrics on this line/i)).toBeDefined();
   });
 
+  it('hides iconless hints and shows iconed hints as icon with hint text on hover', () => {
+    const view = createMockView();
+    const statement = makeStatement([
+      { type: MetricType.Hint, value: 'workout.amrap', image: 'workout.amrap', origin: 'dialect' } as IMetric,
+      { type: MetricType.Hint, value: 'workout.emom', image: 'workout.emom', origin: 'dialect', icon: '🔁' } as IMetric,
+    ]);
+    const section = makeSection();
+
+    const getCursorFocusState = mock(() => ({
+      section,
+      statement,
+      cursorLine: 1,
+      lineFrom: 0,
+      lineTo: 10,
+      focusedMetric: null,
+    }));
+
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
+
+    // Iconless hint: not rendered anywhere.
+    expect(screen.queryByText('workout.amrap')).toBeNull();
+
+    // Iconed hint: icon only, no hint text, hint text on hover.
+    expect(screen.getByText('🔁')).toBeDefined();
+    expect(screen.queryByText('workout.emom')).toBeNull();
+    expect(screen.getByText('🔁').parentElement!.getAttribute('title')).toBe('workout.emom');
+  });
+
   it('renders with insert styling (no full border or rounding, explicit 28px height)', () => {
     const view = createMockView();
     const statement = makeStatement([

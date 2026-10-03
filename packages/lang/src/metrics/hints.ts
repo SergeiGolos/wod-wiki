@@ -85,9 +85,9 @@ function metricsOf(source: MetricBearing | undefined): IMetric[] {
   return m.rawMetrics ?? [];
 }
 
-/** Create a single hint metric. */
-export function hintMetric(hint: string, origin: MetricOrigin = 'dialect'): IMetric {
-  return { type: MetricType.Hint, value: hint, image: hint, origin };
+/** Create a single hint metric. `icon` opts the hint into display: icon-only chip, hint text on hover. */
+export function hintMetric(hint: string, origin: MetricOrigin = 'dialect', icon?: string): IMetric {
+  return { type: MetricType.Hint, value: hint, image: hint, origin, ...(icon ? { icon } : {}) };
 }
 
 /**
