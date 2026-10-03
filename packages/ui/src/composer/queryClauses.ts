@@ -19,6 +19,8 @@
 
 import { composerRegistry } from './ComposerRegistry';
 import {
+  allowedFilterTypesForTarget,
+  CONTENT_GROUPING_DIMENSIONS,
   WQL_AGGREGATORS,
   WQL_CALC_TARGETS,
   WQL_DISPLAY_UNITS,
@@ -30,6 +32,8 @@ import {
   WQL_TAG_KEYS,
   WQL_VIRTUAL_DIMS,
 } from '@bitcobblers/wod-wiki-wql';
+
+export { allowedFilterTypesForTarget, CONTENT_GROUPING_DIMENSIONS };
 
 export type ClauseType =
   | 'kind'
@@ -58,6 +62,7 @@ export type ClauseType =
   | 'result'
   | 'block'
   | 'note'
+  | 'page'
   | 'plane'
   | 'pipes';
 
@@ -120,79 +125,6 @@ export const SOURCE_OPTIONS = WQL_SOURCE_VALUES.map((s) => ({
  *  events by the promoted `outputType` column). */
 export const PLANE_OPTIONS = WQL_RESULT_PLANES.map((v) => ({ value: v, label: v }));
 
-// ── Executor-backed filter capabilities (work item 3) ──────────────────────
-// Each set lists the clause types the target's QueryService executor actually
-// applies — never merely what the parser accepts. Structural types appear
-// only where their consumer honors them (grouping on aggregate + card/table
-// consumers; joins only where applyMetricJoin runs; no time on find:effort,
-// whose registry has no time dimension and whose parser advises the ignore).
-
-/** find:note (runFind): content/tag/text filters, source scope, join. */
-const NOTE_FILTER_TABLE: Partial<Record<ClauseType, true>> = {
-  text: true, catalog: true, tag: true, effort: true, domain: true, format: true,
-  equipment: true, quality: true, intent: true, type: true, time: true,
-  source: true, note: true, groupby: true, where: true,
-};
-
-/** find:block (runFindBlock): note-parented filters, source scope, join. */
-const BLOCK_FILTER_TABLE: Partial<Record<ClauseType, true>> = {
-  text: true, catalog: true, tag: true, effort: true, type: true, time: true,
-  source: true, note: true, groupby: true, where: true,
-};
-
-/** find:effort (runFindEffort): exactly WQL_EFFORT_FILTER_KEYS — the
- *  registry has no time dimension (parser advises `ignores the window`). */
-const EFFORT_FILTER_TABLE: Partial<Record<ClauseType, true>> = {
-  text: true, effort: true, discipline: true, intensity: true, origin: true,
-};
-
-/** find:session (runFindSession): scope keys, plane narrowing (applied),
- *  window — tag filters are ignored by this executor. */
-const SESSION_FILTER_TABLE: Partial<Record<ClauseType, true>> = {
-  result: true, block: true, note: true, plane: true, time: true,
-};
-
-/** find:segment / find:event (runFindTable): scope keys, window, fact-backed
- *  tag filters via matchesFilters, grouping, and displayUnit (numeric column
- *  conversion). No plane — this executor explicitly excludes it; no join —
- *  not applied here. */
-const TABLE_FILTER_TABLE: Partial<Record<ClauseType, true>> = {
-  result: true, block: true, note: true, time: true, groupby: true, unit: true,
-  tag: true, effort: true, domain: true, format: true, equipment: true,
-  quality: true, intent: true, discipline: true, intensity: true, origin: true,
-};
-
-/** Aggregate heads (run/runJoined): fact-resolvable tag keys, window,
- *  grouping/rollup/unit and the where find-join. */
-const AGGREGATE_FILTER_TABLE: Partial<Record<ClauseType, true>> = {
-  tag: true, effort: true, domain: true, format: true, equipment: true,
-  quality: true, intent: true, discipline: true, intensity: true, origin: true,
-  time: true, groupby: true, rollup: true, unit: true, where: true,
-  agg: true, metric: true,
-};
-
-const NOTE_FILTER_TYPES: ReadonlySet<string> = new Set(Object.keys(NOTE_FILTER_TABLE));
-const BLOCK_FILTER_TYPES: ReadonlySet<string> = new Set(Object.keys(BLOCK_FILTER_TABLE));
-const EFFORT_FILTER_TYPES: ReadonlySet<string> = new Set(Object.keys(EFFORT_FILTER_TABLE));
-const SESSION_FILTER_TYPES: ReadonlySet<string> = new Set(Object.keys(SESSION_FILTER_TABLE));
-const TABLE_FILTER_TYPES: ReadonlySet<string> = new Set(Object.keys(TABLE_FILTER_TABLE));
-const AGGREGATE_FILTER_TYPES: ReadonlySet<string> = new Set(Object.keys(AGGREGATE_FILTER_TABLE));
-
-const TARGET_FILTER_TYPES: Record<string, ReadonlySet<string>> = {
-  note: NOTE_FILTER_TYPES,
-  block: BLOCK_FILTER_TYPES,
-  effort: EFFORT_FILTER_TYPES,
-  session: SESSION_FILTER_TYPES,
-  segment: TABLE_FILTER_TYPES,
-  event: TABLE_FILTER_TYPES,
-};
-
-/** Clause types valid for a query shape — the union of parser acceptance and
- *  real executor support. `family: 'aggregate'` ignores the target. */
-export function allowedFilterTypesForTarget(target: string, family: 'find' | 'aggregate'): ReadonlySet<string> {
-  if (family === 'aggregate') return AGGREGATE_FILTER_TYPES;
-  return TARGET_FILTER_TYPES[target] ?? NOTE_FILTER_TYPES;
-}
 
 // ── Options & Data Sources ──────────────────────────────────────────────────
 
@@ -222,7 +154,6 @@ export const ROLLUP_OPTIONS = [
   { value: '52w', label: '52 weeks' },
 ];
 export const GROUPBY_OPTIONS = [...WQL_VIRTUAL_DIMS, ...WQL_TAG_KEYS].map((v) => ({ value: v, label: v }));
-export const CONTENT_GROUPING_DIMENSIONS = ['date', 'day', 'week', 'month', 'year', 'discipline', 'origin', 'source', 'kind', 'type', 'tag'] as const;
 export const METRIC_OPTIONS = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES, ...WQL_CALC_TARGETS]
   .map((v) => ({ value: v, label: v }));
 export const UNIT_OPTIONS = WQL_DISPLAY_UNITS.map((v) => ({ value: v, label: v }));
@@ -279,6 +210,7 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   result:    { label: 'Session',    inputType: 'freetext', placeholder: 'result id…',                  placeholderText: 'result: [id]',            icon: '🏁', description: 'Scope to one workout session', prefix: 'result:' },
   block:     { label: 'Block',      inputType: 'freetext', placeholder: 'block content id…',           placeholderText: 'block: [contentId]',      icon: '🧱', description: 'Scope to all versions of a block', prefix: 'block:' },
   note:      { label: 'Note',       inputType: 'freetext', placeholder: 'note id…',                    placeholderText: 'note: [id]',              icon: '📓', description: 'Scope to one note', prefix: 'note:' },
+  page:      { label: 'Page',       inputType: 'select',   placeholder: 'true, false…',                placeholderText: 'page: [true|false]',      icon: '📄', description: 'Notes that are (or are not) pages', prefix: 'page:' },
   plane:     { label: 'Output Plane',inputType: 'select',   placeholder: 'segment, load, event…',       placeholderText: 'plane: [type]',           icon: '📋', description: 'Output-statement plane on find:session', prefix: 'plane:' },
   pipes:     { label: 'Pipes',      inputType: 'freetext', placeholder: '| order by date | limit 10',  placeholderText: '| select | order | limit', icon: '⇥', description: 'Presentation pipes — select/order/limit/offset' },
 };

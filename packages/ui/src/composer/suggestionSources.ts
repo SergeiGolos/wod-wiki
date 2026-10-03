@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react';
+import { EFFORT_DISCIPLINES } from '@bitcobblers/wod-wiki-lang';
+import { WQL_INTENSITY_TIERS } from '@bitcobblers/wod-wiki-wql';
 import type { BlockIndexRow } from '@bitcobblers/wod-wiki-core';
 
 export interface SuggestionItem {
@@ -52,30 +54,43 @@ export function blockTypesFromBlocks(blocks: BlockIndexRow[]): string[] {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
+/** Tags: user labels rank first with their spelling, corpus fills the rest —
+ *  one case-insensitive dedup path, insertion order kept (no global sort). */
 export function mergeTagSuggestions(userLabels: string[], corpusLabels: string[]): string[] {
-  const map = new Map<string, string>();
-  for (const label of corpusLabels) {
-    const trimmed = label.trim();
-    if (trimmed) map.set(trimmed.toLowerCase(), trimmed);
-  }
-  for (const label of userLabels) {
-    const trimmed = label.trim();
-    if (trimmed) map.set(trimmed.toLowerCase(), trimmed);
-  }
-  return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  return mergeSuggestionItems(
+    [...userLabels, ...corpusLabels].map((label) => ({ value: label.trim() })),
+    [],
+  ).map((item) => item.value);
+}
+
+/** Canonical static block types — actual indexed corpus types rank ahead at runtime. */
+export const CANONICAL_BLOCK_TYPES = ['wod', 'movement', 'workout'] as const;
+
+/** Suggestion items for a canonical readonly vocabulary; labels are display-only. */
+export function canonicalSuggestionItems(values: readonly string[]): SuggestionItem[] {
+  return values.map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }));
+}
+
+/** Case-insensitive dedup by value key: vault entries keep their position,
+ *  enum keys take the canonical spelling, then remaining canonical values
+ *  append. First label wins — it is display-only. */
+export function mergeSuggestionItems(vault: SuggestionItem[], canonical: SuggestionItem[]): SuggestionItem[] {
+  const keyOf = (value: string) => value.trim().toLowerCase();
+  const canonicalValueByKey = new Map(canonical.map((item) => [keyOf(item.value), item.value]));
+  const seen = new Map<string, SuggestionItem>();
+  const add = (item: SuggestionItem) => {
+    const key = keyOf(item.value);
+    if (!key || seen.has(key)) return;
+    seen.set(key, { ...item, value: canonicalValueByKey.get(key) ?? item.value });
+  };
+  for (const item of vault) add(item);
+  for (const item of canonical) add(item);
+  return Array.from(seen.values());
 }
 
 const builtinBindings: Record<string, SuggestionBinding> = {
   discipline: {
-    load: async () => [
-      { value: 'crossfit', label: 'CrossFit' },
-      { value: 'weightlifting', label: 'Weightlifting' },
-      { value: 'cardio', label: 'Cardio' },
-      { value: 'gymnastics', label: 'Gymnastics' },
-      { value: 'climbing', label: 'Climbing' },
-      { value: 'yoga', label: 'Yoga' },
-      { value: 'habits', label: 'Habits' },
-    ],
+    load: async () => canonicalSuggestionItems(EFFORT_DISCIPLINES),
     cache: 'static',
     open: false,
     emptyText: 'No disciplines available',
@@ -86,13 +101,15 @@ const builtinBindings: Record<string, SuggestionBinding> = {
     open: false,
     emptyText: 'No catalogs in the static corpus',
   },
+  intensity: {
+    load: async () => canonicalSuggestionItems(WQL_INTENSITY_TIERS),
+    cache: 'static',
+    open: false,
+    emptyText: 'No intensity tiers available',
+  },
   type: {
-    load: async () => [
-      { value: 'wod', label: 'WOD' },
-      { value: 'movement', label: 'Movement' },
-      { value: 'workout', label: 'Workout' },
-    ],
-    cache: { ttlMs: 300_000 },
+    load: async () => canonicalSuggestionItems(CANONICAL_BLOCK_TYPES),
+    cache: 'static',
     open: false,
     emptyText: 'No indexed block types yet',
   },
@@ -159,7 +176,9 @@ export async function loadSuggestions(type: string): Promise<SuggestionItem[]> {
   }
 
   try {
-    const items = await binding.load();
+    // One normalization path for every binding, custom hosts included:
+    // case-insensitive dedup preserving source (vault-first) order.
+    const items = mergeSuggestionItems(await binding.load(), []);
     const ttlMs = typeof binding.cache === 'object' ? binding.cache.ttlMs : Number.POSITIVE_INFINITY;
     cache.set(type, { items, expiresAt: now + ttlMs });
     return items;

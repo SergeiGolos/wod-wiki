@@ -127,4 +127,30 @@ describe('useComposerQueryState', () => {
     expect(query()).toBe(DEFAULT_QUERY)
     expect(search()).toBe(searchBefore)
   })
+
+  it('an unchanged-URL popstate (palette sentinel) keeps the exact local draft', async () => {
+    // Real browser history: the valid edit reached the actual URL (the hook
+    // writes it there); the INVALID continuation stays local only.
+    window.history.replaceState(null, '', '/library?q=find:note{tags:strength}')
+    try {
+      render(
+        <BrowserRouter>
+          <Probe />
+        </BrowserRouter>,
+      )
+      await waitFor(() => expect(query()).toBe('find:note{tags:strength}'))
+
+      act(() => captured.setQuery('find:note{tags:strength} backproof'))
+      expect(query()).toBe('find:note{tags:strength} backproof')
+
+      // Palette Cancel pops its SAME-location sentinel entry — the URL is
+      // unchanged — so the composer must keep the exact invalid draft.
+      act(() => {
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      })
+      expect(query()).toBe('find:note{tags:strength} backproof')
+    } finally {
+      window.history.replaceState(null, '', '/library')
+    }
+  })
 })

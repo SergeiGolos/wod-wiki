@@ -58,7 +58,11 @@ export function entryOpenHref(entry: Entry): string {
         return sessionDetailPath(entry.id)
       case 'segment':
       case 'event':
-        return sessionDetailPath(entry.execution?.resultId ?? entry.id)
+        // Table-plane rows (find:segment/find:event) carry no execution
+        // payload — their session identity lives in sourceItem (__resultId).
+        return sessionDetailPath(
+          entry.execution?.resultId ?? (entry.sourceCatalog === 'results' ? entry.sourceItem : entry.id),
+        )
       default:
         return '/'
     }

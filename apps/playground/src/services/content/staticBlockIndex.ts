@@ -11,8 +11,19 @@
 import type { BlockIndexRow, Note } from '@/types/storage';
 import type { NoteQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
-import { setSuggestionBinding, getSuggestionBinding, catalogIdsFromBlocks } from '@bitcobblers/wod-wiki-ui';
+import {
+    CANONICAL_BLOCK_TYPES,
+    blockTypesFromBlocks,
+    canonicalSuggestionItems,
+    catalogIdsFromBlocks,
+    getSuggestionBinding,
+    mergeSuggestionItems,
+    mergeTagSuggestions,
+    setSuggestionBinding,
+} from '@bitcobblers/wod-wiki-ui';
+import { EFFORT_DISCIPLINES, INTENSITY_TIERS, type IEffort } from '@bitcobblers/wod-wiki-lang';
 import { storageService } from '@/services/storage';
+import { getAppEffortRegistry } from '@/services/effortRegistry';
 import { getScriptCollections } from '@/repositories/script-collections';
 let corpusBlocksPromise: Promise<BlockIndexRow[]> | null = null;
 
@@ -179,6 +190,88 @@ export const staticNoteStore: NoteQueryStore = {
 
 // ── Composer suggestion bindings ───────────────────────────────────────────
 
+// The executor's effort plane — the CompositeEffortRegistry (bundled + user),
+// the same source RegistryEffortStore serves queries from. Storage-only reads
+// would miss the bundled tier when it is not materialized in IndexedDB.
+async function executorEfforts(): Promise<readonly IEffort[]> {
+    const registry = getAppEffortRegistry();
+    if (!registry.isInitialized()) {
+        await registry.loadBundled();
+    }
+    return registry.list();
+}
+
+// Effort filters read actual registry values first (vault), then the canonical
+// static vocabulary, deduped case-insensitively with canonical spelling for
+// enum keys. Labels are display-only — completion inserts `item.value`.
+setSuggestionBinding('discipline', {
+    load: async () => {
+        try {
+            const vault = (await executorEfforts())
+                .map((effort) => effort.baseAttributes?.discipline)
+                .filter((d): d is string => typeof d === 'string' && d.trim().length > 0)
+                .map((d) => ({ value: d.trim(), label: d.trim() }));
+            return mergeSuggestionItems(vault, canonicalSuggestionItems(EFFORT_DISCIPLINES));
+        } catch {
+            return canonicalSuggestionItems(EFFORT_DISCIPLINES);
+        }
+    },
+    cache: { ttlMs: 60_000 },
+    open: false,
+    emptyText: 'No disciplines available',
+});
+
+// Effort slugs — actual registry rows: value = slug (the inserted token),
+// label = display name.
+setSuggestionBinding('effort', {
+    load: async () => {
+        try {
+            const items = (await executorEfforts())
+                .filter((effort) => effort.slug)
+                .map((effort) => ({ value: effort.slug, label: effort.label || effort.slug }));
+            return mergeSuggestionItems(items, []).sort((a, b) => a.value.localeCompare(b.value));
+        } catch {
+            return [];
+        }
+    },
+    cache: { ttlMs: 60_000 },
+    open: true,
+    emptyText: 'No efforts indexed yet — type one to filter',
+});
+
+setSuggestionBinding('intensity', {
+    load: async () => {
+        try {
+            const vault = (await executorEfforts())
+                .map((effort) => effort.baseAttributes?.intensityTier)
+                .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+                .map((t) => ({ value: t.trim(), label: t.trim() }));
+            return mergeSuggestionItems(vault, canonicalSuggestionItems(INTENSITY_TIERS));
+        } catch {
+            return canonicalSuggestionItems(INTENSITY_TIERS);
+        }
+    },
+    cache: { ttlMs: 60_000 },
+    open: false,
+    emptyText: 'No intensity tiers indexed yet',
+});
+
+// Block types — actual indexed corpus types first, canonical static after.
+setSuggestionBinding('type', {
+    load: async () => {
+        try {
+            const vault = blockTypesFromBlocks(await loadCorpusBlocks())
+                .map((t) => ({ value: t, label: t }));
+            return mergeSuggestionItems(vault, canonicalSuggestionItems(CANONICAL_BLOCK_TYPES));
+        } catch {
+            return canonicalSuggestionItems(CANONICAL_BLOCK_TYPES);
+        }
+    },
+    cache: { ttlMs: 300_000 },
+    open: false,
+    emptyText: 'No indexed block types yet',
+});
+
 setSuggestionBinding('catalog', {
     load: async () => {
         const blocks = await loadCorpusBlocks();
@@ -200,8 +293,9 @@ setSuggestionBinding('tag', {
         } catch {
             // IndexedDB not ready in isolated test environments
         }
-        const merged = Array.from(new Set([...staticTags, ...userTags])).sort((a, b) => a.localeCompare(b));
-        return merged.map((t) => ({ value: t, label: t }));
+        // User tags first, corpus after, case-insensitive dedup keeping the
+        // user's spelling.
+        return mergeTagSuggestions(userTags, staticTags).map((t) => ({ value: t, label: t }));
     },
     cache: { ttlMs: 30_000 },
     open: true,

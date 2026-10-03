@@ -45,9 +45,11 @@ async function optionsFor(doc: string): Promise<string[]> {
 
 describe('ticket 15 — catalog-backed completion', () => {
   it('metric head position offers discovered typed variants with the static vocabulary', async () => {
-    const labels = await optionsFor('sum:hr');
-    expect(labels).toContain('hrv'); // discovered variant
-    expect(labels).toContain('totalVolume'); // static aggregate-key vocabulary
+    const merged = await optionsFor('sum:');
+    expect(merged).toContain('hrv'); // discovered variant
+    expect(merged).toContain('totalVolume'); // static aggregate-key vocabulary
+    // Typing narrows prefix-first: 'hr' keeps the discovered variant, drops the statics.
+    expect(await optionsFor('sum:hr')).toEqual(['hrv', 'calc.hrv']);
   });
 
   it('discovered categorical fields back filter-value suggestions with original spellings', async () => {

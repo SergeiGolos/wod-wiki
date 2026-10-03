@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { parseQuery } from '@bitcobblers/wod-wiki-wql';
+import { EditorState } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import { autocompletion, completionStatus, selectedCompletionIndex, startCompletion } from '@codemirror/autocomplete';
+import { parseQuery, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
 import { WqlComposer } from '../src/composer/WqlComposer';
+import { WqlDiagnosticsStrip } from '../src/composer/WqlDiagnosticsStrip';
+import { WqlTextEditor, wqlEditorKeymap, wqlLint } from '../src/composer/WqlTextEditor';
 
 afterEach(cleanup);
 
@@ -37,14 +42,6 @@ describe('current visible draft actions', () => {
     fireEvent.click(screen.getByTestId('token-slot-time'));
     expect(change).not.toHaveBeenCalled();
     expect(screen.getByTestId('wql-picker-search').getAttribute('aria-activedescendant')).toBeNull();
-  });
-
-  it('Tab remains native and never accepts a completion', () => {
-    render(<WqlComposer initialQuery="find:note" />);
-    const input = screen.getByLabelText('Search text or WQL');
-    fireEvent.change(input, { target: { value: 'has' } });
-    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(true);
-    expect(screen.queryByTestId('token-slot-has')).toBeNull();
   });
 
   it('explicit completion opens values without inserting an empty filter', () => {
@@ -167,5 +164,120 @@ describe('current visible draft actions', () => {
     render(<WqlComposer initialQuery={query} onQueryChange={change} />);
     expect(screen.getByLabelText('WQL').textContent).toBe(query);
     expect(change).not.toHaveBeenCalled();
+  });
+});
+
+describe('WQL text editor keyboard and lint', () => {
+  const views: EditorView[] = [];
+  afterEach(() => {
+    cleanup();
+    for (const view of views.splice(0)) view.destroy();
+    vi.useRealTimers();
+  });
+
+  it('completion grid nav wraps, Home/End select edges, Tab accepts a slot hop, IME Enter is inert', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const submit = vi.fn();
+    const view = new EditorView({
+      parent: container,
+      state: EditorState.create({
+        doc: 'find:note{so',
+        extensions: [
+          wqlLanguage,
+          autocompletion({
+            defaultKeymap: false, selectOnOpen: false, interactionDelay: 0, icons: false,
+            override: [context => ({
+              from: context.matchBefore(/[\w-]*/)!.from,
+              options: [
+                { label: 'source', type: 'property' as const },
+                { label: 'scope', type: 'property' as const },
+                { label: 'session', type: 'property' as const },
+              ],
+              validFor: /^[\w-]*$/,
+              filter: false,
+            })],
+          }),
+          keymap.of(wqlEditorKeymap(submit, () => false)),
+        ],
+      }),
+    });
+    views.push(view);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(completionStatus(view.state)).toBe('active'));
+    fireEvent.keyDown(view.contentDOM, { key: 'ArrowDown' });
+    expect(selectedCompletionIndex(view.state)).toBe(0);
+    fireEvent.keyDown(view.contentDOM, { key: 'End' });
+    expect(selectedCompletionIndex(view.state)).toBe(2);
+    fireEvent.keyDown(view.contentDOM, { key: 'ArrowDown' });
+    expect(selectedCompletionIndex(view.state)).toBe(0);
+    fireEvent.keyDown(view.contentDOM, { key: 'Home' });
+    expect(selectedCompletionIndex(view.state)).toBe(0);
+    fireEvent.keyDown(view.contentDOM, { key: 'Tab' });
+    expect(view.state.doc.toString()).toBe('find:note{source');
+    // CM's Safari path swallows a keydown within ~100ms of compositionend —
+    // cross that native cooldown on the fake clock before the real Enter.
+    fireEvent.compositionStart(view.contentDOM);
+    fireEvent.keyDown(view.contentDOM, { key: 'Enter' });
+    expect(submit).not.toHaveBeenCalled();
+    expect(view.state.doc.toString()).toBe('find:note{source');
+    fireEvent.compositionEnd(view.contentDOM);
+    expect(view.compositionStarted).toBe(false);
+    vi.setSystemTime(Date.now() + 150);
+    fireEvent.keyDown(view.contentDOM, { key: 'Enter' });
+    expect(submit).toHaveBeenCalledTimes(1);
+  });
+
+  it('real editor: Enter during an active composition never submits', () => {
+    const submit = vi.fn();
+    render(<WqlTextEditor value="find:note{source:journal}" onChange={() => {}} onSubmit={submit} onEscape={() => false} autoFocus />);
+    const content = screen.getByLabelText('WQL');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    fireEvent.compositionStart(content);
+    fireEvent.keyDown(content, { key: 'Enter' });
+    expect(submit).not.toHaveBeenCalled();
+    expect(content.textContent).toBe('find:note{source:journal}');
+    fireEvent.compositionEnd(content);
+    vi.setSystemTime(Date.now() + 150);
+    fireEvent.keyDown(content, { key: 'Enter' });
+    expect(submit).toHaveBeenCalledTimes(1);
+  });
+
+  it('lint marks unsupported filter keys and parse errors at their text', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const capable = new EditorView({ parent: container, state: EditorState.create({ doc: 'find:note{session:morning}', extensions: [wqlLanguage] }) });
+    views.push(capable);
+    const marks = wqlLint(capable);
+    const [mark] = marks;
+    if (!mark) throw new Error('Expected an unsupported-filter squiggle');
+    expect(mark.severity).toBe('warning');
+    expect(capable.state.sliceDoc(mark.from, mark.to)).toBe('session:morning');
+    const broken = new EditorView({ parent: container, state: EditorState.create({ doc: 'find:note{tags:', extensions: [wqlLanguage] }) });
+    views.push(broken);
+    const [errorMark] = wqlLint(broken);
+    if (!errorMark) throw new Error('Expected a parse-error squiggle');
+    expect(errorMark.severity).toBe('error');
+  });
+
+  it('strip reports matched of selected, explicit status words, and unsupported dims', () => {
+    const query = 'find:note{tags:x} by {bogus}';
+    const { unmount } = render(
+      <WqlDiagnosticsStrip
+        diagnostics={{ valid: true, wql: query, ast: parseQuery(query) }}
+        stages={{ kind: 'find', selected: 5, matched: 2 }}
+      />,
+    );
+    expect(screen.getByTestId('diag-stage-counts').textContent).toBe('2 matched of 5');
+    const badge = screen.getByTestId('wql-validity-badge');
+    expect(badge.textContent).toContain('Warning');
+    expect(badge.textContent).not.toContain('Invalid');
+    expect(screen.getByTestId('diag-summary-groupby').getAttribute('title')).toContain('bogus');
+    expect(screen.getByTestId('wql-diagnostics-strip').getAttribute('aria-live')).toBe('polite');
+    unmount();
+    render(<WqlDiagnosticsStrip diagnostics={{ valid: false, wql: 'find:note{tags:', ast: parseQuery('find:note{tags:'), error: 'Unexpected end of query' }} />);
+    expect(screen.getByTestId('wql-validity-badge').textContent).toContain('Invalid');
   });
 });

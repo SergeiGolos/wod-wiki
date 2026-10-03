@@ -5,6 +5,7 @@
 
 // 1. Vocabulary
 export * from './vocabulary';
+export * from './capabilities';
 
 // 2. Grammar & Parser
 export { parser as wqlParser } from './grammar/wql.parser';

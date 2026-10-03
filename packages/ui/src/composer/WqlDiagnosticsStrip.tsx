@@ -1,7 +1,7 @@
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../utils/cn';
-import { isAggregateQuery, isFindQuery } from '@bitcobblers/wod-wiki-wql';
+import { isAggregateQuery, isFindQuery, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql';
 import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics';
 import type { WqlStageCounts } from './useWqlStageCounts';
 
@@ -19,12 +19,12 @@ export interface WqlDiagnosticsStripProps {
   className?: string;
 }
 
-function SummaryChip({ label, value, testId }: { label: string; value: string; testId: string }) {
+function SummaryChip({ label, value, testId, warnTitle }: { label: string; value: string; testId: string; warnTitle?: string }) {
   const legacyTestId = testId.startsWith('diag-') ? testId.replace('diag-', 'wql-') : testId;
   return (
-    <span data-testid={testId} className="inline-flex items-center gap-1 whitespace-nowrap">
+    <span data-testid={testId} title={warnTitle} className="inline-flex items-center gap-1 whitespace-nowrap">
       <span className="opacity-60">{label}:</span>
-      <span data-testid={legacyTestId} className="font-semibold text-foreground">{value}</span>
+      <span data-testid={legacyTestId} className={cn('font-semibold', warnTitle && 'text-signal-caution underline decoration-wavy underline-offset-2')}>{value}</span>
     </span>
   );
 }
@@ -40,10 +40,16 @@ export function WqlDiagnosticsStrip({
 }: WqlDiagnosticsStripProps) {
   const { valid, ast, error } = diagnostics;
   const header = variant === 'header';
+  const advisories = ast.advisories ?? [];
+  const supportedDims = new Set(wqlGroupingDimensions(ast.family === 'find' ? ast.target : '', ast.family));
+  const unsupportedDims = (ast.groupBy ?? []).filter(dim => !supportedDims.has(dim));
+  const warning = valid && (advisories.length > 0 || unsupportedDims.length > 0);
+  const warningMessage = advisories[0] ?? `Unsupported grouping: ${unsupportedDims.join(', ')}`;
 
   return (
     <div
       data-testid="wql-diagnostics-strip"
+      aria-live="polite"
       className={cn(
         'flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-3 py-1.5 text-xs font-mono transition-colors',
         header
@@ -60,15 +66,24 @@ export function WqlDiagnosticsStrip({
       )}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <div className="flex items-center gap-1.5 font-medium" data-testid="wql-validity-badge" data-valid={valid}>
+        <div className="flex items-center gap-1.5 font-medium" data-testid="wql-validity-badge" data-valid={valid} data-warning={warning || undefined} role={valid ? 'status' : 'alert'} aria-live="polite">
           {valid ? (
-            <>
-              <CheckCircle2 className="w-3.5 h-3.5 text-signal-positive shrink-0" />
-              <span className="text-signal-positive">Valid</span>
-            </>
+            warning ? (
+              <>
+                <AlertTriangle className="w-3.5 h-3.5 text-signal-caution shrink-0" />
+                <span className="text-signal-caution">Warning</span>
+                <span className="opacity-80">{warningMessage}</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-signal-positive shrink-0" />
+                <span className="text-signal-positive">Valid</span>
+              </>
+            )
           ) : (
             <>
               <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+              <span>Invalid</span>
               <span>
                 {offendingLabel ? `${offendingLabel}: ` : ''}
                 {error || 'Syntax error'}
@@ -87,6 +102,14 @@ export function WqlDiagnosticsStrip({
                   <SummaryChip label="scope" value={summary.scope} testId="diag-summary-scope" />
                   {summary.timeWindow && (
                     <SummaryChip label="time" value={summary.timeWindow} testId="diag-summary-time" />
+                  )}
+                  {summary.groupBy && (
+                    <SummaryChip
+                      label="by"
+                      value={summary.groupBy}
+                      testId="diag-summary-groupby"
+                      warnTitle={unsupportedDims.length > 0 ? `Unsupported grouping: ${unsupportedDims.join(', ')}` : undefined}
+                    />
                   )}
                   {summary.hasJoin && (
                     <span data-testid="diag-summary-join" className="text-primary font-semibold">
@@ -110,7 +133,12 @@ export function WqlDiagnosticsStrip({
                     <SummaryChip label="metric" value={summary.metric} testId="diag-summary-metric" />
                   )}
                   {summary.groupBy && (
-                    <SummaryChip label="by" value={summary.groupBy} testId="diag-summary-groupby" />
+                    <SummaryChip
+                      label="by"
+                      value={summary.groupBy}
+                      testId="diag-summary-groupby"
+                      warnTitle={unsupportedDims.length > 0 ? `Unsupported grouping: ${unsupportedDims.join(', ')}` : undefined}
+                    />
                   )}
                   {summary.rollup && (
                     <SummaryChip label="every" value={summary.rollup} testId="diag-summary-rollup" />
@@ -130,7 +158,7 @@ export function WqlDiagnosticsStrip({
             className="text-[11px] font-semibold text-primary border-l border-border/50 pl-3"
           >
             {stages.kind === 'find' ? (
-              <span>{stages.matched} matched</span>
+              <span>{stages.matched} matched of {stages.selected}</span>
             ) : (
               <span>
                 {stages.selected} selected → {stages.aggregated} aggregated ({stages.groups} series)

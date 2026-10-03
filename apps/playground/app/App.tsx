@@ -44,7 +44,8 @@ import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 import { useZipProcessor } from './hooks/useZipProcessor'
 import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
 import { runSeedSync } from '@/services/seed/seedSync'
-import { initSeedContentBroadcast } from '@/services/content/seedContent'
+import { initSeedContentBroadcast, invalidateSeedContent, useSeedContent } from '@/services/content/seedContent'
+import { Button } from '@/components/atoms/primitives/button'
 import type { WorkoutItem } from './lib/workoutIndex'
 
 export type { WorkoutItem }
@@ -86,12 +87,45 @@ function GlobalState() {
 }
 
 
+// Root gate while the canvas route table cannot be derived yet: seed still
+// loading → an explicit loading route (any deep link shows it; react-router
+// never logs "No routes matched" during derivation). Seed loaded but the
+// home route still missing → a recoverable error, not an endless spinner.
+function RootUnavailable({ loaded }: { loaded: boolean }) {
+  if (!loaded) {
+    return (
+      <div role="status" className="flex min-h-dvh items-center justify-center text-muted-foreground">
+        Loading library…
+      </div>
+    )
+  }
+  return (
+    <div role="alert" className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6 text-center">
+      <p className="text-sm font-semibold">The library's routed content failed to load.</p>
+      <p className="max-w-md text-xs text-muted-foreground">
+        The seed corpus is missing the root page. Re-running the seed import usually restores it.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        data-testid="root-reseed"
+        onClick={() => {
+          void runSeedSync().then(() => invalidateSeedContent())
+        }}
+      >
+        Re-seed library
+      </Button>
+    </div>
+  )
+}
+
 export function App() {
   // Stable ref so AppContent can inject its openSearchPalette callback after mount.
   const searchHandlerRef = useRef<() => void>(() => {})
   // Canvas routes hydrate from the seeded corpus; the nav tree and the
   // dynamic <Route> table re-derive when the seed lands or refreshes.
   const canvasRouteList = useCanvasRoutes()
+  const seedFiles = useSeedContent()
   const navTree = useMemo(
     () => buildAppNavTree(() => searchHandlerRef.current(), canvasRouteList),
     [canvasRouteList],
@@ -109,6 +143,12 @@ export function App() {
               <NavProvider tree={navTree}>
                 <ScrollToTop />
                 <Routes>
+                  {/* Seed still loading or root route missing: one explicit
+                      catch-route (loading vs recoverable error) instead of
+                      unmatched-location warnings during async derivation. */}
+                  {!canvasRouteList.some(({ route }) => route === ROUTE_PATTERNS.home) && (
+                    <Route path="*" element={<RootUnavailable loaded={seedFiles !== null} />} />
+                  )}
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
                   <Route path="/proto/query-block-composer" element={<QueryBlockComposerPrototypePage />} />
 

@@ -44,6 +44,12 @@ if (!(globalThis as any).window || !globalThis.document) {
       clearTimeout(id);
     };
   }
+  // Libraries that read window.requestAnimationFrame directly still see
+  // jsdom's window without it even when globalThis has the polyfill above.
+  if (!(dom.window as any).requestAnimationFrame) {
+    (dom.window as any).requestAnimationFrame = (globalThis as any).requestAnimationFrame;
+    (dom.window as any).cancelAnimationFrame = (globalThis as any).cancelAnimationFrame;
+  }
 }
 
 // ResizeObserver/IntersectionObserver: jsdom ships neither, but app chrome

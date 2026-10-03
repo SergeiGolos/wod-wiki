@@ -12,27 +12,27 @@
  *   - virtual dimensions day | week | session | round
  */
 
-import { LRLanguage, LanguageSupport, syntaxTree, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { LRLanguage, LanguageSupport, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { autocompletion, CompletionContext, CompletionResult, Completion, snippetCompletion, startCompletion } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { styleTags, tags as t } from "@lezer/highlight";
-import type { SyntaxNode } from "@lezer/common";
 import { parser } from "./grammar/wql.parser";
 import type { IFieldCatalog } from "./catalog";
 import { EFFORT_DISCIPLINES } from "./disciplines";
+import { wqlFilterKeys, wqlGroupingDimensions } from "./capabilities";
 import {
   WQL_AGGREGATORS,
   WQL_METRIC_FAMILIES,
   WQL_METRIC_AGGREGATES,
-  WQL_TAG_KEYS,
-  WQL_VIRTUAL_DIMS,
   WQL_CALC_TARGETS,
   WQL_INTENSITY_TIERS,
   WQL_GRAINS,
   WQL_ROLLUP_PERIODS,
   WQL_SOURCE_VALUES,
   WQL_FIND_TARGETS,
+  WQL_RESULT_PLANES,
+  WQL_DISPLAY_UNITS,
 } from "./vocabulary";
 
 // The vocabulary tables live in ./vocabulary (no editor deps); re-export
@@ -124,16 +124,124 @@ export interface WqlCompletionOptions {
   catalog?: IFieldCatalog;
 }
 
-/** Nearest ancestor (or self) of `node` with one of `names`. */
-function ancestor(node: SyntaxNode | null, ...names: string[]): SyntaxNode | null {
-  for (let n = node; n; n = n.parent) {
-    if (names.includes(n.name)) return n;
-  }
-  return null;
-}
-
 function options(labels: readonly (string | Completion)[]): Completion[] {
   return labels.map((label) => (typeof label === 'string' ? { label } : label));
+}
+
+/**
+ * Lexical cursor scan — quote- and brace-aware. Primary slot detection is
+ * lexical because the suffix/pipe/window grammar lives outside the Lezer
+ * tree, and quoted phrases / OR pipes inside braces must never be mistaken
+ * for structural boundaries.
+ */
+interface WqlScan { depth: number; quoted: boolean; pipeFrom: number; lastBrace: number; fragStart: number; }
+
+function scanContext(doc: string, pos: number): WqlScan {
+  let depth = 0, quoted = false, pipeFrom = -1, lastBrace = -1, fragStart = 0;
+  for (let i = 0; i < pos; i++) {
+    const ch = doc[i];
+    if (quoted) { if (ch === '"') quoted = false; continue; }
+    if (ch === '"') { quoted = true; continue; }
+    if (ch === '{') { depth++; lastBrace = i; fragStart = i + 1; }
+    else if (ch === '}') { depth = Math.max(0, depth - 1); fragStart = i + 1; }
+    else if (ch === ',' && depth > 0) fragStart = i + 1;
+    else if (ch === '|' && depth === 0) { pipeFrom = i + 1; fragStart = i + 1; }
+  }
+  return { depth, quoted, pipeFrom, lastBrace, fragStart };
+}
+
+function maskQuotes(text: string): string {
+  let out = '';
+  let quoted = false;
+  for (const ch of text) {
+    if (ch === '"') { quoted = !quoted; out += ' '; }
+    else out += quoted ? ' ' : ch;
+  }
+  return out;
+}
+
+function unquotedColonIndex(text: string): number {
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') quoted = !quoted;
+    else if (ch === ':' && !quoted) return i;
+  }
+  return -1;
+}
+
+/** Keys/dims already present in the open brace group, before the current fragment. */
+function usedEntries(doc: string, groupStart: number, fragStart: number): Set<string> {
+  const text = maskQuotes(doc.slice(groupStart + 1, fragStart));
+  const used = new Set<string>();
+  for (const entry of text.split(',')) {
+    const m = /!?\s*([A-Za-z][\w-]*)/.exec(entry);
+    if (m) used.add(m[1]);
+  }
+  return used;
+}
+
+function valueOf(c: Completion): string {
+  return typeof c.apply === 'string' ? c.apply : c.label;
+}
+
+/** Whitespace values insert quoted — never inside already-quoted replacements. */
+function quoteApply(c: Completion): Completion {
+  const value = valueOf(c);
+  if (!/\s/.test(value)) return c;
+  return {
+    ...c,
+    apply: (view: EditorView, _c: Completion, from: number, to: number) => {
+      const text = view.state.sliceDoc(Math.max(0, from - 1), from) === '"' ? value : `"${value}"`;
+      view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, userEvent: 'input.complete' });
+    },
+  };
+}
+
+/** Host values first (rank-boosted so CM sort keeps vault order), static
+ *  canonical vocabulary after; case-insensitive dedup by value — labels are
+ *  display-only and never count as a second value. */
+function mergeValues(host: readonly Completion[], statics: readonly Completion[]): Completion[] {
+  const seen = new Set<string>();
+  const out: Completion[] = [];
+  host.forEach((c, i) => {
+    const k = valueOf(c).toLowerCase();
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push(quoteApply({ ...c, boost: Math.max(-99, Math.min(99, 80 - i)) }));
+  });
+  for (const c of statics) {
+    const k = valueOf(c).toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(quoteApply(c));
+  }
+  return out;
+}
+
+/** Prefix-first, case-insensitive substring narrowing. */
+function narrow(options: readonly Completion[], typed: string): Completion[] {
+  const q = typed.toLowerCase();
+  if (!q) return [...options];
+  const prefix: Completion[] = [];
+  const rest: Completion[] = [];
+  for (const o of options) {
+    const label = o.label.toLowerCase();
+    if (label.startsWith(q)) prefix.push(o);
+    else if (label.includes(q)) rest.push(o);
+  }
+  return [...prefix, ...rest];
+}
+
+/** Ranked result; empty matches close the popup (free text stays as written). */
+function finish(_context: CompletionContext, from: number, options: readonly Completion[], typed: string): CompletionResult | null {
+  const ranked = narrow(options, typed);
+  if (!ranked.length) return null;
+  return {
+    from,
+    options: ranked.map((o, i) => (o.boost === undefined ? { ...o, boost: Math.max(-99, 50 - i) } : o)),
+    filter: false,
+  };
 }
 
 /**
@@ -159,8 +267,63 @@ function chained(list: readonly Completion[], suffix: string): Completion[] {
 
 const AGGREGATOR_OPTIONS: Completion[] = [
   { label: 'find', detail: 'content query', type: 'keyword' },
+  { label: 'rows', detail: 'raw fact rows', type: 'keyword' },
   ...WQL_AGGREGATORS.map((label) => ({ label, type: 'keyword' })),
 ];
+
+/** Sortable/selectable columns the executors actually read (QueryService). */
+const NOTE_COLUMNS: readonly string[] = ['title', 'date', 'createdAt', 'type', 'sourceId', 'catalog'];
+const BLOCK_COLUMNS: readonly string[] = ['noteTitle', 'dataType', 'position', 'createdAt', 'noteId', 'sourceId'];
+const EFFORT_COLUMNS: readonly string[] = ['slug', 'label', 'registrySource'];
+const SESSION_COLUMNS: readonly string[] = ['duration', 'startTime', 'origin'];
+const TABLE_COLUMNS: readonly string[] = [
+  'date', 'effort', 'discipline', 'note', 'grade', 'intensity',
+  ...WQL_METRIC_FAMILIES, ...WQL_METRIC_AGGREGATES,
+];
+/** Columns that accept an `in kg|lb` display unit. */
+const UNIT_COLUMNS: ReadonlySet<string> = new Set(['distance', 'resistance', 'totalVolume', 'totalDistance']);
+const DIR_OPTIONS: Completion[] = [
+  { label: 'asc', detail: 'sort ascending', type: 'keyword' },
+  { label: 'desc', detail: 'sort descending', type: 'keyword' },
+];
+const UNIT_OPTIONS: Completion[] = WQL_DISPLAY_UNITS.map((label) => ({ label, detail: 'display unit', type: 'constant' }));
+
+type Family = 'find' | 'aggregate';
+interface Head { family: Family; target?: string }
+
+/** `find:` resolves its target from the typed word — exact, else unique prefix. */
+function resolveHead(agg: string, typedTarget: string): Head {
+  if (agg.toLowerCase() === 'find') {
+    const typed = typedTarget.toLowerCase();
+    if ((WQL_FIND_TARGETS as readonly string[]).includes(typed)) return { family: 'find', target: typed };
+    const partial = typed ? WQL_FIND_TARGETS.filter((t) => t.startsWith(typed)) : [];
+    return { family: 'find', target: partial.length === 1 ? partial[0] : undefined };
+  }
+  return { family: 'aggregate' }; // rows:/aggregates filter fact rows
+}
+
+const FIND_KEY_UNION: readonly string[] = [
+  ...new Set(WQL_FIND_TARGETS.flatMap((t) => [...wqlFilterKeys(t, 'find')])),
+];
+
+function filterKeysFor(head: Head): readonly string[] {
+  return head.family === 'find'
+    ? (head.target ? wqlFilterKeys(head.target, 'find') : FIND_KEY_UNION)
+    : wqlFilterKeys('', 'aggregate');
+}
+
+function pipeColumns(target: string | undefined): readonly string[] {
+  switch (target) {
+    case 'note': return NOTE_COLUMNS;
+    case 'block': return BLOCK_COLUMNS;
+    case 'effort': return EFFORT_COLUMNS;
+    case 'session': return SESSION_COLUMNS;
+    default: return TABLE_COLUMNS; // segment/event/rows table output
+  }
+}
+
+/** Parser advisories: select is ignored for these targets, order for sessions. */
+const SELECT_IGNORED: ReadonlySet<string> = new Set(['note', 'block', 'effort', 'session']);
 
 export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
   const { effortNames, tagTypeValues, catalog, values: hostValues } = options_;
@@ -184,15 +347,6 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     return values.map((v) => ({ label: v.value, type: 'constant' }));
   };
 
-  /** Discovered categorical field paths as dim/filter keys (ticket 15) —
-  *  custom dims are first-class in WQL, so discovered fields complete
-  *  alongside the structural tag keys. */
-  const catalogKeyOptions = async (): Promise<Completion[]> => {
-    if (!catalog) return [];
-    const entries = await catalog.listByPrefix('', 20);
-    return entries.map((entry) => ({ label: entry.path, detail: entry.kind, type: 'property' }));
-  };
-
   const metricOptions = (): Completion[] => {
     const efforts = effortNames?.() ?? [];
     return [
@@ -205,7 +359,8 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     ];
   };
 
-  const tagValueOptions = (key: string): Completion[] | Promise<Completion[] | null> | null => {
+  /** Static canonical value vocabulary per key (null → free-form/catalog). */
+  const staticValueOptions = (key: string): Completion[] | Promise<Completion[]> | null => {
     switch (key) {
       case 'effort': return options(effortNames?.() ?? []);
       case 'discipline': return options(EFFORT_DISCIPLINES);
@@ -219,155 +374,219 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       case 'quality':
       case 'intent': {
         if (!tagTypeValues) return null;
-        return Promise.resolve(tagTypeValues(key)).then((values) => (values.length ? options(values) : null));
+        return Promise.resolve(tagTypeValues(key)).then((values) => options(values));
       }
-      default: return null; // note/page/block/result/tags — free-form
+      default: return null; // note/page/block/result/tags/origin — free-form or host-fed
     }
   };
-  function staticValues(key: string, word: { from: number }, context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
-    const valueOptions = tagValueOptions(key);
-    if (valueOptions) {
-      if (valueOptions instanceof Promise) {
-        return valueOptions.then((resolved) => (
-          resolved ? { from: word.from, options: resolved, validFor: /^[\w*-]*$/ } : null
-        ));
-      }
-      return { from: word.from, options: valueOptions, validFor: /^[\w*-]*$/ };
-    }
-    // Discovered categorical fields back filter-value suggestions
-    // (original spellings — ticket 15).
-    if (catalog) {
-      const typed = context.state.sliceDoc(word.from, context.pos);
-      return catalogValueOptions(key, typed).then((opts) => (
-        opts.length ? { from: word.from, options: opts, validFor: /^[\w*-]*$/ } : null
-      ));
-    }
-    return null;
-  }
 
-  function inner(context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
-    const word = context.matchBefore(/[\w.*-]*/)!;
-    // Structural characters open the next slot immediately, no keystroke needed.
-    const opens = word.from > 0 && /[{,:|(]/.test(context.state.sliceDoc(word.from - 1, word.from));
-    if (!word || (word.from === word.to && !context.explicit && !opens)) return null;
-    const tree = syntaxTree(context.state);
-    const node = tree.resolveInner(context.pos, -1);
-
-    // Inside a Filter: before the colon → tag keys; after → values for that key.
-    const filter = ancestor(node, 'Filter');
-    if (filter) {
-      const filterText = context.state.sliceDoc(filter.from, context.pos);
-      const colonIndex = filterText.indexOf(':');
-      if (colonIndex === -1) {
-        const keyWord = context.matchBefore(/[\w-]*/)!;
-        return {
-          from: keyWord.from,
-          options: chained(options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })), ':'),
-          validFor: /^[\w-]*$/,
-          ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
-        };
-      }
-      const key = filterText.slice(0, colonIndex).replace(/^!/, '').trim();
-      if (hostValues) {
-        return hostValues(key).then((items) => (
-          items.length ? { from: word.from, options: [...items], validFor: /^[\w*-]*$/ } : staticValues(key, word, context)
-        ));
-      }
-      return staticValues(key, word, context);
-    }
-
-    // Inside Filters braces but not in a parsed Filter yet (e.g. `{` + cursor).
-    if (ancestor(node, 'Filters')) {
-      const keyWord = context.matchBefore(/[\w-]*/)!;
-      return {
-        from: keyWord.from,
-        options: chained(options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })), ':'),
-        validFor: /^[\w-]*$/,
-        ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
-      };
-    }
-
-    // Inside GroupBy: virtual dims + tag keys + discovered custom dims.
-    if (ancestor(node, 'GroupBy')) {
-      const dimWord = context.matchBefore(/[\w-]*/)!;
-      return {
-        from: dimWord.from,
-        options: [
-          ...options(WQL_VIRTUAL_DIMS).map((c) => ({ ...c, type: 'atom' })),
-          ...options(WQL_TAG_KEYS).map((c) => ({ ...c, type: 'property' })),
-        ],
-        validFor: /^[\w-]*$/,
-        ...({ fetchEntries: catalogKeyOptions } as Record<string, unknown>),
-      };
-    }
-
-    // Head-relative positions. The top node's Head child tells whether the
-    // query already has a complete head; node ancestry tells whether the
-    // cursor sits inside it.
-    const head = tree.topNode.getChild('Head');
-    const insideHead = ancestor(node, 'Head') !== null;
-    const inMetric = node.name === 'Metric' || (node.name === 'Word' && node.parent?.name === 'Metric');
-
-    if (inMetric) {
-      if (head && context.state.sliceDoc(head.from, head.to).trimStart().startsWith('find:')) {
-        return { from: word.from, options: options(WQL_FIND_TARGETS), validFor: /^[\w.-]*$/ };
-      }
-      // Discovered typed variants join the static vocabulary (ticket 15) —
-      // the bounded catalog lookup merges with the static option list.
+  /** Filter value slot: host vault values first, static canonical after,
+   *  case-insensitive dedup; falls through to catalog discovery, then to a
+   *  plain close (free text stays as written). */
+  const valueSlot = (
+    key: string,
+    context: CompletionContext,
+    from: number,
+    typed: string,
+  ): CompletionResult | Promise<CompletionResult | null> | null => {
+    const emit = (host: readonly Completion[], statics: readonly Completion[] | null): CompletionResult | Promise<CompletionResult | null> | null => {
+      const merged = mergeValues(host, statics ?? []);
+      if (merged.length) return finish(context, from, merged, typed);
       if (catalog) {
-        const typed = context.state.sliceDoc(word.from, context.pos);
-        return catalogMetricOptions(typed).then((extra) => ({
-          from: word.from,
-          options: [...metricOptions(), ...extra],
-          validFor: /^[\w.-]*$/,
-        }));
+        return catalogValueOptions(key, typed).then((found) => finish(context, from, found, typed));
       }
-      return { from: word.from, options: metricOptions(), validFor: /^[\w.-]*$/ };
-    }
-
-    if (insideHead && head) {
-      // Inside the head: before the colon → aggregators, after → metrics
-      // (the error-tolerant tree may not have grown a Metric yet).
-      const afterColon = context.state.sliceDoc(head.from, context.pos).includes(':');
-      // The error-tolerant parser absorbs a space-separated word after the
-      // metric into the Metric node — whitespace after the metric's first
-      // word means the user is typing past it (`sum:tis by …`).
-      const metricWord = head.getChild('Metric')?.getChild('Word');
-      const typedPastMetric = metricWord !== null && metricWord !== undefined
-        && /\s/.test(context.state.sliceDoc(metricWord.to, context.pos));
-      if (afterColon && !typedPastMetric) {
-        const find = context.state.sliceDoc(head.from, context.pos).trimStart().startsWith('find:');
-        return { from: word.from, options: find ? options(WQL_FIND_TARGETS) : metricOptions(), validFor: /^[\w.-]*$/ };
-      }
-      if (!afterColon) {
-        return { from: word.from, options: chained(AGGREGATOR_OPTIONS, ':'), validFor: /^[\w-]*$/ };
-      }
-    }
-
-    // Inside .rollup(…): period sizes.
-    if (ancestor(node, 'Rollup')) {
-      return {
-        from: word.from,
-        options: options(WQL_ROLLUP_PERIODS).map((c) => ({ ...c, type: 'constant' })),
-        validFor: /^[\w]*$/,
-      };
-    }
-
-    // Query start — no head yet → aggregators. Past a complete head →
-    // structural suffixes.
-    if (!head) {
-      return { from: word.from, options: chained(AGGREGATOR_OPTIONS, ':'), validFor: /^[\w-]*$/ };
-    }
-
-    // Top level after the head: structural suffixes.
-    return {
-      from: word.from,
-      options: [
-        snippetCompletion('by {${dimension}}', { label: 'by {}', detail: 'group by dimensions', type: 'keyword' }),
-        snippetCompletion('.rollup(${1}${d|w})', { label: '.rollup()', detail: 'bucket period', type: 'keyword' }),
-      ],
-      validFor: /^[\w.-]*$/,
+      return finish(context, from, [], typed);
     };
+    const statics = staticValueOptions(key);
+    if (!hostValues) {
+      return statics instanceof Promise ? statics.then((s) => emit([], s)) : emit([], statics);
+    }
+    const host = hostValues(key);
+    if (statics instanceof Promise) return Promise.all([Promise.resolve(host), statics]).then(([h, s]) => emit(h, s));
+    return Promise.resolve(host).then((h) => emit(h, statics));
+  };
+
+  /** Discovered typed variants join the static metric vocabulary (ticket 15). */
+  const metricHeadSlot = (context: CompletionContext, from: number, typed: string): CompletionResult | Promise<CompletionResult | null> | null => {
+    if (!catalog) return finish(context, from, metricOptions(), typed);
+    return catalogMetricOptions(typed).then((extra) => finish(context, from, [...metricOptions(), ...extra], typed));
+  };
+
+  /** Inside braces: `by {…}` dims use target-aware grouping; filter braces
+   *  use target-aware keys (excluding keys already present), `!` reopens the
+   *  same list as an exclude, and `key:` values merge host + canonical. */
+  const braceSlot = (
+    context: CompletionContext,
+    doc: string,
+    scan: WqlScan,
+    from: number,
+    typed: string,
+    head: Head,
+  ): CompletionResult | Promise<CompletionResult | null> | null => {
+    if (/\bby\s*$/.test(maskQuotes(doc.slice(0, scan.lastBrace)))) {
+      const dims = wqlGroupingDimensions(head.target ?? '', head.family);
+      const used = usedEntries(doc, scan.lastBrace, scan.fragStart);
+      const avail = [...dims].filter((d) => !used.has(d));
+      if (!avail.length) return finish(context, from, [], typed);
+      return finish(
+        context,
+        from,
+        chained(avail.map((d) => ({ label: d, type: 'atom' as const, detail: 'grouping dimension' })), ', '),
+        typed,
+      );
+    }
+    const frag = doc.slice(scan.fragStart, context.pos);
+    const colon = unquotedColonIndex(frag);
+    if (colon >= 0) {
+      const key = frag.slice(0, colon).replace(/^!/, '').trim();
+      return valueSlot(key, context, from, typed);
+    }
+    const keyWord = context.matchBefore(/[\w-]*/)!;
+    const exclude = frag.trimStart().startsWith('!');
+    const used = usedEntries(doc, scan.lastBrace, scan.fragStart);
+    const avail = filterKeysFor(head).filter((k) => !used.has(k));
+    const opts = chained(
+      avail.map((k) => ({ label: k, type: 'property' as const, ...(exclude ? { detail: `exclude ${k} values` } : {}) })),
+      ':',
+    );
+    return finish(context, keyWord.from, opts, typed);
+  };
+
+  /** After a complete head: rollup periods, group dims, `last <n>d|w`,
+   *  `from DATE [to DATE]`, or the structural suffix keywords. */
+  const suffixSlot = (context: CompletionContext, doc: string, scan: WqlScan, from: number, typed: string, head: Head, headEnd: number): CompletionResult | null => {
+    const tail = doc.slice(headEnd, context.pos);
+    if (/\.rollup\([^)]*$/.test(tail)) {
+      // find ignores .rollup (parser advises) — only aggregate heads get periods.
+      return head.family === 'aggregate'
+        ? finish(context, from, options(WQL_ROLLUP_PERIODS).map((c) => ({ ...c, type: 'constant' as const })), typed)
+        : finish(context, from, [], typed);
+    }
+    if (/\bby\s*\{[^}]*$/.test(tail)) return braceSlot(context, doc, scan, from, typed, head) as CompletionResult | null;
+    if (/\s+last\s+$/i.test(tail)) {
+      return finish(context, context.pos, [
+        { label: '4w', detail: 'relative window', type: 'constant' },
+        { label: '8w', detail: 'relative window', type: 'constant' },
+        { label: '7d', detail: 'relative window', type: 'constant' },
+        { label: '30d', detail: 'relative window', type: 'constant' },
+      ], '');
+    }
+    const lastUnit = /\s+last\s+(\d+)([dw]?)$/i.exec(tail);
+    if (lastUnit) {
+      if (lastUnit[2]) return null; // window already unit-complete
+      return finish(context, context.pos, [
+        { label: 'd', detail: 'days', type: 'constant' },
+        { label: 'w', detail: 'weeks', type: 'constant' },
+      ], '');
+    }
+    if (/\s+from\s+$/i.test(tail)) {
+      return finish(context, context.pos, [{ label: '2026-01-01', apply: '2026-01-01 ', detail: 'start date (YYYY-MM-DD)', type: 'constant' }], '');
+    }
+    if (/\s+from\s+\d{4}-\d{2}-\d{2}\s+$/i.test(tail)) {
+      return finish(context, context.pos, [{ label: 'to', apply: 'to ', detail: 'end date', type: 'keyword' }], '');
+    }
+    if (/\s+to\s+$/i.test(tail)) {
+      return finish(context, context.pos, [{ label: '2026-03-31', detail: 'end date (YYYY-MM-DD)', type: 'constant' }], '');
+    }
+    const dims = wqlGroupingDimensions(head.target ?? '', head.family);
+    const keywords: Completion[] = [
+      { label: 'by {}', apply: 'by ', detail: dims.length ? 'group by dimensions' : `advisory: no grouping dimensions for find:${head.target}`, type: 'keyword' },
+      ...(head.family === 'aggregate'
+        ? [{ label: '.rollup()', apply: '.rollup(', detail: 'bucket period', type: 'keyword' as const }]
+        : []),
+      { label: 'last', apply: 'last ', detail: 'relative window: last <n>d|w', type: 'keyword' },
+      { label: 'from', apply: 'from ', detail: 'date range: from YYYY-MM-DD [to YYYY-MM-DD]', type: 'keyword' },
+      ...(head.family === 'find' ? [{ label: '|', apply: '| ', detail: 'presentation pipes: order by / select / limit', type: 'keyword' as const }] : []),
+    ];
+    return finish(context, from, chained(keywords, ' '), typed);
+  };
+
+  /** Presentation pipe zone (`| …`): clause keywords, then per-target
+   *  columns, asc/desc, `in <unit>`, numeric limit placeholder. */
+  const pipeSlot = (context: CompletionContext, doc: string, scan: WqlScan, from: number, typed: string, head: Head): CompletionResult | null => {
+    const text = doc.slice(scan.pipeFrom, context.pos);
+    const orderM = /^\s*order\b/i.exec(text);
+    if (orderM) {
+      const rest = text.slice(orderM[0].length);
+      const byM = /^\s*by\b/i.exec(rest);
+      if (!byM) return finish(context, from, [{ label: 'by', apply: 'by ', type: 'keyword' }], typed);
+      const last = rest.slice(byM[0].length).split(',').pop() ?? '';
+      const words = last.trim().split(/\s+/).filter(Boolean);
+      const columns = pipeColumns(head.target).map((c) => ({ label: c, type: 'property' as const }));
+      if (!words.length) return finish(context, from, columns, '');
+      if (/\s$/.test(last)) return finish(context, context.pos, DIR_OPTIONS, '');
+      if (words.length >= 2) {
+        if (/^(asc|desc)$/i.test(words[1])) return null;
+        return finish(context, from, DIR_OPTIONS, typed);
+      }
+      return finish(context, from, columns, last.trim());
+    }
+    const selectM = /^\s*select\b/i.exec(text);
+    if (selectM) {
+      const last = text.slice(selectM[0].length).split(',').pop() ?? '';
+      const words = last.trim().split(/\s+/).filter(Boolean);
+      if (!words.length) return finish(context, from, pipeColumns(head.target).map((c) => ({ label: c, type: 'property' as const })), '');
+      if (/\s$/.test(last)) {
+        return UNIT_COLUMNS.has(words[0].toLowerCase())
+          ? finish(context, context.pos, UNIT_OPTIONS, '')
+          : finish(context, from, [], typed);
+      }
+      if (words.length >= 2) {
+        const second = words[1].toLowerCase();
+        if (second === 'in') return words[2] ? finish(context, from, UNIT_OPTIONS, words[2]) : finish(context, context.pos, UNIT_OPTIONS, '');
+        if ('in'.startsWith(second)) return finish(context, context.pos, UNIT_OPTIONS, '');
+        return null; // `col in unit` complete
+      }
+      return finish(context, from, pipeColumns(head.target).map((c) => ({ label: c, type: 'property' as const })), words[0]);
+    }
+    if (/^\s*(limit|offset)\b/i.test(text)) return null; // free numeric
+    // Composer parity: the limit keyword inserts a numeric placeholder.
+    const limitSnippet = snippetCompletion('limit ${10}', { label: 'limit', detail: 'cap result rows', type: 'keyword' });
+    const kw: Completion[] = [
+      { label: 'order by', apply: 'order by ', detail: head.target === 'session' ? 'advisory: order ignored for sessions' : 'sort rows', type: 'keyword' },
+      { label: 'select', apply: 'select ', detail: SELECT_IGNORED.has(head.target ?? '') ? `advisory: select ignored for find:${head.target}` : 'choose columns', type: 'keyword' },
+    ];
+    return finish(context, from, [...chained(kw, ' '), limitSnippet], typed);
+  };
+
+  function inner(context: CompletionContext, replaceSelection = false): CompletionResult | Promise<CompletionResult | null> | null {
+    const doc = context.state.doc.toString();
+    const pos = context.pos;
+    const word = context.matchBefore(/[\w.*-]*/) ?? { from: pos, to: pos, text: '' };
+    // Structural characters open the next slot immediately, no keystroke needed.
+    const opens = word.from === word.to && pos > 0 && /[{,:|(!"]/.test(doc[pos - 1]);
+    if (word.from === word.to && !context.explicit && !opens) return null;
+
+    const scan = scanContext(doc, pos);
+    if (scan.quoted && scan.depth === 0) return null; // free text inside a phrase
+
+    // Selected-token replacement lists every slot alternative unfiltered.
+    const typed = replaceSelection ? '' : word.text;
+
+    const headM = /^[ \t]*([A-Za-z]+)[ \t]*:[ \t]*([A-Za-z0-9_.-]*)/.exec(doc);
+    const head = headM ? resolveHead(headM[1], headM[2]) : { family: 'aggregate' as const };
+
+    if (scan.pipeFrom >= 0 && scan.depth === 0) return pipeSlot(context, doc, scan, word.from, typed, head);
+    if (scan.depth > 0) return braceSlot(context, doc, scan, word.from, typed, head);
+
+    if (!headM) return finish(context, word.from, chained(AGGREGATOR_OPTIONS, ':'), typed);
+
+    const colonIdx = headM[0].indexOf(':');
+    if (pos <= colonIdx) return finish(context, word.from, chained(AGGREGATOR_OPTIONS, ':'), typed);
+    if (pos <= headM[0].length) {
+      // Head target/metric slot: `last` the aggregator vs `last` the window
+      // is disambiguated here — before/inside the head word it is the
+      // aggregator; after the complete head it is a suffix (below).
+      const agg = headM[1].toLowerCase();
+      if (agg === 'find') {
+        return finish(context, word.from, options(WQL_FIND_TARGETS).map((c) => ({ ...c, type: 'keyword' as const })), typed);
+      }
+      if (agg === 'rows') {
+        return finish(context, word.from, options(WQL_RESULT_PLANES).map((c) => ({ ...c, type: 'namespace' as const })), typed);
+      }
+      return metricHeadSlot(context, word.from, typed);
+    }
+    return suffixSlot(context, doc, scan, word.from, typed, head, headM[0].length);
   }
 
   /** A non-empty selection means "replace this token": offer every option for
@@ -376,7 +595,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     const selection = context.state.selection.main;
     if (selection.empty) return inner(context);
     // Evaluate at the selection end so the slot resolved is the selected token's.
-    const result = inner(new CompletionContext(context.state, selection.to, true));
+    const result = inner(new CompletionContext(context.state, selection.to, true), true);
     const widen = (r: CompletionResult | null) => r && { ...r, from: selection.from, to: selection.to, filter: false, validFor: undefined };
     return result instanceof Promise ? result.then(widen) : widen(result);
   }

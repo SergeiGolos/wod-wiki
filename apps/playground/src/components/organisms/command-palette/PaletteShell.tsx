@@ -140,8 +140,10 @@ export const PaletteShell: React.FC = () => {
       const initial = request.wql ? request.wql.initialQuery ?? '' : request.initialQuery ?? '';
       queryRef.current = initial;
       setQuery(initial);
-      validityRef.current = { valid: true };
-      setValidity({ valid: true });
+      const error = request.wql ? parseQuery(initial).error : undefined;
+      const initialValidity: WqlValidationState = error ? { valid: false, error } : { valid: true };
+      validityRef.current = initialValidity;
+      setValidity(initialValidity);
       setResults([]);
       setIsLoading(false);
     }
@@ -227,7 +229,7 @@ export const PaletteShell: React.FC = () => {
     <div className="border-b border-border/80 px-3 py-2">
       <WqlComposer
         key={requestSeqRef.current}
-        initialQuery={wqlConfig.initialQuery}
+        query={query}
         onQueryChange={handleQueryChange}
         onValidationChange={handleValidationChange}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}

@@ -4,7 +4,7 @@
  * and wraps it in the canvas shell when the view calls for one. All routing
  * classification stays in lib/routeView (see docs/adr/app-route-view.md).
  */
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { MutableRefObject, ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { SidebarLayout } from '@/templates/SidebarLayout'
@@ -103,11 +103,21 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
     setL3Items(mapIndexToL3(currentNavLinks))
     return () => setL3Items([])
   }, [view.shell.withIndex, currentNavLinks, setL3Items])
-  // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
+  // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834).
+  // The mounted stream composer registers a getter for its LIVE draft — the
+  // exact text, invalid included (invalid drafts never reach the URL, so a
+  // URL/default seed would be lossy). No stream mounted → route default.
+  const streamDraftRef = useRef<() => string | null>(() => null)
+  const registerStreamDraft = useCallback((getDraft: () => string | null) => {
+    streamDraftRef.current = getDraft
+    return () => {
+      if (streamDraftRef.current === getDraft) streamDraftRef.current = () => null
+    }
+  }, [])
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
       wql: {
-        initialQuery: searchPaletteQuery(),
+        initialQuery: streamDraftRef.current() ?? searchPaletteQuery(),
         execute: paletteExecute,
         preferredChoices: palettePreferredChoices(),
       },
@@ -120,7 +130,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
       if (result.dismissed) return
       navigatePaletteResult(result.item, navigate)
     })
-  }, [navigate])
+  }, [navigate, canvasRouteList])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
@@ -246,6 +256,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         <QueriableStreamView
           key={profile.route}
           profile={profile}
+          registerStreamDraft={registerStreamDraft}
           actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={false} />}
         />
       )

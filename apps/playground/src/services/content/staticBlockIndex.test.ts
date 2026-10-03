@@ -16,10 +16,14 @@ storageService.getAllBlockIndex = async () => blockRows;
 storageService.getAllTags = async () => [];
 import {
   feedDateToCreatedAt,
+  invalidateCorpusBlocks,
   staticTagIndexFromBlocks,
   staticNotesFromBlocks,
   staticNoteStore,
 } from './staticBlockIndex';
+import { getAppEffortRegistry } from '@/services/effortRegistry';
+import { invalidateSuggestions, loadSuggestions } from '@bitcobblers/wod-wiki-ui';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 
 function blockRow(partial: Partial<BlockIndexRow>): BlockIndexRow {
   return {
@@ -148,5 +152,51 @@ describe('static stores (IndexedDB-backed)', () => {
       'feeds/dan-john/2026-01-12/day-01',
     ]);
     expect(notes.every((n) => n.sourceId?.startsWith('collection:') || n.sourceId?.startsWith('feed:'))).toBe(true);
+  });
+});
+
+describe('composer suggestion bindings (vault/canonical normalization)', () => {
+  it('ranks vault values first, canonical spelling wins enum keys, effort value is the registry slug', async () => {
+    blockRows.length = 0;
+    blockRows.push(blockRow({ dataType: 'wod' }));
+    invalidateCorpusBlocks();
+    storageService.getAllEfforts = async () => [];
+    await getAppEffortRegistry().loadBundled([
+      {
+        slug: 'air-squat',
+        label: 'Air Squat',
+        baseAttributes: { met: 3, discipline: 'Strength', intensityTier: 'MODERATE' },
+        registrySource: 'user',
+      },
+      {
+        slug: 'Rowing-Intervals',
+        label: 'Rowing Intervals',
+        baseAttributes: { met: 7, discipline: 'rowing', intensityTier: 'high' },
+        registrySource: 'bundled',
+      },
+    ] as IEffort[]);
+    invalidateSuggestions();
+
+    // Vault disciplines first (case-deduped to canonical spelling), then the
+    // canonical static vocabulary — no bogus crossfit/climbing/yoga entries.
+    expect((await loadSuggestions('discipline')).map((item) => item.value)).toEqual([
+      'strength',
+      'rowing',
+      'bodyweight',
+      'cycling',
+      'gymnastics',
+      'kettlebell',
+      'recovery',
+      'running',
+      'swimming',
+      'walking',
+    ]);
+    expect((await loadSuggestions('intensity')).map((item) => item.value)).toEqual(['moderate', 'high', 'low']);
+
+    const efforts = await loadSuggestions('effort');
+    expect(efforts.map((item) => item.value)).toEqual(['air-squat', 'Rowing-Intervals']);
+    expect(efforts.map((item) => item.label)).toEqual(['Air Squat', 'Rowing Intervals']);
+
+    expect((await loadSuggestions('type')).map((item) => item.value)).toEqual(['wod', 'movement', 'workout']);
   });
 });

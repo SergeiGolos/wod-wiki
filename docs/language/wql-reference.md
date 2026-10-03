@@ -29,7 +29,7 @@ The noun decides the result shape: `session` returns grouped run cards, `segment
 ## 2. Discovery Queries (`find:`)
 
 ```wql
-find:note{category:benchmark}
+find:note{tags:benchmark}
 find:note{equipment:barbell, source:journal}
 find:block{effort:thruster} last 8w | limit 20
 find:effort{discipline:strength, intensity:high}
@@ -105,12 +105,18 @@ Filters are comma-separated within curly braces `{key:value}`:
 | `intensity` | Workout tier | `{intensity:high}` |
 | `origin` | Producer provenance | `{origin:user}`, `{origin:runtime}` |
 | `tags` | Tag label | `{tags:pr}`, `{tags:benchmark}` |
-| `<tagType>` | Any registered dynamic tag type | `{equipment:barbell}`, `{category:girl}` |
+| `domain` / `format` / `equipment` / `quality` / `intent` | Typed note tag | `{equipment:barbell}`, `{intent:benchmark}` |
 | `source` | Where a note lives | `{source:journal}`, `{source:collections}` |
 | `plane` | Output type on sessions | `{plane:segment}`, `{!plane:compiler}` |
 | `result` / `block` / `note` | Session scope | `{result:r1}`, `{note:n1}` |
 
 `source:` accepts exactly `journal | collections | feeds | guides | playground`. Page-ness is expressed with `type:`.
+
+Filter choices depend on the target. Notes support `source`, `text`, `type`, `page`, `catalog`, `tags`, `effort`, `note`, and the typed tags `domain`, `format`, `equipment`, `quality`, and `intent`. Blocks support `source`, `text`, `type`, `catalog`, `tags`, `effort`, and `note`. Efforts support `text`, `effort`, `discipline`, `intensity`, and `origin`. Sessions support `result`, `block`, `note`, and `plane`. Segment/event queries filter projected facts, including custom fact dimensions.
+
+Unsupported filters remain parseable but produce an advisory. For example, `find:note{discipline:climbing}` does not filter notes by discipline. Use an effort query for registry discipline filters, or a note tag filter when the discipline is stored as a tag. Unsupported negation, wildcard, and presentation clauses also produce advisories instead of implying that they executed.
+
+Content streams group by `date`, `day`, `week`, `month`, `year`, `discipline`, `origin`, `source`, `kind`, `type`, or `tag`. An unsupported content dimension such as `by {effort}` falls back to tag grouping with an explicit advisory. Query grouping takes precedence over the saved view grouping, then the route default.
 
 ### Filter Modifiers
 * **OR**: Use pipe `|` (`{effort:fran|helen}`).
@@ -158,7 +164,11 @@ find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | l
 
 ## Editor typeahead
 
-The composer's text editor offers the next slot as you type and every alternative when you click a token: click `find` for the head aggregators and `find`, click a target for all `find:` targets, click a filter key for all keys, click a value for that key's values. Picking replaces the token; picking an aggregator or key adds `:` and opens the next list. Unparseable drafts are never written to the URL.
+The text editor and guided picker use the same target capabilities. Click a head, target, filter key, value, or grouping dimension to replace that token with an alternative. Field suggestions exclude keys already used in the query; add OR values with `|` inside a filter. Picking an aggregator or field key adds `:` and opens the next list. Values use vault data first, then canonical vocabulary, with case-insensitive deduplication.
+
+After a complete head, completion offers grouping and time windows. After a presentation pipe, completion offers `order by`, `select`, and `limit`, then their column, direction, unit, or number slots. A presentation clause that the target does not execute carries an advisory.
+
+`Tab` accepts the active completion and advances to the next slot. `Enter` accepts the active option, or commits and closes the popup when no option is selected. Arrow navigation wraps in both directions. `Escape` closes the popup before leaving the editor. Invalid drafts remain editable, retain previous results, and never enter URL history or Apply. Opening the palette keeps the exact draft, including invalid text.
 
 Completion menus use an opaque themed popover in light and dark mode, the app's sans-serif UI font, and outline icons for search, metrics, filter keys and values. Hover and keyboard selection have distinct highlights. The query text remains monospace.
 

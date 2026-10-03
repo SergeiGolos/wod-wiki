@@ -7,7 +7,7 @@
  * placeholder guidance, one shared searchable picker, add-filter catalog, and a
  * where-join editor composing a WQL query. Arrows move through rendered
  * options, Enter selects an explicitly active option, Escape dismisses one
- * level; Tab moves focus natively. Run/Apply/Save actions consume the
+ * level; Tab accepts an active text completion, otherwise moves real focus. Run/Apply/Save actions consume the
  * synchronously resolved draft.
  *
  * Stories — interaction model:
