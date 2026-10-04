@@ -181,7 +181,9 @@ describe('HomeTour share feedback', () => {
   it('shows a confirmation toast and records the event when share succeeds', async () => {
     await renderHomeTour()
 
-    const shareButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /Copy share link/i })
+    // The hero's own share control (the editor pane carries a second share
+    // ghost, so the role query is ambiguous within the hero view).
+    const shareButton = await screen.findByTestId('tour-hero-share')
     fireEvent.click(shareButton)
 
     await waitFor(() => {
@@ -204,7 +206,9 @@ describe('HomeTour share feedback', () => {
 
     await renderHomeTour()
 
-    const shareButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /Copy share link/i })
+    // The hero's own share control (the editor pane carries a second share
+    // ghost, so the role query is ambiguous within the hero view).
+    const shareButton = await screen.findByTestId('tour-hero-share')
     fireEvent.click(shareButton)
 
     await waitFor(() => {

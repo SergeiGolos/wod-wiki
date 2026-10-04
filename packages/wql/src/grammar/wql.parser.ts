@@ -2,14 +2,14 @@
 import {LRParser} from "@lezer/lr"
 export const parser = LRParser.deserialize({
   version: 14,
-  states: "(jOVQPOOOOQO'#C_'#C_O[QPO'#C^QaQQOOOlQPO,58xOqQPO'#CbO|QPO'#CjO!RQPO'#CmQOQPOOQ!WQPOOQ!]QQOOO!eQQO'#CaOOQO1G.d1G.dOOQO'#Ce'#CeO!vQPO'#CcO!{QPO'#CcOOQO,58|,58|O#QQPO,58|O#YQPO,59UO#bQQO,59XO#gQPO'#CpO#lQQO,58{O#}QPO,58}O$VQPO,58}O$[QPO'#CrO$dQPO1G.hOOQO1G.h1G.hOOQO'#Cl'#ClOOQO1G.p1G.pO$lQPO1G.pO$tQPO1G.sOOQO,59[,59[OOQO-E6n-E6nO$yQPO'#CgO%[QPO'#CgO%jQPO'#CfOOQO1G.i1G.iO#}QPO1G.iOOQO,59^,59^OOQO-E6p-E6pOOQO7+$S7+$SO%uQPO'#CsO%zQPO7+$[OOQO7+$[7+$[O&SQPO7+$_OOQO,59R,59RO&XQPO,59RO#}QPO'#CqO&^QPO,59QOOQO7+$T7+$TOOQO,59_,59_OOQO-E6q-E6qOOQO<<Gv<<GvOOQO<<Gy<<GyO&iQPO1G.mOOQO,59],59]OOQO-E6o-E6oOOQO7+$X7+$X",
-  stateData: "&w~OjOS~OSPO~OkSO~O_UObVOmTO~OSZO~OS]OW_Op`O~OmbO~OqcO~ObVO~O_UObVO~OldO_TXbTXhTXmTX~OkfO~OS]O~OohOpjO~OSkOplO~OcnO~OSoO~OldO_TabTahTamTa~OSqO]rO~OkuO~OS]OW_O~OohOpxO~OoyOp{O~OS|O~O[}Ok!OOnZXoZXpZX~O[}OnZXoZXpZX~On!POoYXpYX~OSkO~OoyOp!UO~Or!VO~OS!WO~On!POoYapYa~O[!ZOnZioZipZi~O",
-  goto: "#YhPPilPoruP{!S!YPP!aP!e!kPP!p!v!|#SRRORQOR[SRYRQaTRvhS^ThRg_QtfR!RuSsfuR!X!PTXRYQmbR!SyVWRXYQeZRpeQ!QsR!Y!QQiaRwiQzmR!Tz",
-  nodeNames: "⚠ Query Head Aggregator Word Metric Filters Filter Negate TagKey TagValue Value Star Quoted GroupBy By Dimension Rollup RollupDot Int",
-  maxTerm: 34,
+  states: "+^OVQPOOOOQO'#Cb'#CbObQPO'#C`OgQPO'#C`OlQPO'#ClOqQQO'#C_OOQO'#C_'#C_O!SQQO'#CnQOQPOOOOQO,58z,58zO!bQPO,58zOOQO,59W,59WO!gQPO'#CdOOQO,58y,58yOVQPO,58xO!rQPO'#CoO!wQPO'#CrOOQO,59Y,59YO!|QPO,59YO#UQQO'#CcOOQO1G.f1G.fOOQO'#Cg'#CgO#jQPO'#CeO#oQPO'#CeOOQO,59O,59OO#tQPO,59OO#|QPO'#C_O$XQPO1G.dO$aQPO,59ZO$iQQO,59^OOQO1G.t1G.tO$nQPO'#CuO$sQQO,58}O%XQPO,59PO%aQPO,59PO%fQPO'#CxO%nQPO1G.jOOQO1G.j1G.jOVQPO'#CyO%vQPO7+$OOOQO'#Cq'#CqOOQO1G.u1G.uO&OQPO1G.uO&WQPO1G.xOOQO,59a,59aOOQO-E6s-E6sO&]QPO'#CiO&qQPO'#CiO'PQPO'#ChOOQO1G.k1G.kO%XQPO1G.kOOQO,59d,59dOOQO-E6v-E6vOOQO7+$U7+$UO'[QPO'#CcOOQO,59e,59eOOQO-E6w-E6wO'jQPO'#CzO'oQPO7+$aOOQO7+$a7+$aO'wQPO7+$dO'|QPO'#CvO(RQPO,59TOOQO,59T,59TO%XQPO'#CwO(gQPO,59SOOQO7+$V7+$VO(rQPO,58}OOQO,59f,59fOOQO-E6x-E6xOOQO<<G{<<G{OOQO<<HO<<HOOOQO,59b,59bOOQO-E6t-E6tOOQO1G.o1G.oOOQO,59c,59cOOQO-E6u-E6uO)QQPO,58zO)VQPO'#C`",
+  stateData: ")[~OqOS~OTPOaSOrQO~OTXO~OrYO~OTZO~Ot[OdRXgRXoRXuRX~Od_Og`Ou^OobX~OTcO~OTeOYgOwhO~OtlO~OxmO~Og`Ooba~OsoOdVXgVXoVXtVXuVX~OrqO~OTeO~OvsOwuO~Ot[OoRXuRX~OuvOoQi~OTxOwyO~Oh{O~OT|O~OsoOdVagVaoVatVauVa~OT!OO_!PO~Or!SO~OTeOYgO~OvsOw!VO~OuvOoQq~Ov!ZOw!]O~OT!^O~O^!aOr!_Os!_Ou]Xv]Xw]X~O^!aOu]Xv]Xw]X~Ou!bOv[Xw[X~OsoOoVXtVXuVX~OTxO~Ov!ZOw!hO~Oy!iO~OT!jO~O^!lOr!_Os!_Ou]av]aw]a~Ou!bOv[aw[a~OsoOoVatVauVa~OT!WO~Or!oO~O",
+  goto: "$^oPPps|P!T![!`!dP!j!q!wPP#OPp#TP#W#^PP#d#n#t#z$Q$WRWOQVOQk^R!XvQTOTj^vQROT!p^vTdY!oT]TjQi[R!TsSf[sRrgQ!RqR!d!SS!Qq!SR!m!bVUO^vRbVQzlR!f!ZQaVRnbQpcS}p!eR!e!WQ!`!OR!k!`Q!c!QR!n!cQtiR!UtQwkR!YwQ![zR!g![",
+  nodeNames: "⚠ Query Pipeline Stage Head Word Aggregator Metric Filters Filter Negate TagKey TagValue Value Star Quoted DatasetReference At Single GroupBy By Dimension Rollup RollupDot Int",
+  maxTerm: 41,
   skippedNodes: [0],
-  repeatNodeCount: 4,
-  tokenData: "'a~RfXY!gYZ!g]^!gpq!gqr!xrs!}xy#lyz#qz{#v|}#{}!O$Q!O!P$f!Q![%c![!]%y!c!}$Q#R#S$Q#T#U$Q#U#V&O#V#o$Q#o#p'Q#p#q'V#q#r'[~!lSj~XY!gYZ!g]^!gpq!g~!}OW~~#QTOr!}rs#as;'S!};'S;=`#f<%lO!}~#fO]~~#iP;=`<%l!}~#qOq~~#vOr~~#{O[~~$QOo~P$VTSP}!O$Q!Q![$Q!c!}$Q#R#S$Q#T#o$Q~$kPl~#f#g$n~$qP#c#d$t~$wP#`#a$z~$}P#`#a%Q~%TP#i#j%W~%ZP#d#e%^~%cOb~R%jTcQSP}!O$Q!Q![%c!c!}$Q#R#S$Q#T#o$Q~&OOk~R&TVSP}!O$Q!Q![$Q!c!}$Q#R#S$Q#T#m$Q#m#n&j#n#o$QR&qT_QSP}!O$Q!Q![$Q!c!}$Q#R#S$Q#T#o$Q~'VOm~~'[On~~'aOp~",
+  repeatNodeCount: 6,
+  tokenData: "'i~RgXY!jYZ!j]^!jpq!jqr!{rs#Qxy#oyz#tz{#y|}$O}!O$T!O!P$i!Q![%f![!]%|!b!c&R!c!}$T#R#S$T#T#U$T#U#V&W#V#o$T#o#p'Y#p#q'_#q#r'd~!oSq~XY!jYZ!j]^!jpq!j~#QOY~~#TTOr#Qrs#ds;'S#Q;'S;=`#i<%lO#Q~#iO_~~#lP;=`<%l#Q~#tOx~~#yOy~~$OO^~~$TOv~P$YTTP}!O$T!Q![$T!c!}$T#R#S$T#T#o$T~$nPs~#f#g$q~$tP#c#d$w~$zP#`#a$}~%QP#`#a%T~%WP#i#j%Z~%^P#d#e%a~%fOg~R%mThQTP}!O$T!Q![%f!c!}$T#R#S$T#T#o$T~&ROr~~&WOa~R&]VTP}!O$T!Q![$T!c!}$T#R#S$T#T#m$T#m#n&r#n#o$TR&yTdQTP}!O$T!Q![$T!c!}$T#R#S$T#T#o$T~'_Ot~~'dOu~~'iOw~",
   tokenizers: [0, 1],
   topRules: {"Query":[0,1]},
   tokenPrec: 0

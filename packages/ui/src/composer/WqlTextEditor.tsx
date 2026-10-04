@@ -10,7 +10,7 @@ import {
 } from '@codemirror/autocomplete';
 import { syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { linter, type Diagnostic } from '@codemirror/lint';
-import { parseQuery, supportsWqlFilterKey, wqlCompletionSource, wqlHighlightStyle, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isPipelineQuery, supportsWqlFilterKey, wqlCompletionSource, wqlHighlightStyle, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
 import { loadSuggestions } from './suggestionSources';
 
 const completionIcons = {
@@ -65,6 +65,8 @@ export function wqlLint(view: EditorView): Diagnostic[] {
       return { from: Math.min(span.from, to - 1), to, severity: 'error' as const, message: ast.error! };
     });
   }
+  // Pipeline stages own their filters; top-level capability warnings don't apply.
+  if (isPipelineQuery(ast)) return [];
   const filters: { from: number; to: number; text: string }[] = [];
   syntaxTree(view.state).iterate({
     enter: node => {

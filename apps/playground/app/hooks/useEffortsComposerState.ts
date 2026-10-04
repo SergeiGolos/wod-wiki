@@ -17,7 +17,7 @@ export type EffortsComposerState = ComposerQueryState
 
 /** Efforts landing state: the whole registry, no time window (registry rows
  * carry no queryable creation date). */
-export const DEFAULT_EFFORTS_QUERY = 'find:effort'
+export const DEFAULT_EFFORTS_QUERY = ':effort'
 
 const LEGACY_KEYS = ['origin', 'discipline'] as const
 
@@ -28,7 +28,7 @@ function textFilter(value: string): string {
 /** Compose the efforts query from filter parts. */
 function effortsQuery(filters: string[]): string {
   const body = filters.filter(Boolean)
-  return `find:effort${body.length ? `{${body.join(',')}}` : ''}`
+  return `:effort${body.length ? `{${body.join(',')}}` : ''}`
 }
 
 /** The old plain-text `?q=` becomes a text filter (plus any legacy filters). */
@@ -37,7 +37,7 @@ function salvageLegacyQ(q: string, search: URLSearchParams): string | null {
   if (!text) return null
   // Anything that looks like an attempt at WQL is a genuine rejection, not a
   // legacy text search — let the banner report it.
-  if (text.startsWith('find:') || text.includes('{') || text.includes('}')) return null
+  if (text.startsWith(':') || text.includes('{') || text.includes('}')) return null
   const origin = search.get('origin')
   const discipline = search.get('discipline')?.trim()
   return effortsQuery([

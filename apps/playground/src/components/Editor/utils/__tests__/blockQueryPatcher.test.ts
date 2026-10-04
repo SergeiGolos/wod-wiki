@@ -16,7 +16,7 @@ describe('extractBlockQueries', () => {
   });
 
   it('extracts stacked line queries ignoring comments and blank lines', () => {
-    const content = '# Main volume\nsum:totalVolume{}\n\n# Note search\nfind:note{tags:pr}';
+    const content = '# Main volume\nsum:totalVolume{}\n\n# Note search\n:note{tags:pr}';
     const queries = extractBlockQueries(content);
     expect(queries).toEqual([
       {
@@ -27,7 +27,7 @@ describe('extractBlockQueries', () => {
       },
       {
         queryIndex: 1,
-        query: 'find:note{tags:pr}',
+        query: ':note{tags:pr}',
         isYamlKey: false,
         lineIndex: 4,
       },
@@ -66,7 +66,7 @@ describe('extractBlockQueries', () => {
     query: sum:totalVolume{discipline:strength}
     unit: kg
   - title: PR Notes
-    query: find:note{tags:pr}`;
+    query: :note{tags:pr}`;
 
     const queries = extractBlockQueries(content);
     expect(queries).toEqual([
@@ -78,7 +78,7 @@ describe('extractBlockQueries', () => {
       },
       {
         queryIndex: 1,
-        query: 'find:note{tags:pr}',
+        query: ':note{tags:pr}',
         isYamlKey: true,
         lineIndex: 5,
       },
@@ -128,21 +128,21 @@ unit: kg`);
 sum:totalVolume{discipline:strength}
 
 # Top PR notes
-find:note{tags:pr}`;
+:note{tags:pr}`;
 
     const updatedIndex0 = patchBlockQuery(content, 'avg:totalVolume{discipline:strength}', 0);
     expect(updatedIndex0).toBe(`# Header comment
 avg:totalVolume{discipline:strength}
 
 # Top PR notes
-find:note{tags:pr}`);
+:note{tags:pr}`);
 
-    const updatedIndex1 = patchBlockQuery(content, 'find:note{tags:workout}', 1);
+    const updatedIndex1 = patchBlockQuery(content, ':note{tags:workout}', 1);
     expect(updatedIndex1).toBe(`# Header comment
 sum:totalVolume{discipline:strength}
 
 # Top PR notes
-find:note{tags:workout}`);
+:note{tags:workout}`);
   });
 
   it('patches specific query in YAML widgets list without disturbing sibling keys or other widgets', () => {
@@ -151,7 +151,7 @@ find:note{tags:workout}`);
     query: sum:totalVolume{discipline:strength}
     unit: kg
   - title: PR Notes
-    query: find:note{tags:pr}`;
+    query: :note{tags:pr}`;
 
     const updatedWidget0 = patchBlockQuery(content, 'avg:totalVolume{discipline:strength}', 0);
     expect(updatedWidget0).toBe(`widgets:
@@ -159,14 +159,14 @@ find:note{tags:workout}`);
     query: avg:totalVolume{discipline:strength}
     unit: kg
   - title: PR Notes
-    query: find:note{tags:pr}`);
+    query: :note{tags:pr}`);
 
-    const updatedWidget1 = patchBlockQuery(content, 'find:note{tags:workout}', 1);
+    const updatedWidget1 = patchBlockQuery(content, ':note{tags:workout}', 1);
     expect(updatedWidget1).toBe(`widgets:
   - title: Strength Volume
     query: sum:totalVolume{discipline:strength}
     unit: kg
   - title: PR Notes
-    query: find:note{tags:workout}`);
+    query: :note{tags:workout}`);
   });
 });

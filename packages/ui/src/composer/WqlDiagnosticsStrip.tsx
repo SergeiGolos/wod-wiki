@@ -1,8 +1,8 @@
 import { AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../utils/cn';
-import { isAggregateQuery, isFindQuery, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql';
-import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics';
+import { isAggregateQuery, isFindQuery, isPipelineQuery, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql';
+import { summarizeAggregate, summarizeFind, summarizePipeline, type WqlDiagnostics } from './diagnostics';
 import type { WqlStageCounts } from './useWqlStageCounts';
 
 export interface WqlDiagnosticsStripProps {
@@ -42,7 +42,7 @@ export function WqlDiagnosticsStrip({
   const header = variant === 'header';
   const advisories = ast.advisories ?? [];
   const supportedDims = new Set(wqlGroupingDimensions(ast.family === 'find' ? ast.target : '', ast.family));
-  const unsupportedDims = (ast.groupBy ?? []).filter(dim => !supportedDims.has(dim));
+  const unsupportedDims = isPipelineQuery(ast) ? [] : (ast.groupBy ?? []).filter(dim => !supportedDims.has(dim));
   const warning = valid && (advisories.length > 0 || unsupportedDims.length > 0);
   const warningMessage = advisories[0] ?? `Unsupported grouping: ${unsupportedDims.join(', ')}`;
 
@@ -145,6 +145,28 @@ export function WqlDiagnosticsStrip({
                   )}
                   {summary.unit && (
                     <SummaryChip label="as" value={summary.unit} testId="diag-summary-unit" />
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {!hideSummary && valid && isPipelineQuery(ast) && (
+          <div className="flex flex-wrap items-center gap-x-3 text-[11px] opacity-80 border-l border-border/50 pl-3">
+            {(() => {
+              const summary = summarizePipeline(ast);
+              return (
+                <>
+                  <SummaryChip label="source" value={summary.source} testId="diag-summary-source" />
+                  {summary.functions.map((fn, i) => (
+                    <SummaryChip key={i} label={`fn ${i + 1}`} value={fn} testId={`diag-summary-fn-${i + 1}`} />
+                  ))}
+                  {summary.sink && (
+                    <SummaryChip label="sink" value={summary.sink} testId="diag-summary-sink" />
+                  )}
+                  {summary.timeWindow && (
+                    <SummaryChip label="time" value={summary.timeWindow} testId="diag-summary-time" />
                   )}
                 </>
               );

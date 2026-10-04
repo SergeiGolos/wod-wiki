@@ -8,6 +8,7 @@ import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
 import { useWqlStageCounts, DEFAULT_DIAGNOSTICS_DEBOUNCE_MS, type WqlExecutor, type WqlStageCounts, type AnyParsedQuery } from './useWqlStageCounts';
 import { CLAUSE_META, CONTENT_GROUPING_DIMENSIONS, getClauseMeta, allowedFilterTypesForTarget, type ClauseType, type QueryClause } from './queryClauses';
 import { astToPills, editQueryClause, pivotQuery, resolveQueryDraft, type QueryDraft } from './queryAst';
+import { isPipelineQuery } from '@bitcobblers/wod-wiki-wql';
 import { useSuggestionBoundTypes } from './suggestionSources';
 import { WqlTextEditor } from './WqlTextEditor';
 
@@ -55,7 +56,7 @@ export function WqlComposer({
   hiddenClauseTypes, preferredChoices, autoFocus = false, placeholder = 'Search text or enter WQL', className,
 }: WqlComposerProps) {
   const [desktop, setDesktop] = useState(false);
-  const [base, setBase] = useState(query ?? initialQuery ?? 'find:note');
+  const [base, setBase] = useState(query ?? initialQuery ?? ':note');
   const [pending, setPending] = useState('');
   const [active, setActive] = useState<ActiveEditor>({ kind: 'closed' });
   const [search, setSearch] = useState('');
@@ -66,7 +67,7 @@ export function WqlComposer({
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-  const emittedRef = useRef(query ?? initialQuery ?? 'find:note');
+  const emittedRef = useRef(query ?? initialQuery ?? ':note');
   const queryRef = useRef(query);
   const currentRef = useRef(resolveQueryDraft(base));
   const callbacks = useRef({ onQueryChange, onValidationChange, onAstChange });
@@ -91,7 +92,14 @@ export function WqlComposer({
     return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi);
   });
   const allowed = allowedFilterTypesForTarget(resolved.ast.family === 'find' ? resolved.ast.target : '', resolved.ast.family);
-  const factTarget = resolved.ast.family === 'aggregate' || ['segment', 'event'].includes(resolved.ast.target);
+  // Pipelines carry no top-level window; the date editor only opens on
+  // find/aggregate drafts whose pills exist.
+  const astWindow = isPipelineQuery(resolved.ast) ? undefined : resolved.ast.window;
+  const draftWindow = () => {
+    const draft = currentRef.current.ast;
+    return isPipelineQuery(draft) ? undefined : draft.window;
+  };
+  const factTarget = resolved.ast.family === 'aggregate' || (resolved.ast.family === 'find' && ['segment', 'event'].includes(resolved.ast.target));
   const dynamicTypes = factTarget ? boundTypes.filter((type) => !(type in CLAUSE_META)) : [];
   const catalog = [...Object.keys(CLAUSE_META), ...dynamicTypes, ...slots.map((slot) => slot.type)]
     .filter((type, index, all) => all.indexOf(type) === index && !hidden.has(type))
@@ -304,8 +312,8 @@ export function WqlComposer({
           <label className="flex min-h-12 items-center gap-2"><input type="checkbox" checked={active.clause.value.split('|').every((value) => value.endsWith('*'))} onChange={(event) => updateClause(active.clause, active.clause.value.split('|').map((value) => `${value.replace(/\*$/, '')}${event.target.checked ? '*' : ''}`).join('|'))} />Starts with</label>
         </div>}
         {active.kind === 'value' && active.clause.type === 'time' && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label>Start date<input type="date" aria-label="Start date" className="min-h-12 w-full bg-background text-base" onChange={(event) => { const end = currentRef.current.ast.window; updateClause(active.clause, `from ${event.target.value}${end?.kind === 'range' && end.end ? ` to ${end.end}` : ''}`); }} value={resolved.ast.window?.kind === 'range' ? resolved.ast.window.start : ''} /></label>
-          <label>End date<input type="date" aria-label="End date" className="min-h-12 w-full bg-background text-base" onChange={(event) => { const window = currentRef.current.ast.window; if (window?.kind === 'range') updateClause(active.clause, `from ${window.start}${event.target.value ? ` to ${event.target.value}` : ''}`); else setError('Choose a start date first'); }} value={resolved.ast.window?.kind === 'range' ? resolved.ast.window.end ?? '' : ''} /></label>
+          <label>Start date<input type="date" aria-label="Start date" className="min-h-12 w-full bg-background text-base" onChange={(event) => { const end = draftWindow(); updateClause(active.clause, `from ${event.target.value}${end?.kind === 'range' && end.end ? ` to ${end.end}` : ''}`); }} value={astWindow?.kind === 'range' ? astWindow.start : ''} /></label>
+          <label>End date<input type="date" aria-label="End date" className="min-h-12 w-full bg-background text-base" onChange={(event) => { const window = draftWindow(); if (window?.kind === 'range') updateClause(active.clause, `from ${window.start}${event.target.value ? ` to ${event.target.value}` : ''}`); else setError('Choose a start date first'); }} value={astWindow?.kind === 'range' ? astWindow.end ?? '' : ''} /></label>
         </div>}
         {active.kind === 'value' && (customEditor ? <customEditor.Editor value={customEditor.parseValue ? customEditor.parseValue(active.clause.value) : active.clause.value} onChange={(value) => updateClause(active.clause, customEditor.formatValue ? customEditor.formatValue(value) : String(value))} onClose={closeEditor} /> : <InlineClauseEditor clause={active.clause} filteredItems={preferredItems} selectedValues={values.selectedValues} isMulti={values.isMulti} typedValue={values.typedValue} canCommitTyped={values.canCommitTyped} emptyText={values.emptyText} highlightIdx={highlight} onHighlight={setHighlight} onCommitValue={chooseValue} onCommitTyped={chooseValue} listId={listId} onDone={closeEditor} onReorder={(dimensions) => updateClause(active.clause, dimensions.join('|'))} />)}
       </div>}

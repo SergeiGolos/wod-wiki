@@ -116,7 +116,7 @@ describe('ticket 18 — rows filtering over every projected fact', () => {
         { type: 'weight', value: 75, unit: 'kg', metadata: { canonicalKey: 'weight' } },
       ],
     } as unknown as EventRecord;
-    const parsed = parseQuery('find:segment{metric:weight}');
+    const parsed = parseQuery(':segment{metric:weight}');
     expect(parsed.error).toBeUndefined();
     expect(isFindQuery(parsed)).toBe(true);
     const result = await new QueryService({ eventStore: store([row]) }).runFind(parsed as any);
@@ -154,7 +154,7 @@ describe('ticket 19 — shared runner semantics', () => {
       runAggregate: async () => ({ series: [] }),
       runFind: async () => ({ kind: 'find', notes }),
     });
-    const result = await runner.run('find:note{tags:running}');
+    const result = await runner.run(':note{tags:running}');
     expect(result.outputs[0]).toMatchObject({ kind: 'find', notes });
   });
 
@@ -170,8 +170,8 @@ describe('ticket 19 — shared runner semantics', () => {
 
 describe('ticket 20 — cache correctness', () => {
   it('joined populations produce distinct keys', () => {
-    const running = parseQuery('sum:totalVolume{} where find:note{tags:running}');
-    const cycling = parseQuery('sum:totalVolume{} where find:note{tags:cycling}');
+    const running = parseQuery('sum:totalVolume{} where :note{tags:running}');
+    const cycling = parseQuery('sum:totalVolume{} where :note{tags:cycling}');
     expect(computeCacheKey(running as never, { generation: 0 })).not.toBe(computeCacheKey(cycling as never, { generation: 0 }));
   });
 

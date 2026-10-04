@@ -9,7 +9,7 @@ import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 export interface PaletteWqlConfig {
   /**
    * Palette-specific seed query for the composer (e.g. its default target /
-   * window). Defaults to the composer's own default (find:note last 2w).
+   * window). Defaults to the composer's own default (:note last 2w).
    */
   initialQuery?: string;
   /** Extra content rendered inside the composer bar, after the add-filter menu. */

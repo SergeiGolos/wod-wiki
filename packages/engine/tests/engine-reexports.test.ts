@@ -48,6 +48,7 @@ describe('@bitcobblers/wod-wiki-engine re-exports', () => {
     expect(engine.parseQuery).toBeDefined();
     expect(engine.isFindQuery).toBeDefined();
     expect(engine.isAggregateQuery).toBeDefined();
+    expect(engine.isPipelineQuery).toBeDefined();
     expect(engine.WQL_AGGREGATORS).toBeDefined();
     expect(engine.WQL_TAG_KEYS).toBeDefined();
     expect(engine.WQL_CALC_TARGETS).toBeDefined();
@@ -55,6 +56,12 @@ describe('@bitcobblers/wod-wiki-engine re-exports', () => {
     expect(engine.WQL_RESULT_PLANES).toBeDefined();
     // Language train (C1-C7) surface — guarded after 0.10.41 shipped without it.
     expect(engine.WQL_SOURCE_VALUES).toBeDefined();
+    // Colon pipeline vocabulary (streamlined syntax plan).
+    expect(engine.WQL_SOURCE_HEADS).toBeDefined();
+    expect(engine.WQL_FUNCTION_HEADS).toBeDefined();
+    expect(engine.WQL_CHART_HEADS).toBeDefined();
+    expect(engine.WQL_STANDARD_DATASETS).toEqual(['@session', '@today']);
+    expect(engine.WQL_SOURCE_VALUES).not.toContain('feeds');
     expect(engine.normalizeWql).toBeDefined();
     expect(engine.serialize).toBeDefined();
     expect(engine.buildDashboardDocument).toBeDefined();

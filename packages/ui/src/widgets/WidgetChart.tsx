@@ -1,6 +1,9 @@
 import React, { type ReactNode } from 'react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 import { isDashboardWidgetType, PLANNED_WIDGET_TYPES, resolveWidgetType, unknownWidgetTypeMessage } from '@bitcobblers/wod-wiki-wql';
+import { SERIES_COLORS } from './chartPalette';
+import { compactNumber } from './chartData';
 import { QueryValue } from './QueryValue';
 import { WqlTimeseries } from './WqlTimeseries';
 import { WqlBars } from './WqlBars';
@@ -68,6 +71,8 @@ function renderChart(
   switch (type) {
     case 'value':
       return <QueryValue result={result} label={label ?? ''} unit={unit} />;
+    case 'donut':
+      return <WqlDonut result={result} unit={unit} label={label} />;
     case 'timeseries':
       return <WqlTimeseries result={result} unit={unit} />;
     case 'bar':
@@ -122,6 +127,63 @@ function PlannedWidgetPlaceholder({ type }: { type: string }) {
     <div className="flex items-center justify-center h-full text-xs text-muted-foreground font-mono bg-muted/20 rounded p-4 text-center">
       widget:{type} renderer in progress
     </div>
+  );
+}
+
+/** Donut (`:donut` sink / dashboard `donut` widget): one slice per series —
+ *  the series' point total. Recharts Pie with an inner radius; an
+ *  accessible text summary rides alongside for screen readers. */
+function WqlDonut({ result, unit, label }: { result: QueryResult; unit?: string; label?: string }) {
+  const data = result.series.map((s, i) => ({
+    name: s.label,
+    value: s.points.reduce((sum, p) => sum + (p.missing ? 0 : p.value), 0),
+    fill: SERIES_COLORS[i % SERIES_COLORS.length],
+  }));
+  const slices = data.filter((d) => d.value > 0);
+  const summaryUnit = result.series[0]?.unit ?? unit ?? '';
+  const summary = slices.length > 0
+    ? `${label ?? 'distribution'}: ${slices.map((d) => `${d.name} ${compactNumber(d.value)}${summaryUnit}`).join(', ')}`
+    : 'no data';
+
+  return (
+    <div
+      className="w-full h-full flex items-center justify-center"
+      role="img"
+      aria-label={summary}
+      data-testid="wql-donut"
+    >
+      {slices.length === 0 ? (
+        <span className="text-xs text-muted-foreground">No data</span>
+      ) : (
+        <ResponsiveDonut data={slices} unit={summaryUnit} />
+      )}
+    </div>
+  );
+}
+
+function ResponsiveDonut({ data, unit }: { data: Array<{ name: string; value: number; fill: string }>; unit: string }) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          innerRadius="55%"
+          outerRadius="85%"
+          paddingAngle={2}
+          stroke="hsl(var(--background))"
+          isAnimationActive={false}
+        >
+          {data.map((d) => (
+            <Cell key={d.name} fill={d.fill} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value) => `${compactNumber(Number(value))}${unit}`} />
+      </PieChart>
+    </ResponsiveContainer>
   );
 }
 

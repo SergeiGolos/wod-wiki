@@ -568,7 +568,7 @@ describe('HomeTour', () => {
 
   it('hero Run persists a fresh note and glides onto the timer stage', async () => {
     await renderHomeTour()
-    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
+    const runButton = await screen.findByTestId('tour-hero-run')
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -584,7 +584,7 @@ describe('HomeTour', () => {
 
   it('every explicit Run after a recorded run mints a NEW note', async () => {
     await renderHomeTour()
-    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
+    const runButton = await screen.findByTestId('tour-hero-run')
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -627,7 +627,7 @@ describe('HomeTour', () => {
   it('aborts the run with a toast when the note cannot be persisted', async () => {
     runControl.failStarts = true
     await renderHomeTour()
-    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
+    const runButton = await screen.findByTestId('tour-hero-run')
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -640,13 +640,21 @@ describe('HomeTour', () => {
     expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
   })
 
-  it('hosts ONE editor — the write pane, live at first paint beside the hero rail', async () => {
+  it('shows the one shared document in both the hero and write displays', async () => {
     await renderHomeTour()
-    // The hero rail carries no editor (no duplicate NoteEditor); the write
-    // section's sticky stage hosts the single one.
-    expect(within(screen.getByTestId('tour-hero')).queryByTestId('mock-note-editor')).toBeNull()
+    // The hero view hosts a live editor at first paint; the write section's
+    // sticky pane is a second display of the SAME doc state — no reset at
+    // the boundary between them.
+    const heroEditor = within(screen.getByTestId('tour-hero')).getByTestId('mock-note-editor') as HTMLTextAreaElement
     const writeSection = screen.getByTestId('tour-section-write')
-    expect(within(writeSection).getByTestId('mock-note-editor')).toBeTruthy()
+    const writeEditor = within(writeSection).getByTestId('mock-note-editor') as HTMLTextAreaElement
+    expect(writeEditor.value).toBe(heroEditor.value)
+
+    await act(async () => {
+      fireEvent.change(heroEditor, { target: { value: 'EDIT IN HERO' } })
+      await Promise.resolve()
+    })
+    expect(writeEditor.value).toBe('EDIT IN HERO')
   })
 
   it('offers workout presets that replace the shared document', async () => {

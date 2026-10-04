@@ -15,7 +15,9 @@
  *   reported.
  */
 
-import type { QueryWindow } from './wql';
+import type { QueryWindow, PipelineSink } from './wql';
+import type { Note, BlockIndexRow } from '@bitcobblers/wod-wiki-core';
+import type { TabularResult, RowsRun } from './QueryService';
 import { parseDocument, type ParsedDocument, type QueryDocument, type DocumentAssignment } from './document';
 
 // ── Formula evaluation ──────────────────────────────────────────────────
@@ -140,9 +142,9 @@ export function createBuiltinFormulaEvaluator(): FormulaEvaluator {
 /** One ordered `show` output — widget-independent (ticket 19 consumes). */
 export interface DocumentOutput {
     name: string;
-    kind: 'aggregate' | 'formula' | 'rows' | 'find';
+    kind: 'aggregate' | 'formula' | 'rows' | 'find' | 'pipeline';
     /** Ticket 19 — TabularResult for cross-workout rows outputs. */
-    table?: import('./QueryService').TabularResult;
+    table?: TabularResult;
     unit?: string;
     groupBy?: string[];
     window?: QueryWindow;
@@ -150,12 +152,33 @@ export interface DocumentOutput {
     series?: Array<{ key: string; label: string; points: Array<{ ts: number; value: number; missing?: boolean; missingDerived?: boolean }>; unit?: string }>;
     /** Formula provenance: pair counts for corr, coverage notes. */
     pairs?: number;
+    /** Content-plane payloads (find / find-source pipeline outputs). */
+    notes?: Note[];
+    blocks?: BlockIndexRow[];
+    efforts?: unknown[];
+    /** Session run cards (find:session / session-source pipelines). */
+    runs?: RowsRun[];
+    /** Terminal chart sink of a pipeline output (renderer dispatch). */
+    chart?: PipelineSink;
     error?: string;
 }
 
 export interface DocumentResult {
     outputs: DocumentOutput[];
     diagnostics: string[];
+}
+
+/** Payload surfaces the ticket-19 family dispatch may hand back. */
+export interface FamilyRunPayload {
+    series?: DocumentOutput['series'];
+    table?: TabularResult;
+    notes?: Note[];
+    blocks?: BlockIndexRow[];
+    efforts?: unknown[];
+    runs?: RowsRun[];
+    unit?: string;
+    chart?: PipelineSink;
+    error?: string;
 }
 
 export interface QueryDocumentRunnerOptions {
@@ -167,7 +190,10 @@ export interface QueryDocumentRunnerOptions {
     /** Ticket 19 family dispatch: rows queries surface TabularResult. */
     runRows?: (queryText: string) => Promise<{ table?: unknown; runs?: unknown[]; error?: string }>;
     /** Ticket 19 family dispatch: find queries surface FindQueryResult. */
-    runFind?: (queryText: string) => Promise<{ notes?: unknown[]; blocks?: unknown[]; error?: string }>;
+    runFind?: (queryText: string) => Promise<FamilyRunPayload>;
+    /** Pipeline queries (`:source | :fn | :chart`, `@dataset | …`) surface
+     *  the pipeline result — the host's QueryService.runPipeline. */
+    runPipeline?: (queryText: string) => Promise<FamilyRunPayload>;
 }
 
 export class QueryDocumentRunner {
@@ -198,16 +224,55 @@ export class QueryDocumentRunner {
         const evaluate = async (assignment: DocumentAssignment): Promise<void> => {
             if (assignment.kind === 'query') {
                 const merged = this.mergeDefaults(assignment, doc);
-                // Family dispatch: find/table nouns never aggregate.
+                // Family dispatch: content nouns never aggregate; pipelines
+                // run their source→transform→sink chain on the host.
                 const parsedFamily = assignment.parsed?.family;
                 if (parsedFamily === 'find') {
-                    const findRun = await this.options?.runFind?.(merged.queryText);
+                    const findRun = (await this.options?.runFind?.(merged.queryText)) ?? {
+                        error: 'find queries are not supported by this host',
+                    };
                     outputs.push({
                         name: assignment.name,
                         kind: 'find',
-                        ...(findRun && 'table' in findRun ? { table: (findRun as any).table } : {}),
-                        ...(findRun && 'runs' in findRun ? { runs: (findRun as any).runs } : {}),
-                        ...(findRun?.error ? { error: findRun.error } : {}),
+                        ...(findRun.notes ? { notes: findRun.notes } : {}),
+                        ...(findRun.blocks ? { blocks: findRun.blocks } : {}),
+                        ...(findRun.efforts ? { efforts: findRun.efforts } : {}),
+                        ...(findRun.runs ? { runs: findRun.runs } : {}),
+                        ...(findRun.table ? { table: findRun.table } : {}),
+                        ...(findRun.unit ? { unit: findRun.unit } : {}),
+                        ...(findRun.error ? { error: findRun.error } : {}),
+                    });
+                    return;
+                }
+                // NOTE: no 'rows' family exists anymore — parseQuery retires
+                // rows: heads as find queries carrying an error, which the
+                // find branch above surfaces verbatim.
+                if (parsedFamily === 'pipeline') {
+                    const pipelineRun = (await this.options?.runPipeline?.(merged.queryText)) ?? {
+                        error: 'pipeline queries are not supported by this host',
+                    };
+                    // A numeric pipeline stage feeds downstream formulas.
+                    const byPosition = new Map<number, OperandValue>();
+                    for (const s of pipelineRun.series ?? []) {
+                        for (const point of s.points) {
+                            if (!point.missing) byPosition.set(point.ts, { value: point.value, missingDerived: false });
+                        }
+                    }
+                    if (byPosition.size > 0) {
+                        values.set(assignment.name, { byPosition, unit: pipelineRun.unit, groupKeys: (pipelineRun.series ?? []).map((s) => s.key) });
+                    }
+                    outputs.push({
+                        name: assignment.name,
+                        kind: 'pipeline',
+                        ...(pipelineRun.series ? { series: pipelineRun.series } : {}),
+                        ...(pipelineRun.table ? { table: pipelineRun.table } : {}),
+                        ...(pipelineRun.notes ? { notes: pipelineRun.notes } : {}),
+                        ...(pipelineRun.blocks ? { blocks: pipelineRun.blocks } : {}),
+                        ...(pipelineRun.efforts ? { efforts: pipelineRun.efforts } : {}),
+                        ...(pipelineRun.runs ? { runs: pipelineRun.runs } : {}),
+                        ...(pipelineRun.unit ? { unit: pipelineRun.unit } : {}),
+                        ...(pipelineRun.chart ? { chart: pipelineRun.chart } : {}),
+                        ...(pipelineRun.error ? { error: pipelineRun.error } : {}),
                     });
                     return;
                 }
@@ -366,7 +431,9 @@ export class QueryDocumentRunner {
         const parsed = assignment.parsed;
         const aggregateGroupBy = parsed?.family === 'aggregate' ? parsed.groupBy : undefined;
         const groupBy = aggregateGroupBy?.length ? aggregateGroupBy : doc.defaults?.groupBy;
-        const window = parsed?.window ?? doc.defaults?.window;
+        // Pipelines carry no defaultable window — their source query owns
+        // one; aggregates/finds fall back to the document default as before.
+        const window = (parsed && parsed.family !== 'pipeline' ? parsed.window : undefined) ?? doc.defaults?.window;
         return {
             queryText: assignment.queryText ?? '',
             ...(groupBy ? { groupBy } : {}),

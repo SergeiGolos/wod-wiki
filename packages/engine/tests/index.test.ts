@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineLanguagePack, registerLanguagePack, getRegisteredLanguagePacks, Metric, parseScript, parseQuery, isFindQuery } from '../src/index';
+import { defineLanguagePack, registerLanguagePack, getRegisteredLanguagePacks, Metric, parseScript, parseQuery, isFindQuery, isPipelineQuery } from '../src/index';
 
 describe('@bitcobblers/wod-wiki-engine', () => {
   it('re-exports core, lang, and wql symbols', () => {
@@ -9,8 +9,14 @@ describe('@bitcobblers/wod-wiki-engine', () => {
     const script = parseScript('21 pullups');
     expect(script.statements.length).toBe(1);
 
-    const query = parseQuery('find:note');
+    const query = parseQuery(':note');
     expect(isFindQuery(query) && query.target).toBe('note');
+  });
+
+  it('parses colon pipelines and re-exports the pipeline guard', () => {
+    expect(isPipelineQuery).toBeDefined();
+    const pipeline = parseQuery(':journal{tags:pr} | :sum{metric:tis} | :timeseries{}');
+    expect(isPipelineQuery(pipeline)).toBe(true);
   });
 
   it('manages language packs', () => {

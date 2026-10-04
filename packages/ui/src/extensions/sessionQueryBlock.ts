@@ -2,7 +2,7 @@ import type { EditorState } from "@codemirror/state";
 import { sectionField } from "./section-state";
 
 export function sessionQueryWql(resultId: string): string {
-  return `find:session{result:${resultId}}`;
+  return `:session{result:${resultId}}`;
 }
 
 export function sessionQueryInsert(

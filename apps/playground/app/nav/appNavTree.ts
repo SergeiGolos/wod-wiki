@@ -80,7 +80,7 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
 
 /** Canonical playground listing — the dedicated /playgrounds stream route
  *  (the library ?q= deep link remains a valid alias via the library profile). */
-export const PLAYGROUND_LIBRARY_WQL = 'find:note{source:playground} by {source} last 4w'
+export const PLAYGROUND_LIBRARY_WQL = ':note{source:playground} by {source} last 4w'
 export const PLAYGROUND_LIBRARY_HREF = ROUTE_PATTERNS.playgrounds
 
 function isLibraryPlaygroundActive(loc: Location): boolean {
@@ -153,7 +153,7 @@ const effortTagChildren: NavItem[] = [
     icon: Tag,
     action: {
       type: 'route' as const,
-      to: `${ROUTE_PATTERNS.efforts}?q=find:effort{discipline:${disc}}`,
+      to: `${ROUTE_PATTERNS.efforts}?q=:effort{discipline:${disc}}`,
     },
     isActive: (loc: Location) =>
       isEffortsPath(loc.pathname) &&

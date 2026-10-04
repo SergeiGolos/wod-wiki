@@ -3,15 +3,15 @@ import { parseWqlSuffixes } from '../src/wqlSuffix';
 
 describe('WQL Stored Source binding and references', () => {
   it('parses stored source assignment (=> @sourceName)', () => {
-    const parsed = parseWqlSuffixes('find:segment{effort:snatch} last 12w => @snatches');
-    expect(parsed.primaryText).toBe('find:segment{effort:snatch}');
+    const parsed = parseWqlSuffixes(':segment{effort:snatch} last 12w => @snatches');
+    expect(parsed.primaryText).toBe(':segment{effort:snatch}');
     expect(parsed.window).toEqual({ kind: 'relative', size: 12, unit: 'w', raw: 'last 12w' });
     expect(parsed.storedAs).toBe('@snatches');
   });
 
   it('parses stored source assignment without @ symbol', () => {
-    const parsed = parseWqlSuffixes('find:session{plane:load} last 8w => mesoVolume');
-    expect(parsed.primaryText).toBe('find:session{plane:load}');
+    const parsed = parseWqlSuffixes(':session{plane:load} last 8w => mesoVolume');
+    expect(parsed.primaryText).toBe(':session{plane:load}');
     expect(parsed.storedAs).toBe('@mesoVolume');
   });
 
@@ -37,7 +37,7 @@ describe('WQL Stored Source binding and references', () => {
   });
 
   it('flags duplicate => assignment clauses as conflicts', () => {
-    const parsed = parseWqlSuffixes('find:note{} => @srcA => @srcB');
+    const parsed = parseWqlSuffixes(':note{} => @srcA => @srcB');
     expect(parsed.conflicts).toEqual([
       "Duplicate '=>' clause: '=> @srcA' conflicts with '=> @srcB'",
     ]);

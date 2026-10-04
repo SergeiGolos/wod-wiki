@@ -1,5 +1,5 @@
 import type { AnyParsedQuery, QueryWindow } from '@bitcobblers/wod-wiki-engine';
-import { isAggregateQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
+import { isAggregateQuery, isFindQuery, isPipelineQuery } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 
 interface ChipProps {
@@ -30,10 +30,29 @@ export function windowLabel(w: QueryWindow): string {
 
 /** The WQL elements of one parsed query, one chip per element (C5: the chip
  * set follows the family — aggregate/metric/group-by for analytics, target/
- * window for content, output-type/window for rows). */
+ * window for content, source/stages/sink for pipelines, output-type/window
+ * for rows). Pipeline chips mirror stage order; the raw text stays the
+ * editable source of truth. */
 export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
   if (parsed.error) {
     return <div className="text-sm text-destructive font-mono">{parsed.error}</div>;
+  }
+
+  if (isPipelineQuery(parsed)) {
+    const sourceChip = parsed.source.kind === 'dataset'
+      ? <Chip label="source" value={parsed.source.name} className="text-blue-400 dark:text-blue-300" />
+      : <Chip label="source" value={'target' in parsed.source.query ? `:${parsed.source.query.target}` : `:${parsed.source.query.agg}`} className="text-blue-400 dark:text-blue-300" />;
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {sourceChip}
+        {parsed.transforms.map((stage, i) => (
+          <Chip key={i} label={`fn ${i + 1}`} value={`${stage.agg}:${stage.metric}`} className="text-green-400 dark:text-green-300" />
+        ))}
+        {parsed.sink && (
+          <Chip label="sink" value={`:${parsed.sink.head}`} className="text-purple-400 dark:text-purple-300" />
+        )}
+      </div>
+    );
   }
 
   const windowChip = parsed.window && (
@@ -65,7 +84,7 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
         )}
         {windowChip}
         {parsed.join && (
-          <Chip label="where" value={`find:${parsed.join.target}`} className="text-teal-400 dark:text-teal-300" />
+          <Chip label="where" value={`:${parsed.join.target}`} className="text-teal-400 dark:text-teal-300" />
         )}
       </div>
     );
@@ -74,7 +93,7 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
   if (isFindQuery(parsed)) {
     return (
       <div className="flex flex-wrap gap-1.5">
-        <Chip label="find" value={parsed.target} className="text-blue-400 dark:text-blue-300" />
+        <Chip label="target" value={parsed.target} className="text-blue-400 dark:text-blue-300" />
         {filterChips}
         {windowChip}
         {parsed.join && (

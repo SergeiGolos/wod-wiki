@@ -554,7 +554,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Inline ```query blocks — live WQL results (#801, widget suffixes #899).
       // The executor is the IndexedDB-wired QueryService singleton and
-      // onResultSaved re-runs find:session{result:…} blocks when a workout result
+      // onResultSaved re-runs :session{result:…} blocks when a workout result
       // lands — without either, every query block spins "Loading…" forever
       // (the UI package is store-free; the app owns persistence).
       queryBlockPreview({

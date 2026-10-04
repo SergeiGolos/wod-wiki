@@ -45,9 +45,9 @@ function find(raw: string): ParsedFindQuery {
   return parsed;
 }
 
-describe('find:effort queries', () => {
+describe(':effort queries', () => {
   it('returns the whole registry with empty filters', async () => {
-    const result = await makeService().runFind(find('find:effort in all'));
+    const result = await makeService().runFind(find(':effort in all'));
     expect(result.efforts).toHaveLength(3);
     expect(result.stages.selected).toBe(3);
     expect(result.stages.matched).toBe(3);
@@ -56,43 +56,43 @@ describe('find:effort queries', () => {
   });
 
   it('parses the efforts head end-to-end from WQL text', async () => {
-    const result = await makeService().runFind(find('find:effort{discipline:strength} in all'));
+    const result = await makeService().runFind(find(':effort{discipline:strength} in all'));
     expect(result.efforts?.map(e => e.slug)).toEqual(['push-up']);
   });
 
   it('filters by intensity tier', async () => {
-    const result = await makeService().runFind(find('find:effort{intensity:high} in all'));
+    const result = await makeService().runFind(find(':effort{intensity:high} in all'));
     expect(result.efforts?.map(e => e.slug).sort()).toEqual(['fran', 'my-wod']);
   });
 
   it('filters by registry origin', async () => {
-    const result = await makeService().runFind(find('find:effort{origin:user} in all'));
+    const result = await makeService().runFind(find(':effort{origin:user} in all'));
     expect(result.efforts?.map(e => e.slug)).toEqual(['my-wod']);
   });
 
   it('matches the effort key by slug, label, or alias', async () => {
-    const bySlug = await makeService().runFind(find('find:effort{effort:fran} in all'));
+    const bySlug = await makeService().runFind(find(':effort{effort:fran} in all'));
     expect(bySlug.efforts?.map(e => e.slug)).toEqual(['fran']);
-    const byLabel = await makeService().runFind(find('find:effort{effort:Push-Up} in all'));
+    const byLabel = await makeService().runFind(find(':effort{effort:Push-Up} in all'));
     expect(byLabel.efforts?.map(e => e.slug)).toEqual(['push-up']);
-    const byAlias = await makeService().runFind(find('find:effort{effort:fran-ish} in all'));
+    const byAlias = await makeService().runFind(find(':effort{effort:fran-ish} in all'));
     expect(byAlias.efforts?.map(e => e.slug)).toEqual(['my-wod']);
   });
 
   it('filters text as substring over label, slug, and aliases', async () => {
-    const result = await makeService().runFind(find('find:effort{text:press} in all'));
+    const result = await makeService().runFind(find(':effort{text:press} in all'));
     expect(result.efforts?.map(e => e.slug)).toEqual(['push-up']);
   });
 
   it('ANDs across keys and ORs within a key', async () => {
     const result = await makeService().runFind(
-      find('find:effort{intensity:high,discipline:gymnastics} in all'),
+      find(':effort{intensity:high,discipline:gymnastics} in all'),
     );
     expect(result.efforts?.map(e => e.slug)).toEqual(['fran']);
   });
 
   it('honors negated filters', async () => {
-    const parsed = find('find:effort{intensity:high} in all');
+    const parsed = find(':effort{intensity:high} in all');
     parsed.filters[0]!.negate = true;
     const result = await makeService().runFind(parsed);
     expect(result.efforts?.map(e => e.slug)).toEqual(['push-up']);

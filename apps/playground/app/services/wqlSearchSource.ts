@@ -11,7 +11,7 @@
  */
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { queryService } from '@/services/queryService';
-import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { entryOpenHref } from '../lib/entryActions';
 import { searchEntries } from '../lib/entrySearch';
@@ -22,7 +22,7 @@ const MAX_RESULTS = 20;
 
 /** The palette's in-code system default query — the single source of truth;
  *  the Settings palette card displays it as the read-only fallback. */
-export const PALETTE_SEED_QUERY = 'find:note';
+export const PALETTE_SEED_QUERY = ':note';
 const KIND_CATEGORY: Record<EntryKind, string> = {
   note: 'Journal',
   session: 'Collections',
@@ -70,6 +70,7 @@ export function paletteTextFromWql(wql: string): string {
       .join(' ');
   }
   return wql
+    .replace(/^:\w+/, ' ')
     .replace(/^find:\w+/, ' ')
     .replace(/\bin\s+\w+/g, ' ')
     .replace(/\blast\s+\w+/g, ' ')

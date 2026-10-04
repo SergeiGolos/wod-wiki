@@ -6,7 +6,7 @@
  */
 
 import type { WodWikiIRFile, StatementNode, ExecutionLog } from '../ir';
-import type { QueryResult, RowsQueryResult, FindQueryResult } from '@bitcobblers/wod-wiki-wql';
+import type { QueryResult, RowsQueryResult, FindQueryResult, PipelineResult } from '@bitcobblers/wod-wiki-wql';
 
 export type OutputFormat = 'json' | 'table' | 'csv';
 
@@ -166,10 +166,10 @@ export function formatExecutionOutput(
 }
 
 /**
- * Format QueryResult / RowsQueryResult / FindQueryResult
+ * Format QueryResult / RowsQueryResult / FindQueryResult / PipelineResult
  */
 export function formatQueryOutput(
-  ir: WodWikiIRFile<QueryResult | RowsQueryResult | FindQueryResult>,
+  ir: WodWikiIRFile<QueryResult | RowsQueryResult | FindQueryResult | PipelineResult>,
   format: OutputFormat,
   pretty: boolean = true,
 ): string {
@@ -255,6 +255,44 @@ export function formatQueryOutput(
     for (const e of data.efforts ?? []) {
       lines.push(['effort'.padEnd(8), e.id.padEnd(24), e.label.padEnd(30), e.slug].join(' | '));
     }
+    return lines.join('\n');
+  }
+
+  if (kind === 'pipeline-result') {
+    const data = ir.data as PipelineResult;
+    const sink = data.chart ? `:${data.chart.head}` : 'data';
+    if (format === 'csv') {
+      const header = 'series,timestamp,date,value,unit';
+      const rows: string[] = [];
+      for (const s of data.series ?? []) {
+        for (const pt of s.points) {
+          rows.push(
+            [
+              escapeCsvField(s.label || s.key),
+              pt.ts,
+              formatDate(pt.ts),
+              pt.value,
+              escapeCsvField(s.unit ?? data.unit ?? ''),
+            ].join(','),
+          );
+        }
+      }
+      return [header, ...rows].join('\n');
+    }
+    const lines: string[] = [];
+    if (data.error) lines.push(`Pipeline Error: ${data.error}`);
+    lines.push(`Pipeline Result (→ ${sink}):`);
+    lines.push('─'.repeat(80));
+    if (data.table) {
+      lines.push(`Table: ${data.table.rows.length} of ${data.table.totalCount} rows`);
+    }
+    for (const s of data.series ?? []) {
+      lines.push(`${s.label || s.key}: ${s.points.length} points${s.unit ? ` (${s.unit})` : ''}`);
+    }
+    if (data.notes?.length) lines.push(`notes: ${data.notes.length}`);
+    if (data.blocks?.length) lines.push(`blocks: ${data.blocks.length}`);
+    if (data.efforts?.length) lines.push(`efforts: ${data.efforts.length}`);
+    if (data.runs?.length) lines.push(`runs: ${data.runs.length}`);
     return lines.join('\n');
   }
 

@@ -65,7 +65,8 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
         const visible: string[] = []
         if ((search.get('note') ?? 'include') !== 'hide') visible.push('journal')
         if ((search.get('session') ?? 'include') !== 'hide') visible.push('collections')
-        if ((search.get('post') ?? 'include') !== 'hide') visible.push('feeds')
+        // `post` mapped to the feeds storage scope — excised from WQL, so it
+        // no longer narrows the migrated query.
         if (visible.length === 1) {
           sourceFilter = `source:${visible[0]}`
         }
@@ -83,7 +84,7 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
 
       const filters = [sourceFilter, textClause, tagsClause].filter(Boolean)
       const braces = filters.length ? `{${filters.join(',')}}` : ''
-      return [`find:note${braces}`, window].filter(Boolean).join(' ')
+      return [`:note${braces}`, window].filter(Boolean).join(' ')
     },
   }
 }
@@ -95,7 +96,7 @@ const RECENT_ENTRIES_MENU: MenuSpec = [
     kind: 'wql',
     id: 'recent-entries',
     label: 'Recent entries',
-    query: 'find:note{}',
+    query: ':note{}',
     limit: 6,
     filterEntry: e => !!e.date,
     toEntry: e => noteByIdPath(e.id),
@@ -105,7 +106,7 @@ const RECENT_ENTRIES_MENU: MenuSpec = [
 export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   route: '/journal',
   title: 'Journal',
-  defaultWql: 'find:note{source:journal} last 4w',
+  defaultWql: ':journal{} last 4w',
   level: 'note',
   target: 'note',
   scopeOptions: ['journal'],
@@ -116,7 +117,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
   route: '/collections',
   title: 'Collections',
-  defaultWql: 'find:note{source:collections} by {tag}',
+  defaultWql: ':collection{} by {tag}',
   level: 'session',
   target: 'note',
   scopeOptions: ['collections'],
@@ -128,12 +129,15 @@ export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
 export const FEEDS_STREAM_PROFILE: StreamProfile = {
   route: '/feeds',
   title: 'Feeds',
-  defaultWql: 'find:note{source:feeds} last 2w',
+  // Feeds is excised from WQL storage scopes: the route keeps reading feed
+  // notes, but its query uses the generic note head (no feed scope filter).
+  defaultWql: ':note{} last 2w',
   level: 'note',
   target: 'note',
-  scopeOptions: ['feeds', 'collections'],
+  scopeOptions: ['collections'],
   secondary: RECENT_ENTRIES_MENU,
-  legacy: createContentLegacyConfig('feeds'),
+  // No default source: `source:feeds` is no longer valid WQL.
+  legacy: createContentLegacyConfig(),
 }
 
 export const LIBRARY_STREAM_PROFILE: StreamProfile = {
@@ -141,12 +145,13 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
   title: 'Library',
   // The library landing surfaces the collection listing (not the journal
   // stream); `?q=` deep links still override the default explicitly.
-  defaultWql: 'find:note{source:collections} last 4w',
+  defaultWql: ':collection{} last 4w',
   level: 'note',
   target: 'note',
-  // All five storage scopes; the old `notes`/`blocks` entries were the bare
-  // note head and a different target, not scopes, so they don't carry over.
-  scopeOptions: ['journal', 'collections', 'feeds', 'guides', 'playground'],
+  // Storage scopes minus the excised feeds; the old `notes`/`blocks` entries
+  // were the bare note head and a different target, not scopes, so they don't
+  // carry over.
+  scopeOptions: ['journal', 'collections', 'guides', 'playground'],
   shelfVisible: true,
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig(),
@@ -155,7 +160,7 @@ export const LIBRARY_STREAM_PROFILE: StreamProfile = {
 export const EFFORTS_STREAM_PROFILE: StreamProfile = {
   route: '/efforts',
   title: 'Efforts',
-  defaultWql: 'find:effort',
+  defaultWql: ':effort',
   level: 'effort',
   target: 'effort',
   scopeOptions: [],
@@ -167,7 +172,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
 export const SESSIONS_STREAM_PROFILE: StreamProfile = {
   route: '/sessions',
   title: 'Sessions',
-  defaultWql: 'find:session{} last 4w',
+  defaultWql: ':session{} last 4w',
   level: 'result',
   target: 'session',
   scopeOptions: [],
@@ -177,7 +182,7 @@ export const SESSIONS_STREAM_PROFILE: StreamProfile = {
       kind: 'wql',
       id: 'recent-sessions',
       label: 'Recent sessions',
-      query: 'find:session{} last 2w',
+      query: ':session{} last 2w',
       limit: 6,
       toEntry: e => sessionDetailPath(e.id),
     },
@@ -187,7 +192,7 @@ export const SESSIONS_STREAM_PROFILE: StreamProfile = {
 export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
   route: '/playgrounds',
   title: 'Playgrounds',
-  defaultWql: 'find:note{source:playground} last 4w',
+  defaultWql: ':playground{} last 4w',
   level: 'note',
   target: 'note',
   scopeOptions: ['playground'],
@@ -197,7 +202,7 @@ export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
       kind: 'wql',
       id: 'recent-playgrounds',
       label: 'Recent playground pages',
-      query: 'find:note{source:playground} last 2w',
+      query: ':playground{} last 2w',
       limit: 6,
       toEntry: e => playgroundPath(e.sourceItem),
     },
@@ -209,7 +214,7 @@ export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
 export function createSessionDateProfile(date: string): StreamProfile {
   return {
     route: `/session/${date}`,
-    defaultWql: `find:session{} from ${date} to ${date}`,
+    defaultWql: `:session{} from ${date} to ${date}`,
     level: 'result',
     target: 'session',
     scopeOptions: [],
@@ -220,7 +225,7 @@ export function createSessionDateProfile(date: string): StreamProfile {
 export function createResultDetailProfile(resultId: string): StreamProfile {
   return {
     route: `/sessions/${resultId}`,
-    defaultWql: `find:session{result:${resultId}, plane:segment}`,
+    defaultWql: `:session{result:${resultId}, plane:segment}`,
     level: 'segment',
     target: 'session',
     scopeOptions: [],

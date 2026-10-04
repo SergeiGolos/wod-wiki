@@ -32,11 +32,11 @@ function makeService() {
   );
 }
 
-describe('find:block queries', () => {
+describe(':block queries', () => {
   it('returns all blocks with empty filters', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
-      family: 'find', raw: 'find:block{}', target: 'block', filters: [] };
+      family: 'find', raw: ':block{}', target: 'block', filters: [] };
     const result = await service.runFind(parsed);
     expect(result.blocks).toHaveLength(3);
     expect(result.stages.selected).toBe(3);
@@ -47,7 +47,7 @@ describe('find:block queries', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:block{text:fran}',
+      raw: ':block{text:fran}',
       target: 'block',
       filters: [{ key: 'text', negate: false, values: [{ value: 'fran', wildcard: false }] }],
     };
@@ -60,7 +60,7 @@ describe('find:block queries', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:block{type:wod}',
+      raw: ':block{type:wod}',
       target: 'block',
       filters: [{ key: 'type', negate: false, values: [{ value: 'wod', wildcard: false }] }],
     };
@@ -73,7 +73,7 @@ describe('find:block queries', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:block{text:thrusters,type:wod}',
+      raw: ':block{text:thrusters,type:wod}',
       target: 'block',
       filters: [
         { key: 'text', negate: false, values: [{ value: 'thrusters', wildcard: false }] },
@@ -88,7 +88,7 @@ describe('find:block queries', () => {
   it('returns notes as empty array for block queries', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
-      family: 'find', raw: 'find:block{}', target: 'block', filters: [] };
+      family: 'find', raw: ':block{}', target: 'block', filters: [] };
     const result = await service.runFind(parsed);
     expect(result.notes).toEqual([]);
   });

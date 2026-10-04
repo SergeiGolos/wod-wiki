@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { isFindQuery, type AnyParsedQuery } from '@bitcobblers/wod-wiki-wql';
+import { isFindQuery, isPipelineQuery, type AnyParsedQuery } from '@bitcobblers/wod-wiki-wql';
 import type { FindQueryResult, QueryResult } from '../contracts/query';
 
 export type { AnyParsedQuery };
@@ -24,7 +24,7 @@ export function useWqlStageCounts(
   const executorRef = useRef(execute);
   executorRef.current = execute;
 
-  const runnable = valid && !ast.error && execute !== undefined;
+  const runnable = valid && !ast.error && execute !== undefined && !isPipelineQuery(ast);
 
   useEffect(() => {
     if (!runnable) {

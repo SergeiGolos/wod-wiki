@@ -17,11 +17,17 @@ import type { SyntaxNode } from '@lezer/common';
 import * as terms from './grammar/wql.parser.terms';
 import {
   WQL_AGGREGATORS,
+  WQL_CHART_HEADS,
   WQL_CONTENT_ONLY_KEYS,
   WQL_EFFORT_FILTER_KEYS,
   WQL_FIND_TARGETS,
+  WQL_FUNCTION_HEADS,
+  WQL_NOTE_DEFAULT_SOURCES,
+  WQL_SOURCE_HEADS,
+  WQL_SOURCE_HEAD_SCOPES,
   WQL_SOURCE_VALUES,
   type WqlAggregator,
+  type WqlChartHead,
   WQL_TAG_KEYS,
   type WqlComparisonOp,
 } from './vocabulary';
@@ -162,7 +168,7 @@ export function buildDrillDownQuery(options: {
     const filterText = (options.filters ?? [])
         .map((f) => `${f.key}:${f.values.join('|')}`)
         .join(',');
-    parts.push(`find:segment{${filterText}}`);
+    parts.push(`:segment{${filterText}}`);
     if (options.startIso && options.endIso) parts.push(`from ${options.startIso} to ${options.endIso}`);
     else if (options.start !== undefined && options.end !== undefined && options.timeZone) {
         const fmt = (ts: number, tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ts);
@@ -173,13 +179,20 @@ export function buildDrillDownQuery(options: {
     return query;
 }
 
-/** Result of parsing a content-discovery query (`find:target{filters} in scope`). */
+/** Result of parsing a content-discovery query — the colon source heads
+ *  (`:note{…}`, `:journal{…}`); the legacy `find:` spelling is retired and
+ *  survives only inside `where` join halves. */
 export interface ParsedFindQuery {
   family: 'find';
   raw: string;
   /** Content target — a WQL_FIND_TARGETS value (C7 closed enum). */
   target: string;
   filters: TagFilter[];
+  /** Implicit default source scope for the generic `:note` head —
+   *  journal | collections | playground. NOT a filter: authored filters stay
+   *  untouched (composer pills never see it); the executor ANDs it in only
+   *  when no explicit `source:` filter was written. */
+  sourceScope?: string[];
   /** Time-selection window (C1): `last 8w` or `from … [to …]`. */
   window?: QueryWindow;
   /** Cross-store metric join (`where sum:totalVolume{} > 5000`). */
@@ -205,7 +218,7 @@ export type QueryWindow =
   | { kind: 'relative'; size: number; unit: 'd' | 'w' }
   | { kind: 'range'; start: string; end?: string };
 
-export type AnyParsedQuery = ParsedAggregateQuery | ParsedFindQuery;
+export type AnyParsedQuery = ParsedAggregateQuery | ParsedFindQuery | ParsedPipelineQuery;
 
 /** Type guard: true for content-discovery queries. */
 export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
@@ -215,6 +228,43 @@ export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
 /** Type guard: true for analytics (aggregate) queries. */
 export function isAggregateQuery(parsed: AnyParsedQuery): parsed is ParsedAggregateQuery {
   return parsed.family === 'aggregate';
+}
+
+/** Type guard: true for left-to-right value pipelines (`:src | :fn | :chart`). */
+export function isPipelineQuery(parsed: AnyParsedQuery): parsed is ParsedPipelineQuery {
+  return parsed.family === 'pipeline';
+}
+
+/** A pipeline's input: a full single query, or a named dataset
+ *  (`@session` / `@today` / a host-registered page source — name keeps `@`). */
+export type PipelineSource =
+  | { kind: 'query'; query: ParsedFindQuery | ParsedAggregateQuery }
+  | { kind: 'dataset'; name: string };
+
+/** Terminal chart stage of a pipeline: the chart head plus its authored
+ *  parameter filters (`:bar{type:session}` → `{head:'bar', filters:[…]}`). */
+export interface PipelineSink {
+  head: WqlChartHead;
+  filters: TagFilter[];
+}
+
+/**
+ * Left-to-right value pipeline (`:journal{…} last 8w | :sum{metric:tis} | :timeseries{}`).
+ * Transforms apply in order to the previous stage's output — the executor
+ * reduces in memory, it never rescans stores. A dataset alone (`@today`) is
+ * a pipeline with no transforms; a lone chart head starts from an implicit
+ * `:segment` source.
+ */
+export interface ParsedPipelineQuery {
+  family: 'pipeline';
+  raw: string;
+  source: PipelineSource;
+  /** Ordered aggregate stages, each applied to the previous stage's rows. */
+  transforms: ParsedAggregateQuery[];
+  sink?: PipelineSink;
+  /** Parse-time disclosures (ignored chart suffixes, …). */
+  advisories?: string[];
+  error?: string;
 }
 
 export interface SeriesPoint {
@@ -294,8 +344,11 @@ function cannotParseJoin(text: string): string {
  * JS-stripped, so no grammar change is required.
  */
 function parseJoinClause(where: string): { metric?: MetricPredicate; find?: FindPredicate; advisories?: string[]; error?: string } {
-  if (where.trimStart().startsWith('find:')) {
-    const fp = parseFindQuery(where);
+  const t = where.trimStart();
+  const headName = /^:?([a-zA-Z0-9_-]+)/.exec(t)?.[1]?.toLowerCase() ?? '';
+  // Content half: legacy `find:…` or a colon source head `:note{…}`.
+  if (t.startsWith('find:') || (t.startsWith(':') && (WQL_SOURCE_HEADS as readonly string[]).includes(headName))) {
+    const fp = parseFindQuery(where, { colon: t.startsWith(':') });
     if (fp.error) return { error: fp.error };
     if (fp.window?.kind === 'range') {
       return { error: 'Range windows are not supported on join halves — use last <n>d|w' };
@@ -307,7 +360,7 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
   }
   const m = CMP_RE.exec(where.trim());
   if (!m) return { error: cannotParseJoin(where) };
-  const head = parseAnalyticsQuery(m[1].trim());
+  const head = parseAggregateQuery(m[1].trim(), { colon: m[1]!.trimStart().startsWith(':') });
   if (head.error) return { error: head.error };
   return {
     metric: {
@@ -346,6 +399,88 @@ export function rowsParseError(raw: string): string {
   return `rows:${target}{…} is retired — use find:session{${planePart}} instead.`;
 }
 
+// ── Colon heads & pipelines ─────────────────────────────────────────
+
+/** True when a pipe segment is a rows presentation clause, not a stage. */
+const ROW_PIPE_RE = /^\s*(?:select|order\s+by|limit|offset)\b/i;
+
+/** Split at top-level `|` — brace- AND quote-aware, so OR alternatives and
+ *  quoted phrases inside filters never become stage separators. */
+function splitTopPipes(raw: string): string[] {
+    const segments: string[] = [];
+    let depth = 0;
+    let quoted = false;
+    let start = 0;
+    for (let i = 0; i < raw.length; i++) {
+        const ch = raw[i];
+        if (quoted) { if (ch === '"') quoted = false; continue; }
+        if (ch === '"') { quoted = true; continue; }
+        if (ch === '{') depth++;
+        else if (ch === '}') depth = Math.max(0, depth - 1);
+        else if (ch === '|' && depth === 0) { segments.push(raw.slice(start, i)); start = i + 1; }
+    }
+    segments.push(raw.slice(start));
+    return segments;
+}
+
+/** The leading colon/dataset head of a segment: `:name` or `@name`. */
+function leadingHeadName(segment: string): { name: string; dataset: boolean } | undefined {
+    const m = /^\s*([:@])([a-zA-Z0-9_-]+)/.exec(segment);
+    return m ? { name: m[2]!.toLowerCase(), dataset: m[1] === '@' } : undefined;
+}
+
+function cannotParsePipeline(text: string): string {
+    return `Cannot parse pipeline "${text}". Expected :source{filters} | :function{metric:key} | :chart{params} or @dataset | :function{…}`;
+}
+
+/** Retired `find:` primary — the family stays for narrowing; the message names the colon spelling. */
+function retiredFindQuery(raw: string): ParsedFindQuery {
+    const head = /^find:([a-zA-Z0-9_-]*)/.exec(raw.trim())?.[1] ?? '';
+    return {
+        family: 'find',
+        raw,
+        target: '',
+        filters: [],
+        error: `The "find:" query family is retired — use the :${head || 'note'}{…} colon head instead.`,
+    };
+}
+
+/** Single-stage query: legacy `agg:metric` head or a colon source/function head. */
+function parseSingleQuery(raw: string): AnyParsedQuery {
+    const norm = normalizeWql(raw);
+    const head = leadingHeadName(norm.query);
+    let result: AnyParsedQuery;
+    if (head && !head.dataset) {
+        if ((WQL_FUNCTION_HEADS as readonly string[]).includes(head.name)) {
+            result = parseAggregateQuery(norm.query, { colon: true });
+        } else if ((WQL_SOURCE_HEADS as readonly string[]).includes(head.name)) {
+            result = parseFindQuery(norm.query, { colon: true });
+        } else {
+            result = {
+                family: 'find',
+                raw: norm.query,
+                target: '',
+                filters: [],
+                error: `Unknown head ":${head.name}". Sources: ${WQL_SOURCE_HEADS.join(', ')}; functions: ${WQL_FUNCTION_HEADS.join(', ')}; charts: ${WQL_CHART_HEADS.join(', ')}.`,
+            };
+        }
+    } else {
+        result = parseAggregateQuery(norm.query, { colon: false });
+    }
+    if (norm.advisories.length) {
+        result.advisories = [...new Set([...(result.advisories ?? []), ...norm.advisories])];
+    }
+    result.raw = raw;
+    return result;
+}
+
+/**
+ * Parse a WQL query string into one of the query families — analytics
+ * aggregate, content find, or pipeline — discriminated by `family` (C5).
+ * Dispatch: `rows` is a retired-error; `find:` is retired; a pipe-separated
+ * stage list (or a lone `@dataset`/chart head) is a pipeline; a colon
+ * source/function head or legacy `agg:metric` head parses as a single query.
+ */
 export function parseQuery(raw: string): AnyParsedQuery {
   const trimmed = raw.trimStart();
   if (/^rows(?=[:{]|\s|$)/.test(trimmed)) {
@@ -357,19 +492,21 @@ export function parseQuery(raw: string): AnyParsedQuery {
       error: rowsParseError(raw.trim()),
     };
   }
-  const norm = normalizeWql(raw);
-  const normalizedTrimmed = norm.query.trimStart();
-  let result: AnyParsedQuery;
-  if (normalizedTrimmed.startsWith('find:')) {
-    result = parseFindQuery(norm.query);
-  } else {
-    result = parseAnalyticsQuery(norm.query);
+  if (/^find:/.test(trimmed)) return retiredFindQuery(raw);
+  const segments = splitTopPipes(raw);
+  const first = segments[0]!;
+  // Trailing `| select / order by / limit / offset` are presentation pipes on
+  // a single query (existing families), not pipeline stages.
+  if (segments.length > 1 && !ROW_PIPE_RE.test(first)
+      && segments.slice(1).every((s) => ROW_PIPE_RE.test(s.trim()))) {
+    return parseSingleQuery(raw);
   }
-  if (norm.advisories.length) {
-    result.advisories = [...new Set([...(result.advisories ?? []), ...norm.advisories])];
+  const head = leadingHeadName(first);
+  if (segments.length > 1 || (head && (head.dataset
+      || (WQL_CHART_HEADS as readonly string[]).includes(head.name)))) {
+    return parsePipelineQuery(raw, segments);
   }
-  result.raw = raw;
-  return result;
+  return parseSingleQuery(raw);
 }
 
 /**
@@ -424,7 +561,6 @@ export function normalizeWql(raw: string): { query: string; advisories: string[]
 
 /** Validate source: filter values against canonical sources and catalog literals (C2). */
 function validateSourceFilter(filters: TagFilter[]): string | undefined {
-  const validSources = new Set<string>(WQL_SOURCE_VALUES);
   for (const f of filters) {
     if (f.key !== 'source') continue;
     for (const v of f.values) {
@@ -435,27 +571,32 @@ function validateSourceFilter(filters: TagFilter[]): string | undefined {
       if (val === 'all') {
         return `source:all is retired — omit the source: filter to query all sources.`;
       }
+      if (val === 'feed' || val === 'feeds' || val.startsWith('feed:')) {
+        return `source:${val} is retired — feeds are no longer a WQL source.`;
+      }
       if (
-        validSources.has(val) ||
+        (WQL_SOURCE_VALUES as readonly string[]).includes(val) ||
         val === 'collection' ||
-        val === 'feed' ||
-        val.startsWith('collection:') ||
-        val.startsWith('feed:')
+        val.startsWith('collection:')
       ) {
         continue;
       }
-      return `Unknown source "${val}". Try: ${WQL_SOURCE_VALUES.join(', ')} (or collection:<id>, feed:<id>)`;
+      return `Unknown source "${val}". Try: ${WQL_SOURCE_VALUES.join(', ')} (or collection:<id>)`;
     }
   }
   return undefined;
 }
 
-/** Extract pipe clauses (| select … | order by … | limit …) outside braces. */
+/** Extract pipe clauses (| select … | order by … | limit …) outside braces
+ *  and quotes — an OR `a|b` or quoted `"x|y"` inside filters is a value. */
 function extractPipes(raw: string): { text: string; pipes?: RowsPipes } {
   let pipeIndex = -1;
   let depth = 0;
+  let quoted = false;
   for (let i = 0; i < raw.length; i++) {
     const ch = raw[i];
+    if (quoted) { if (ch === '"') quoted = false; continue; }
+    if (ch === '"') { quoted = true; continue; }
     if (ch === '{') depth++;
     else if (ch === '}') depth = Math.max(0, depth - 1);
     else if (ch === '|' && depth === 0) {
@@ -544,7 +685,23 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
   return out;
 }
 
-function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
+/** Tree helpers over the Single/Pipeline grammar: a single query parses as
+ *  Query → Single → Stage → Head Filters?. */
+function queryStageNode(top: SyntaxNode): SyntaxNode | undefined {
+  return top.getChild(terms.Single)?.getChild(terms.Stage) ?? top.getChild(terms.Stage);
+}
+
+function cannotParseFunction(text: string): string {
+  return `Cannot parse "${text}". Expected :function{metric:<key>, filters} by {dims} .rollup(period) — e.g. :sum{metric:tis}`;
+}
+
+/**
+ * Parse an analytics query: the legacy `agg:metric{filters}` head (retained
+ * numerical syntax) or the colon function head `:sum{metric:tis, …}` where
+ * the metric is extracted from the filters (and excluded from fact filters).
+ * `:count{}` without `metric:` is legal — it counts observations in scope.
+ */
+function parseAggregateQuery(raw: string, opts: { colon: boolean }): ParsedAggregateQuery {
   const suffixes = parseWqlSuffixes(raw);
   const { where: whereText, displayUnit, groupBy, rollup, window: windowSuffix, primaryText: text } = suffixes;
   const win = toQueryWindow(windowSuffix);
@@ -593,25 +750,58 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   }
 
   const query = tree.topNode;
-
-  // Head — agg:metric. Unknown aggregators are a semantic error, reported
-  // exactly like the reference parser (metric left empty).
-  const head = query.getChild(terms.Head);
+  const stage = queryStageNode(query);
+  const head = stage?.getChild(terms.Head);
   const aggNode = head?.getChild(terms.Aggregator);
   const metricNode = head?.getChild(terms.Metric);
-  if (!head || !aggNode || !metricNode) {
-    base.error = cannotParse(text);
-    return base;
+  if (opts.colon) {
+    // Colon function head — `:sum{metric:tis, …}`: the aggregate name is the
+    // head word; the metric rides the `metric:` filter and is pulled out of
+    // the fact filters.
+    const word = head?.getChild(terms.Word);
+    if (!head || !word) {
+      base.error = cannotParseFunction(text);
+      return base;
+    }
+    const fn = text.slice(word.from, word.to).toLowerCase();
+    if (!(WQL_FUNCTION_HEADS as readonly string[]).includes(fn)) {
+      base.error = `Unknown function ":${fn}". Try: ${WQL_FUNCTION_HEADS.join(', ')}`;
+      return base;
+    }
+    base.agg = fn as Aggregator;
+    const metricFilters = base.filters.filter((f) => f.key === 'metric');
+    base.filters = base.filters.filter((f) => f.key !== 'metric');
+    const mf = metricFilters[0];
+    if (!mf) {
+      // :count{} counts observations in scope; every other function needs a measure.
+      if (fn !== 'count') {
+        base.error = `:${fn} requires 'metric:<key>' — e.g. :${fn}{metric:tis}`;
+        return base;
+      }
+      base.metric = '';
+    } else if (mf.negate || metricFilters.length > 1 || mf.values.length !== 1 || mf.values[0]!.wildcard) {
+      base.error = `:${fn} takes a single 'metric:<key>' clause — no negation, OR values, or wildcards`;
+      return base;
+    } else {
+      base.metric = mf.values[0]!.value;
+    }
+  } else {
+    // Legacy head — agg:metric. Unknown aggregators are a semantic error,
+    // reported exactly like the reference parser (metric left empty).
+    if (!stage || !head || !aggNode || !metricNode) {
+      base.error = cannotParse(text);
+      return base;
+    }
+    const aggText = text.slice(aggNode.from, aggNode.to);
+    if (!AGGS.includes(aggText as Aggregator)) {
+      base.error = `Unknown aggregator "${aggText}". Try: ${AGGS.join(', ')}`;
+      return base;
+    }
+    base.agg = aggText as Aggregator;
+    base.metric = text.slice(metricNode.from, metricNode.to);
+    base.filters = extractFilters(stage, text);
   }
-  const aggText = text.slice(aggNode.from, aggNode.to);
-  if (!AGGS.includes(aggText as Aggregator)) {
-    base.error = `Unknown aggregator "${aggText}". Try: ${AGGS.join(', ')}`;
-    return base;
-  }
-  base.agg = aggText as Aggregator;
-  base.metric = text.slice(metricNode.from, metricNode.to);
 
-  base.filters = extractFilters(query, text);
   // Content-plane keys on an aggregate are a category error — a fact row
   // has no note text or source. Every other non-structural key is a
   // candidate custom dimension resolved at runtime (factTagValue falls
@@ -649,7 +839,7 @@ function cannotParseFind(text: string): string {
   return `Cannot parse "${text}". Expected find:<target>{key:value, !key:value}; filters are optional. Optional suffixes include by {dimension}, last <n>d or last <n>w, from YYYY-MM-DD [to YYYY-MM-DD], where <aggregator>:<metric>{filters} <operator> <number>, and | order by <column> | limit <n>. Support depends on the target.`;
 }
 
-function parseFindQuery(raw: string): ParsedFindQuery {
+function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuery {
   const { text: rawNoPipes, pipes } = extractPipes(raw);
   const suffixes = parseWqlSuffixes(rawNoPipes);
   const { where: whereText, window: windowSuffix, legacyScope, groupBy, displayUnit, primaryText: text } = suffixes;
@@ -681,7 +871,7 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     result.error = suffixes.conflicts.join('; ');
     return result;
   }
-  // Parse structural part: find:target{filters}
+  // Parse structural part: `:<target>{filters}` (or legacy `find:<target>`).
   const tree = wqlParser.parse(text);
   let syntaxError = false;
   tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
@@ -690,47 +880,86 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     return result;
   }
 
-  const query = tree.topNode;
-  const head = query.getChild(terms.Head);
+  const stage = queryStageNode(tree.topNode);
+  const head = stage?.getChild(terms.Head);
   const aggNode = head?.getChild(terms.Aggregator);
   const metricNode = head?.getChild(terms.Metric);
-  if (!head || !aggNode || !metricNode) {
-    result.error = cannotParseFind(text);
-    return result;
+  let headName: string;
+  if (opts?.colon) {
+    const word = head?.getChild(terms.Word);
+    if (!stage || !head || !word) {
+      result.error = cannotParseFind(text);
+      return result;
+    }
+    headName = text.slice(word.from, word.to).toLowerCase();
+  } else {
+    if (!stage || !head || !aggNode || !metricNode) {
+      result.error = cannotParseFind(text);
+      return result;
+    }
+    // The legacy dispatch keyword must be "find".
+    const aggText = text.slice(aggNode.from, aggNode.to);
+    if (aggText !== 'find') {
+      result.error = `Expected "find:" but got "${aggText}:"`;
+      return result;
+    }
+    headName = text.slice(metricNode.from, metricNode.to);
   }
 
-  // The first word must be "find" (the dispatch keyword).
-  const aggText = text.slice(aggNode.from, aggNode.to);
-  if (aggText !== 'find') {
-    result.error = `Expected "find:" but got "${aggText}:"`;
-    return result;
+  const scope = WQL_SOURCE_HEAD_SCOPES[headName];
+  if (scope) {
+    // Source-scoped note head: the head IS the scope, injected as an
+    // authored filter (it intersects any explicit source: — plain AND).
+    result.target = 'note';
+  } else {
+    result.target = headName;
+    if (result.target === 'page') {
+      result.error = 'find:page is retired — page-ness is handled by type: (e.g. :note{source:guides} or type:collection).';
+      return result;
+    }
+    // C7: closed target enum — unknown targets error at parse instead of
+    // silently returning empty at runtime.
+    if (!(WQL_FIND_TARGETS as readonly string[]).includes(result.target)) {
+      result.error = `Unknown find target "${result.target}". Try: ${WQL_FIND_TARGETS.join(', ')}`;
+      return result;
+    }
   }
-
-  result.target = text.slice(metricNode.from, metricNode.to);
-  if (result.target === 'page') {
-    result.error = 'find:page is retired — page-ness is handled by type: (e.g. find:note{source:guides} or type:collection).';
-    return result;
-  }
-  // C7: closed target enum — unknown targets error at parse instead of
-  // silently returning empty at runtime.
-  if (!(WQL_FIND_TARGETS as readonly string[]).includes(result.target)) {
-    result.error = `Unknown find target "${result.target}". Try: ${WQL_FIND_TARGETS.join(', ')}`;
-    return result;
-  }
-  result.filters = extractFilters(query, text);
-  if (legacyScope && legacyScope !== 'all') {
+  result.filters = extractFilters(stage, text);
+  if (scope) {
     result.filters.push({
       key: 'source',
       negate: false,
-      values: [{ value: legacyScope, wildcard: false }],
+      values: [{ value: scope, wildcard: false }],
     });
+  }
+  // Colon heads treat a trailing non-unit `in <word>` as the legacy scope
+  // clause (the suffix layer files it under display-unit for non-find text).
+  const inScope = opts?.colon && result.displayUnit && result.displayUnit !== 'kg' && result.displayUnit !== 'lb'
+    ? result.displayUnit
+    : legacyScope;
+  if (opts?.colon && inScope) {
+    delete result.displayUnit;
+    advisories.push("Legacy 'in <scope>' syntax is deprecated; use 'source:<scope>' filter instead.");
+  }
+  if (inScope && inScope !== 'all') {
+    result.filters.push({
+      key: 'source',
+      negate: false,
+      values: [{ value: inScope, wildcard: false }],
+    });
+  }
+  // Generic `:note` default scope — journal|collections|playground — lives
+  // on the AST (never inside filters); explicit source: or `in all` opts out.
+  if (opts?.colon && result.target === 'note' && !scope && inScope !== 'all'
+      && !result.filters.some((f) => f.key === 'source')) {
+    result.sourceScope = [...WQL_NOTE_DEFAULT_SOURCES];
   }
   const sourceError = validateSourceFilter(result.filters);
   if (sourceError) { result.error = sourceError; return result; }
   const findGrainError = retiredGrainRollup(result.filters);
   if (findGrainError) { result.error = findGrainError; return result; }
   const target = result.target;
-  if (suffixes.rollup) advisories.push(`find:${target} ignores '.rollup(...)'; rollup is supported by aggregate queries.`);
+  if (suffixes.rollup) advisories.push(`:${target} ignores '.rollup(...)'; rollup is supported by aggregate queries.`);
   if (whereText) {
     const join = parseJoinClause(whereText);
     if (join.error) {

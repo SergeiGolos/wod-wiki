@@ -8,7 +8,8 @@
  * so each tagline level gets a real scroll-past header and a focused stage
  * group. Heavy screens mount lazily on first section entry and stay alive
  * after, matching the old single-driver `entered` contract; the write
- * section's editor stays mounted from load exactly as before.
+ * section's editor stays mounted from load exactly as before (the hero view
+ * above it is a separate HomeTour-level display of the same shared doc).
  */
 import {
   forwardRef,
@@ -36,7 +37,7 @@ import { TourTvCard } from './TourTvCard'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourSessionAnalytics } from './screens/TourSessionAnalytics'
-import { TourCaptions, CaptionBody, type TourCaption } from './TourCaptions'
+import { TourCaptions, type TourCaption } from './TourCaptions'
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -80,8 +81,6 @@ export interface TourSectionRunwayProps {
   heightVh: string
   /** Static half-viewport header scrolled past before the sticky window. */
   header?: ReactNode
-  /** Lead block rendered atop the caption rail (the write section's hero). */
-  railLead?: ReactNode
   stages: ScrollStage[]
   /** Caption subset matching `stages` order. */
   captions: TourCaption[]
@@ -139,7 +138,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
       id,
       heightVh,
       header,
-      railLead,
       stages,
       captions,
       onActiveStageChange,
@@ -175,46 +173,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     useEffect(() => {
       onViewportChange?.(inView)
     }, [inView, onViewportChange])
-
-    // ── Native caption flow (railLead branch): the active caption comes from
-    // actual DOM reading zones, not scroll progress — the natural column is
-    // taller than the track fraction. Index 0 while the hero lead is read. ──
-    const captionSlotRefs = useRef<Array<HTMLElement | null>>([])
-    const [nativeActive, setNativeActive] = useState(0)
-    useEffect(() => {
-      if (!railLead || typeof IntersectionObserver === 'undefined') return
-      const slots = captionSlotRefs.current.filter(Boolean) as HTMLElement[]
-      if (slots.length === 0) return
-      const zoneTop = Math.round(window.innerHeight * 0.4)
-      let best = -1
-      let bestDist = Infinity
-      const measure = () => {
-        best = -1
-        bestDist = Infinity
-        const anchor = zoneTop + 12
-        slots.forEach((el, i) => {
-          const dist = Math.abs(el.getBoundingClientRect().top - anchor)
-          if (dist < bestDist) {
-            bestDist = dist
-            best = i
-          }
-        })
-        if (best >= 0) setNativeActive(best)
-      }
-      const observer = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) if (e.isIntersecting) { measure(); break }
-        },
-        { rootMargin: `-${zoneTop}px 0px -30% 0px` },
-      )
-      slots.forEach((el) => observer.observe(el))
-      window.addEventListener('scroll', measure, { passive: true })
-      measure()
-      return () => {
-        observer.disconnect()
-        window.removeEventListener('scroll', measure)
-      }
-    }, [railLead])
 
     const [everReached, setEverReached] = useState(false)
     const reachedOnce = useReachedOnce(runwayRef)
@@ -288,102 +246,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
       }),
       [stages, subscribe, resync],
     )
-
-    // ── Native hero flow (write section): the hero lead and captions are a
-    // NORMAL-FLOW column beside the sticky editor — the hero scrolls out
-    // naturally and captions push in; the rail never stays pinned. ──
-    if (railLead) {
-      const nativeIdx = Math.min(nativeActive, Math.max(0, stages.length - 1))
-      const nativeStage = stages[nativeIdx] ?? stages[0]
-      return (
-        <section id={`tour-section-${id}`} data-testid={`tour-section-${id}`}>
-          <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: heightVh }}>
-            <div className="grid w-full grid-cols-[minmax(0,1fr)_clamp(320px,24vw,400px)] items-start gap-[clamp(20px,2.5vw,44px)] px-5 pt-6 pb-10 lg:px-10">
-              {/* sticky editor pane — the one runtime-capable surface */}
-              <div className="sticky top-[104px] flex h-[calc(100vh-104px)] min-w-0 flex-col overflow-hidden">
-                <div className="flex items-center justify-between px-2 pt-4 pb-2">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                    {nativeStage?.label}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {stages.map((seg, i) => (
-                      <span
-                        key={seg.id}
-                        className="h-1 rounded-full transition-all duration-300"
-                        style={{
-                          width: nativeIdx === i ? 30 : 10,
-                          background:
-                            nativeIdx === i
-                              ? (seg.accent ?? TOUR_ACCENTS.editor)
-                              : nativeIdx > i
-                                ? 'hsl(var(--foreground))'
-                                : 'hsl(var(--foreground) / 0.15)',
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="relative min-h-0 w-full flex-1">
-                  <div ref={canvasInnerRingRef} className="absolute inset-0">
-                    <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
-                      <div className="relative h-full">
-                        {editor && (
-                          <Screen visible={nativeStage?.screen !== 'timer'}>
-                            <TourEditorScreen
-                              doc={editor.doc}
-                              onDocChange={editor.onDocChange}
-                              onBlocksChange={editor.onBlocksChange}
-                              onRun={editor.onRun}
-                              onShare={editor.onShare}
-                              theme={editor.theme}
-                              withRingTargets
-                            />
-                          </Screen>
-                        )}
-                      </div>
-                    </MacOSChrome>
-                    <TourRing
-                      target={
-                        !nativeStage?.ring || nativeStage.ring === true || !nativeStage.ring.key
-                          ? null
-                          : { key: nativeStage.ring.key as RingTargetKey, tag: nativeStage.ring.tag }
-                      }
-                      accent={nativeStage?.accent ?? TOUR_ACCENTS.editor}
-                      canvasRef={canvasInnerRef}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* normal-flow rail: hero lead scrolls out, captions push in */}
-              <div className="flex flex-col">
-                {railLead}
-                <div className="mt-[40vh] flex flex-col pb-[15vh]">
-                  {captions.map((cap, i) => (
-                    <div
-                      key={cap.id}
-                      ref={(el) => { captionSlotRefs.current[i] = el }}
-                      data-active={nativeIdx === i}
-                      className="flex min-h-[65vh] items-center"
-                    >
-                      <article
-                        className="w-full rounded-2xl border bg-card p-6 transition-shadow"
-                        style={{
-                          borderColor: nativeIdx === i ? cap.accent : 'hsl(var(--border))',
-                          boxShadow: nativeIdx === i ? '0 8px 30px hsl(var(--foreground) / 0.08)' : 'none',
-                        }}
-                      >
-                        <CaptionBody cap={cap} onChoice={onChoice} onCommand={onCommand} />
-                      </article>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        </section>
-      )
-    }
 
     return (
       <section id={`tour-section-${id}`} data-testid={`tour-section-${id}`}>
@@ -493,9 +355,8 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                 </div>
               </div>
 
-              {/* caption rail — hero lead (write section) then captions */}
+              {/* caption rail */}
               <div className="flex w-[clamp(320px,24vw,400px)] flex-none min-h-[280px] flex-col">
-                {railLead}
                 <div className="relative min-h-[280px] flex-1">
                   <TourCaptions
                     activeIndex={slice.index}

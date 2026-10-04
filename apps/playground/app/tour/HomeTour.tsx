@@ -7,8 +7,10 @@
  * its own scroll progress over a partition of the canonical ```scroll spec;
  * the metrics explainer section is code-declared (it has no markdown source).
  *
- * One shared editor document: the hero NoteEditor is the write-section sticky
- * pane (single doc + block list). Runs are INLINE — no fullscreen overlay on
+ * One shared editor document: the desktop hero view and the write-section
+ * sticky pane are two displays of the same doc + block list (edits in either
+ * place are edits to the run document; neither resets at the boundary).
+ * Runs are INLINE — no fullscreen overlay on
  * any form factor: dwelling at the run stages auto-starts a fresh playground
  * run (usePlaygroundRun mints a persisted note per identity, once per
  * identity — backward scroll never re-runs), the Stop button / metrics
@@ -45,8 +47,10 @@ import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { usePlaygroundRun } from '../hooks/usePlaygroundRun'
 import { RingTargetsProvider } from './TourRing'
-import { TOUR_ACCENTS, type TourStageId } from './tourConstants'
+import { TOUR_ACCENTS, SCREEN_TITLES, type TourStageId } from './tourConstants'
 import { TourHeroHeading } from './TourHero'
+import { MacOSChrome } from '../components/atoms/MacOSChrome'
+import { TourEditorScreen } from './screens/TourEditorScreen'
 import {
   buildAdventureScript,
   TOUR_CAPTIONS,
@@ -296,9 +300,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // Arrival contract (#882): the initial load content is the shared script
   // stored by /load?z= when present, else welcome-1.md (home intro page).
   //
-  // ONE editor context: the hero editor and the write-section sticky pane
-  // are the same document — the hero NoteEditor is reused sticky through the
-  // write captions. Edits in either place are edits to the run document.
+  // ONE editor document: the desktop hero view and the write-section sticky
+  // pane are two displays of the same doc state. Edits in either place are
+  // edits to the run document.
   const welcomeScript = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
   const [sharedScript, setSharedScript] = useState<HomeSharedScript | null>(() => loadHomeShared())
   const initialContent = sharedScript?.content ?? welcomeScript
@@ -962,62 +966,97 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     )
   }
 
-  // ── Desktop: write section opens the page — hero content rides the
-  // caption rail beside THE editor (visible at first paint, sticky through
-  // the write captions); then run / own / explore sections → chapters ──
+  // ── Desktop: a normal-flow hero view (heading + THE editor at first
+  // paint — it scrolls out completely before the write track pins), then the
+  // write section in the standard tagline-header + sticky-runway pattern,
+  // then run / own / explore sections → chapters ──
   return (
     <div data-testid="home-tour">
       {/* Arrival sentinel (#882): a 1px mark at the very top of the page —
           re-entering it from below resets the shared document. */}
       <div ref={heroRef} aria-hidden className="h-px" />
 
+      <section
+        id="tour-hero"
+        data-testid="tour-hero"
+        className="relative flex min-h-[calc(100vh-104px)] flex-col items-center justify-center gap-5 px-5 pt-10 pb-16 text-center lg:px-10"
+      >
+        <div className="w-full">
+          <TourHeroHeading />
+        </div>
+        <div className="flex w-full max-w-3xl items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          <span>{sharedBy ? `shared by: ${sharedBy}` : 'welcome-1.md'}</span>
+          {sharedBy && (
+            <button
+              type="button"
+              onClick={handleClearShared}
+              title="Reset"
+              className="rounded-md border border-border px-2 py-1 text-[10px] transition-colors hover:bg-accent"
+              data-testid="tour-hero-reset-shared"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRun}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            data-testid="tour-hero-run"
+          >
+            Run
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
+            data-testid="tour-hero-share"
+          >
+            Copy share link
+          </button>
+        </div>
+        {/* The write section's sticky pane below is a second display of this
+            same shared document — no ring targets here, those belong to the
+            runway window. */}
+        <div className="h-[62vh] min-h-[420px] w-full max-w-[1200px]">
+          <MacOSChrome title={SCREEN_TITLES.editor} className="h-full">
+            <TourEditorScreen
+              doc={doc}
+              theme={theme}
+              onDocChange={handleDocChange}
+              onBlocksChange={handleBlocksChange}
+              onRun={handleRun}
+              onShare={handleShare}
+            />
+          </MacOSChrome>
+        </div>
+      </section>
+
+      {/* Jump exits sit between the editor window and the first tagline —
+          the hero (and its scroll cue) are fully scrolled out by the time the
+          write track pins. */}
+      <TourJumpSection />
+
       <TourSectionRunway
         ref={writeApiRef}
         id="write"
         heightVh="300vh"
+        header={
+          <TaglineHeader
+            index="01"
+            before="Write it in "
+            accentText="Markdown"
+            after=""
+            accent={TOUR_ACCENTS.editor}
+            blurb="Freeform Markdown notes, fenced ```time blocks, property and tag suggestions. Everything starts as plain text you can edit."
+          />
+        }
         stages={sectionStages.write}
         captions={sectionCaptions.write}
         onChoice={handleWorkoutChoice}
         onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.write}
-        railLead={
-          <div data-testid="tour-hero" className="flex flex-col gap-4 pb-4">
-            <TourHeroHeading />
-            <div className="flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-              <span>{sharedBy ? `shared by: ${sharedBy}` : 'welcome-1.md'}</span>
-              {sharedBy && (
-                <button
-                  type="button"
-                  onClick={handleClearShared}
-                  title="Reset"
-                  className="rounded-md border border-border px-2 py-1 text-[10px] transition-colors hover:bg-accent"
-                  data-testid="tour-hero-reset-shared"
-                >
-                  Reset
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleRun}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                data-testid="tour-hero-run"
-              >
-                Run
-              </button>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
-                data-testid="tour-hero-share"
-              >
-                Copy share link
-              </button>
-            </div>
-            <TourJumpSection />
-          </div>
-        }
         editor={{
           doc,
           theme,

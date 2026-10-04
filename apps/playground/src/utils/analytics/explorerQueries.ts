@@ -1,4 +1,4 @@
-import { parseQuery, serialize, type AnyParsedQuery, type QueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, serialize, isPipelineQuery, type AnyParsedQuery, type QueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 
 export interface ExampleQuery {
   query: string;
@@ -56,22 +56,22 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
     question: 'Where does the volume go?',
   },
   {
-    query: 'find:note{tags:pr,source:journal}',
+    query: ':note{tags:pr,source:journal}',
     label: 'Find PR notes',
     question: 'Which notes are tagged PR?',
   },
   {
-    query: 'find:note{type:wod,source:journal} last 8w',
+    query: ':note{type:wod,source:journal} last 8w',
     label: 'Recent workouts',
     question: 'What workouts did I do recently?',
   },
   {
-    query: 'find:note{source:collections}',
+    query: ':note{source:collections}',
     label: 'Library workouts',
     question: 'What workouts are in the library?',
   },
   {
-    query: 'find:block{text:fran,source:all}',
+    query: ':block{text:fran,source:all}',
     label: 'Find Fran everywhere',
     question: 'Which blocks mention Fran?',
   },
@@ -83,10 +83,11 @@ export function serializeQuery(parsed: AnyParsedQuery): string {
   return serialize(parsed);
 }
 
-/** Add or replace a tag filter on a WQL query string. Errored queries are left unchanged. */
+/** Add or replace a tag filter on a WQL query string. Errored queries and
+ *  pipelines (whose stages own their filters) are left unchanged. */
 export function addFilterToQuery(query: string, key: string, value: string): string {
-  const parsed = parseQuery(query) as AnyParsedQuery;
-  if (parsed.error) return query;
+  const parsed = parseQuery(query);
+  if (parsed.error || isPipelineQuery(parsed)) return query;
 
   const existingIndex = parsed.filters.findIndex((f) => f.key === key);
   const filter: TagFilter = { key, negate: false, values: [{ value, wildcard: false }] };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Copy, Trash2 } from 'lucide-react';
-import { isFindQuery, parseQuery, type QueryResult, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget } from '@bitcobblers/wod-wiki-wql';
+import { isFindQuery, isPipelineQuery, parseQuery, type QueryResult, type AnyParsedQuery, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget, SharedQueryDocumentRunner, type QueryDocumentRunnerHost, type DocumentOutput } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { WidgetFrame, WidgetToolButton, WidgetEditButton } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';

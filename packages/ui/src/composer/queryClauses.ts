@@ -4,7 +4,7 @@
  * is the C6 AST; strings are produced only through the engine serializer.
  *
  * Canonical structure (work item 3): a query has a `kind` (find documents vs
- * measure numbers), a singular `target` (`find:<target>`), and an optional
+ * measure numbers), a singular `target` (colon `<target>` head), and an optional
  * `source` storage scope (`Where stored` — WQL_SOURCE_VALUES; all sources =
  * no source filter). Filter capability sets mirror what the QueryService
  * executors actually apply — parser acceptance alone never advertises a
@@ -86,19 +86,19 @@ export interface QueryClause {
 
 // ── Canonical kind / target / scope options ────────────────────────────────
 
-/** Query shape: `find` compiles the `find:<target>` skeleton, `aggregate`
- *  compiles `agg:metric{filters} by {dims}` and exposes agg/metric. */
+/** Query shape: `find` compiles the colon `<target>` skeleton (`:note{…}`),
+ *  `aggregate` compiles `agg:metric{filters} by {dims}` and exposes agg/metric. */
 export const KIND_OPTIONS = [
   { value: 'find', label: 'Find', description: 'Find things: notes, blocks, efforts, sessions, tables' },
   { value: 'aggregate', label: 'Measure', description: 'Measure numbers: aggregate a metric by dimensions' },
 ];
 
-/** Singular find targets — the `find:<target>` head (C7 closed enum). */
+/** Singular find targets — the colon `<target>` head (C7 closed enum). */
 export const TARGET_OPTIONS = WQL_FIND_TARGETS.map((t) => ({
   value: t,
   label: t.charAt(0).toUpperCase() + t.slice(1),
   description: {
-    note: 'Find notes across journal, collections and guides',
+    note: 'Find notes across journal, collections and playground',
     block: 'Find fenced workout/dashboard regions',
     effort: 'Find registered movements and benchmarks',
     session: 'Find completed workout sessions',
@@ -115,13 +115,12 @@ export const SOURCE_OPTIONS = WQL_SOURCE_VALUES.map((s) => ({
   description: {
     journal: 'Daily journal notes',
     collections: 'Curated collection notes',
-    feeds: 'Imported feed notes',
     guides: 'Static guide pages',
     playground: 'Playground scratch pages',
   }[s],
 }));
 
-/** Output-statement planes for `plane:` on find:session (executor narrows
+/** Output-statement planes for `plane:` on `:session` (executor narrows
  *  events by the promoted `outputType` column). */
 export const PLANE_OPTIONS = WQL_RESULT_PLANES.map((v) => ({ value: v, label: v }));
 
@@ -185,7 +184,7 @@ export const CLEAR_ONLY_TYPES: Record<string, true> = { source: true, time: true
 
 export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   kind:      { label: 'Kind',       inputType: 'radio',    placeholder: 'find, measure…',              placeholderText: 'Find | Measure',         icon: '🧭', description: 'Find things or measure numbers' },
-  target:    { label: 'Find',       inputType: 'select',   placeholder: 'note, block, effort…',        placeholderText: 'find: [target]',         icon: '🎯', description: 'What to find — singular', prefix: 'find:' },
+  target:    { label: 'Find',       inputType: 'select',   placeholder: 'note, block, effort…',        placeholderText: ': [target]',             icon: '🎯', description: 'What to find — singular', prefix: ':' },
   source:    { label: 'Where stored', inputType: 'select', placeholder: 'journal, collections…',       placeholderText: 'source: [scope]',        icon: '🌐', description: 'Storage scope — all sources means no scope', prefix: 'source:' },
   text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              placeholderText: 'text: [query]',           icon: '🔍', description: 'Raw text substring search', prefix: 'text:' },
   catalog:   { label: 'Catalog',    inputType: 'select',   placeholder: 'Pick catalog...',            placeholderText: 'catalog: [id]',          icon: '📁', description: 'Filter by static catalog', prefix: 'catalog:' },
@@ -211,7 +210,7 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   block:     { label: 'Block',      inputType: 'freetext', placeholder: 'block content id…',           placeholderText: 'block: [contentId]',      icon: '🧱', description: 'Scope to all versions of a block', prefix: 'block:' },
   note:      { label: 'Note',       inputType: 'freetext', placeholder: 'note id…',                    placeholderText: 'note: [id]',              icon: '📓', description: 'Scope to one note', prefix: 'note:' },
   page:      { label: 'Page',       inputType: 'select',   placeholder: 'true, false…',                placeholderText: 'page: [true|false]',      icon: '📄', description: 'Notes that are (or are not) pages', prefix: 'page:' },
-  plane:     { label: 'Output Plane',inputType: 'select',   placeholder: 'segment, load, event…',       placeholderText: 'plane: [type]',           icon: '📋', description: 'Output-statement plane on find:session', prefix: 'plane:' },
+  plane:     { label: 'Output Plane',inputType: 'select',   placeholder: 'segment, load, event…',       placeholderText: 'plane: [type]',           icon: '📋', description: 'Output-statement plane on :session', prefix: 'plane:' },
   pipes:     { label: 'Pipes',      inputType: 'freetext', placeholder: '| order by date | limit 10',  placeholderText: '| select | order | limit', icon: '⇥', description: 'Presentation pipes — select/order/limit/offset' },
 };
 

@@ -99,7 +99,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note where sum:totalVolume{} > 5000', target: 'note', filters: [],
+      raw: ':note where sum:totalVolume{} > 5000', target: 'note', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 5000 },
     };
     const result = await service.runFind(parsed);
@@ -111,7 +111,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note where sum:totalVolume{} > 7000', target: 'note', filters: [],
+      raw: ':note where sum:totalVolume{} > 7000', target: 'note', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 7000 },
     };
     const result = await service.runFind(parsed);
@@ -122,7 +122,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note where sum:totalVolume{} < 5000', target: 'note', filters: [],
+      raw: ':note where sum:totalVolume{} < 5000', target: 'note', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '<', threshold: 5000 },
     };
     const result = await service.runFind(parsed);
@@ -133,7 +133,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note{tags:competition} where sum:totalVolume{} > 5000', target: 'note',
+      raw: ':note{tags:competition} where sum:totalVolume{} > 5000', target: 'note',
       filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 5000 },
     };
@@ -145,7 +145,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note{tags:competition} where sum:totalVolume{} > 9000', target: 'note',
+      raw: ':note{tags:competition} where sum:totalVolume{} > 9000', target: 'note',
       filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 9000 },
     };
@@ -153,11 +153,11 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
     expect(result.notes).toEqual([]);
   });
 
-  it('filters find:block results by the block\'s own content id', async () => {
+  it('filters :block results by the block\'s own content id', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:block where sum:totalVolume{} > 5000', target: 'block', filters: [],
+      raw: ':block where sum:totalVolume{} > 5000', target: 'block', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 5000 },
     };
     const result = await service.runFind(parsed);
@@ -170,7 +170,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
     const service = makeService();
     const parsed: ParsedAggregateQuery = {
       family: 'aggregate',
-      raw: 'sum:totalVolume{} where find:note{tags:competition}',
+      raw: 'sum:totalVolume{} where :note{tags:competition}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
     };
@@ -183,7 +183,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
     const service = makeService();
     const parsed: ParsedAggregateQuery = {
       family: 'aggregate',
-      raw: 'sum:totalVolume{} where find:note{}',
+      raw: 'sum:totalVolume{} where :note{}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [] },
     };
@@ -195,7 +195,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
     const service = makeService();
     const parsed: ParsedAggregateQuery = {
       family: 'aggregate',
-      raw: 'sum:totalVolume{} where find:note{tags:nonexistent}',
+      raw: 'sum:totalVolume{} where :note{tags:nonexistent}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'nonexistent', wildcard: false }] }] },
     };
@@ -209,7 +209,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
     const service = makeService();
     const parsed: ParsedAggregateQuery = {
       family: 'aggregate',
-      raw: 'avg:totalVolume{} where find:note{tags:competition}',
+      raw: 'avg:totalVolume{} where :note{tags:competition}',
       agg: 'avg', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
     };
@@ -224,7 +224,7 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
     const service = makeService();
     const parsed: ParsedAggregateQuery = {
       family: 'aggregate',
-      raw: 'sum:totalVolume{} where find:note{}',
+      raw: 'sum:totalVolume{} where :note{}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [] },
     };
@@ -234,16 +234,16 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
 });
 
 describe('cross-store joins — end-to-end parse + execute', () => {
-  it('direction 1: find:note where sum:totalVolume{} > 5000', async () => {
+  it('direction 1: :note where sum:totalVolume{} > 5000', async () => {
     const service = makeService();
-    const parsed = parseQuery('find:note where sum:totalVolume{} > 5000');
+    const parsed = parseQuery(':note where sum:totalVolume{} > 5000');
     const result = await service.runFind(parsed as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['noteA']);
   });
 
-  it('direction 2: sum:totalVolume{} where find:note{tags:competition}', async () => {
+  it('direction 2: sum:totalVolume{} where :note{tags:competition}', async () => {
     const service = makeService();
-    const result = await service.runQuery('sum:totalVolume{} where find:note{tags:competition}');
+    const result = await service.runQuery('sum:totalVolume{} where :note{tags:competition}');
     expect(result.scalar).toBeCloseTo(6000 * 0.45359237, 4); // kg system default (ticket 13)
   });
 });
