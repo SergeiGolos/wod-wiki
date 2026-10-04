@@ -89,32 +89,25 @@ describe('resolveRedirect', () => {
     expect(resolveRedirect('/getting-started')).toBe('/')
   })
 
-  it('redirects /chapters/basics → /p/syntax/basics', () => {
-    expect(resolveRedirect('/chapters/basics')).toBe('/p/syntax/basics')
+  it('redirects /chapters/basics → /guide/start', () => {
+    expect(resolveRedirect('/chapters/basics')).toBe('/guide/start')
   })
 
-  it('redirects /chapters/sequences → /p/syntax', () => {
-    expect(resolveRedirect('/chapters/sequences')).toBe('/p/syntax')
+  it('redirects /chapters/sequences → /guide/start', () => {
+    expect(resolveRedirect('/chapters/sequences')).toBe('/guide/start')
   })
 
-  it('redirects /chapters/protocols → /p/syntax/protocols', () => {
-    expect(resolveRedirect('/chapters/protocols')).toBe('/p/syntax/protocols')
+  it('redirects /chapters/protocols → /guide/protocols', () => {
+    expect(resolveRedirect('/chapters/protocols')).toBe('/guide/protocols')
   })
 
   it('redirects /challenge → /', () => {
     expect(resolveRedirect('/challenge')).toBe('/')
   })
 
-  it('redirects /syntax → /p/syntax', () => {
-    expect(resolveRedirect('/syntax')).toBe('/p/syntax')
-  })
-
-  it('redirects /syntax/basics → /p/syntax/basics', () => {
-    expect(resolveRedirect('/syntax/basics')).toBe('/p/syntax/basics')
-  })
-
-  it('redirects /syntax/protocols → /p/syntax/protocols', () => {
-    expect(resolveRedirect('/syntax/protocols')).toBe('/p/syntax/protocols')
+  it('returns null for the retired /syntax namespace (guide lives at /guide/*)', () => {
+    expect(resolveRedirect('/syntax')).toBeNull()
+    expect(resolveRedirect('/syntax/basics')).toBeNull()
   })
 
   it('redirects /note/:category/:name → /c/:category/:name', () => {
@@ -138,7 +131,7 @@ describe('resolveRedirect', () => {
     expect(resolveRedirect('/journal/2026-05-19')).toBeNull()
     expect(resolveRedirect('/collections/dan-john/simple-strength')).toBeNull()
     expect(resolveRedirect('/guide/getting-started')).toBeNull()
-    expect(resolveRedirect('/guide/syntax')).toBeNull()
+    expect(resolveRedirect('/guide/start')).toBeNull()
     expect(resolveRedirect('/run/abc-123')).toBeNull()
     expect(resolveRedirect('/review/abc-123')).toBeNull()
   })
@@ -171,10 +164,6 @@ describe('resolveRedirect', () => {
 })
 
 describe('ROUTE_REDIRECTS structure', () => {
-  it('contains exactly the declared legacy aliases', () => {
-    expect(ROUTE_REDIRECTS).toHaveLength(12)
-  })
-
   it('every rule has a match function and a to function', () => {
     for (const rule of ROUTE_REDIRECTS) {
       expect(typeof rule.match).toBe('function')
@@ -410,35 +399,6 @@ describe('GettingStartedRedirect', () => {
   })
 })
 
-describe('SyntaxRedirect', () => {
-  it('redirects bare /syntax to /p/syntax', async () => {
-    mockParams = {}
-    const { SyntaxRedirect } = redirectComponents!
-    render(<SyntaxRedirect />)
-
-    expect(lastNavigateTo).toBe('/p/syntax')
-    expect(lastNavigateReplace).toBe(true)
-  })
-
-  it('redirects /syntax/basics to /p/syntax/basics', async () => {
-    mockParams = { '*': 'basics' }
-    const { SyntaxRedirect } = redirectComponents!
-    render(<SyntaxRedirect />)
-
-    expect(lastNavigateTo).toBe('/p/syntax/basics')
-    expect(lastNavigateReplace).toBe(true)
-  })
-
-  it('redirects /syntax/protocols to /p/syntax/protocols', async () => {
-    mockParams = { '*': 'protocols' }
-    const { SyntaxRedirect } = redirectComponents!
-    render(<SyntaxRedirect />)
-
-    expect(lastNavigateTo).toBe('/p/syntax/protocols')
-    expect(lastNavigateReplace).toBe(true)
-  })
-})
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 5. NotFoundPage
 // ═══════════════════════════════════════════════════════════════════════════
@@ -483,8 +443,6 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.journalEntry).toBe('/journal/:identity')
     expect(ROUTE_PATTERNS.journalNote).toBe('/journal/:date/:uuid')
     expect(ROUTE_PATTERNS.plan).toBe('/plan')
-    expect(ROUTE_PATTERNS.guideGettingStarted).toBe('/guide/getting-started')
-    expect(ROUTE_PATTERNS.guideSyntax).toBe('/guide/syntax')
     expect(ROUTE_PATTERNS.feeds).toBe('/feeds')
     expect(ROUTE_PATTERNS.feed).toBe('/feed')
     expect(ROUTE_PATTERNS.feedDetail).toBe('/feeds/:feedSlug')

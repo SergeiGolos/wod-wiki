@@ -125,12 +125,6 @@ export function PlanRedirect(): ReactNode {
   return <Navigate to={`/journal${suffix}`} replace />
 }
 
-/** Redirect /syntax/* → /p/syntax/* (pages carry the slug, not the namespace). */
-export function SyntaxRedirect(): ReactNode {
-  const { '*': splat } = useParams()
-  return <Navigate to={splat ? `/p/syntax/${splat}` : '/p/syntax'} replace />
-}
-
 /** Redirect /analytics/explorer → /dashboards, preserving the shareable ?q=
  *  (and ?weeks=) query string. The WQL explorer lives on the dashboards list. */
 export function ExplorerRedirect(): ReactNode {

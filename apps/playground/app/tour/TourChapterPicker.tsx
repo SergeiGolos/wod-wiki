@@ -22,16 +22,8 @@ import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import { chapterIcon } from '../components/ChallengeBadges'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TourEditorScreen } from './screens/TourEditorScreen'
+import { CHAPTER_GUIDE_ROUTES, CHAPTER_GUIDE_DEFAULT_ROUTE } from './tourConstants'
 import { cn } from '@/lib/utils'
-
-const CHAPTER_GUIDE_ROUTES: Record<string, string> = {
-  basics: '/guide/syntax/basics',
-  protocols: '/guide/syntax/protocols',
-  structure: '/guide/syntax/structure',
-  'custom-metrics': '/guide/syntax/custom-metrics',
-  dialects: '/guide/syntax/dialects',
-  complex: '/guide/syntax/complex',
-}
 
 /** Chapter id → its home-page example asset (the retired runway's sources). */
 const CHAPTER_EXAMPLE_SOURCES: Record<string, string> = {
@@ -145,14 +137,14 @@ export function TourChapterPicker({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/guide/syntax/basics"
+              to="/guide/start"
               onClick={() => telemetry.record(HOME_EVENTS.lessonStarted)}
               className="inline-flex items-center rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
               Start Lesson 1
             </Link>
             <Link
-              to="/guide/syntax/cheatsheet"
+              to="/guide/start?h=reference"
               onClick={() => telemetry.record(HOME_EVENTS.cheatsheetOpened)}
               className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
             >
@@ -216,7 +208,7 @@ export function TourChapterPicker({
                       : `${progress?.completedCount ?? 0}/${progress?.totalCount ?? chapter.questIds.length}`}
                   </span>
                   <Link
-                    to={CHAPTER_GUIDE_ROUTES[chapter.id] ?? '/guide/syntax'}
+                    to={CHAPTER_GUIDE_ROUTES[chapter.id] ?? CHAPTER_GUIDE_DEFAULT_ROUTE}
                     data-testid={`chapter-picker-guide-${chapter.id}`}
                     aria-label={`Learn more about ${chapter.title}`}
                     title="Learn more in the guides"

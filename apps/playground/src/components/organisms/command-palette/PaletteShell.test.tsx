@@ -206,17 +206,16 @@ describe('PaletteShell WQL mode', () => {
     renderShell()
     let resolved = false
     const response = openPalette({
-      wql: { initialQuery: paletteQuery, execute },
+      // A source pill seeds the Where-stored value picker without Add condition.
+      wql: { initialQuery: 'find:note{source:journal}', execute },
       sources: [{ id: 'wql-search', search }],
     })
     void response.then(() => { resolved = true })
 
     await screen.findByText('Fran')
 
-    // Add condition → Where stored — an absent field opens its value picker
-    // directly (no blank chip emitted).
-    fireEvent.click(screen.getByTestId('add-filter-button'))
-    fireEvent.click(await screen.findByTestId('wql-filter-typeahead-source'))
+    // The Where-stored pill opens its value picker directly.
+    fireEvent.click(screen.getByTestId('token-slot-source'))
 
     // Narrow the picker's own search input and choose a row with the
     // keyboard — composer picker keys never leak to the results list (#834).
@@ -225,8 +224,9 @@ describe('PaletteShell WQL mode', () => {
     fireEvent.keyDown(pickerInput, { key: 'ArrowDown' })
     fireEvent.keyDown(pickerInput, { key: 'Enter' })
 
-    // The scope clause landed in the draft and re-searched…
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{source:guides}'))
+    // The scope clause landed in the draft (multi-select ORs the scope
+    // values) and re-searched…
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{source:journal|guides}'))
     // …but the Enter did NOT activate the palette result…
     await act(async () => {})
     expect(resolved).toBe(false)

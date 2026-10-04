@@ -135,19 +135,12 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onBlocksChange: () => {},
     onRun: () => {},
     onShare: () => {},
-    runwayDoc: 'AMRAP 10\n  10 Pull-ups\n',
-    onRunwayDocChange: () => {},
-    onRunwayBlocksChange: () => {},
-    onRunwayRun: () => {},
-    onRunwayShare: () => {},
     onChoice: () => {},
-    entered: { editor: true, timer: false, analytics: false, metrics: false },
     onStageChange: () => {},
     timer: {
       sessionKey: 0,
       block: null,
       autoStart: false,
-      externalPause: false,
       onClose: () => {},
       onComplete: () => {},
       onRuntimeReady: () => {},
@@ -202,34 +195,13 @@ describe('TourMobileRunway', () => {
     ;(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realIO
   })
 
-  it('renders the pinned editor window and all six caption cards', async () => {
-    await renderRunway()
-
-    // The pinned window holds the live runway editor; the hero editor also
-    // mounts at the top of the page, plus the shared chapter picker editor below.
-    const window_ = screen.getByTestId('tour-mobile-runway-window')
-    expect(window_.textContent).toContain('WOD Editor & Autocomplete')
-    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(3)
-
-    for (const stageId of [
-      'editor-blank',
-      'editor-metrics',
-      'editor-run',
-      'timer-wallclock',
-      'timer-next',
-      'timer-cast',
-    ]) {
-      expect(screen.getByTestId(`tour-mobile-card-${stageId}`)).toBeTruthy()
-    }
-  })
-
-  it('pins the window with the syntax-guides mobile geometry', async () => {
+  it('pins the window with bounded mobile geometry (40vh under the nav)', async () => {
     await renderRunway()
 
     const window_ = screen.getByTestId('tour-mobile-runway-window')
     expect(window_.className).toContain('sticky')
     expect(window_.style.top).toBe(`${MOBILE_STICKY_TOP}px`)
-    expect(window_.style.height).toBe(`calc(50vh - ${MOBILE_STICKY_TOP / 2}px)`)
+    expect(window_.style.height).toBe('40vh')
   })
 
   it('reports no stage before the runway is reached', async () => {
@@ -267,7 +239,6 @@ describe('TourMobileRunway', () => {
 
   it('swaps the pinned window to the timer screen on the timer stage', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 
@@ -282,12 +253,10 @@ describe('TourMobileRunway', () => {
     })
 
     expect(screen.getByTestId('mock-timer-panel')).toBeTruthy()
-    expect(screen.getByTestId('tour-mobile-runway-window').textContent).toContain('Clock')
   })
 
   it('keeps the editor mounted across stage swaps so edits survive', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 

@@ -213,6 +213,67 @@ describe('playground intake — ensureEntry', () => {
   });
 });
 
+describe('playground intake — snapshotEntry', () => {
+  it('mints a fresh playground Note named page-section-timestamp', async () => {
+    const { persistence, pages, intake } = setup();
+    const entry = await intake.snapshotEntry('# body', { pageTitle: 'Home', sectionTitle: 'Run' });
+
+    expect(entry.noteId).toMatch(UUID_REGEX);
+    expect(entry.routeId).toBe('playground/home-run-2023-11-14-22-13-20-000');
+    const page = await pages.getPage(entry.routeId);
+    expect(page!.id).toBe(entry.noteId);
+    expect(page!.type).toBe('playground');
+    expect(page!.sourceId).toBe('playground');
+    expect(page!.content).toBe('# body');
+    expect(persistence.notes.get(entry.noteId)!.title).toBe('Home Run 2023-11-14-22-13-20-000');
+  });
+
+  it('names with page-timestamp alone when no section is given', async () => {
+    const { intake } = setup();
+    const entry = await intake.snapshotEntry('body', { pageTitle: 'Syntax Basics' });
+
+    expect(entry.routeId).toBe('playground/syntax-basics-2023-11-14-22-13-20-000');
+  });
+
+  it('slugifies messy titles in the route id', async () => {
+    const { intake } = setup();
+    const entry = await intake.snapshotEntry('body', {
+      pageTitle: 'Syntax / Basics!',
+      sectionTitle: 'Chapter 2 — Timers',
+    });
+
+    expect(entry.routeId).toBe('playground/syntax-basics-chapter-2-timers-2023-11-14-22-13-20-000');
+  });
+
+  it('keeps every snapshot a distinct immutable note (never updated in place)', async () => {
+    const { persistence, intake } = setup();
+    const first = await intake.snapshotEntry('run one', { pageTitle: 'Home', sectionTitle: 'Run' });
+    const second = await intake.snapshotEntry('run two — edited', { pageTitle: 'Home', sectionTitle: 'Run' });
+
+    expect(second.noteId).not.toBe(first.noteId);
+    expect(persistence.notes.size).toBe(2);
+    // First snapshot untouched — its run's results join it forever.
+    expect(persistence.notes.get(first.noteId)!.rawContent).toBe('run one');
+    expect(persistence.notes.get(first.noteId)!.slug).toBe(first.routeId);
+  });
+
+  it('disambiguates same-millisecond snapshots with a numeric suffix — slugs never collide', async () => {
+    const { persistence, pages, intake } = setup();
+    const first = await intake.snapshotEntry('run one', { pageTitle: 'Home', sectionTitle: 'Run' });
+    const second = await intake.snapshotEntry('run two', { pageTitle: 'Home', sectionTitle: 'Run' });
+    const third = await intake.snapshotEntry('run three', { pageTitle: 'Home', sectionTitle: 'Run' });
+
+    expect(first.routeId).toBe('playground/home-run-2023-11-14-22-13-20-000');
+    expect(second.routeId).toBe('playground/home-run-2023-11-14-22-13-20-000-2');
+    expect(third.routeId).toBe('playground/home-run-2023-11-14-22-13-20-000-3');
+    expect(persistence.notes.size).toBe(3);
+    // Each slug resolves to its own note with its own content.
+    expect((await pages.getPage(first.routeId))!.content).toBe('run one');
+    expect((await pages.getPage(second.routeId))!.content).toBe('run two');
+    expect((await pages.getPage(third.routeId))!.content).toBe('run three');
+  });
+});
+
 describe('playground intake — moveToJournal', () => {
   it('sets journalDate + journal type and clears source and slug on the same Note', async () => {
     const { persistence, intake } = setup();

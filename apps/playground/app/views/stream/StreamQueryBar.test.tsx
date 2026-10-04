@@ -7,9 +7,9 @@
  *    the composer's one searchable picker.
  * 2. Typing resolves synchronously through onQueryChange: valid filter
  *    fragments emit the resolved query, invalid text emits its exact draft.
- * 3. ⌘K (and the compact mobile row) open the command palette in WQL mode
- *    seeded with the current query; Apply writes the composed WQL back
- *    through onQueryChange.
+ * 3. The compact mobile row opens the command palette in WQL mode seeded
+ *    with the current query; Apply writes the composed WQL back through
+ *    onQueryChange.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
@@ -71,15 +71,6 @@ describe('StreamQueryBar', () => {
     expect(lastQuery).toBe('find:note{oops')
   })
 
-  it('opens the command palette WQL mode with the current query via ⌘K', () => {
-    render(<Bar />)
-    fireEvent.click(screen.getByTitle('Edit query (⌘K)'))
-    const state = usePaletteStore.getState()
-    expect(state.isOpen).toBe(true)
-    expect(state.request?.wql?.initialQuery).toBe('find:note{source:journal,text:"deadlift"} last 2w')
-    expect(state.request?.wql?.onApply).toBeDefined()
-  })
-
   it('does not open the command palette on a plain bar click', () => {
     render(<Bar />)
     fireEvent.click(screen.getByTestId('stream-query-bar'))
@@ -93,11 +84,6 @@ describe('StreamQueryBar', () => {
     )
     fireEvent.click(screen.getByTestId('stream-query-bar'))
     expect(usePaletteStore.getState().isOpen).toBe(true)
-  })
-
-  it('exposes an accessible Edit query control', () => {
-    render(<Bar />)
-    expect(screen.getByRole('button', { name: 'Edit query' })).toBeDefined()
   })
 
   it('compact dock summarizes the route default when the draft is empty', () => {

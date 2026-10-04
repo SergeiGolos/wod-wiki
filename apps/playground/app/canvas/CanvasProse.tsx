@@ -136,7 +136,14 @@ const components: Components = {
   // Code blocks — mono styled with language label
   code({ children, className }) {
     const language = className?.replace('language-', '') ?? ''
-    const isInline = !className
+    // A fence with no info string still arrives without a className — tell it
+    // apart from inline code by its newlines (inline spans never contain any).
+    const rawText = typeof children === 'string'
+      ? children
+      : Array.isArray(children)
+        ? children.join('')
+        : String(children ?? '')
+    const isInline = !className && !rawText.includes('\n')
     if (isInline) {
       return (
         <code className="px-1.5 py-0.5 rounded-md bg-muted font-mono text-[0.85em] text-foreground">

@@ -18,6 +18,7 @@ import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { ScrollSection } from './ScrollSection'
 import { TourEditorScreen } from './screens/TourEditorScreen'
+import { CHAPTER_GUIDE_ROUTES, CHAPTER_GUIDE_DEFAULT_ROUTE } from './tourConstants'
 import { useChapterProgress } from '../hooks/useChapterProgress'
 import { usePageQuests } from '../hooks/usePageQuests'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
@@ -74,7 +75,7 @@ export function ChapterHeroSection({
 
   const currentChapterProgress = chapterProgress.find((c) => c.chapter.id === chapter.id)
   const leadQuestId = `${chapter.id}-run`
-  const guidePath = `/guide/syntax/${chapter.id}`
+  const guidePath = CHAPTER_GUIDE_ROUTES[chapter.id] ?? CHAPTER_GUIDE_DEFAULT_ROUTE
 
   const handleRun = () => {
     markComplete(leadQuestId)

@@ -102,10 +102,10 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     await page.screenshot({ path: 'e2e/screenshots/smoke-collections.png', fullPage: false });
   });
 
-  test('/syntax/basics redirects and renders without critical page errors', async ({ page }) => {
-    // /syntax/basics → /guide/syntax/basics (client-side redirect). Probe the
+  test('/chapters/basics redirects and renders without critical page errors', async ({ page }) => {
+    // /chapters/basics → /guide/start (client-side redirect). Probe the
     // source route; the redirect resolves and the guide renders.
-    await probeRoute(page, '/syntax/basics');
+    await probeRoute(page, '/chapters/basics');
     await page.screenshot({ path: 'e2e/screenshots/smoke-syntax-basics.png', fullPage: false });
   });
 

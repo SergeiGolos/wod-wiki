@@ -899,8 +899,12 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
     })
   }
 
+  let inFence = false
   for (const line of bodyWithoutScroll.split('\n')) {
-    const h = parseHeadingLine(line)
+    // Headings inside a fenced block (e.g. the `## Widget` headings inside a
+    // ````markdown dashboard example) are content, not section boundaries.
+    if (/^`{3,}/.test(line)) inFence = !inFence
+    const h = inFence ? null : parseHeadingLine(line)
     if (h) {
       if (cur) flush(cur)
       cur = { heading: h.text, level: h.level, attrs: h.attrs, lines: [] }

@@ -47,6 +47,15 @@ const baseProps = {
   onBlocksChange: () => {},
   onRun: () => {},
   onShare: () => {},
+  timer: {
+    sessionKey: 0,
+    block: null,
+    autoStart: false,
+    onClose: () => {},
+    onComplete: () => {},
+    onRuntimeReady: () => {},
+    onReset: () => {},
+  },
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -85,7 +94,7 @@ describe('TourMobileStack', () => {
 
     const links = screen.getAllByRole('link', { name: /Read the behaviors explainer/i })
     expect(links.length).toBe(1)
-    expect(links[0].getAttribute('href')).toBe('/guide/behaviors')
+    expect(links[0].getAttribute('href')).toBe('/guide/clock#run-next')
   })
 
   it('records the correct telemetry event from the timer card drop-off', async () => {

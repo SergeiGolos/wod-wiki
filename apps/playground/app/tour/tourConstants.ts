@@ -16,6 +16,7 @@ export type TourStageId =
   | 'timer-next'
   | 'timer-cast'
   | 'metrics-e'
+  | 'metrics-m'
   | 'metrics-d'
   | 'metrics-c'
   | 'wql-idea'
@@ -53,6 +54,8 @@ export const TOUR_ACCENTS = {
   timer: 'hsl(var(--metric-effort))',
   analytics: 'hsl(var(--metric-rounds))',
   library: 'hsl(var(--metric-rep))',
+  /** Alias for the analytics accent used by explore-section chrome. */
+  rounds: 'hsl(var(--metric-rounds))',
 } as const
 
 export interface TourStage {
@@ -90,5 +93,31 @@ export const SCREEN_TITLES: Record<TourScreen, string> = {
 
 /** Runway height — legacy single-runway constant, retained for mobile layouts. */
 export const TOUR_RUNWAY_HEIGHT = '1300vh'
+
+/**
+ * Chapter id → its consolidated guide route (markdown/canvas/guide/**,
+ * eight chapters). Home-page chapter ids must match these keys — see the
+ * `chapter` blocks in markdown/canvas/canvas home README and the guide pages.
+ */
+export const CHAPTER_GUIDE_ROUTES: Record<string, string> = {
+  start: '/guide/start',
+  protocols: '/guide/protocols',
+  structure: '/guide/structure',
+  metrics: '/guide/metrics',
+  clock: '/guide/clock',
+  wql: '/guide/wql',
+  dashboards: '/guide/dashboards',
+  sessions: '/guide/sessions',
+  // Home-page chapter ids (markdown/canvas/home/README.md `chapter` blocks)
+  // predate the consolidated routes; aliasing keeps quest/progress identity
+  // stable while still landing each chapter on its guide page.
+  basics: '/guide/start',
+  'custom-metrics': '/guide/metrics',
+  dialects: '/guide/sessions#intent',
+  complex: '/guide/sessions#full-session',
+}
+
+/** Entry chapter — the map's fallback for an unknown chapter id. */
+export const CHAPTER_GUIDE_DEFAULT_ROUTE = '/guide/start'
 
 

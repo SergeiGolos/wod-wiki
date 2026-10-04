@@ -3,7 +3,9 @@ import { TourJumpSection } from './TourJumpSection'
 import { TourLearnSection } from './TourLearnSection'
 import { TourChapterPicker } from './TourChapterPicker'
 import { HomeAnalyticsSection } from './HomeAnalyticsSection'
-import { TourMetricsScreen } from './screens/TourMetricsScreen'
+import { TourTimerScreen } from './screens/TourTimerScreen'
+import { TourEditorScreen } from './screens/TourEditorScreen'
+import type { TourSectionTimerWiring } from './TourSectionRunway'
 import { TaglineHeader } from './HomeTour'
 import { CaptionBody, TOUR_CAPTIONS } from './TourCaptions'
 import { TOUR_ACCENTS } from './tourConstants'
@@ -24,9 +26,13 @@ export interface TourMobileStackProps {
   onShare: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank caption card. */
   onChoice?: (wod: string) => void
+  /** Caption command buttons (Try it / query presets / board picks). */
+  onCommand?: (captionId: string, key: string) => void
   /** Shared-script attribution + reset, forwarded to the hero editor (#882). */
   sharedBy?: string
   onResetShared?: () => void
+  /** The inline run pane — same wiring as the sticky runways (no fullscreen). */
+  timer: TourSectionTimerWiring
 }
 
 export function TourMobileStack(props: TourMobileStackProps) {
@@ -38,10 +44,7 @@ export function TourMobileStack(props: TourMobileStackProps) {
   return (
     <div data-testid="tour-mobile-stack" className="flex flex-col gap-6">
       <TourHero
-        theme={props.theme}
         doc={props.doc}
-        onDocChange={props.onDocChange}
-        onBlocksChange={props.onBlocksChange}
         onRun={props.onRun}
         onShare={props.onShare}
         sharedBy={props.sharedBy}
@@ -49,7 +52,7 @@ export function TourMobileStack(props: TourMobileStackProps) {
       />
       <TourJumpSection />
 
-      {/* Section 01: Write it in Markdown */}
+      {/* Section 01: Write it in Markdown — hosts the page's ONE editor */}
       <section id="tour-section-write" data-testid="tour-section-write" className="flex flex-col gap-4">
         <TaglineHeader
           index="01"
@@ -59,12 +62,25 @@ export function TourMobileStack(props: TourMobileStackProps) {
           accent={TOUR_ACCENTS.editor}
           blurb="Freeform Markdown notes, fenced ```time blocks, property and tag suggestions. Everything starts as plain text you can edit."
         />
+        <div
+          data-testid="tour-stack-editor"
+          className="mx-6 h-[26rem] overflow-hidden rounded-2xl border border-border shadow-sm"
+        >
+          <TourEditorScreen
+            doc={props.doc}
+            onDocChange={props.onDocChange}
+            onBlocksChange={props.onBlocksChange}
+            onRun={props.onRun}
+            onShare={props.onShare}
+            theme={props.theme}
+          />
+        </div>
         {editorBlankCaption && (
           <article
             data-testid="tour-editor-card"
             className="mx-6 rounded-2xl border border-border bg-card p-6"
           >
-            <CaptionBody cap={editorBlankCaption} onChoice={props.onChoice} />
+            <CaptionBody cap={editorBlankCaption} onChoice={props.onChoice} onCommand={props.onCommand} />
           </article>
         )}
         {editorMetricsCaption && (
@@ -92,9 +108,27 @@ export function TourMobileStack(props: TourMobileStackProps) {
             data-testid="tour-timer-card"
             className="mx-6 rounded-2xl border border-border bg-card p-6"
           >
-            <CaptionBody cap={timerCaption} />
+            <CaptionBody cap={timerCaption} onCommand={props.onCommand} />
           </article>
         )}
+        {/* Inline run pane — the reduced-motion sibling of the sticky runways.
+            Run reveals it right here (no scroll choreography, no fullscreen). */}
+        <div
+          data-testid="tour-stack-timer"
+          className="mx-6 h-[32rem] overflow-hidden rounded-2xl border border-border"
+        >
+          <TourTimerScreen
+            key={props.timer.sessionKey}
+            block={props.timer.block}
+            autoStart={props.timer.autoStart}
+            onClose={props.timer.onClose}
+            onComplete={props.timer.onComplete}
+            onRuntimeReady={props.timer.onRuntimeReady}
+            onRunStarted={props.timer.onRunStarted}
+            onReset={props.timer.onReset}
+            externalStop={props.timer.externalStop}
+          />
+        </div>
       </section>
 
       {/* Section 03: Own the Metrics */}
@@ -115,9 +149,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
             <CaptionBody cap={metricsCaption} />
           </article>
         )}
-        <div className="mx-6 h-64 overflow-hidden rounded-2xl border border-border">
-          <TourMetricsScreen activeStageId="metrics-e" />
-        </div>
       </section>
 
       {/* Section 04: Explore your analytics */}

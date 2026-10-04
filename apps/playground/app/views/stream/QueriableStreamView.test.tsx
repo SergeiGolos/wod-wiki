@@ -512,6 +512,27 @@ describe('QueriableStreamView component', () => {
     pendingRuntimes.clear()
   })
 
+  it('View ▸ Arrange-by writes through to the WQL line and the grid follows', async () => {
+    const engine = createMockEngine(sampleEffortEntries)
+
+    render(
+      <MemoryRouter initialEntries={['/efforts']}>
+        <QueriableStreamView profile={EFFORTS_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    // Open View settings and pick the Tags arrangement…
+    fireEvent.click(screen.getByTestId('stream-view-settings-trigger'))
+    fireEvent.click(screen.getByTestId('view-settings-group-tag'))
+
+    // …the query now owns grouping: the committed run's `by {tag}` surfaces
+    // in the truth strip (source: query) and the dialog's disclosure notice.
+    await waitFor(() => {
+      expect(screen.getByTestId('stream-query-status').textContent).toContain('by tag (query)')
+    })
+    expect(screen.getByTestId('view-settings-query-grouped').textContent).toContain('by {tag}')
+  })
+
   it('keeps grouping when switching layouts — groupBy survives mode changes', async () => {
     writeViewSettings('/library', {
       level: 'note',

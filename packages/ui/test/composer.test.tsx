@@ -44,21 +44,22 @@ describe('current visible draft actions', () => {
     expect(screen.getByTestId('wql-picker-search').getAttribute('aria-activedescendant')).toBeNull();
   });
 
-  it('explicit completion opens values without inserting an empty filter', () => {
+  it('opening a picker from typed suggestions inserts no empty filter', () => {
     const change = vi.fn();
     render(<WqlComposer initialQuery="find:note" onQueryChange={change} />);
-    fireEvent.click(screen.getByTestId('add-filter-button'));
+    fireEvent.change(screen.getByLabelText('Search text or WQL'), { target: { value: 'effort' } });
     fireEvent.click(screen.getByTestId('wql-filter-typeahead-effort'));
     expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
     expect(screen.queryByTestId('token-slot-effort')).toBeNull();
-    expect(change).not.toHaveBeenCalled();
+    for (const [wql] of change.mock.calls) {
+      expect(parseQuery(wql).filters.every(f => f.values.length > 0)).toBe(true);
+    }
   });
 
   it('keyboard reaches the exact typed action when suggestions remain', () => {
     const change = vi.fn();
-    render(<WqlComposer initialQuery="find:note" onQueryChange={change} />);
-    fireEvent.click(screen.getByTestId('add-filter-button'));
-    fireEvent.click(screen.getByTestId('wql-filter-typeahead-text'));
+    render(<WqlComposer initialQuery="find:note{text:prefix}" onQueryChange={change} />);
+    fireEvent.click(screen.getByTestId('token-slot-text'));
     const input = screen.getByTestId('wql-picker-search');
     fireEvent.change(input, { target: { value: 'my exact phrase' } });
     fireEvent.keyDown(input, { key: 'ArrowDown' });

@@ -48,7 +48,7 @@ import { useComposerQueryState } from '../../hooks/useComposerQueryState'
 import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useBatchedItems, type BatchedItems } from '../../hooks/useBatchedItems'
 import { todayKey } from '../../lib/dateFormat'
-import { withoutFilters, withoutWindow } from '../../lib/wqlEdits'
+import { withoutFilters, withoutWindow, withGroupBy } from '../../lib/wqlEdits'
 import { LibraryRow } from '../library/LibraryRow'
 import { PropertyTable } from './PropertyTable'
 import { StreamFeed } from './StreamFeed'
@@ -438,9 +438,15 @@ export function QueriableStreamView({
 
   const handleGroupByChange = useCallback(
     (newGroup: string) => {
-      setGroupBy(newGroup)
+      // View ▸ Arrange-by writes through to the query line (`by {…}`) so the
+      // composer, URL `?q=` and grid share one grouping source. An
+      // unparseable draft can't take the edit — the per-route view setting
+      // still applies as the fallback.
+      const next = withGroupBy(query, newGroup)
+      if (next !== query) setQuery(next)
+      else setGroupBy(newGroup)
     },
-    [setGroupBy],
+    [query, setQuery, setGroupBy],
   )
   const stickyOffset = useStickyBoundaryOffset(104)
 
@@ -532,7 +538,7 @@ export function QueriableStreamView({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                  className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                   title="View Settings"
                   data-testid="stream-view-settings-trigger"
                 >
@@ -543,7 +549,7 @@ export function QueriableStreamView({
                   <Button
                     size="sm"
                     onClick={() => navigate(effortPath('new', undefined, { mode: 'create' }))}
-                    className="h-8 px-2.5 text-xs gap-1.5"
+                    className="h-9 px-2.5 text-xs gap-1.5"
                     data-testid="efforts-catalog-create-btn"
                   >
                     <Plus className="size-3.5" />

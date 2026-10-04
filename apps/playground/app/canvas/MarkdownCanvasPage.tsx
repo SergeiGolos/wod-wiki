@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
-import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
+import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
@@ -29,7 +29,6 @@ import {
   resolveSource,
   resolveContentOwners,
   STICKY_NAV_HEIGHT,
-  MOBILE_STICKY_TOP,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
 import { type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
@@ -135,7 +134,16 @@ export function MarkdownCanvasPage({
 
   // Runtime hook
   const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
-  const runtime = useCanvasRuntime({ canvasNoteId, getBlock, getContent: getSource, title: page.frontmatter.title })
+  const runtime = useCanvasRuntime({ getBlock, getContent: getSource, title: page.frontmatter.title })
+  const { startRun, closeRun, handleWorkoutComplete, resetRun, resetRequested, fullscreen, runState, completedResults } = runtime
+
+  // Reset-to-example: archive first (partial + fresh reset snapshot of the
+  // example source); the draft only changes once the reset persisted.
+  const handlePanelReset = useCallback(async () => {
+    const ok = await resetRun(initialSource)
+    if (!ok) return
+    resetActiveSource()
+  }, [resetRun, initialSource, resetActiveSource])
 
 
   // Reactive state mirror of the first script block so quest validation
@@ -156,7 +164,7 @@ export function MarkdownCanvasPage({
   useCompletionChallenge({
     pageRoute: page.route,
     quests: pageQuests,
-    completedResults: runtime.completedResults,
+    completedResults,
   })
 
   useQuickStartAutoComplete({
@@ -249,10 +257,10 @@ export function MarkdownCanvasPage({
     setPanelState: (state: 'note' | 'track' | 'review') => {
       if (state === 'track') {
         const block = getBlock()
-        if (block) runtime.startRun(block)
+        if (block) startRun(block)
       }
     },
-  }), [navigate, swapSource, setHeadingParam, getBlock, runtime.startRun])
+  }), [navigate, swapSource, setHeadingParam, getBlock, startRun])
 
   const depsRef = useRef(deps)
   depsRef.current = deps
@@ -332,17 +340,17 @@ export function MarkdownCanvasPage({
     onPanelActionsReadyRef.current?.({
       run: () => {
         const block = scriptBlocksRef.current[0] ?? null
-        if (block) runtime.startRun(block)
+        if (block) startRun(block)
       },
-      reset: () => runtime.closeRun(),
+      reset: () => { void resetRun() },
       results: () => {},
       fullscreen: () => {
         const block = scriptBlocksRef.current[0] ?? null
-        if (block) runtime.startRun(block)
+        if (block) startRun(block)
       },
       getSource,
     })
-  }, [runtime, getSource])
+  }, [startRun, resetRun, getSource])
 
   // Commands for InlineCommandBar on wod blocks
   const canvasCommands = useMemo<ScriptCommand[]>(() => [
@@ -352,10 +360,10 @@ export function MarkdownCanvasPage({
       icon: <Play className="h-3 w-3 fill-current" />,
       primary: true,
       onClick: (block) => {
-        runtime.startRun(block)
+        startRun(block)
       },
     },
-  ], [runtime])
+  ], [startRun])
 
   const activePanelTheme = SECTION_THEME_STYLES[activeSectionTheme] ?? SECTION_THEME_STYLES.slate
 
@@ -419,11 +427,10 @@ export function MarkdownCanvasPage({
       editorOpacity={editorOpacity}
       activeOriginalSource={activeOriginalSource}
       handleEditorChange={handleEditorChange}
-      resetActiveSource={resetActiveSource}
+      onResetToSource={handlePanelReset}
       canvasNoteId={canvasNoteId}
       theme={theme}
       commands={canvasCommands}
-      activeSectionId={activeSectionId}
       onBlocksChange={handleBlocksChange}
       onViewCreated={setEditorView}
       panelTitle={panelTitle}
@@ -431,7 +438,7 @@ export function MarkdownCanvasPage({
       panelThemeClass={activePanelTheme.panel}
       headerActions={activeHeaderActions}
       onRun={(doc, block) => {
-        if (block) void runtime.startRun(block, doc)
+        if (block) void startRun(block, doc)
       }}
     />
   )
@@ -440,8 +447,10 @@ export function MarkdownCanvasPage({
     <CanvasEditorPanel
       variant="desktop"
       panelContent={panelContent}
+      panelTitle={panelTitle}
+      panelSubtitle={panelSubtitle}
       viewDefButtons={viewDef.buttons}
-      runState={runtime.runState}
+      runState={runState}
       deps={deps}
       width={editorWidth}
       source={editorSource}
@@ -452,8 +461,10 @@ export function MarkdownCanvasPage({
     <CanvasEditorPanel
       variant="mobile"
       panelContent={panelContent}
+      panelTitle={panelTitle}
+      panelSubtitle={panelSubtitle}
       viewDefButtons={viewDef.buttons}
-      runState={runtime.runState}
+      runState={runState}
       deps={deps}
       width={editorWidth}
       source={editorSource}
@@ -462,13 +473,18 @@ export function MarkdownCanvasPage({
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {runtime.fullscreen?.kind === 'timer' && (
-        <FullscreenTimer
-          block={runtime.fullscreen.block}
-          onClose={runtime.closeRun}
-          autoStart
-          onCompleteWorkout={(_blockId, results) => { void runtime.handleWorkoutComplete(results) }}
-        />
+      {fullscreen?.kind === 'timer' && (
+        <div className="sticky z-30 border-b border-border bg-background" style={{ top: stickyViewportOffset }}>
+          <div className="mx-auto h-[max(320px,min(75vh,640px))] max-w-5xl px-4 py-2">
+            <RuntimeTimerPanel
+              block={fullscreen.block}
+              onClose={closeRun}
+              autoStart
+              externalStop={resetRequested}
+              onComplete={(_blockId, results) => { void handleWorkoutComplete(results) }}
+            />
+          </div>
+        </div>
       )}
 
       <SplitCanvasTemplate
@@ -482,7 +498,7 @@ export function MarkdownCanvasPage({
           handleSelectWorkout={handleSelectWorkout}
           activeSectionId={activeSectionId}
           selectedExamples={selectedExamples}
-          runState={runtime.runState}
+          runState={runState}
           deps={deps}
           handleExampleSelect={handleExampleSelect}
           hasWorkoutsTag={hasWorkoutsTag}

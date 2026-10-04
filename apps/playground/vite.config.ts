@@ -110,6 +110,7 @@ export default defineConfig({
             { find: '@bitcobblers/wod-wiki-wql', replacement: resolve(import.meta.dirname, '../../packages/wql/src') },
             { find: '@bitcobblers/wod-wiki-engine', replacement: resolve(import.meta.dirname, '../../packages/engine/src') },
             { find: '@bitcobblers/wod-wiki-ui', replacement: resolve(import.meta.dirname, '../../packages/ui/src') },
+            { find: '@bitcobblers/wod-wiki-storage', replacement: resolve(import.meta.dirname, '../../packages/storage/src') },
             // `@/` -> ./src for app-support library imports (hooks, clock,
             // runtime views); application code itself lives under ./app.
             { find: '@', replacement: resolve(import.meta.dirname, 'src') },
@@ -119,6 +120,11 @@ export default defineConfig({
         host: '0.0.0.0',
         ...(https ? { https } : {}),
         hmr: hmrHost ? { host: hmrHost } : true,
+        // VITE_STORAGE=api dev sessions proxy the storage API to the local
+        // wod-wiki-api server.
+        proxy: {
+            '/api': { target: 'http://localhost:3001', changeOrigin: true },
+        },
     },
     build: {
         chunkSizeWarningLimit: 2000,

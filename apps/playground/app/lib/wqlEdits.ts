@@ -83,3 +83,13 @@ export function withoutFilters(query: string): string {
   if (parsed.error) return query;
   return serialize({ ...parsed, filters: parsed.filters.filter((f) => f.key === 'source') });
 }
+
+/** Point the query's grouping at one dimension (View ▸ Arrange-cards-by
+ *  write-through: the WQL line, URL and grid follow the dialog). Replaces
+ *  any existing `by {}`; unparseable input is returned unchanged — the
+ *  caller falls back to the per-route view setting. */
+export function withGroupBy(query: string, dimension: string): string {
+  const parsed = parseQuery(query);
+  if (parsed.error) return query;
+  return serialize({ ...parsed, groupBy: [dimension] });
+}

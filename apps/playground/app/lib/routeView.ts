@@ -224,9 +224,6 @@ function deriveWorkout(
     // /results kept for the legacy classification contract (router redirects it)
     '/results': 'Results',
     '/results/segments': 'Segments',
-    '/guide/syntax': 'Syntax',
-    '/guide/behaviors': 'Behaviors',
-    '/guide/analytics': 'Analytics Guide',
     '/dashboard': 'Dashboards',
     '/dashboards': 'Dashboards',
     '/analytics/dashboard': 'Analytics Dashboard',

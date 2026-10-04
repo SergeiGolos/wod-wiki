@@ -46,6 +46,7 @@
 }
 /* ── Base ─────────────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{
@@ -258,6 +259,8 @@ code.k{font:600 .78rem ui-monospace,Menlo,monospace;background:hsl(var(--muted)/
 .rgfilters label{font:600 .64rem ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground));display:flex;flex-direction:column;gap:.2rem}
 .rgfilters input{font:500 .72rem ui-monospace,Menlo,monospace;padding:.3rem .45rem;border:1px solid hsl(var(--input));border-radius:.4rem;background:hsl(--background);background:hsl(var(--background));color:hsl(var(--foreground));width:8.5rem}
 .rgwrap{overflow:auto;max-height:21rem}
+.tblwrap{overflow-x:auto;max-width:100%;min-width:0}
+.sc{max-width:100%;min-width:0}
 table.tbl{width:100%;border-collapse:collapse;font:500 .78rem/1.4 ui-monospace,Menlo,monospace}
 .tbl th{text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;
   color:hsl(var(--muted-foreground));padding:.4rem .5rem;border-bottom:1px solid hsl(var(--border));position:sticky;top:0;background:hsl(var(--card))}
@@ -375,10 +378,10 @@ table.tbl{width:100%;border-collapse:collapse;font:500 .78rem/1.4 ui-monospace,M
 /* ── Variant B / C chrome ─────────────────────────────────────────────── */
 .bench{display:grid;gap:1.25rem}
 @media(min-width:960px){.bench{grid-template-columns:13rem minmax(0,1fr) 17rem}}
-.rail{display:flex;flex-direction:column;gap:.4rem}
-@media(max-width:959px){.rail{flex-direction:row;flex-wrap:wrap}}
-.rail .btn{justify-content:flex-start}
-.rail .btn.on{border-color:hsl(var(--metric-resistance));background:hsl(var(--metric-resistance)/.12);color:hsl(var(--metric-resistance))}
+.brail{display:flex;flex-direction:column;gap:.4rem}
+@media(max-width:959px){.brail{flex-direction:row;flex-wrap:wrap}}
+.brail .btn{justify-content:flex-start}
+.brail .btn.on{border-color:hsl(var(--metric-resistance));background:hsl(var(--metric-resistance)/.12);color:hsl(var(--metric-resistance))}
 .stage{display:none}
 .stage.on{display:block}
 .jgrid{display:grid;gap:1.5rem}
@@ -597,7 +600,7 @@ details.fence-details summary{cursor:pointer;font:700 .68rem ui-monospace,Menlo,
   <section class="sec" id="B-bench" data-sec="write">
     <div class="wrap">
       <div class="bench">
-        <nav class="rail" aria-label="Workbench stages">
+        <nav class="brail" aria-label="Workbench stages">
           <button class="btn sm on" type="button" data-stage="write"><span class="c-res">01 Write</span></button>
           <button class="btn sm" type="button" data-stage="run"><span class="c-effort">02 Run</span></button>
           <button class="btn sm" type="button" data-stage="metrics"><span class="c-rep">03 Metrics</span></button>
@@ -740,7 +743,7 @@ details.fence-details summary{cursor:pointer;font:700 .68rem ui-monospace,Menlo,
               <tr><td>Metrics panes</td><td>TourMetricsScreen — apps/playground/app/tour/screens/TourMetricsScreen.tsx</td><td>Three panes verbatim (efforts / measures / compound), max-w 520px mono card, footnotes included; tab-switch stands in for the tour ring.</td><td>Tabs aid offline scanning; keep cross-fade + ring targets in the app.</td><td>Tour ring targets, scroll-driven cross-fade.</td></tr>
               <tr><td>Session review</td><td>TourAnalyticsScreen = AnalyticsScorecard + ReviewGrid — apps/playground/app/tour/screens/TourAnalyticsScreen.tsx</td><td>Crumb “Session review”; scrollable scorecard cards (min-w 130px, uppercase label, tabular value + unit, h-1 progress bar, click selects with metric-color border); “Workout Log” grid with verbatim toolbar (View: · “Filter results…” · 🔍 Search · 🔽 Filters · N / M rows); single/ctrl/shift selection; footer “{N} selected”.</td><td>One-line highlight link: scorecard ⇄ grid rows (selected row tints its card; card click filters row highlight).</td><td>UnifiedCellRenderer metric pills (◉ missing / 👤 override), UserOverrideDialog, real view presets beyond “default”, debug preset.</td></tr>
               <tr><td>Query</td><td>WqlComposer — packages/ui/src/composer/WqlComposer.tsx; ParsedQueryChips — app/src/components/organisms/analytics/ParsedQueryChips.tsx; HomeAnalyticsSection — apps/playground/app/tour/HomeAnalyticsSection.tsx</td><td>Raw WQL text + TokenSlotPill row + “Add condition” catalog (listbox, dim type hints) + “Undo removal”; diagnostics strip with stage counts; invalid text preserved with destructive message; chips use the exact label/color vocabulary (aggregate blue, metric foreground, filter amber, group by green, window sky); vocabulary strip + three showcase tiles execute the six HOME_ANALYTICS_QUERIES against the demo rows, falling back to the labeled sample answers from homeAnalyticsData.ts.</td><td>Adopt ParsedQueryChips on the homepage DashboardTile inner widgets (audit §8) so both surfaces teach identical chip anatomy.</td><td>Full WQL grammar (find: plane, where-joins, pipes, text search conditions, rollup pills), debounced host execution.</td></tr>
-              <tr><td>Dashboard</td><td>DashboardViewPage + WidgetFrame — app/src/…/DashboardViewPage.tsx, DashboardView.tsx; WidgetComposerDialog — packages/ui (520 ln)</td><td>Header subtitle “Prebuilt — read-only until cloned to your vault.”; RangeSelector 4w/8w/16w (16w default); kg/lb; prebuilt banner + “Clone to vault” (in-memory clone); SampleDataPrompt card “Facts appear when you log or run workouts.” with “Preview with sample data” / “Log your first workout”; all 11 seed widgets with Eye inspect (“Inspect widget query”); inspect dialog (Calculation code, Title/Question/Type/Size, live preview, “Clone to vault to edit”); edit mode widget toolbar (Edit / Move up-down / Span 1·2·4·Full / Duplicate / Remove) + dashed “Add widget” + composer dialog (Dataset / Calculation / Visualization 9 types / Title / Question / Size / Parameters / Preview / Cancel + Apply).</td><td>Keep prebuilt default at 16w (live default); nothing else — board already matches.</td><td>Revision-guard refusal alerts, $token substitution, goal-rings / zone-distribution renderers (honest “renderer not simulated” badge instead), real vault persistence.</td></tr>
+              <tr><td>Dashboard</td><td>DashboardViewPage + WidgetFrame — app/src/…/DashboardViewPage.tsx, DashboardView.tsx; WidgetComposerDialog — packages/ui (520 ln)</td><td>Header subtitle “Prebuilt — read-only until cloned to your vault.”; RangeSelector 4w/8w/16w (16w default); kg/lb; prebuilt banner + “Clone to vault” (in-memory clone); SampleDataPrompt card “Facts appear when you log or run workouts.” with “Preview with sample data” / “Log your first workout”; all 10 seed widgets with Eye inspect (“Inspect widget query”); inspect dialog (Calculation code, Title/Question/Type/Size, live preview, “Clone to vault to edit”); edit mode widget toolbar (Edit / Move up-down / Span 1·2·4·Full / Duplicate / Remove) + dashed “Add widget” + composer dialog (Dataset / Calculation / Visualization 9 types / Title / Question / Size / Parameters / Preview / Cancel + Apply).</td><td>Keep prebuilt default at 16w (live default); nothing else — board already matches.</td><td>Revision-guard refusal alerts, $token substitution, goal-rings / zone-distribution renderers (honest “renderer not simulated” badge instead), real vault persistence.</td></tr>
               <tr><td>Chrome</td><td>App shell (slim rail + canvas top bar) — live localhost:5174 observation</td><td>Slim left rail + “Canvas” title + chip; cast button opens the honest cast explainer; ☰ opens the prototype drawer.</td><td>—</td><td>Real routes (rail scrolls to demo sections instead), Search, journal progress chip.</td></tr>
             </tbody>
           </table></div>
@@ -1452,10 +1455,20 @@ const SHOWCASE=[
  {key:'Table list',q:'sum:totalReps{} by {effort} last 6w'},
  {key:'Graphs',q:'sum:totalVolume{} by {week} last 6w'},
  {key:'Multi-query dashboard',multi:['sum:totalVolume{discipline:strength} by {effort} last 6w','avg:tis{} last 6w','sum:totalVolume{} last 6w']}];
+const VOCAB=[
+ ['Aggregators','sum · avg · min · max · count · last · delta'],
+ ['Metrics','totalVolume · totalReps · tis · sessionLoad · totalDistance · calc.*'],
+ ['Filter keys','discipline · intensity · effort · tags'],
+ ['Dimensions','day · week · session · round · effort · discipline · intensity'],
+ ['Intensity','low · moderate · high'],
+ ['Rollups','.rollup(2w) · .rollup(4w)']];
 function renderQuery(){
   $$('[data-c="query"]').forEach(box=>{
     box.innerHTML=
-     '<div class="wql">'
+     '<div class="card" style="padding:.8rem 1rem;margin-bottom:1rem"><p class="flab">Vocabulary</p><div class="pq">'
+    +VOCAB.map(v=>'<span class="pqc met"><b>'+v[0]+'</b>'+v[1]+'</span>').join('')
+    +'</div></div>'
+    +'<div class="wql">'
     +'<p class="flab">WQL — raw text &amp; guided pills (this preview parses the supported shapes only)</p>'
     +'<input class="raw" data-qraw aria-label="WQL query" value="'+esc(S.qRaw)+'">'
     +'<div class="wpills" data-v="qpills">'+qpillsHTML()+'</div>'
@@ -1489,7 +1502,10 @@ function updateQueryDyn(box){
   const qo=box.querySelector('[data-v="qout"]');if(qo)qo.innerHTML=vizHTML(execWQL(S.qRaw));
   const cat=box.querySelector('[data-v="qcatalog"]');if(cat)cat.classList.remove('on');
 }
-function updateAllQueryDyn(){$$('[data-c="query"]').forEach(b=>updateQueryDyn(b))}
+function updateAllQueryDyn(){
+  $$('[data-qraw]').forEach(r=>{if(r.value!==S.qRaw&&document.activeElement!==r)r.value=S.qRaw});
+  $$('[data-c="query"]').forEach(b=>updateQueryDyn(b));
+}
 function addCondition(key){
   const c=COND_CATALOG.find(x=>x.key===key);if(!c)return;
   const p=parseWQL(S.qRaw);if(!p.ok)return;
@@ -1500,7 +1516,7 @@ function addCondition(key){
   const winPart=p.win?(' '+p.win):'';
   const dimPart=p.dims.length?(' by {'+p.dims.join(', ')+'}'):'';
   S.qRaw=p.agg+':'+p.metric+'{'+filterPart.join(',')+'}'+dimPart+winPart;
-  updateAllQueryDyn();
+  render();
 }
 function cycleWindow(){
   const p=parseWQL(S.qRaw);if(!p.ok)return;
@@ -1509,7 +1525,7 @@ function cycleWindow(){
   const dimPart=p.dims.length?(' by {'+p.dims.join(', ')+'}'):'';
   const fstr=p.filters.map(f=>(f.neg?'!':'')+f.key+':'+f.vals.join('|')).join(',');
   S.qRaw=p.agg+':'+p.metric+'{'+fstr+'}'+dimPart+' '+next;
-  updateAllQueryDyn();
+  render();
 }
 function removePill(kind){
   const p=parseWQL(S.qRaw);if(!p.ok)return;
@@ -1519,7 +1535,7 @@ function removePill(kind){
   const fs=p.filters.filter((f,i)=>'f'+i!==kind).map(f=>(f.neg?'!':'')+f.key+':'+f.vals.join('|')).join(',');
   const winPart=p.win?(' '+p.win):'';
   S.qRaw=p.agg+':'+p.metric+'{'+fs+'}'+(kind==='dim'?'':dimPart)+winPart;
-  updateAllQueryDyn();
+  render();
 }
 function undoRemoval(){
   if(!S.qUndo)return;
@@ -1722,10 +1738,14 @@ function applyComposer(){
 function openDlg(id){const d=document.getElementById(id);if(!d)return;d.classList.add('on');if(!d.open&&d.showModal)d.showModal();else d.setAttribute('open','')}
 function closeDlg(id){const d=document.getElementById(id);if(!d)return;d.classList.remove('on');if(d.open)d.close();else d.removeAttribute('open')}
 function anyDlgOpen(){return $$('dialog').some(d=>d.open)}
+$$('dialog.dlg').forEach(d=>{d.addEventListener('close',()=>d.classList.remove('on'));d.addEventListener('cancel',()=>d.classList.remove('on'))});
 
 /* ── misc render bits ── */
 function updateSummary(){
   const p=S.parsed;
+  $$('[data-c="timersummary"]').forEach(e=>{
+    e.innerHTML='<p class="flab">Live clock state</p><p class="small" style="margin:0"><span data-v="mini" class="c-res"></span> — the fullscreen clock opens from the <b>Run</b> pill on the fence. Reset/Cast/X live in the timer header; the working version of the same panel is in the log below.</p>';
+  });
   const mini=p?(p.rounds+'×'+p.reps+(p.load?' @ '+p.load+p.unit:'')+' · '+S.phase+' · '+S.events.length+'/'+blocks()+' entries'):('no runnable fence · '+S.phase);
   $$('[data-v="mini"]').forEach(e=>e.textContent=mini);
   $$('[data-v="phasechip"]').forEach(e=>e.textContent=S.phase);

@@ -1,15 +1,14 @@
 /**
- * TourHero — the interactive home page hero.
+ * TourHero — the home page hero.
  *
- * Headline + live welcome-1.md demo in one viewport. The editor is a real
- * NoteEditor so a visitor can edit, run, share, or open the demo in the
- * journal without scrolling.
+ * Headline + a compact preview of the welcome script. The hero hosts NO
+ * editor: the single NoteEditor for the page lives in the write section's
+ * sticky stage (one mounted editor through hero → write). The preview keeps
+ * the arrival contract visible (#882: /load?z= shared script + attribution)
+ * and the Run/Share actions operate on the same shared run document.
  */
-import { Pencil } from 'lucide-react'
-import { TourEditorScreen } from './screens/TourEditorScreen'
-import { MacOSChrome } from '../components/atoms/MacOSChrome'
+import { Pencil, Play, Share2 } from 'lucide-react'
 import { TOUR_ACCENTS } from './tourConstants'
-import type { ScriptBlock } from '@/components/Editor/types'
 
 const ROWS: Array<{
   sectionId: 'write' | 'run' | 'own' | 'explore'
@@ -25,28 +24,23 @@ const ROWS: Array<{
 ]
 
 export interface TourHeroProps {
-  theme: string
+  /** The shared run document — previewed read-only; edits happen in the write stage. */
   doc: string
-  onDocChange: (next: string) => void
-  onBlocksChange: (blocks: ScriptBlock[]) => void
+  /** Runs the first block of the shared document (inline timer stage). */
   onRun: () => void
+  /** Copies a /load?z= share link for the shared document (#882). */
   onShare: () => void
-  /** Shared-script attribution + reset (#882). */
+  /** Shared-script attribution + reset, shown when a /load?z= script is loaded. */
   sharedBy?: string
   onResetShared?: () => void
   onNavigateSection?: (sectionId: 'write' | 'run' | 'own' | 'explore') => void
 }
 
 /**
- * Headline, copy, and scroll cue — shared by the desktop hero (which adds
- * the live editor below) and the mobile runway (where the editor lives in
- * the pinned window instead).
+ * Headline, copy, and scroll cue — shared by the desktop hero and the mobile
+ * runway (where the editor lives in the pinned window).
  */
-export interface TourHeroHeadingProps {
-  onNavigateSection?: (sectionId: 'write' | 'run' | 'own' | 'explore') => void
-}
-
-export function TourHeroHeading({ onNavigateSection }: TourHeroHeadingProps = {}) {
+export function TourHeroHeading({ onNavigateSection }: { onNavigateSection?: TourHeroProps['onNavigateSection'] } = {}) {
   const handleJump = (sectionId: 'write' | 'run' | 'own' | 'explore') => {
     if (onNavigateSection) {
       onNavigateSection(sectionId)
@@ -81,11 +75,8 @@ export function TourHeroHeading({ onNavigateSection }: TourHeroHeadingProps = {}
             {row.after}.
           </span>
         ))}
-      </h1>      
-      {/* Desktop-only: absolutely positioned against the full-height hero.
-          On mobile the heading block is short, so the cue overlapped the intro
-          paragraph — the short-circuit strip below already carries the
-          "keep scrolling" hint there. */}
+      </h1>
+      {/* Desktop-only: absolutely positioned against the full-height hero. */}
       <div className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 sm:block">
         ↓ Scroll — the app, part by part
       </div>
@@ -94,10 +85,7 @@ export function TourHeroHeading({ onNavigateSection }: TourHeroHeadingProps = {}
 }
 
 export function TourHero({
-  theme,
   doc,
-  onDocChange,
-  onBlocksChange,
   onRun,
   onShare,
   sharedBy,
@@ -111,27 +99,58 @@ export function TourHero({
       className="relative flex min-h-0 flex-col items-center justify-center px-6 pt-10 pb-8 text-center"
     >
       <TourHeroHeading onNavigateSection={onNavigateSection} />
+      {/* Compact script preview — read-only; the editable NoteEditor is the
+          write section's sticky stage (one editor, no duplicate). */}
       <div className="mt-6 w-full max-w-2xl text-left">
-        <div className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-          <Pencil className="size-3" />
-          Editable playground
+        <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          <span className="flex items-center gap-1.5">
+            <Pencil className="size-3" />
+            Editable playground — below
+          </span>
+          <span>{sharedBy ? `shared by: ${sharedBy}` : 'welcome-1.md'}</span>
         </div>
-        <MacOSChrome
-          title="welcome-1.md"
-          subtitle={sharedBy ? `shared by: ${sharedBy}` : undefined}
-          onReset={sharedBy && onResetShared ? onResetShared : undefined}
-          className="h-[min(460px,52vh)] shadow-2xl"
-        >
-          <TourEditorScreen
-            doc={doc}
-            onDocChange={onDocChange}
-            onBlocksChange={onBlocksChange}
-            onRun={onRun}
-            onShare={onShare}
-            theme={theme}
-          />
-        </MacOSChrome>
+        <div className="relative rounded-xl border border-border bg-card shadow-2xl">
+          {sharedBy && onResetShared && (
+            <button
+              type="button"
+              onClick={onResetShared}
+              title="Reset"
+              className="absolute right-3 top-3 z-10 rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent"
+              data-testid="tour-hero-reset-shared"
+            >
+              Reset
+            </button>
+          )}
+          <pre
+            data-testid="tour-hero-preview"
+            className="max-h-[min(300px,34vh)] overflow-auto p-4 font-mono text-[12px] leading-[1.6] text-foreground/90"
+          >
+            {doc}
+          </pre>
+          <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-2.5">
+            <button
+              type="button"
+              onClick={onShare}
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
+              data-testid="tour-hero-share"
+            >
+              <Share2 className="size-3.5" />
+              Copy share link
+            </button>
+            <button
+              type="button"
+              onClick={onRun}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              data-testid="tour-hero-run"
+            >
+              <Play className="size-3.5" />
+              Run
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   )
 }
+
+export default TourHero

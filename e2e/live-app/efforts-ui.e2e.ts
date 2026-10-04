@@ -65,7 +65,7 @@ test.describe('Efforts Catalog Page', () => {
     await page.waitForTimeout(800);
 
     await expect(page.getByTestId('stream-query-bar')).toBeVisible();
-    await expect(page.getByTestId('add-filter-button')).toBeVisible();
+    await expect(page.getByTestId('stream-view-settings-trigger')).toBeVisible();
   });
 
   test('filtering by custom shows empty state initially', async ({ page }) => {
