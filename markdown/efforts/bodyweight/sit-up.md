@@ -6,7 +6,9 @@ aliases:
   - situp
   - sit ups
   - abmat sit-up
-  - ghd sit-up
+  - "Sit Up"
+  - "sit-ups"
+  - "Situps"
 baseAttributes:
   met: 3.5
   discipline: bodyweight

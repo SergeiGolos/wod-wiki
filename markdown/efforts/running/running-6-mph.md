@@ -8,6 +8,9 @@ aliases:
   - treadmill
   - easy run
   - jog
+  - "k Run"
+  - "Run easy"
+  - "Running"
 baseAttributes:
   met: 9.8
   discipline: running

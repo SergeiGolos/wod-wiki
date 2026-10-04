@@ -5,6 +5,10 @@ label: Kettlebell Clean
 aliases:
   - kb clean
   - kettlebell cleans
+  - "Clean Left"
+  - "Clean Right"
+  - "Double Clean"
+  - "Double KB Clean"
 baseAttributes:
   met: 8.0
   discipline: kettlebell

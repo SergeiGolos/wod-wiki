@@ -7,6 +7,7 @@ aliases:
   - skipping
   - skip rope
   - rope skip
+  - "Single Unders"
 baseAttributes:
   met: 10.0
   discipline: gymnastics

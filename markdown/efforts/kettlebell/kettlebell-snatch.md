@@ -6,6 +6,11 @@ aliases:
   - kb snatch
   - kettlebell snatches
   - kb
+  - "Double Snatch"
+  - "KB Snatch Left"
+  - "KB Snatch Right"
+  - "Snatch Left"
+  - "Snatch Right"
 baseAttributes:
   met: 12.0
   discipline: kettlebell

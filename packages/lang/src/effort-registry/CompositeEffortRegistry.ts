@@ -1,5 +1,6 @@
 import type { IEffort, IEffortRegistry, EffortRegistrySource, EffortStorageAdapter } from './types';
 import { bundledEfforts as defaultBundledEfforts } from './data/bundled-efforts';
+import { normalizeForFuzzy } from './fuzzyMatch';
 
 export interface CompositeEffortRegistryOptions {
   /** Custom bundled efforts to seed the read-only tier (defaults to built-in bundled efforts). */
@@ -65,6 +66,24 @@ export class CompositeEffortRegistry implements IEffortRegistry {
   resolve(slug: string): IEffort | null {
     // User wins over bundled
     return this.userEfforts.get(slug) ?? this.bundledEfforts.get(slug) ?? null;
+  }
+
+  resolveByAlias(label: string): IEffort | null {
+    const normalized = normalizeForFuzzy(label);
+    for (const effort of this.userEfforts.values()) {
+      if (normalizeForFuzzy(effort.label) === normalized) return effort;
+      for (const alias of effort.aliases) {
+        if (normalizeForFuzzy(alias) === normalized) return effort;
+      }
+    }
+    for (const effort of this.bundledEfforts.values()) {
+      if (this.userEfforts.has(effort.slug)) continue;
+      if (normalizeForFuzzy(effort.label) === normalized) return effort;
+      for (const alias of effort.aliases) {
+        if (normalizeForFuzzy(alias) === normalized) return effort;
+      }
+    }
+    return null;
   }
 
   list(): readonly IEffort[] {

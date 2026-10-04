@@ -6,6 +6,7 @@ aliases:
   - snatch
   - ps
   - hang snatch
+  - "Power Snatches"
 baseAttributes:
   met: 8.0
   discipline: strength

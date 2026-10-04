@@ -6,6 +6,9 @@ aliases:
   - tgu
   - turkish getup
   - get up
+  - "Turkish Get Up"
+  - "Turkish Get Up Left"
+  - "Turkish Get Up Right"
 baseAttributes:
   met: 5.0
   discipline: kettlebell

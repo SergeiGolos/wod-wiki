@@ -7,6 +7,11 @@ aliases:
   - kettlebell swings
   - swing
   - russian swing
+  - "Double Swing"
+  - "KB Swings"
+  - "One-Arm KB Swing Left"
+  - "One-Arm KB Swing Right"
+  - "Two-Hand KB Swing"
 baseAttributes:
   met: 9.8
   discipline: kettlebell

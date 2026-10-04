@@ -6,6 +6,9 @@ aliases:
   - clean
   - pc
   - hang clean
+  - "Cleans"
+  - "Hang Power Cleans"
+  - "Power Cleans"
 baseAttributes:
   met: 8.0
   discipline: strength

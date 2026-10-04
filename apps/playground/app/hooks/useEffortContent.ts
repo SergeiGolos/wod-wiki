@@ -34,6 +34,8 @@ export interface UseEffortContentResult {
   cloneForEdit: () => IEffort | null;
   /** Error if load failed */
   error: string | null;
+  /** True if resolved by alias rather than direct slug */
+  isAliasMatch: boolean;
 }
 
 /**
@@ -46,6 +48,7 @@ export function useEffortContent(slug: string | undefined): UseEffortContentResu
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [effort, setEffort] = useState<IEffort | null>(null);
+  const [isAliasMatch, setIsAliasMatch] = useState(false);
   const isEditable = effort?.registrySource === 'user';
   const hasClonedRef = useRef(false);
 
@@ -64,9 +67,11 @@ export function useEffortContent(slug: string | undefined): UseEffortContentResu
     async function load() {
       try {
         // One resolution surface: the registry (both tiers from IndexedDB).
-        const resolved = registry.resolve(slug);
+        const direct = registry.resolve(slug);
+        const resolved = direct ?? (typeof registry.resolveByAlias === 'function' ? registry.resolveByAlias(slug) : null);
         if (resolved && !cancelled) {
           setEffort(resolved);
+          setIsAliasMatch(!direct);
           setDocumentState(effortToDocument(resolved));
           setIsLoading(false);
           return;
@@ -203,5 +208,6 @@ export function useEffortContent(slug: string | undefined): UseEffortContentResu
     flush,
     cloneForEdit,
     error,
+    isAliasMatch,
   };
 }

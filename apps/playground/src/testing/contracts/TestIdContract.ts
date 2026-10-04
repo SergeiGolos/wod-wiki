@@ -75,6 +75,10 @@ export const TEST_IDS = {
   EFFORT_DETAIL_NOTEBOOK_EDITOR: 'effort-detail-notebook-editor',
   EFFORT_DETAIL_ANALYTICS_PLACEHOLDER: 'effort-detail-analytics-placeholder',
   EFFORT_NOT_FOUND: 'effort-not-found',
+  EFFORT_NOT_FOUND_CREATE_BTN: 'effort-not-found-create-btn',
+  EFFORT_NOT_FOUND_ALIAS_BTN: 'effort-not-found-alias-btn',
+  EFFORT_NOT_FOUND_ALIAS_SELECT: 'effort-not-found-alias-select',
+  EFFORT_NOT_FOUND_ALIAS_CONFIRM: 'effort-not-found-alias-confirm',
 
   // ── Efforts nav panel ─────────────────────────────────────────────────────
   EFFORTS_NAV_ORIGIN_FILTER: 'efforts-nav-origin-filter',
