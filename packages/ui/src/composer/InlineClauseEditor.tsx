@@ -2,7 +2,9 @@
  * InlineClauseEditor — the composer's in-card value editor. Rendered under
  * the composer box for the active pill: the composer owns this surface and
  * routes ↑/↓/Enter from the focused search input. Nothing here portals or
- * autofocuses; Tab is native and moves real focus out of the composer.
+ * autofocuses; Tab stays native in this guided picker and moves real focus
+ * out of the composer. Only the WQL text editor (WqlTextEditor) intercepts
+ * Tab — to accept a completion and hop syntactic slots.
  *
  * ARIA relation: with `listId` the list is a labelled listbox whose rows
  * carry stable ids (`clauseOptionId`), so the combobox input can point at it

@@ -18,12 +18,15 @@ export {
 } from './ComposerRegistry';
 export { dateRangeSlot, type DateRange } from './dateRangeSlot';
 export {
+  CANONICAL_BLOCK_TYPES,
   SUGGESTION_BINDINGS,
   blockTypesFromBlocks,
+  canonicalSuggestionItems,
   catalogIdsFromBlocks,
   getSuggestionBinding,
   invalidateSuggestions,
   loadSuggestions,
+  mergeSuggestionItems,
   mergeTagSuggestions,
   setSuggestionBinding,
   tagsFromStaticBlocks,

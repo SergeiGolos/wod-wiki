@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Entry } from '../../lib/entryMapper'
 import { StreamQueryEngine } from '../../lib/entrySearch'
@@ -8,6 +8,7 @@ import type { ParsedFindQuery, ParsedRowsQuery } from '@bitcobblers/wod-wiki-eng
 import { QueriableStreamView } from './QueriableStreamView'
 import type { Note, BlockIndexRow } from '@/types/storage'
 import { pendingRuntimes } from '../../runtimeStore'
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import {
   EFFORTS_STREAM_PROFILE,
   JOURNAL_STREAM_PROFILE,
@@ -182,7 +183,7 @@ describe('QueriableStreamView component', () => {
   })
 
   it('migrates legacy query parameters on mount to canonical WQL query', async () => {
-    const engine = createMockEngine([])
+    const { engine, executed } = stubEngine(() => [])
 
     render(
       <MemoryRouter initialEntries={['/journal?text=snatch']}>
@@ -191,7 +192,7 @@ describe('QueriableStreamView component', () => {
     )
 
     await waitFor(() => {
-      expect(engine.query).toHaveBeenCalledWith('find:note{source:journal,text:snatch} last 2w')
+      expect(executed.at(-1)).toBe('find:note{source:journal,text:snatch} last 2w')
     })
   })
 
@@ -599,5 +600,186 @@ describe('QueriableStreamView component', () => {
     } finally {
       journalNotes.resolve = originalResolve
     }
+  })
+})
+
+/** Engine stub whose query override records the executed string and can push
+ *  the run's stage counts — the view's only counts source (no extra scans). */
+function stubEngine(respond: (q: string, onStages?: (s: { selected: number; matched: number }) => void) => Entry[] | Promise<Entry[]>) {
+  const engine = new StreamQueryEngine({
+    service: {
+      runFind: mock(async () => ({
+        parsed: { raw: '', target: 'note', filters: [] } as unknown as ParsedFindQuery,
+        notes: [],
+        blocks: [],
+        stages: { selected: 0, matched: 0 },
+      })),
+    },
+  })
+  const executed: string[] = []
+  engine.query = mock(async (input: unknown, onStages?: (s: { selected: number; matched: number }) => void) => {
+    const q = typeof input === 'string' ? input : ''
+    executed.push(q)
+    return respond(q, onStages)
+  })
+  return { engine, executed }
+}
+
+const DATED_NOTE_ENTRIES: Entry[] = [
+  {
+    id: 'note-1',
+    kind: 'note',
+    sourceCatalog: 'canonical',
+    sourceItem: 'item-1',
+    title: 'Workout 1',
+    date: '2026-09-04',
+    tags: ['strength'],
+  },
+  {
+    id: 'note-2',
+    kind: 'note',
+    sourceCatalog: 'canonical',
+    sourceItem: 'item-2',
+    title: 'Workout 2',
+    date: '2026-08-15',
+    tags: ['strength'],
+  },
+]
+
+describe('QueriableStreamView — query truth and retained state', () => {
+  beforeEach(() => {
+    usePaletteStore.setState({ isOpen: false, request: null, _resolve: null })
+  })
+
+  it('shows query truth — target, matched of total, filters, grouping precedence — from the stage callback', async () => {
+    const { engine } = stubEngine((_q, onStages) => {
+      onStages?.({ selected: 7, matched: 2 })
+      return DATED_NOTE_ENTRIES
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('stream-query-counts').textContent).toBe('2 of 7')
+    })
+    const status = screen.getByTestId('stream-query-status').textContent ?? ''
+    expect(status).toContain('find:note')
+    expect(status).toContain('1 applied')
+    expect(status).toContain('by date (level)')
+    expect(screen.queryByText('Invalid query — showing previous results')).toBeNull()
+  })
+
+  it('keeps previous results, their grouping, and their counts under an invalid draft', async () => {
+    const { engine } = stubEngine(() => DATED_NOTE_ENTRIES)
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Workout 1')).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Filter or search…'), {
+      target: { value: 'find:note{oops' },
+    })
+
+    // Exact invalid draft: error surfaced, previous results retained under
+    // the previous date grouping — not regrouped by settings, not blanked.
+    expect(screen.getByTestId('stream-query-error')).toBeDefined()
+    expect(screen.getByText('Invalid query — showing previous results')).toBeDefined()
+    expect(screen.getByText('Workout 1')).toBeDefined()
+    expect(screen.getByTestId('date-group-2026-09-04')).toBeDefined()
+    expect(screen.queryByTestId('stream-grouping-fallback')).toBeNull()
+  })
+
+  it('keeps the committed run\'s grouping while a newer draft has not committed yet', async () => {
+    let calls = 0
+    const { engine } = stubEngine(() => {
+      // Run 1 commits; the next (intermediate-draft) run hangs like an
+      // expensive query — the previous results stay grouped by their run.
+      calls += 1
+      return calls === 1 ? DATED_NOTE_ENTRIES : Promise.withResolvers<Entry[]>().promise
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note{source:journal} by {tag}' }}
+          queryEngine={engine}
+        />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Workout 1')).toBeDefined()
+    })
+    expect(screen.getByTestId('stream-query-status').textContent).toContain('by tag (query)')
+
+    // A valid intermediate draft re-parses immediately but its run never
+    // commits — the displayed grouping must stay the committed run's.
+    fireEvent.change(screen.getByPlaceholderText('Filter or search…'), {
+      target: { value: 'find:note' },
+    })
+
+    expect(screen.getByTestId('stream-query-status').textContent).toContain('by tag (query)')
+    expect(screen.queryByTestId('date-group-2026-09-04')).toBeNull()
+  })
+
+  it('discloses an unknown grouping dimension and switches to tags in one click', async () => {
+    const { engine, executed } = stubEngine(() => DATED_NOTE_ENTRIES)
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note{source:journal} by {nonsense}' }}
+          queryEngine={engine}
+        />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('stream-grouping-fallback-badge')).toBeDefined()
+    })
+    // Status reports the EFFECTIVE dimension with the fallback disclosed —
+    // not the requested-but-unsupported one.
+    const status = screen.getByTestId('stream-query-status').textContent ?? ''
+    expect(status).toContain('by tag (query fallback)')
+
+    fireEvent.click(screen.getByTestId('stream-grouping-fallback-badge'))
+
+    await waitFor(() => {
+      expect(executed.at(-1)).toBe('find:note{source:journal} by {tag}')
+    })
+  })
+
+  it('offers Edit query first when an advisory no-ops the empty result', async () => {
+    const { engine } = stubEngine(() => [])
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note in journal' }}
+          queryEngine={engine}
+        />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('stream-empty-state')).toBeDefined()
+    })
+
+    // The header toolbar's ⌘K control shares the Edit query name — the
+    // remedy is the one inside the empty state.
+    fireEvent.click(within(screen.getByTestId('stream-empty-state')).getByRole('button', { name: 'Edit query' }))
+    const state = usePaletteStore.getState()
+    expect(state.isOpen).toBe(true)
+    expect(state.request?.wql?.initialQuery).toBe('find:note in journal')
   })
 })

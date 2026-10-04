@@ -30,6 +30,9 @@ export interface StreamQueryBarProps {
   scopeOptions: readonly string[]
   /** Stage-count executor handed to the palette composer. */
   execute: WqlExecutor
+  /** The route's default WQL — composer guidance and the compact dock's
+   *  summary when the draft is empty (actual profile default, not a slogan). */
+  defaultQuery?: string
   /** Compact (mobile) variant — summary line instead of the composer. */
   compact?: boolean
   className?: string
@@ -55,6 +58,7 @@ export function StreamQueryBar({
   onQueryChange,
   scopeOptions,
   execute,
+  defaultQuery,
   compact = false,
   className,
 }: StreamQueryBarProps) {
@@ -66,7 +70,8 @@ export function StreamQueryBar({
   if (compact) {
     // Mobile thumb-footer button row — one native button control (48px
     // target) that opens the WQL palette. Same border token as the desktop
-    // composer box so both variants read as one chrome.
+    // composer box so both variants read as one chrome. An empty draft
+    // summarizes the route's actual default query.
     return (
       <button
         type="button"
@@ -77,14 +82,14 @@ export function StreamQueryBar({
           className,
         )}
       >
-        <Search className="size-4 shrink-0 text-muted-foreground" />
+        <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span
           data-testid="stream-query-summary"
           className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
         >
-          {query}
+          {query || defaultQuery || 'Filter or search…'}
         </span>
-        <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
+        <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
     )
   }
@@ -95,19 +100,22 @@ export function StreamQueryBar({
       className={cn('flex min-w-0 flex-1 items-center gap-1 text-xs', className)}
     >
       {/* Shared composer — same parsing, catalog and searchable picker as the
-          dialog; the header has no separate draft text or scope menu. */}
+          dialog; the header has no separate draft text or scope menu. The
+          route default guides via the composer's example line. */}
       <WqlComposer
         query={query}
         onQueryChange={onQueryChange}
         compact
         showDiagnostics={false}
         preferredChoices={scopeOptions}
+        defaultQuery={defaultQuery}
         placeholder="Filter or search…"
         className="min-w-0 flex-1"
       />
 
       <button
         type="button"
+        aria-label="Edit query"
         title="Edit query (⌘K)"
         onClick={(e) => {
           e.stopPropagation()
@@ -115,7 +123,7 @@ export function StreamQueryBar({
         }}
         className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
-        <Command className="size-3" />
+        <Command className="size-3" aria-hidden="true" />
         K
       </button>
     </div>

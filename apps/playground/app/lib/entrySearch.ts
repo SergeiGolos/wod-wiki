@@ -31,9 +31,54 @@ import {
   noteFromBlock,
   effortToEntry,
   rowsQueryResultToEntries,
+  formatEffortName,
   blockPreview,
   type Entry,
 } from './entryMapper';
+
+/**
+ * find:segment / find:event — the executor returns tabular scalar rows
+ * (#1042), not notes/blocks. Map each row into a stream Entry from the
+ * metadata the table actually emits (selected columns + `__id`/`__resultId`).
+ * Unknown non-scalar fields are ignored; note identity is kept only when the
+ * table emits a `note` column — ids are never invented for navigation.
+ */
+function tableRowToEntry(row: Record<string, unknown>, target: 'segment' | 'event', index: number): Entry {
+  const rowId = typeof row.__id === 'string' && row.__id ? row.__id : undefined;
+  const resultId = typeof row.__resultId === 'string' && row.__resultId ? row.__resultId : undefined;
+  const effort = typeof row.effort === 'string' && row.effort ? row.effort : undefined;
+  const fields: string[] = [];
+  for (const [key, value] of Object.entries(row)) {
+    if (key.startsWith('__') || key === 'date' || key === 'effort') continue;
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      fields.push(`${key}: ${value}`);
+    }
+  }
+  return {
+    id: rowId ?? resultId ?? `${target}:${index}`,
+    kind: target,
+    sourceCatalog: 'results',
+    sourceItem: resultId ?? rowId ?? `${target}:${index}`,
+    title: effort ? formatEffortName(effort) : `${target === 'segment' ? 'Segment' : 'Event'} ${index + 1}`,
+    date: typeof row.date === 'string' ? row.date : null,
+    subtitle: fields.length > 0 ? fields.join(' • ') : undefined,
+  };
+}
+
+/** Emit one honest stage count per run: `matched` is the actual mapped
+ *  entries (the note-plane count understates text-companion unions),
+ *  `selected` (scope population) never drops below it. */
+function emitStages(
+  onStages: ((stages: { selected: number; matched: number }) => void) | undefined,
+  stages: { selected: number; matched: number } | undefined,
+  entries: Entry[],
+): void {
+  if (!onStages) return;
+  onStages({
+    selected: Math.max(stages?.selected ?? 0, entries.length),
+    matched: entries.length,
+  });
+}
 
 export interface StreamQueryService {
   runFind(parsed: ParsedFindQuery, options?: unknown): Promise<FindQueryResult>;
@@ -98,7 +143,7 @@ export class StreamQueryEngine {
     }
     return next;
   }
-  async query(input: string | AnyParsedQuery): Promise<Entry[]> {
+  async query(input: string | AnyParsedQuery, onStages?: (stages: { selected: number; matched: number }) => void): Promise<Entry[]> {
     const parsed: AnyParsedQuery = typeof input === 'string' ? parseQuery(input) : input;
     if (!parsed || parsed.error) return [];
 
@@ -109,17 +154,23 @@ export class StreamQueryEngine {
         const result = this.service.runFindEffort
           ? await this.service.runFindEffort(parsed)
           : await this.service.runFind(parsed);
-        return (result.efforts ?? []).map(effortToEntry);
+        const entries = (result.efforts ?? []).map(effortToEntry);
+        emitStages(onStages, result.stages, entries);
+        return entries;
       }
 
-      // find:block — one Entry per block, newest first (#855).
+      // find:block — one Entry per block in executor order: pipes
+      // (order/limit) are applied upstream, so no local re-sort (#855).
       if (parsed.target === 'block') {
         const result = await this.service.runFind(parsed);
-        return [...result.blocks].sort((a, b) => b.createdAt - a.createdAt).map(blockToEntry);
+        const entries = result.blocks.map(blockToEntry);
+        emitStages(onStages, result.stages, entries);
+        return entries;
       }
       // find:session — session runs grouped into cards (#1041/#1042)
       if (parsed.target === 'session') {
         const result = await this.service.runFind(parsed);
+        onStages?.(result.stages);
         let noteTitles: Map<string, string> | undefined;
         if (this.noteTitleResolver && result.runs) {
           noteTitles = new Map();
@@ -130,7 +181,19 @@ export class StreamQueryEngine {
             }
           }
         }
-        return rowsQueryResultToEntries(result as unknown as RowsQueryResult, { noteTitles });
+        const entries = rowsQueryResultToEntries(result as unknown as RowsQueryResult, { noteTitles });
+        emitStages(onStages, result.stages, entries);
+        return entries;
+      }
+
+      // find:segment / find:event — the tabular rows plane (#1042). Mapped
+      // from result.table rows; noteMap would silently drop them.
+      if (parsed.target === 'segment' || parsed.target === 'event') {
+        const target = parsed.target;
+        const result = await this.service.runFind(parsed);
+        const entries = (result.table?.rows ?? []).map((row, i) => tableRowToEntry(row, target, i));
+        emitStages(onStages, result.stages, entries);
+        return entries;
       }
 
       // find:note (or other content target)
@@ -169,6 +232,7 @@ export class StreamQueryEngine {
       }
 
       const entries = Array.from(noteMap.values()).map(toEntry);
+      emitStages(onStages, primaryResult.stages, entries);
       if (this.noteTagsResolver || this.service.getNoteTagLabels) {
         const resolveTags = this.noteTagsResolver ?? ((id: string) => this.service.getNoteTagLabels!(id));
         await Promise.all(
@@ -221,11 +285,13 @@ export const defaultStreamQueryEngine = new StreamQueryEngine();
 
 /**
  * Shared entry point for resolving WQL query strings or ASTs into Entry[] across
- * all planes (content, efforts, and telemetry rows).
+ * all planes (content, efforts, and telemetry rows). `onStages` receives the
+ * run's reconciled counts ({selected, matched}) — no extra scans.
  */
 export async function searchEntries(
   input: string | AnyParsedQuery,
   engine: StreamQueryEngine = defaultStreamQueryEngine,
+  onStages?: (stages: { selected: number; matched: number }) => void,
 ): Promise<Entry[]> {
-  return engine.query(input);
+  return engine.query(input, onStages);
 }

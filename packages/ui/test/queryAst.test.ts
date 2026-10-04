@@ -76,9 +76,10 @@ describe('lossless targeted WQL edits', () => {
     expect(block.removed).toEqual([]);
     expect(block.draft.ast).toMatchObject({ target: 'block', join: parseQuery(query).join, groupBy: ['week'] });
     const effort = pivotQuery(query, 'target', 'effort');
-    expect(effort.removed).toEqual(expect.arrayContaining(['Time window', 'Group By', 'Join']));
+    expect(effort.draft.valid).toBe(true);
     expect(effort.draft.ast.window).toBeUndefined();
-    expect(effort.draft.ast.groupBy).toBeUndefined();
+    expect(effort.draft.ast.join).toBeUndefined();
+    expect(effort.draft.ast.groupBy).toEqual(['week']);
   });
 
   it('parser-recognized fragments change only their field', () => {

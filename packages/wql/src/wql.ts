@@ -26,6 +26,7 @@ import {
   type WqlComparisonOp,
 } from './vocabulary';
 import { parseWqlSuffixes, splitAtWhere, type ParsedWqlWindowSuffix } from './wqlSuffix';
+import { allowedFilterTypesForTarget, supportsWqlFilterKey, wqlFilterKeys, wqlGroupingDimensions } from './capabilities';
 
 export { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_SOURCE_VALUES } from './vocabulary';
 export { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
@@ -365,7 +366,7 @@ export function parseQuery(raw: string): AnyParsedQuery {
     result = parseAnalyticsQuery(norm.query);
   }
   if (norm.advisories.length) {
-    result.advisories = [...(result.advisories ?? []), ...norm.advisories];
+    result.advisories = [...new Set([...(result.advisories ?? []), ...norm.advisories])];
   }
   result.raw = raw;
   return result;
@@ -645,7 +646,7 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
 // ── Find query parsing ──────────────────────────────────────────────
 
 function cannotParseFind(text: string): string {
-  return `Cannot parse "${text}". Expected find:target{filters} last 8w`;
+  return `Cannot parse "${text}". Expected find:<target>{key:value, !key:value}; filters are optional. Optional suffixes include by {dimension}, last <n>d or last <n>w, from YYYY-MM-DD [to YYYY-MM-DD], where <aggregator>:<metric>{filters} <operator> <number>, and | order by <column> | limit <n>. Support depends on the target.`;
 }
 
 function parseFindQuery(raw: string): ParsedFindQuery {
@@ -728,22 +729,8 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   if (sourceError) { result.error = sourceError; return result; }
   const findGrainError = retiredGrainRollup(result.filters);
   if (findGrainError) { result.error = findGrainError; return result; }
-  // find:effort reads the effort registry — no time dimension, no source
-  // scoping. Accepted-but-ignored clauses surface as advisories so a query
-  // never silently returns a different population than its text implies.
-  if (result.target === 'effort') {
-    if (win.window) {
-      advisories.push("find:effort ignores the window — efforts have no time dimension; drop 'last <n><d|w>'.");
-    }
-    const ignored = result.filters.map(f => f.key).filter(k => !(WQL_EFFORT_FILTER_KEYS as readonly string[]).includes(k));
-    if (ignored.length > 0) {
-      advisories.push(`find:effort ignores ${ignored.map(k => `'${k}:'`).join(', ')} filters — supported: ${WQL_EFFORT_FILTER_KEYS.join(', ')}.`);
-    }
-    if (advisories.length > 0) {
-      result.advisories = [...(result.advisories ?? []), ...advisories];
-    }
-  }
-
+  const target = result.target;
+  if (suffixes.rollup) advisories.push(`find:${target} ignores '.rollup(...)'; rollup is supported by aggregate queries.`);
   if (whereText) {
     const join = parseJoinClause(whereText);
     if (join.error) {
@@ -758,5 +745,66 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     }
     result.join = join.metric;
   }
+  const computed = findTargetAdvisories(result);
+  if (advisories.length || computed.length) {
+    result.advisories = [...new Set([...advisories, ...computed])];
+  }
   return result;
+}
+
+/**
+ * Target-capability advisories for a find AST: every clause the executor will
+ * silently drop, apply differently than written, or group outside the
+ * executor. A pure function of the parsed shape — `parseFindQuery` attaches
+ * these at parse time and `QueryService.runFind` re-derives them, so
+ * hand-built ASTs get the same loud disclosure without re-serializing text.
+ */
+export function findTargetAdvisories(query: ParsedFindQuery): string[] {
+  const advisories: string[] = [];
+  const target = query.target;
+  const supported = allowedFilterTypesForTarget(target, 'find');
+  const ignored = [...new Set(query.filters.filter(f => !supportsWqlFilterKey(target, 'find', f.key)).map(f => f.key))];
+  if (ignored.length) {
+    const custom = target === 'segment' || target === 'event' ? ', custom fact dimensions' : '';
+    const effortKey = ignored.find(key => (WQL_EFFORT_FILTER_KEYS as readonly string[]).includes(key));
+    const recovery = effortKey && target !== 'effort' ? ` To filter by ${effortKey}, use find:effort{${effortKey}:…}.` : '';
+    advisories.push(`find:${target} ignores ${ignored.map(key => `'${key}:'`).join(', ')} — the filter is not applied.${recovery} Supported keys: ${wqlFilterKeys(target, 'find').join(', ')}${custom}.`);
+  }
+  for (const filter of query.filters) {
+    if (ignored.includes(filter.key)) continue;
+    const scope = ['result', 'block', 'note'].includes(filter.key);
+    const negationIgnored = target === 'note'
+      ? ['effort', 'text', 'type', 'domain', 'format', 'equipment', 'quality', 'intent'].includes(filter.key)
+      : target === 'block' ? ['text', 'type', 'tags', 'effort'].includes(filter.key)
+      : (target === 'session' || target === 'segment' || target === 'event') && scope;
+    if (filter.negate && negationIgnored) {
+      advisories.push(`find:${target} does not support '!${filter.key}:' negation; this clause is not applied as a negated filter.`);
+    }
+    const wildcardSupported = target === 'effort' ? ['effort', 'text'].includes(filter.key)
+      : (target === 'segment' || target === 'event') && !scope;
+    if (filter.values.some(value => value.wildcard) && !wildcardSupported) {
+      advisories.push(`find:${target} does not support '${filter.key}:…*' wildcards; values are matched without wildcard expansion.`);
+    }
+  }
+  if (query.window && !supported.has('time')) {
+    advisories.push(`find:${target} ignores the window because its registry has no time dimension.`);
+  }
+  if (query.groupBy?.length) {
+    const dimensions = wqlGroupingDimensions(target, 'find');
+    const unsupported = query.groupBy.filter(dim => !dimensions.includes(dim));
+    if (target === 'note' || target === 'block') {
+      if (unsupported.length) advisories.push(`find:${target} cannot group by ${unsupported.join(', ')}; grouped by tag instead. Valid alternatives: ${dimensions.join(', ')}.`);
+    } else if (target === 'segment' || target === 'event') {
+      const selected = query.pipes?.select?.map(column => column.col);
+      const unavailable = query.groupBy.filter(dim => selected ? !selected.includes(dim) : !dimensions.includes(dim));
+      if (unavailable.length) advisories.push(`find:${target} groups only emitted table columns; ${unavailable.join(', ')} may be unassigned. Select each grouping column explicitly.`);
+    } else if (unsupported.length) {
+      advisories.push(`find:${target} cannot group by ${unsupported.join(', ')}; the view groups by content dimensions. Valid alternatives: ${dimensions.join(', ')}.`);
+    }
+  }
+  if (query.displayUnit && !supported.has('unit')) advisories.push(`find:${target} ignores the display unit 'in ${query.displayUnit}'.`);
+  if (query.join && !supported.has('where')) advisories.push(`find:${target} ignores the 'where' join; joins are supported by find:note and find:block.`);
+  if (query.pipes?.select && target !== 'segment' && target !== 'event') advisories.push(`find:${target} ignores '| select'; the result keeps its original fields.`);
+  if (query.pipes?.order && target === 'session') advisories.push(`find:session ignores '| order by'; sessions remain ordered by completion time.`);
+  return [...new Set(advisories)];
 }

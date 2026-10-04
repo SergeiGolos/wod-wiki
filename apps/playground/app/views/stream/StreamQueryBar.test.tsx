@@ -94,4 +94,14 @@ describe('StreamQueryBar', () => {
     fireEvent.click(screen.getByTestId('stream-query-bar'))
     expect(usePaletteStore.getState().isOpen).toBe(true)
   })
+
+  it('exposes an accessible Edit query control', () => {
+    render(<Bar />)
+    expect(screen.getByRole('button', { name: 'Edit query' })).toBeDefined()
+  })
+
+  it('compact dock summarizes the route default when the draft is empty', () => {
+    render(<Bar compact query="" defaultQuery="find:note{source:journal} last 2w" />)
+    expect(screen.getByTestId('stream-query-summary').textContent).toBe('find:note{source:journal} last 2w')
+  })
 })

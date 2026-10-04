@@ -141,6 +141,10 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
   useEffect(() => {
     const restore = () => {
       const restoredQ = new URLSearchParams(window.location.search).get('q') ?? ''
+      // Sentinel pops (palette open/close push+pop the SAME location) are
+      // back navigations with no URL change — they must not reset the
+      // composer: the local draft (invalid included) is newer than the URL.
+      if (restoredQ === prevQRef.current) return
       prevQRef.current = restoredQ
       urlIsCheckpoint.current = true
       clearTimeout(settleRef.current)
@@ -159,6 +163,7 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
   // (a half-typed query must not become history or a page error).
   const setQuery = useCallback(
     (next: string) => {
+      setQueryState(next)
       if (parseQuery(next).error) return
       if (next !== queryRef.current) {
         const params = new URLSearchParams(searchParamsRef.current)
@@ -172,7 +177,6 @@ export function useComposerQueryState(config: ComposerQueryStateConfig): Compose
           settleRef.current = null
         }, URL_SPELL_SETTLE_MS)
       }
-      setQueryState(next)
     },
     [setSearchParams],
   )

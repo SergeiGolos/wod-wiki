@@ -1,8 +1,9 @@
 /**
  * searchEntries — find:block emits one Entry per block (parent identity +
- * block payload, #855), newest first, uncapped: the full set is returned
- * and the Library batches rendering (#861). find:note behavior is
- * unchanged (whole-note entries, blocks only expand text hits).
+ * block payload, #855) in executor order: pipes (order/limit) are applied
+ * upstream and the stream must not re-sort presentation. find:note behavior
+ * is unchanged (whole-note entries, blocks only expand text hits) — but its
+ * stage counts describe the actual mapped union.
  */
 import { describe, expect, it, mock } from 'bun:test'
 
@@ -51,14 +52,14 @@ function blockResult(raw: string, blocks: BlockIndexRow[]): FindQueryResult {
 }
 
 describe('searchEntries — find:block (#855, #861)', () => {
-  it('emits one Entry per block with parent identity and block payload', async () => {
+  it('emits one Entry per block with parent identity and block payload, in executor order', async () => {
     const blocks = [makeBlock(0, 100), makeBlock(1, 200)]
     runFindImpl = async parsed => blockResult(parsed.raw, blocks)
 
     const entries = await searchEntries('find:block in all')
     expect(entries).toHaveLength(2)
-    // Newest first.
-    expect(entries[0]!.block?.segmentId).toBe('seg-1')
+    // Executor order is presentation order — no local re-sort.
+    expect(entries[0]!.block?.segmentId).toBe('seg-0')
     for (const entry of entries) {
       expect(entry.kind).toBe('post')
       expect(entry.block?.dataType).toBe('wod')
@@ -73,7 +74,7 @@ describe('searchEntries — find:block (#855, #861)', () => {
 
     const entries = await searchEntries('find:block in all')
     expect(entries).toHaveLength(500)
-    expect(entries[0]!.block?.segmentId).toBe('seg-499')
+    expect(entries[0]!.block?.segmentId).toBe('seg-0')
   })
 })
 
@@ -399,5 +400,78 @@ describe('StreamQueryEngine — error and unsupported query handling', () => {
   it('returns empty array on empty query string', async () => {
     const entries = await searchEntries('')
     expect(entries).toEqual([])
+  })
+})
+
+describe('StreamQueryEngine — tabular rows plane (find:segment / find:event, #1042)', () => {
+  function tableResult(parsed: ParsedFindQuery): FindQueryResult {
+    return {
+      parsed,
+      notes: [],
+      blocks: [],
+      table: {
+        columns: [],
+        rows: [
+          { date: '2026-08-15', effort: 'thruster', __id: 'row-1', __resultId: 'res-42' },
+          { date: '2026-08-16', __id: 'row-2', __resultId: 'res-42' },
+        ],
+        totalCount: 2,
+      },
+      stages: { selected: 9, matched: 2 },
+    }
+  }
+
+  it('maps result.table rows to entries — executor order, ids preserved, no noteMap fallback', async () => {
+    runFindImpl = async parsed => tableResult(parsed)
+
+    const entries = await searchEntries('find:segment{result:res-42}')
+    expect(entries).toHaveLength(2)
+    expect(entries[0]!.kind).toBe('segment')
+    expect(entries[0]!.id).toBe('row-1')
+    expect(entries[0]!.date).toBe('2026-08-15')
+    expect(entries[0]!.title).toBe('Thruster')
+    expect(entries[0]!.sourceItem).toBe('res-42')
+    expect(entries[1]!.id).toBe('row-2')
+    expect(entries[1]!.title).toBe('Segment 2')
+  })
+
+  it('reports union-honest stage counts: matched = mapped rows, selected never below it', async () => {
+    runFindImpl = async parsed => tableResult(parsed)
+
+    let stages: { selected: number; matched: number } | undefined
+    await searchEntries('find:segment{result:res-42}', undefined, next => { stages = next })
+    expect(stages).toEqual({ selected: 9, matched: 2 })
+  })
+})
+
+describe('StreamQueryEngine — stage counts reconcile the companion union', () => {
+  it('matched counts the actual note union when body companions widen the result', async () => {
+    runFindImpl = async parsed => {
+      if (parsed.target === 'block') {
+        return {
+          parsed,
+          notes: [],
+          blocks: [
+            { ...makeBlock(1, 200), noteId: 'note-0' },
+            { ...makeBlock(2, 200), noteId: 'note-extra' },
+          ],
+          stages: { selected: 2, matched: 2 },
+        }
+      }
+      return {
+        parsed,
+        notes: [{ id: 'note-0', title: 'Note 0', createdAt: 100, type: 'note' } as never],
+        blocks: [],
+        stages: { selected: 1, matched: 1 },
+      }
+    }
+
+    let stages: { selected: number; matched: number } | undefined
+    const engine = new StreamQueryEngine()
+    const entries = await engine.query('find:note{text:squat}', next => { stages = next })
+    // Two notes render (primary + companion-only), so matched is 2 — and
+    // selected (scope population) never drops below the union.
+    expect(entries).toHaveLength(2)
+    expect(stages).toEqual({ selected: 2, matched: 2 })
   })
 })

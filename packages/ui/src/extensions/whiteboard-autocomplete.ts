@@ -129,6 +129,11 @@ export function unregisterCustomCompletionSource(source: CustomCompletionSource)
 
 
 export const wodAutocompletion: Extension = autocompletion({
+  interactionDelay: 0,
+  activateOnCompletion: (completion) =>
+    completion.type === "property" &&
+    typeof completion.apply === "string" &&
+    completion.apply.endsWith(":\n  - "),
   override: [
     fenceCompletion,
     async (context: CompletionContext) => {

@@ -220,22 +220,20 @@ author: Coach
     container.remove();
   });
 
-  it('does not render +tag when tags property already exists in frontmatter', () => {
+  it.each(['tags', 'tag', 'Category'])('Add tag focuses the existing %s input without changing metadata', (key) => {
     const state = EditorState.create({
-      doc: SAMPLE_NOTE,
+      doc: `---\n${key}: [parkour]\n---\nBody`,
       extensions: [sectionField, frontmatterPreview],
     });
-
     const container = document.createElement('div');
     document.body.appendChild(container);
     const view = new EditorView({ state, parent: container });
-
-    const addPropBtn = container.querySelector('button[aria-label="Add property"]');
+    const before = view.state.doc.toString();
     const addTagBtn = container.querySelector('button[aria-label="Add tag"]');
-
-    expect(addPropBtn).not.toBeNull();
-    expect(addTagBtn).toBeNull();
-
+    if (!(addTagBtn instanceof HTMLButtonElement)) throw new Error('Missing Add tag action');
+    addTagBtn.click();
+    expect(document.activeElement?.getAttribute('aria-label')).toBe(`Add tag to ${key}`);
+    expect(view.state.doc.toString()).toBe(before);
     view.destroy();
     container.remove();
   });

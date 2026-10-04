@@ -13,6 +13,7 @@ export interface WqlFindSummary {
   target: string;
   scope: string;
   timeWindow?: string;
+  groupBy?: string;
   hasJoin: boolean;
   filterCount: number;
 }
@@ -28,6 +29,7 @@ export function summarizeFind(ast: ParsedFindQuery): WqlFindSummary {
         ? `last ${ast.window.size}${ast.window.unit}`
         : `from ${ast.window.start}${ast.window.end ? ` to ${ast.window.end}` : ''}`
       : undefined,
+    groupBy: ast.groupBy?.length ? ast.groupBy.join(', ') : undefined,
     hasJoin: Boolean(ast.join),
     filterCount: ast.filters.length,
   };

@@ -24,6 +24,7 @@ import { normalizeFieldComponent } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,
+  findTargetAdvisories,
   type Aggregator,
   type ComparisonOp,
   type ParsedAggregateQuery,
@@ -835,6 +836,13 @@ export class QueryService {
   async runFind(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     if (parsed.error) {
       return { parsed, notes: [], blocks: [], stages: { selected: 0, matched: 0 } };
+    }
+    // Hand-built ASTs get the same loud target-capability disclosure as
+    // parsed text — re-derived from the parsed shape, never from raw text.
+    const computed = findTargetAdvisories(parsed);
+    if (computed.length) {
+      const merged = [...new Set([...(parsed.advisories ?? []), ...computed])];
+      if (merged.length !== (parsed.advisories?.length ?? 0)) parsed = { ...parsed, advisories: merged };
     }
 
     if (parsed.target === 'block') {

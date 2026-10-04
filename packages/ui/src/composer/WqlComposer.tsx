@@ -5,7 +5,7 @@ import { InlineClauseEditor } from './InlineClauseEditor';
 import { useClauseItems } from './clauseItems';
 import { composerRegistry, useComposerSlots } from './ComposerRegistry';
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
-import { useWqlStageCounts, DEFAULT_DIAGNOSTICS_DEBOUNCE_MS, type WqlExecutor, type AnyParsedQuery } from './useWqlStageCounts';
+import { useWqlStageCounts, DEFAULT_DIAGNOSTICS_DEBOUNCE_MS, type WqlExecutor, type WqlStageCounts, type AnyParsedQuery } from './useWqlStageCounts';
 import { CLAUSE_META, CONTENT_GROUPING_DIMENSIONS, getClauseMeta, allowedFilterTypesForTarget, type ClauseType, type QueryClause } from './queryClauses';
 import { astToPills, editQueryClause, pivotQuery, resolveQueryDraft, type QueryDraft } from './queryAst';
 import { useSuggestionBoundTypes } from './suggestionSources';
@@ -18,6 +18,7 @@ export interface WqlValidationState {
 
 export interface WqlComposerProps {
   initialQuery?: string;
+  defaultQuery?: string;
   query?: string;
   /** Synchronous resolved draft, including invalid exact text. Execution debounce belongs to the host. */
   onQueryChange?: (wql: string) => void;
@@ -30,6 +31,8 @@ export interface WqlComposerProps {
   showDiagnostics?: boolean;
   diagnosticsPosition?: 'top' | 'bottom';
   execute?: WqlExecutor;
+  /** Reuse host execution counts instead of running another query. */
+  stages?: WqlStageCounts;
   debounceMs?: number;
   customSlots?: ReactNode;
   diagnosticsActions?: ReactNode;
@@ -48,13 +51,13 @@ type ActiveEditor =
   | { kind: 'wql' };
 
 export function WqlComposer({
-  initialQuery, query, onQueryChange, onValidationChange, onAstChange, onSubmit, actionLabel,
-  compact = false, showDiagnostics = true, diagnosticsPosition = 'bottom', execute,
+  initialQuery, defaultQuery, query, onQueryChange, onValidationChange, onAstChange, onSubmit, actionLabel,
+  compact = false, showDiagnostics = true, diagnosticsPosition = 'bottom', execute, stages: suppliedStages,
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS, customSlots, diagnosticsActions,
   hiddenClauseTypes, preferredChoices, autoFocus = false, placeholder = 'Search text or enter WQL', className,
 }: WqlComposerProps) {
   const [desktop, setDesktop] = useState(false);
-  const [base, setBase] = useState(query ?? initialQuery ?? 'find:note last 2w');
+  const [base, setBase] = useState(query ?? initialQuery ?? defaultQuery ?? 'find:note');
   const [pending, setPending] = useState('');
   const [active, setActive] = useState<ActiveEditor>({ kind: 'closed' });
   const [search, setSearch] = useState('');
@@ -63,8 +66,9 @@ export function WqlComposer({
   const [undo, setUndo] = useState<string>();
   const [pivot, setPivot] = useState<{ draft: QueryDraft; removed: string[] }>();
   const inputRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-  const emittedRef = useRef(query ?? initialQuery ?? 'find:note last 2w');
+  const emittedRef = useRef(query ?? initialQuery ?? defaultQuery ?? 'find:note');
   const queryRef = useRef(query);
   const currentRef = useRef(resolveQueryDraft(base));
   const callbacks = useRef({ onQueryChange, onValidationChange, onAstChange });
@@ -77,7 +81,7 @@ export function WqlComposer({
   const resolved = useMemo(() => resolveQueryDraft(external ? query : base, external ? '' : pending), [base, pending, external, query]);
   currentRef.current = resolved;
   const pills = useMemo(() => astToPills(resolved.ast) ?? [], [resolved.ast]);
-  const guided = useMemo(() => astToPills(resolveQueryDraft(base).ast) !== null, [base]);
+  const guided = resolved.valid && astToPills(resolved.ast) !== null;
   const hidden = new Set<string>(hiddenClauseTypes);
   const editorClause = active.kind === 'value' ? active.clause : undefined;
   const customEditor = editorClause ? composerRegistry.getSlot(editorClause.type) : undefined;
@@ -102,7 +106,8 @@ export function WqlComposer({
   const catalogOpen = active.kind === 'catalog' || suggesting;
   const textAction = suggesting || allowed.has('text');
   const optionCount = active.kind === 'value' ? values.filteredItems.length + Number(values.canCommitTyped) : catalog.length + Number(textAction);
-  const stages = useWqlStageCounts(resolved.ast, resolved.valid && !error, execute, debounceMs);
+  const countedStages = useWqlStageCounts(resolved.ast, resolved.valid && !error, suppliedStages ? undefined : execute, debounceMs);
+  const stages = suppliedStages ?? countedStages;
 
   useEffect(() => {
     if (query === undefined || query === queryRef.current) return;
@@ -135,6 +140,10 @@ export function WqlComposer({
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
+
+  useEffect(() => {
+    if (active.kind === 'catalog' || active.kind === 'value') pickerRef.current?.focus();
+  }, [active.kind]);
 
   useEffect(() => {
     if (highlight >= 0) document.getElementById(`${listId}-option-${highlight}`)?.scrollIntoView?.({ block: 'nearest' });
@@ -243,7 +252,7 @@ export function WqlComposer({
     }
     if ((active.kind === 'value' || catalogOpen) && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
       event.preventDefault(); event.stopPropagation();
-      setHighlight((index) => event.key === 'ArrowDown' ? Math.min(index + 1, optionCount - 1) : Math.max(index - 1, -1));
+      setHighlight((index) => event.key === 'ArrowDown' ? (index + 1) % optionCount : (index <= 0 ? optionCount - 1 : index - 1));
       return;
     }
     if (event.key === 'Enter') {
@@ -272,7 +281,7 @@ export function WqlComposer({
   return (
     <div className={cn('min-w-0 space-y-2', desktop && compact && 'flex flex-wrap items-center gap-2 space-y-0 [&>:not([data-wql-inline])]:w-full', className)} data-testid="wql-composer-root">
       {diagnosticsPosition === 'top' && showDiagnostics && <WqlDiagnosticsStrip diagnostics={diagnostics} stages={stages} actions={action} variant="header" />}
-      {(desktop || active.kind === 'wql' || !guided) && <div data-wql-inline className={cn('min-w-0', desktop && compact ? 'flex-1' : 'w-full')}><WqlTextEditor value={resolved.wql} onChange={(text) => commit(resolveQueryDraft(text))} onSubmit={submit} onEscape={() => { if (active.kind === 'closed') return false; closeEditor(); return true; }} autoFocus={autoFocus} /></div>}
+      {(desktop || active.kind === 'wql' || !guided) && <div data-wql-inline className={cn('min-w-0', desktop && compact ? 'flex-1' : 'w-full')}><WqlTextEditor value={resolved.wql} placeholder={placeholder} onChange={(text) => commit(resolveQueryDraft(text))} onSubmit={submit} onEscape={() => { if (active.kind === 'closed') return false; closeEditor(); return true; }} autoFocus={autoFocus} /></div>}
       <div className={cn('flex min-w-0 flex-wrap items-center gap-1', !desktop && 'rounded-xl border border-border p-2', desktop && compact && 'hidden')} data-testid="wql-composer" onKeyDown={(event) => {
         if (!['Delete', 'Backspace'].includes(event.key) || !(event.target instanceof HTMLButtonElement)) return;
         const buttons = Array.from(event.currentTarget.querySelectorAll('[data-testid^="token-slot-"]:not([data-testid^="token-slot-remove-"]):not([data-testid^="token-slot-value-"])'));
@@ -283,19 +292,19 @@ export function WqlComposer({
         updateClause(pill, null);
         inputRef.current?.focus();
       }}>
-        {active.kind !== 'wql' && pills.filter((pill) => !hidden.has(pill.type)).map((pill) => <TokenSlotPill key={pill.id} clause={pill} compact={compact} isActive={active.kind === 'value' && active.clause.id === pill.id} onClick={() => openEditor(pill)} onRemove={['kind', 'target', 'agg', 'metric'].includes(pill.type) ? undefined : () => { setUndo(currentRef.current.wql); updateClause(pill, null); }} />)}
+        {guided && active.kind !== 'wql' && pills.filter((pill) => !hidden.has(pill.type)).map((pill) => <TokenSlotPill key={pill.id} clause={pill} compact={compact} isActive={active.kind === 'value' && active.clause.id === pill.id} onClick={() => openEditor(pill)} onRemove={['kind', 'target', 'agg', 'metric'].includes(pill.type) ? undefined : () => { setUndo(currentRef.current.wql); updateClause(pill, null); }} />)}
         {!desktop && active.kind !== 'wql' && guided && <input ref={inputRef} type="text" role="combobox" aria-label="Search text or WQL" aria-controls={suggesting ? listId : undefined} aria-expanded={suggesting} aria-activedescendant={suggesting && highlight >= 0 ? `${listId}-option-${highlight}` : undefined} value={pending} placeholder={placeholder} onChange={(event) => { const text = event.target.value; setPending(text); setHighlight(-1); setError(undefined); notify(resolveQueryDraft(base, text)); }} onKeyDown={handleKeys} className="min-h-12 min-w-0 flex-[1_1_140px] bg-transparent font-mono text-base outline-none" data-testid="wql-composer-input" />}
         {customSlots}
       </div>
       <div data-wql-inline={desktop && compact ? '' : undefined} className="flex flex-wrap items-center gap-2">
-        <button type="button" disabled={!guided} onClick={() => { openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setActive({ kind: 'catalog' }); setSearch(''); setHighlight(-1); }} className="min-h-12 rounded-lg border border-border px-3" data-testid="add-filter-button">Add condition</button>
+        <button type="button" disabled={!guided} aria-haspopup="listbox" aria-expanded={active.kind === 'catalog'} aria-controls={active.kind === 'catalog' ? listId : undefined} onClick={() => { openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setActive({ kind: 'catalog' }); setSearch(''); setHighlight(-1); }} className="min-h-12 rounded-lg border border-border px-3" data-testid="add-filter-button">Add condition</button>
         {!desktop && <button type="button" onClick={() => { commit(currentRef.current); if (active.kind === 'wql') closeEditor(); else setActive({ kind: 'wql' }); }} disabled={active.kind === 'wql' && !guided} className="min-h-12 rounded-lg px-3">{active.kind === 'wql' ? 'Guided controls' : 'Edit WQL'}</button>}
         {undo && <button type="button" onClick={() => { commit(resolveQueryDraft(undo)); setUndo(undefined); }} className="min-h-12 px-3">Undo removal</button>}
       </div>
-      {(active.kind === 'value' || active.kind === 'catalog') && <div className="min-w-0 rounded-xl border border-border p-2" onKeyDown={(event) => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) handleKeys(event); }}>
+      {(active.kind === 'value' || active.kind === 'catalog') && <div data-testid="wql-field-picker" className="min-w-0 rounded-xl border border-border p-2 focus-within:ring-2 focus-within:ring-ring" onKeyDown={(event) => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) handleKeys(event); }}>
         <button type="button" onClick={closeEditor} className="min-h-12 px-3">Back</button>
         <label className="block text-sm">Search {active.kind === 'value' ? getClauseMeta(active.clause.type).label : 'conditions'}
-          <input type="search" role="combobox" aria-label={active.kind === 'value' ? `Search ${getClauseMeta(active.clause.type).label}` : 'Search conditions'} aria-controls={listId} aria-expanded="true" aria-activedescendant={highlight >= 0 ? `${listId}-option-${highlight}` : undefined} value={search} onChange={(event) => { setSearch(event.target.value); setHighlight(-1); setError(undefined); }} onKeyDown={handleKeys} className="min-h-12 w-full rounded border border-border bg-background px-3 text-base" data-testid="wql-picker-search" />
+          <input ref={pickerRef} type="search" role="combobox" aria-label={active.kind === 'value' ? `Search ${getClauseMeta(active.clause.type).label}` : 'Search conditions'} aria-controls={listId} aria-expanded="true" aria-activedescendant={highlight >= 0 ? `${listId}-option-${highlight}` : undefined} value={search} onChange={(event) => { setSearch(event.target.value); setHighlight(-1); setError(undefined); }} onKeyDown={handleKeys} className="min-h-12 w-full rounded border border-border bg-background px-3 text-base" data-testid="wql-picker-search" />
         </label>
         {active.kind === 'value' && active.clause.filterIndex !== undefined && <div className="flex flex-wrap gap-2">
           <label className="flex min-h-12 items-center gap-2"><input type="checkbox" checked={active.clause.negate ?? false} onChange={(event) => updateClause({ ...active.clause, negate: event.target.checked }, active.clause.value)} />Exclude</label>
@@ -312,7 +321,9 @@ export function WqlComposer({
         {textAction && <button id={`${listId}-option-${catalog.length}`} type="button" role="option" aria-selected={false} onMouseEnter={() => setHighlight(catalog.length)} className={cn('min-h-12 w-full rounded px-3 text-left', highlight === catalog.length && 'bg-muted')} onClick={() => suggesting ? submit() : openEditor({ id: 'new-text', type: 'text', ...getClauseMeta('text'), value: '' })}>{suggesting ? `Search text ${pending}` : 'Add another text condition'}</button>}
       </div>}
       {pivot && <div role="alertdialog" aria-label="Confirm query pivot" className="rounded-xl border border-border p-3"><p>Changing the query removes incompatible clauses:</p><ul>{pivot.removed.map((item) => <li key={item}>{item}</li>)}</ul><button type="button" className="min-h-12 px-3" onClick={() => setPivot(undefined)}>Cancel</button><button type="button" className="min-h-12 px-3" onClick={() => { commit(pivot.draft); setPivot(undefined); closeEditor(); }}>Change query</button></div>}
-      {(error ?? resolved.error) && <p role="alert" className="text-sm text-destructive">{error ?? resolved.error}</p>}
+      {!showDiagnostics && (error ?? resolved.error) && <p role="alert" className="text-sm text-destructive">{error ?? resolved.error}</p>}
+      {!guided && !resolved.error && <p className="text-sm text-muted-foreground">Use Edit WQL to preserve every clause.</p>}
+      {defaultQuery && <p className="text-sm text-muted-foreground">Example WQL: <code>{defaultQuery}</code></p>}
       {pending && <p className="text-sm text-muted-foreground" data-testid="wql-composer-pending">{resolved.valid ? 'Current draft includes this text' : resolved.error}</p>}
       {showDiagnostics && diagnosticsPosition === 'bottom' ? <WqlDiagnosticsStrip diagnostics={diagnostics} stages={stages} actions={action} /> : diagnosticsPosition !== 'top' || !showDiagnostics ? <div className="flex flex-wrap items-center justify-end gap-2">{action}</div> : null}
     </div>

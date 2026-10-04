@@ -22,7 +22,9 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
+import { wqlFilterKeys } from '@bitcobblers/wod-wiki-wql'
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
+import { CONTENT_GROUPING_DIMENSIONS } from '@bitcobblers/wod-wiki-ui'
 import { createPortal } from 'react-dom'
 import {
   StickyPageHeader,
@@ -81,6 +83,82 @@ function BatchingSentinel({
  *  drafts synchronously; only the run coalesces (existing 150ms behavior). */
 const STREAM_EXECUTE_DEBOUNCE_MS = 150
 
+/** Compact query truth strip beneath the composer (desktop) / top of the
+ *  stream (mobile): validity, target, matched of total, applied vs ignored
+ *  filters, ignored advisories, EFFECTIVE grouping (fallback disclosed) and
+ *  its precedence source. Fed from the run's own stage callback — no extra
+ *  scans. */
+function StreamQueryStatus({
+  error,
+  target,
+  matched,
+  total,
+  loading,
+  applied,
+  ignored,
+  advisories,
+  effectiveDims,
+  groupingSourceLabel,
+  onRegroupTags,
+}: {
+  error: string | null
+  target: string | null
+  matched: number
+  total: number
+  loading: boolean
+  applied: number
+  ignored: number
+  advisories: readonly string[]
+  effectiveDims: string[]
+  groupingSourceLabel: string
+  onRegroupTags: () => void
+}) {
+  const fallback = groupingSourceLabel.endsWith('fallback')
+  return (
+    <div
+      role="status"
+      data-testid="stream-query-status"
+      className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground"
+    >
+      {error ? (
+        <span className="font-semibold text-destructive">Invalid query — showing previous results</span>
+      ) : target ? (
+        <span className="font-mono">find:{target}</span>
+      ) : null}
+      <span aria-hidden="true">·</span>
+      <span data-testid="stream-query-counts" className={loading ? 'motion-safe:animate-pulse' : undefined}>
+        {matched} of {total}
+      </span>
+      <span aria-hidden="true">·</span>
+      <span data-testid="stream-query-filters">
+        {applied} applied{ignored > 0 ? `, ${ignored} ignored` : ''}
+      </span>
+      <span aria-hidden="true">·</span>
+      <span>
+        by {effectiveDims.join(', ')}{' '}
+        <span className={fallback ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground/60'}>
+          ({groupingSourceLabel})
+        </span>
+      </span>
+      {fallback && (
+        <button
+          type="button"
+          onClick={onRegroupTags}
+          data-testid="stream-grouping-fallback"
+          className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 hover:bg-amber-500/25 dark:text-amber-400"
+        >
+          switch to tag
+        </button>
+      )}
+      {advisories.map(advisory => (
+        <p key={advisory} className="w-full break-words text-amber-700 dark:text-amber-400">
+          {advisory}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export interface QueriableStreamViewProps {
   /** Configuration profile for this stream route. */
   profile: StreamProfile
@@ -90,6 +168,10 @@ export interface QueriableStreamViewProps {
   queryEngine?: StreamQueryEngine
   /** Optional Add-to-today handler for cards. */
   onAddToToday?: (entry: Entry) => void
+  /** Register a getter for the LIVE composer draft (invalid text included —
+   *  invalid drafts never reach the URL). Returns the unregister cleanup;
+   *  the global ⌘K palette consumes the getter while this view is mounted. */
+  registerStreamDraft?: (getDraft: () => string | null) => () => void
 }
 
 export function QueriableStreamView({
@@ -97,6 +179,7 @@ export function QueriableStreamView({
   actions,
   queryEngine,
   onAddToToday,
+  registerStreamDraft,
 }: QueriableStreamViewProps) {
   const navigate = useNavigate()
   // Synchronize composer state with URL
@@ -105,6 +188,10 @@ export function QueriableStreamView({
     legacy: profile.legacy,
   })
 
+  // Publish the live draft to the host's ⌘K seam while mounted; the getter
+  // re-registers per draft change and unregisters on unmount/route change.
+  useEffect(() => registerStreamDraft?.(() => query), [registerStreamDraft, query])
+
   // Per-route view settings (layout + field visibility)
   const { settings, setLayout, toggleField, setGroupBy, resetSettings } = useViewSettings(
     profile.route,
@@ -112,6 +199,12 @@ export function QueriableStreamView({
   )
 
   const [entries, setEntries] = useState<Entry[]>([])
+  // The run's own stage counts (scope population vs matches) — captured from
+  // the engine's stage callback, never a second scan.
+  const [stages, setStages] = useState<{ selected: number; matched: number } | undefined>(undefined)
+  // The committed run's query-leg `by {}` dims — stored together with the
+  // results they grouped; null when that run carried no query grouping.
+  const [queryRunDims, setQueryRunDims] = useState<string[] | null>(null)
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -245,10 +338,21 @@ export function QueriableStreamView({
     let cancelled = false
     const timer = setTimeout(() => {
       setLoading(true)
+      setStages(undefined)
       activeEngine
-        .query(query)
+        .query(query, next => {
+          // Stage counts cancel together with results — a superseded run
+          // never publishes counts.
+          if (!cancelled) setStages(next)
+        })
         .then((results: Entry[]) => {
-          if (!cancelled) setEntries(results)
+          if (!cancelled) {
+            setEntries(results)
+            // Bind the query-leg grouping to the COMMITTED run: transient
+            // draft edits (each valid intermediate re-parses) must never
+            // regroup the still-displayed previous results.
+            setQueryRunDims(parseGroupingDimensions(query, parsed))
+          }
         })
         .catch(() => {
           if (!cancelled) setEntries([])
@@ -263,17 +367,42 @@ export function QueriableStreamView({
     }
   }, [query, activeEngine, parsed])
 
-  // Grouping: the query's ordered `by {}` dimensions win; otherwise the view
-  // setting, then the level default.
-  const queryGrouping = useMemo(
-    () => (parsed.error ? null : parseGroupingDimensions(query, parsed)),
-    [query, parsed],
-  )
+  // Grouping: the committed run's query `by {}` dimensions win; otherwise
+  // the view setting, then the level default. The query leg is stored WITH
+  // the results at commit time — a mid-edit draft (valid or not) never
+  // regroups the previous results; view/level legs regroup entries live.
   const groupDims = useMemo<string[]>(() => {
-    if (queryGrouping?.length) return queryGrouping
+    if (queryRunDims?.length) return queryRunDims
     if (settings.groupBy) return [settings.groupBy]
     return [profile.level === 'effort' ? 'discipline' : 'date']
-  }, [queryGrouping, settings.groupBy, profile.level])
+  }, [queryRunDims, settings.groupBy, profile.level])
+  const groupingSource: 'query' | 'view' | 'level' = queryRunDims?.length
+    ? 'query'
+    : settings.groupBy
+      ? 'view'
+      : 'level'
+  // Disclosed fallback: a requested dimension outside the vocabulary executes
+  // as the tag bucket — badge at the group headers + one-click valid dim.
+  const contentDims = CONTENT_GROUPING_DIMENSIONS as readonly string[]
+  const groupingFallback = groupDims.some(d => !contentDims.includes(d))
+  const effectiveDims = Array.from(new Set(groupDims.map(d => (contentDims.includes(d) ? d : 'tag'))))
+  const groupingSourceLabel = groupingFallback ? `${groupingSource} fallback` : groupingSource
+  // Filter truth vs the target's own vocabulary: the executor IGNORES
+  // unsupported keys (advisory) — the strip says applied vs ignored instead
+  // of implying every requested filter ran.
+  const supportedFilterKeys = useMemo(
+    () => new Set(parsed.error || !isFindQuery(parsed) ? [] : wqlFilterKeys(parsed.target, 'find')),
+    [parsed],
+  )
+  const appliedFilters = parsed.error ? 0 : parsed.filters.filter(f => supportedFilterKeys.has(f.key)).length
+  const ignoredFilters = (parsed.error ? 0 : parsed.filters.length) - appliedFilters
+  const regroupTags = useCallback(() => {
+    if (queryRunDims?.some(d => !contentDims.includes(d))) {
+      setQuery(query.replace(/by\s*\{[^}]*\}/i, 'by {tag}'))
+    } else {
+      setGroupBy('tag')
+    }
+  }, [queryRunDims, query, setQuery, setGroupBy, contentDims])
 
   // Full dataset grouped by dimension
   const shelfVisible = profile.shelfVisible && !isPlaygroundScope
@@ -313,7 +442,6 @@ export function QueriableStreamView({
     },
     [setGroupBy],
   )
-  const today = todayKey()
   const stickyOffset = useStickyBoundaryOffset(104)
 
   // Query error detection (composed query is the default fallback and has nothing to flag unless edited or invalid from URL)
@@ -323,6 +451,15 @@ export function QueriableStreamView({
   // Empty state remedies
   const emptyStateRemedies = useMemo(() => {
     const remedies: { id: string; label: string; apply: () => void }[] = []
+    // A no-op advisory (ignored clause) is the emptiness a user can't see —
+    // offer the editor first; Clear filter / Remove window stay below.
+    if (!parsed.error && parsed.advisories?.length) {
+      remedies.push({
+        id: 'edit-query',
+        label: 'Edit query',
+        apply: () => openStreamQueryEditor(query, execute, setQuery),
+      })
+    }
     if (!parsed.error && parsed.window) {
       const w = parsed.window
       const label = w.kind === 'relative' ? `last ${w.size}${w.unit}` : `from ${w.start}${w.end ? ` to ${w.end}` : ''}`
@@ -341,7 +478,7 @@ export function QueriableStreamView({
       })
     }
     return remedies
-  }, [parsed, query, setQuery])
+  }, [parsed, query, setQuery, execute])
 
   // Shared empty state for the grouped layouts (Cards / Feed) — same query,
   // same remedies, whichever mode is active.
@@ -370,6 +507,9 @@ export function QueriableStreamView({
       )}
     </div>
   )
+
+  // Invalid draft: previous results stay visible but visibly stale.
+  const stale = !!parsed.error && entries.length > 0
 
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">
@@ -423,9 +563,29 @@ export function QueriableStreamView({
             onQueryChange={setQuery}
             scopeOptions={profile.scopeOptions}
             execute={execute}
+            defaultQuery={profile.defaultWql}
           />
         }
       />
+
+      {/* Query truth strip — one instance under the header: beneath the
+          composer on desktop, top-of-page status on mobile (the header is
+          max-lg:hidden). Never duplicated in the page body. */}
+      <div className="px-4 pt-2 sm:px-6 lg:px-8" data-testid="stream-query-status-row">
+        <StreamQueryStatus
+          error={queryError}
+          target={parsed.error ? null : isFindQuery(parsed) ? parsed.target : parsed.family}
+          matched={entries.length}
+          total={Math.max(stages?.selected ?? 0, entries.length)}
+          loading={loading}
+          applied={appliedFilters}
+          ignored={ignoredFilters}
+          advisories={parsed.error ? [] : parsed.advisories ?? []}
+          effectiveDims={effectiveDims}
+          groupingSourceLabel={groupingSourceLabel}
+          onRegroupTags={regroupTags}
+        />
+      </div>
 
       {/* ponytail: the nudge is a passive hint — upgrade to an inline source
           picker when the "Empty-option nudge UX" ticket lands. An empty
@@ -445,6 +605,7 @@ export function QueriableStreamView({
             onQueryChange={setQuery}
             scopeOptions={profile.scopeOptions}
             execute={execute}
+            defaultQuery={profile.defaultWql}
             compact
           />,
           mobileSlot,
@@ -490,9 +651,10 @@ export function QueriableStreamView({
         </div>
       )}
 
-      {/* Main Content: Rows (table) / Feed (rich cards) / Cards (grouped stream) */}
+      {/* Main Content: Rows (table) / Feed (rich cards) / Cards (grouped stream).
+          An invalid draft dims retained results — visibly stale, still inspectable. */}
       {settings.layout === 'rows' ? (
-        <div className="flex-1">
+        <div className={stale ? 'flex-1 opacity-50 transition-opacity' : 'flex-1'}>
           <PropertyTable
             entries={entries}
             level={profile.level}
@@ -518,7 +680,7 @@ export function QueriableStreamView({
           streamEmptyState
         ) : null
       ) : (
-        <div className="flex-1 divide-y divide-border/60">
+        <div className={stale ? 'flex-1 divide-y divide-border/60 opacity-50 transition-opacity' : 'flex-1 divide-y divide-border/60'}>
           {/* Undated Shelf (Sessions or Curated Workouts) */}
           {/* Grouped Progressive Stream */}
           {visibleGroups.length > 0 ? (
@@ -571,7 +733,17 @@ export function QueriableStreamView({
                       top={stickyOffset}
                       icon={<CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />}
                       label={group.label}
-                      badge={group.isToday ? (
+                      badge={groupingFallback ? (
+                        <button
+                          type="button"
+                          onClick={regroupTags}
+                          data-testid="stream-grouping-fallback-badge"
+                          title="This dimension is not groupable — switch to tag"
+                          className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 hover:bg-amber-500/25 dark:text-amber-400"
+                        >
+                          tags fallback — switch
+                        </button>
+                      ) : group.isToday ? (
                         <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
                           Today
                         </span>
@@ -614,7 +786,7 @@ export function QueriableStreamView({
         level={profile.level}
         settings={settings}
         activeGroupBy={groupDims[0]}
-        queryGrouping={queryGrouping}
+        queryGrouping={queryRunDims}
         onEditQuery={() => openStreamQueryEditor(query, execute, setQuery)}
         onGroupByChange={handleGroupByChange}
         onLayoutChange={setLayout}

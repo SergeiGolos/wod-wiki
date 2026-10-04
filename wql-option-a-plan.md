@@ -30,7 +30,7 @@ No new query family, grammar redesign, storage schema, dependency, generic build
 | Source scope | Separate optional storage-scope filter using `WQL_SOURCE_VALUES`. All sources means no `source` filter. |
 | Add/edit | One catalog and picker. Existing clauses say Edit. Choosing an absent field opens value selection immediately without emitting a blank filter. |
 | Text entry | Unqualified words remain text unless a filter suggestion is explicitly selected. Complete WQL replaces the draft; valid `key:value` fragments edit a clause using the real parser. |
-| Tab | Native forward/backward focus. No Tab completion, virtual pill ring or Alt+Tab interception. |
+| Tab | In text completion, accept the active row and move to the next syntactic slot; Shift-Tab moves to the preceding slot. Outside completion, preserve native focus navigation. |
 | Completion | Initially no active row. Down selects the first row. Enter chooses only an explicitly active row; every visible action row is keyboard reachable. |
 | Multi-select | Toggle in place, preserve selected rows, label OR semantics. Done ends field editing; host Apply saves the complete draft. |
 | Grouping | Ordered, duplicate-free dimensions. Add, remove and move up/down without drag. Available on targets where grouping has a meaningful consumer. |
@@ -194,7 +194,7 @@ Files:
 Desktop:
 
 - Replace pill-body `div role=button` with real buttons. Separate remove actions rather than nesting an interactive remove button inside another button.
-- Delete `navTarget`, `navItems`, `stepNav`, visual remove navigation and Tab/Alt+Tab capture. Native Tab exits the composer and reaches its host action/next field.
+- Delete `navTarget`, `navItems`, `stepNav`, visual remove navigation and Alt+Tab capture. Text-mode Tab accepts an active completion and advances its slot; without an active completion, native Tab reaches the host action or next field.
 - Use input-owned combobox selection with stable IDs, `aria-controls`, `aria-expanded` and `aria-activedescendant`. Distinguish active row from selected value. Give every input a real label.
 - Enter selects an active suggestion; otherwise it commits typed text or invokes the host action when no text is pending. Ctrl/Command+Enter submits the complete draft even during value editing. Ignore submit shortcuts while `isComposing` is true.
 - Empty-input Backspace focuses the preceding visible chip. Removal requires a focused chip's Delete/Backspace or labelled remove control. Keep a local undo opportunity for the last clause removal; do not remove a hidden filter by accident.
@@ -213,7 +213,7 @@ Mobile:
 
 Gate:
 
-Tab reaches Run and later widget fields; assistive output names the active option. On mobile, filtering can finish without opening the keyboard, with reachable Cancel/Apply and no horizontal overflow at 320px.
+Tab accepts an active text completion; outside completion it reaches Run and later widget fields. Assistive output names the active option. On mobile, filtering can finish without opening the keyboard, with reachable Cancel/Apply and no horizontal overflow at 320px.
 
 ### 6. Migrate every query-editing host
 
@@ -321,7 +321,7 @@ Mobile shell work depends on the shared picker and dialog ownership. It must not
 - [x] G1 through G8 have observable browser or runnable regression evidence.
 - [x] Find suffixes, negation, ranges, dynamic keys and joins survive unrelated edits or remain exact editable WQL.
 - [x] Singular targets, Measure kind and storage scopes agree across every host.
-- [x] Tab exits the composer; every picker choice has a keyboard and tap path.
+- [ ] Dogfood contract supersedes native-only completion Tab: verify acceptance, slot advance, and native focus exit without an active row.
 - [x] Multiple groups and their order are editable without raw re-entry.
 - [x] Run/Apply/Save consume current visible draft; invalid queries cannot write.
 - [ ] Physical-device verification only: mobile selection works without forced keyboard in emulation; action reachability with real iOS/Android keyboards remains unverified.
@@ -355,4 +355,39 @@ Important additional source evidence:
 - Desktop and mobile screenshots were captured, but image inspection is unavailable. DOM bounds and accessibility snapshots do not establish a visual review. Physical iOS/Android keyboards, orientation/safe areas and VoiceOver/TalkBack/desktop screen readers are not available here.
 - No existing changelog convention was found. Existing workflow/reference/review documents carry the cutover contract and evidence; no new changelog was invented.
 - Desktop editing contract: the composer mounts `WqlTextEditor` (CodeMirror, shared `wqlLanguage` + `wqlCompletionSource`). Invalid drafts stay local; `useComposerQueryState.setQuery` never writes an unparseable string to the URL, so Back/Forward only restores runnable queries. Compact header is one row (58px at 1280). Visualization select sits under the WQL readout in the widget dialog.
-- Typeahead contract: clicking a head, target, filter key or value selects the token and lists every alternative (head: aggregators + `find`; target: all `find:` targets; key: all tag keys; value: host `values` feed, else static/catalog). Picking replaces the token; picking an aggregator or key writes `:` and reopens for the next slot; `{`, `,`, `:` open the next slot with no keystroke. Browser-verified on desktop (click `find`/`note`/value, pick-replace, `fi`→`find:`→target→`{`→keys). Unverified: physical keyboards on touch devices, screen readers, visual review.
+- Historical typeahead proof covered head/target/key/value click replacement and delimiter chaining. The dogfood cutover below replaces the global key list with shared target capabilities and adds grouping, windows, pipes, canonical values, and completion Tab acceptance. Historical native-only keyboard checks do not establish the new contract.
+
+## Journal composer dogfood verification gate
+
+Report build: deployed `v0.35.2075`. Fix verification must record the deployed version and revision separately from the local package version. Local work starts from revision `7c563a153f51754460a5feb84148f8d249c976b7`; the generated WQL metadata still reports `0.11.0` / `48fdcee`, so it is not proof of the current source revision.
+
+Before closing deployment-verification issues #1013, #1004, #720, or #719, record the tested URL, visible build version, deployment revision, browser, viewport, and observed results for each check:
+
+- [ ] Unsupported note predicates show advisories and key squiggles without changing the matched count.
+- [ ] `by {effort}` on a note stream explicitly reports tag fallback and offers a valid grouping correction.
+- [ ] Discipline values are canonical, unique ignoring case, and vault-backed values rank first.
+- [ ] Note field suggestions include source/text/type/catalog and exclude unsupported discipline.
+- [ ] Main Add condition opens a focused picker on desktop; mobile opens the same query editor.
+- [ ] Pipe, column, direction, negation, relative-window, and date-range completion paths are reachable.
+- [ ] Tab accepts and advances; both arrow directions wrap; mixed Tab/Enter/Escape sequences remain usable.
+- [ ] Invalid drafts show actual profile guidance, error squiggles, and unmistakably stale results.
+- [ ] Main view shows matched-of-total counts and effective grouping on desktop and mobile.
+- [ ] Opening the palette retains exact invalid text; Apply cannot overwrite the page with an invalid or stale draft.
+- [ ] Enter without an active option closes the popup and commits the current valid draft.
+- [ ] A fresh root load has no unmatched-route warning while seed content loads.
+
+GitHub Pages deep-link 404 behavior remains outside this fix. Local evidence does not close production checks. Physical keyboards, screen readers, and device safe-area behavior require separate evidence.
+
+### Local journal dogfood evidence, 2026-10-03
+
+Tested `http://127.0.0.1:5179/journal` with source revision `7c563a153f51754460a5feb84148f8d249c976b7` plus these uncommitted fixes. Chromium reports version 154. Desktop viewport was 1600 × 1000; mobile layouts were 390 × 844 and 320 × 740. No deployed build was tested.
+
+- Real IndexedDB notes were created through `journalNotes.create`. A text-scoped note query returned 1 of 891; adding ignored `discipline:climbing` kept the same note and count and displayed the ignored-key advisory with an effort-query recovery example.
+- `by {effort}` displayed `by tag (query fallback)`, grouped the fixture under `#climbing`, and offered a switch that rewrote the query to `by {tag}`. The rail matched the actual tag group.
+- Desktop Add condition opened the target-aware catalog with its search control focused. Note text completion offered source/text/type/catalog and omitted discipline. Effort discipline completion offered canonical values without climbing/crossfit/yoga or case duplicates.
+- Actual completion popups exposed pipe kinds, order columns, asc/desc, negated note fields, d/w after `last 4`, `to` after the start date, and valid content grouping dimensions. Home/End selected edges; Down from last and Up from first wrapped symmetrically; Tab accepted; Enter with no selected option closed the popup without inserting an option.
+- An unterminated quoted draft rendered error squiggles. Global Ctrl-K retained that exact text; Cancel kept the page draft. Previous results retained their committed tag grouping rather than adopting an intermediate valid draft's default grouping.
+- Mobile displayed 1 of 891, 2 applied and 1 ignored, advisories, and the effective fallback dimension outside the palette. Neither tested width had horizontal overflow. The 390px editor sheet occupied y=231–844; Cancel and Apply targets were 48px high. Screenshots were captured, but image inspection is unavailable in this session, so geometry is not a visual-review pass.
+- Fresh root loads on both the existing origin and an uncached localhost origin produced no unmatched-route warning or page error.
+- Real app `StreamQueryEngine` runs exercised note, effort, block, session, segment, and event paths. The isolated vault had no executed session/event records, so nonempty table conversion is covered by bounded regressions rather than a populated-vault browser claim.
+- Final checks passed: WQL/UI package suites, 91 tests across 11 files; seven isolated app files, 94 tests; package typecheck; package declarations/build; playground production build; documentation links, 888 files. Scoped lint had no errors and 30 warnings, mostly existing test-setup `any` types. Palette tests passed with React `act` warnings; the build reported ineffective dynamic-import warnings.

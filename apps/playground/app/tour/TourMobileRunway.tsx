@@ -334,7 +334,7 @@ export function TourMobileRunway({
               accentText="Markdown"
               after=""
               accent={TOUR_ACCENTS.editor}
-              blurb="Freeform Markdown notes, fenced ```time blocks, live type-ahead. Everything starts as plain text you can edit."
+              blurb="Freeform Markdown notes, fenced ```time blocks, property and tag suggestions. Everything starts as plain text you can edit."
             />
             {writeCaptions.map((cap) => renderCard(cap))}
           </div>
