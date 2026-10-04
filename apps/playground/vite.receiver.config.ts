@@ -75,6 +75,7 @@ export default defineConfig({
             '@bitcobblers/wod-wiki-ui/extensions': resolve(import.meta.dirname, '../../packages/ui/src/extensions/index.ts'),
             '@bitcobblers/wod-wiki-core': resolve(import.meta.dirname, '../../packages/core/src'),
             '@bitcobblers/wod-wiki-lang': resolve(import.meta.dirname, '../../packages/lang/src'),
+            '@bitcobblers/wod-wiki-storage': resolve(import.meta.dirname, '../../packages/storage/src'),
             '@bitcobblers/wod-wiki-wql': resolve(import.meta.dirname, '../../packages/wql/src'),
             '@bitcobblers/wod-wiki-engine': resolve(import.meta.dirname, '../../packages/engine/src'),
             '@bitcobblers/wod-wiki-ui': resolve(import.meta.dirname, '../../packages/ui/src'),
