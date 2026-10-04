@@ -7,7 +7,7 @@ test.describe('Canvas editor source content', () => {
 
     await page.goto('/guide/protocols', { waitUntil: 'domcontentloaded', timeout: 20_000 });
 
-    const editors = page.locator('.cm-content');
+    const editors = page.locator('.cm-content:visible');
     await expect(editors.first()).toBeVisible({ timeout: 15_000 });
 
     await expect

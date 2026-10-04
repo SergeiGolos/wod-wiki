@@ -40,7 +40,7 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
   });
 
-  test.afterEach(async ({}, testInfo) => {
+  test.afterEach(async ({ page: _page }, testInfo) => {
     const persistenceErrors = errors.filter(e =>
       e.includes('NOTE_NOT_FOUND') ||
       e.includes('mutateNote') ||
@@ -256,10 +256,10 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     // This test verifies no such errors surface during normal static page navigation.
     errors.length = 0;
 
-    await page.goto('/syntax', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await page.goto('/guide/protocols', { waitUntil: 'domcontentloaded', timeout: 20_000 });
 
     // The editor should be present on the syntax page
-    const editor = page.locator('.cm-content[contenteditable="true"]').first();
+    const editor = page.locator('.cm-content[contenteditable="true"]:visible').first();
     await expect(editor).toBeAttached({ timeout: 10_000 });
     // Just focus the editor — no keyboard input that might trigger navigation
     await editor.focus().catch(() => {});

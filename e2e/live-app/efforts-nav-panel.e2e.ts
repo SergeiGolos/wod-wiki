@@ -30,11 +30,11 @@ test.describe('Efforts nav panel', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await efforts.waitForCatalogLoaded();
 
-    await efforts.applyQuery('find:effort{discipline:kettlebell}');
+    await efforts.applyQuery(':effort{discipline:kettlebell}');
     await expect(efforts.effortRow('kettlebell-swing')).toBeVisible();
     await expect(efforts.effortRow('burpee')).toHaveCount(0);
 
-    await efforts.applyQuery('find:effort{origin:bundled}');
+    await efforts.applyQuery(':effort{origin:bundled}');
     await expect(efforts.effortRow('burpee')).toBeVisible();
 
     errors.expectClean();
@@ -57,7 +57,7 @@ test.describe('Efforts nav panel', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await efforts.waitForCatalogLoaded();
-    await efforts.applyQuery('find:effort{origin:user}');
+    await efforts.applyQuery(':effort{origin:user}');
 
     await expect(efforts.effortRow('qa-custom-effort')).toBeVisible();
     await expect(efforts.effortRows()).toHaveCount(1);

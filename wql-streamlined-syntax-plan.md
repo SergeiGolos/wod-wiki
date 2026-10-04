@@ -65,6 +65,7 @@ Implement colon-prefixed WQL grammar (`:{source}`, `:{function}`, `:{chart}`), d
   - **Runtime smoke**: Shared event scan returned 2 segments and 4 debug statements; segment `tis` was 30 and `@today` was 37. Dataset pipelines made zero database reads; six chart sinks and parent-page links passed. Browser rendered value, bar, and donut widgets; `@session` was empty without an active session.
   - **CI build prerequisite**: PR #1057 initially failed because `build:packages:seq` omitted `packages/storage`, leaving its `dist` export unavailable on clean runners. Added storage after core/lang; `bun run build && bun run test` passed.
   - **Source-only builds**: Added the existing storage source alias to Storybook and the standalone receiver config. Receiver and Storybook builds passed; all 78 Storybook browser interaction tests passed. Targeted config lint and package typecheck passed.
+  - **Deployed E2E contracts**: Migrated remaining effort query inputs and result-widget fixtures to colon syntax. Result widgets seed the canonical EventRecord store and assert persisted effort/time values. Guide checks select the visible responsive editor and use `/guide/protocols` instead of retired `/syntax`. Against the deployed preview: 15 effort tests passed with 5 skips; guide frontmatter passed; 5 persistence/widget tests passed with 2 skips. Targeted E2E lint passed with 2 warnings.
 
 ---
 
