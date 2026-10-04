@@ -365,7 +365,8 @@ describe('HomeTour', () => {
 
     const feedsLink = within(jump).getByTestId('jump-feeds')
     expect(feedsLink.getAttribute('href')).toBe('/feeds')
-    expect(jump.textContent).toContain('Work in progress')
+    // The Feeds destination is live — no stale "work in progress" label.
+    expect(jump.textContent?.toLowerCase()).not.toContain('work in progress')
 
     const libraryLink = within(jump).getByTestId('jump-library')
     expect(libraryLink.getAttribute('href')).toBe('/collections')

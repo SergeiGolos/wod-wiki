@@ -123,7 +123,12 @@ export function ChallengeHeaderBadge({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        aria-label={`${stepsComplete} of ${totalSteps} challenges complete`}
+        title={`${stepsComplete} of ${totalSteps} challenges complete`}
+        // Intentionally set-open rather than toggle: hover already opens the
+        // dropdown on desktop, so a toggle would immediately close what the
+        // user just opened and the click would appear to do nothing.
+        onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 cursor-pointer focus:outline-none select-none text-left rounded-full border border-border/70 bg-background px-3 py-1 hover:bg-muted/40 hover:border-border transition-colors shadow-sm"
       >
         {isComplete ? (

@@ -63,9 +63,6 @@ export function TourJumpSection() {
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Programming feeds you follow, newest first.
             </p>
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/60">
-              Work in progress
-            </p>
           </div>
           <ArrowRight className="absolute right-4 top-4 size-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </Link>

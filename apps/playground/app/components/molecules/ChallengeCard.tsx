@@ -62,32 +62,35 @@ export interface ChallengeCardProps {
 export function ChallengeCard({ quest, onClick, className, compact = false, disabled = false }: ChallengeCardProps) {
   const Icon = getQuestIcon(quest.id);
 
+  // The fallback hint must describe what the card actually does: cards with
+  // a click handler jump to the relevant section, cards without one sit next
+  // to the editor they describe.
+  const fallbackHint = onClick ? 'Select to jump to its section.' : 'Open the editor to begin.';
   const hint = quest.isCompleted
     ? 'Challenge complete.'
     : quest.result
       ? quest.result.pass
         ? `Ready — ${quest.result.detail ?? 'looks good'}`
-        : quest.result.reason ?? 'Open the editor to begin.'
-      : 'Open the editor to begin.';
+        : quest.result.reason ?? fallbackHint
+      : fallbackHint;
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      data-testid={`challenge-row-${quest.id}`}
-      data-completed={quest.isCompleted ? 'true' : 'false'}
-      className={cn(
-        'w-full text-left flex items-start gap-3 rounded-xl border px-3 py-2 text-sm transition-colors',
-        quest.isCompleted
-          ? 'border-primary/40 bg-primary/5'
-          : 'border-border/50 bg-background/60',
-        onClick && !disabled && 'cursor-pointer hover:bg-background/80',
-        disabled && 'opacity-60 cursor-default',
-        compact && 'px-2.5 py-1.5',
-        className,
-      )}
-    >
+  const sharedProps = {
+    'data-testid': `challenge-row-${quest.id}`,
+    'data-completed': quest.isCompleted ? 'true' : 'false',
+    className: cn(
+      'w-full text-left flex items-start gap-3 rounded-xl border px-3 py-2 text-sm transition-colors',
+      quest.isCompleted
+        ? 'border-primary/40 bg-primary/5'
+        : 'border-border/50 bg-background/60',
+      onClick && !disabled && 'cursor-pointer hover:bg-background/80',
+      disabled && 'opacity-60 cursor-default',
+      compact && 'px-2.5 py-1.5',
+      className,
+    ),
+  };
+
+  const content = (
+    <>
       {Icon ? (
         <span className={cn('relative shrink-0 mt-0.5', compact ? 'size-5' : 'size-6')}>
           <Icon className="w-full h-full" />
@@ -141,6 +144,17 @@ export function ChallengeCard({ quest, onClick, className, compact = false, disa
           {hint}
         </p>
       </div>
-    </button>
+    </>
   );
+
+  // A card with no click handler must not look or behave like a button —
+  // render it as a plain div so nobody expects an action.
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} disabled={disabled} {...sharedProps}>
+        {content}
+      </button>
+    );
+  }
+  return <div {...sharedProps}>{content}</div>;
 }
