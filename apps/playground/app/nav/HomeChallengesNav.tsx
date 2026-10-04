@@ -20,7 +20,7 @@ export const HOME_DEFAULT_QUESTS: Quest[] = [
   { id: 'qs-edit', label: 'Change the workout', desc: 'Make any edit to the demo script.' },
   { id: 'qs-tour-timer', label: 'See the timer run it', desc: 'Let the demo timer reach a running state in the Clock stage.' },
   { id: 'qs-run', label: 'Run it to the finish', desc: 'Press Run and let the workout complete.' },
-  { id: 'qs-tour-analytics', label: 'Review the session', desc: 'Scroll through the analytics stage of the home tour.' },
+  { id: 'qs-tour-analytics', label: 'Tour the analytics', desc: 'Scroll through the analytics stage of the home tour.' },
 ];
 
 
