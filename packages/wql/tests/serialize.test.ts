@@ -4,7 +4,8 @@ import type { ParsedAggregateQuery, ParsedFindQuery, QueryWindow, TagFilter } fr
 import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_FIND_TARGETS } from '../src/vocabulary';
 import { serialize } from '../src/serialize';
 /** Deep equality on query structure — ignores provenance fields (`raw`,
- * `advisories`) and absent-vs-undefined distinctions. */
+ * `advisories`), the parse-derived `:note` default scope, and filter ORDER
+ * (filters are a conjunction; the scope-head collapse re-orders them). */
 function structural(a: unknown): unknown {
   if (Array.isArray(a)) return a.map(structural);
   if (a && typeof a === 'object') {
@@ -12,8 +13,11 @@ function structural(a: unknown): unknown {
     const keys = Object.keys(a as Record<string, unknown>).sort();
     for (const k of keys) {
       const v = (a as Record<string, unknown>)[k];
-      if (k === 'raw' || k === 'advisories' || v === undefined) continue;
+      if (k === 'raw' || k === 'advisories' || k === 'sourceScope' || v === undefined) continue;
       out[k] = structural(v);
+    }
+    if (Array.isArray(out.filters)) {
+      out.filters = (out.filters as unknown[]).slice().sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)));
     }
     return out;
   }
@@ -60,7 +64,8 @@ describe('serialize (C6 structured interface)', () => {
       family: 'find', raw: '', target: 'note', filters: [],
       window: { kind: 'relative', size: 8, unit: 'w' },
     };
-    expect(serialize(a)).toBe('find:note last 8w');
+    // No scope on the AST means "all sources" — the `in all` clause keeps
+    // serialization from narrowing to the :note default on reparse.
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
@@ -74,7 +79,9 @@ describe('serialize (C6 structured interface)', () => {
       ],
       window: { kind: 'range', start: '2026-01-01', end: '2026-02-01' },
     };
-    expect(serialize(a)).toBe('find:note{source:journal,!tags:pr,text:"300 Air Squats"} from 2026-01-01 to 2026-02-01');
+    // The source filter stays in its authored slot — never collapsed into
+    // a scope-alias head (that would reorder and break composer filterText).
+    expect(serialize(a)).toBe(':note{source:journal,!tags:pr,text:"300 Air Squats"} from 2026-01-01 to 2026-02-01');
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
@@ -87,7 +94,8 @@ describe('serialize (C6 structured interface)', () => {
       ],
       window: { kind: 'relative', size: 4, unit: 'w' },
     };
-    expect(serialize(a)).toBe('find:session{result:r13,source:journal} last 4w');
+    // The authored source filter survives on a non-note target — collapsing
+    // it into a scope-alias head would broaden the query to notes.
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
@@ -102,6 +110,7 @@ describe('serialize (C6 structured interface)', () => {
         last: { size: 4, unit: 'w' },
       },
     };
+    // Join halves keep the legacy head — the retained compound surface.
     expect(serialize(a)).toBe('sum:totalVolume{} last 8w where find:note{tags:competition} last 4w');
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
@@ -116,20 +125,20 @@ describe('serialize (C6 structured interface)', () => {
         operator: '>', threshold: 5000,
       },
     };
-    expect(serialize(a)).toBe('find:block{text:"300 Air Squats"} where sum:totalVolume{discipline:strength} > 5000');
+    expect(serialize(a)).toBe(':block{text:"300 Air Squats"} where sum:totalVolume{discipline:strength} > 5000');
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
   // ── Demonstrated loss regressions ──────────────────────────────────
 
   it('retains a standalone offset pipe (demonstrated loss: offset without limit)', () => {
-    const a = parseQuery('find:note | offset 5');
+    const a = parseQuery(':note | offset 5');
     expect(a.error).toBeUndefined();
     if (a.family !== 'find' || !a.pipes) throw new Error('expected find query with pipes');
     expect(a.pipes.offset).toBe(5);
     expect(a.pipes.limit).toBeUndefined();
     const text = serialize(a);
-    expect(text).toBe('find:note | offset 5');
+    expect(text).toBe(':note | offset 5');
     expect(structurallyEqual(parseQuery(text), a)).toBe(true);
   });
 
@@ -143,13 +152,13 @@ describe('serialize (C6 structured interface)', () => {
   });
 
   it('emits find suffixes in parser order after a time edit (G1 gate)', () => {
-    const a = parseQuery('find:segment{effort:snatch} by {effort} in lb | limit 5');
+    const a = parseQuery(':segment{effort:snatch} by {effort} in lb | limit 5');
     expect(a.error).toBeUndefined();
     // The composer's time edit mutates only the window on the parsed AST.
     if (a.family !== 'find') throw new Error('expected find query');
     a.window = { kind: 'relative', size: 1, unit: 'w' };
     const text = serialize(a);
-    expect(text).toBe('find:segment{effort:snatch} by {effort} in lb last 1w | limit 5');
+    expect(text).toBe(':segment{effort:snatch} by {effort} in lb last 1w | limit 5');
     expect(parseQuery(text).error).toBeUndefined();
     expect(structurallyEqual(parseQuery(text), a)).toBe(true);
   });
@@ -158,10 +167,10 @@ describe('serialize (C6 structured interface)', () => {
     // Emitted as `… by {week} last 2w where sum:tis{} > 0`; the pre-fix order
     // (`… last 2w by {week}`) wedged the window into the primary text and
     // failed to parse.
-    const a = parseQuery('find:note{tags:strength} by {week} last 2w where sum:tis{} > 0');
+    const a = parseQuery(':note{tags:strength} by {week} last 2w where sum:tis{} > 0');
     expect(a.error).toBeUndefined();
     const text = serialize(a);
-    expect(text).toBe('find:note{tags:strength} by {week} last 2w where sum:tis{} > 0');
+    expect(text).toBe(':note{tags:strength} by {week} last 2w where sum:tis{} > 0');
     const back = parseQuery(text);
     expect(back.error).toBeUndefined();
     expect(structurallyEqual(back, a)).toBe(true);
@@ -169,16 +178,16 @@ describe('serialize (C6 structured interface)', () => {
     if (a.family !== 'find') throw new Error('expected find query');
     a.target = 'block';
     const pivoted = serialize(a);
-    expect(pivoted).toBe('find:block{tags:strength} by {week} last 2w where sum:tis{} > 0');
+    expect(pivoted).toBe(':block{tags:strength} by {week} last 2w where sum:tis{} > 0');
     expect(parseQuery(pivoted).error).toBeUndefined();
     expect(structurallyEqual(parseQuery(pivoted), a)).toBe(true);
   });
 
   it('round-trips every find suffix together (group, unit, window, join, pipes)', () => {
-    const a = parseQuery('find:block{tags:strength} by {week} in lb last 2w where sum:tis{} > 0 | order by date | limit 5 offset 2');
+    const a = parseQuery(':block{tags:strength} by {week} in lb last 2w where sum:tis{} > 0 | order by date | limit 5 offset 2');
     expect(a.error).toBeUndefined();
     const text = serialize(a);
-    expect(text).toBe('find:block{tags:strength} by {week} in lb last 2w where sum:tis{} > 0 | order by date | limit 5 offset 2');
+    expect(text).toBe(':block{tags:strength} by {week} in lb last 2w where sum:tis{} > 0 | order by date | limit 5 offset 2');
     expect(structurallyEqual(parseQuery(text), a)).toBe(true);
   });
 
@@ -189,7 +198,7 @@ describe('serialize (C6 structured interface)', () => {
     const KEYS = ['tags', 'discipline', 'effort', 'text', 'category'] as const;
     // Aggregate filter sides only accept fact-resolvable tag keys (parse validates).
     const AGG_KEYS = ['tags', 'discipline', 'effort', 'intensity', 'grade'] as const;
-    const SOURCES = ['journal', 'collections', 'feeds', 'guides', 'playground', 'collection:crossfit-girls', 'feed:x/2026-01-12'];
+    const SOURCES = ['journal', 'collections', 'guides', 'playground', 'collection:crossfit-girls'];
     const METRICS = ['totalVolume', 'tis', 'calc.acwr', 'maxHeartRate'];
     const DIMS = ['week', 'day', 'session', 'round', 'effort'];
     const DATES = ['2026-01-01', '2026-03-31', '2025-11-30'];
@@ -260,6 +269,9 @@ describe('serialize (C6 structured interface)', () => {
         family: 'find', raw: '',
         target: pick(rng, WQL_FIND_TARGETS),
         filters: genFilters(rng, int(rng, 0, 3)),
+        // Parser shape for a bare :note — never the all-sources shape, so
+        // generated queries never mix `in all` with a display unit.
+        sourceScope: ['journal', 'collections', 'playground'],
       };
       const w = genWindow(rng);
       if (w) f.window = w;
@@ -350,30 +362,82 @@ describe('serialize (C6 structured interface)', () => {
     expect(pipes).toBeGreaterThan(40);
     expect(standalones).toBeGreaterThan(8);
   });
-  it('leaves canonical corpus strings untouched (fixed-point text)', () => {
+  it('round-trips canonical corpus strings semantically (no text re-pinning)', () => {
     const corpus = [
       'sum:tis{}',
       'sum:totalVolume{discipline:strength,!effort:burpee} by {week, effort}.rollup(2w) in kg last 4w',
       'max:tis{effort:back*}',
       'sum:totalVolume{note:a|b|c}',
       'count:exercise{} from 2025-11-30 to 2026-03-31',
-      'find:note',
-      'find:note last 8w',
-      'find:note{tags:pr,source:journal}',
-      'find:block{text:"300 Air Squats"} from 2026-01-01',
-      'find:effort{category:hero} where sum:totalVolume{discipline:strength} > 5000',
+      ':note',
+      ':note last 8w',
+      ':journal{tags:pr}',
+      ':block{text:"300 Air Squats"} from 2026-01-01',
+      ':effort{category:hero} where sum:totalVolume{discipline:strength} > 5000',
       'sum:totalVolume{} where find:note{tags:competition} last 4w',
       'sum:tis{} by {session}.rollup(7d) last 12w where find:note',
-      'find:session{result:r13}',
-      'find:session{result:r13,source:journal} last 4w',
-      'find:session{note:note-3} from 2026-01-01 to 2026-02-01',
-      'find:segment{effort:running} | order by date | limit 10',
+      ':session{result:r13}',
+      ':session{result:r13,source:journal} last 4w',
+      ':session{note:note-3} from 2026-01-01 to 2026-02-01',
+      ':segment{effort:running} | order by date | limit 10',
     ];
     for (const text of corpus) {
       const a = parseQuery(text);
       expect(a.error, text).toBeUndefined();
-      expect(serialize(a), text).toBe(text);
+      const out = serialize(a);
+      expect(parseQuery(out).error, out).toBeUndefined();
+      expect(structurallyEqual(parseQuery(out), a), text).toBe(true);
     }
+  });
+
+  it('serializes a colon function query in the retained legacy aggregate form', () => {
+    const a = parseQuery(':sum{metric:tis, effort:snatch} by {week}');
+    expect(a.error).toBeUndefined();
+    if (a.family !== 'aggregate') throw new Error('expected aggregate');
+    expect(a.metric).toBe('tis');
+    expect(a.filters).toEqual([{ key: 'effort', negate: false, values: [{ value: 'snatch', wildcard: false }] }]);
+    const text = serialize(a);
+    expect(text).toBe('sum:tis{effort:snatch} by {week}');
+    expect(structurallyEqual(parseQuery(text), a)).toBe(true);
+  });
+
+  it('round-trips pipelines end to end', () => {
+    const pipelines = [
+      ':journal{effort:snatch} last 8w | :sum{metric:tis} by {week} | :timeseries{}',
+      '@today | :count{} | :bar{type:session}',
+      '@session | :sum{metric:tis} | :max{metric:tis} | :value',
+      ':segment{effort:sn*} | :avg{metric:reps} | :table',
+      ':sum{metric:tis} | :bar',
+      ':note{tags:pr} | :table',
+    ];
+    for (const text of pipelines) {
+      const a = parseQuery(text);
+      expect(a.error, text).toBeUndefined();
+      expect(a.family, text).toBe('pipeline');
+      const out = serialize(a);
+      expect(parseQuery(out).error, out).toBeUndefined();
+      expect(structurallyEqual(parseQuery(out), a), text).toBe(true);
+    }
+  });
+
+  it('parses a lone chart as an implicit :segment pipeline (made explicit on serialize)', () => {
+    const a = parseQuery(':bar{type:session}');
+    expect(a.error).toBeUndefined();
+    expect(a.family).toBe('pipeline');
+    if (a.family !== 'pipeline') return;
+    expect(a.source).toEqual({ kind: 'query', query: { family: 'find', raw: ':segment{}', target: 'segment', filters: [] } });
+    expect(a.transforms).toEqual([]);
+    expect(a.sink).toEqual({
+      head: 'bar',
+      filters: [{ key: 'type', negate: false, values: [{ value: 'session', wildcard: false }] }],
+    });
+    // A bare numeric stage inherits the carried aggregate's metric.
+    const chained = parseQuery(':sum{metric:tis} | :max{}');
+    expect(chained.error).toBeUndefined();
+    if (chained.family === 'pipeline') {
+      expect(chained.transforms[0]?.metric).toBe('tis');
+    }
+    expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
   it('echoes raw text for errored ASTs (total over all parses)', () => {

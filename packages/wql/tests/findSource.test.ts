@@ -89,10 +89,10 @@ describe('source: filter — runFind (Note[])', () => {
     expect(parsed.error).toBeUndefined();
   });
 
-  it('in all suppresses the default scope and returns every stored note', async () => {
+  it('in all spans every WQL-addressable source kind — feeds stay excised', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':note in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('source:all fails to parse with a hint', () => {
@@ -159,10 +159,10 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
     expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
   });
 
-  it('default (no source filter) returns all blocks across journal and static stores', async () => {
+  it('default (no source filter) returns blocks from the allowed source kinds only — feeds excised', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':block') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('keeps only playground blocks (denormalized sourceId) when source:playground is set', async () => {

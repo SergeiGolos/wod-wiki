@@ -9,6 +9,8 @@ import { ResponsiveActions } from '../nav/ResponsiveActions'
 import { useEditorSave } from '../hooks/useEditorSave'
 import { notePersistence } from '@/services/persistence'
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
+import { usePageSourcesReady } from '@/hooks/usePageSourcesReady'
+import { refreshPageSources } from '@/services/queryService'
 import { journalDatePath, noteByIdPath, pagePath } from '../lib/routes'
 import { NotePlacementDialog, type NotePlacementMode } from '../components/organisms/journal/NotePlacementDialog'
 import type { HistoryEntry } from '@/types/history'
@@ -40,6 +42,15 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
   const [saveError, setSaveError] = useState<{ noteId: string; message: string } | null>(null)
   const [placement, setPlacement] = useState<NotePlacementMode | null>(null)
   const [sourceEntry, setSourceEntry] = useState<HistoryEntry | null>(null)
+  // Page-source datasets (@session/@today) populate before the first child
+  // query block evaluates; a new page context re-populates (@today may have
+  // changed since the previous page loaded).
+  const sourcesReady = usePageSourcesReady()
+  useEffect(() => {
+    void refreshPageSources().catch(() => {
+      // Failure stays on the cached promise — child queries surface it.
+    })
+  }, [noteId])
 
   useEffect(() => {
     let cancelled = false
@@ -198,16 +209,20 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
                   )}
                 </div>
               )}
-              <NoteEditor
-                value={entry.rawContent}
-                onChange={onChange}
-                onBlur={onBlur}
-                noteId={entry.id}
-                readonly={viewMode === 'read'}
-                theme={theme}
-                showLineNumbers={false}
-                onCompleteWorkout={handleCompleteWorkout}
-              />
+              {sourcesReady ? (
+                <NoteEditor
+                  value={entry.rawContent}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  noteId={entry.id}
+                  readonly={viewMode === 'read'}
+                  theme={theme}
+                  showLineNumbers={false}
+                  onCompleteWorkout={handleCompleteWorkout}
+                />
+              ) : (
+                <div className="flex items-center justify-center text-zinc-400 text-sm py-8">Loading…</div>
+              )}
               {saveError?.noteId === noteId && (
                 <p role="alert" className="text-sm text-destructive">
                   {saveError.message}

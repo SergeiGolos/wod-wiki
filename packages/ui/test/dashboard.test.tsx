@@ -226,7 +226,7 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
     expect(onInspectWidget).toHaveBeenCalledWith(expect.objectContaining({ key: 'w0' }));
   });
 
-  it('#1049 — a table widget runs a find:segment query and renders rows', async () => {
+  it('#1049 — a table widget runs a :segment query and renders rows', async () => {
     const runFindMock = vi.fn(async () => ({
       parsed: { family: 'find', raw: '', target: 'segment', filters: [] },
       notes: [],
@@ -254,7 +254,7 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
     };
 
     const doc: DashboardDocument = buildDashboardDocument(
-      [{ type: 'query', content: 'find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5', widgetType: 'table' }],
+      [{ type: 'query', content: ':segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5', widgetType: 'table' }],
       {},
     );
 
@@ -266,22 +266,22 @@ describe('DashboardView and useAnalyticsQueries with injected QueryExecutor', ()
     expect(screen.getByText('320')).toBeDefined();
   });
 
-  it('#1049 — find: inside a timeseries widget shows an error naming table/list', async () => {
+  it('#1049 — a content query inside a timeseries widget shows an error naming table/list', async () => {
     const mockExecutor: QueryExecutor = {
       runQuery: vi.fn(async (q: string) => mockQueryResult(q, 100)),
-      runFind: vi.fn(async () => ({} as any)),
-      runRows: vi.fn(async () => ({} as any)),
+      runFind: vi.fn(async () => ({} as never)),
+      runRows: vi.fn(async () => ({} as never)),
     };
 
     const doc: DashboardDocument = buildDashboardDocument(
-      [{ type: 'query', content: 'find:segment{effort:fran} last 26w', widgetType: 'timeseries' }],
+      [{ type: 'query', content: ':segment{effort:fran} last 26w', widgetType: 'timeseries' }],
       {},
     );
 
     render(<DashboardView document={doc} executor={mockExecutor} />);
 
     await waitFor(() =>
-      expect(screen.getByText('find: queries return things — use a table or list widget instead')).toBeDefined(),
+      expect(screen.getByText('content queries return things — use a table or list widget instead')).toBeDefined(),
     );
   });
 

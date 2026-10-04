@@ -11,7 +11,7 @@
  *  - `slug`: `playground/<name>` — the route id `/playground/:id` resolves
  *    (getEntry falls back to by-slug lookup), so old composite-id links keep
  *    working and new entries are UUID-keyed.
- *  - `sourceId: 'playground'` — the `find:note{source:playground}` library
+ *  - `sourceId: 'playground'` — the `:note{source:playground}` library
  *    scope (sourceMatches: exact `playground` id).
  *  - `type: 'playground'`, no journalDate until the user promotes the entry
  *    to a journal date (`movePlaygroundToJournal`).
@@ -211,7 +211,7 @@ export function createPlaygroundIntake({
           journalDate,
           type: 'journal',
           // null clears the source bucket AND the route slug: the promoted
-          // note leaves the playground scope (`find:note{source:playground}`)
+          // note leaves the playground scope (`:note{source:playground}`)
           // and stops answering /playground/<name>, so a later same-key
           // ensure can never update the journal note in the playground's
           // place. UUID, segments, results, and attachments are untouched —

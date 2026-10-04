@@ -216,11 +216,11 @@ describe('SettingsPage — Query Defaults tab', () => {
     renderSettings('/settings/queries')
 
     fireEvent.change(screen.getByTestId('query-defaults-wql-/journal'), {
-      target: { value: 'find:note{source:journal} last 52w' },
+      target: { value: ':note{source:journal} last 52w' },
     })
     fireEvent.click(screen.getByTestId('query-defaults-save-/journal'))
     expect(screen.queryByTestId('query-defaults-wql-error-/journal')).toBeNull()
-    expect(readRouteWqlConfig('/journal').defaultWql).toBe('find:note{source:journal} last 52w')
+    expect(readRouteWqlConfig('/journal').defaultWql).toBe(':note{source:journal} last 52w')
     // Saved state is no longer dirty — save disables.
     expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true)
   })
@@ -229,14 +229,14 @@ describe('SettingsPage — Query Defaults tab', () => {
     renderSettings('/settings/queries')
 
     fireEvent.change(screen.getByTestId('query-defaults-wql-/journal'), {
-      target: { value: 'find:note{' },
+      target: { value: ':note{' },
     })
     expect(screen.getByTestId('query-defaults-wql-error-/journal')).toBeDefined()
     expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('reset discards the stored override and returns to the system default', () => {
-    writeRouteWqlConfig('/journal', { defaultWql: 'find:note last 6w' })
+    writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
     renderSettings('/settings/queries')
 
     fireEvent.click(screen.getByTestId('query-defaults-reset-/journal'))
@@ -262,10 +262,10 @@ describe('SettingsPage — Query Defaults tab', () => {
     renderSettings('/settings/queries')
 
     fireEvent.click(screen.getByTestId('query-defaults-type-custom-/library'))
-    fireEvent.click(screen.getByTestId('query-defaults-type-/library-add-feeds'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/library-add-playground'))
     fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
 
-    expect(readRouteWqlConfig('/library').typeOptions).toEqual(['feeds'])
+    expect(readRouteWqlConfig('/library').typeOptions).toEqual(['playground'])
   })
 
   it('restricts Group-By favorites to the supported arrangement dimensions', () => {

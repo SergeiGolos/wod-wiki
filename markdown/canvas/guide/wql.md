@@ -31,7 +31,7 @@ Three surfaces use the same language: the **Library** (zero-syntax tri-state bro
 | Plane | Shape | Searches | Example |
 |---|---|---|---|
 | **Metrics** | `agg:metric{filters} by {dim}` | the fact store | `sum:totalVolume{} by {week}` |
-| **Content** | `find:target{filters,source:scope}` | notes, blocks, efforts | `find:note{effort:fran,source:journal} last 8w` |
+| **Content** | `:target{filters,source:scope}` | notes, blocks, efforts | `:note{effort:fran,source:journal} last 8w` |
 
 ## Aggregate queries {#aggregate}
 
@@ -135,25 +135,25 @@ pipeline:
 Content queries can require a numeric threshold computed over each result's linked workouts:
 
 ```query
-find:note{tags:pr,source:journal} last 8w where sum:totalVolume{} > 5000
+:note{tags:pr,source:journal} last 8w where sum:totalVolume{} > 5000
 ```
 
-Keep only journal notes tagged `pr` whose total volume exceeds 5,000 kg. Joins are supported on `find:note` and `find:block`; other targets report an advisory and ignore the clause. Joins lean on the **Block Content Id** — a content hash of each workout block, stable across reorders and preserved when you clone a catalog benchmark into your journal, so history aggregates across every note where that workout lives.
+Keep only journal notes tagged `pr` whose total volume exceeds 5,000 kg. Joins are supported on `:note` and `:block`; other targets report an advisory and ignore the clause. Joins lean on the **Block Content Id** — a content hash of each workout block, stable across reorders and preserved when you clone a catalog benchmark into your journal, so history aggregates across every note where that workout lives.
 
 ## Content queries {#content}
 
 ```button
-label:  Try it: find:fran
+label:  Try it: fran
 target: sandbox
 pipeline:
   - set-source: wql-presets/content-fran.md
 ```
 
 ```query
-find:block{text:fran,source:collections}
+:block{text:fran,source:collections}
 ```
 
-Targets: `find:note` (whole notes), `find:block` (addressable fenced blocks), `find:effort` (registry entries, filterable by `effort`, `discipline`, `intensity`, `origin`, `text`), plus the advanced `find:session`, `find:segment`, `find:event` for recorded results and raw rows. Content-only keys (`type`, `text`, `has`, `source`, `catalog`) are category errors on aggregates.
+Targets: `:note` (whole notes), `:block` (addressable fenced blocks), `:effort` (registry entries, filterable by `effort`, `discipline`, `intensity`, `origin`, `text`), plus the advanced `:session`, `:segment`, `:event` for recorded results and raw rows. Content-only keys (`type`, `text`, `has`, `source`, `catalog`) are category errors on aggregates.
 
 ### Presentation pipes {#pipes}
 
@@ -167,10 +167,10 @@ pipeline:
 Content queries can end with pipes — `| select … | order by … | limit … [offset …]`:
 
 ```query
-find:note{tags:pr,source:journal} last 8w | limit 5
+:note{tags:pr,source:journal} last 8w | limit 5
 ```
 
-`order by <column> [asc|desc]` sorts by a field of the result rows; `select` picks columns (with `in kg`/`in lb` units). Pipes ride on `find:` queries — aggregates don't take them — and some targets ignore a pipe and say so via advisory (`find:session` always orders by completion time; `| select` only reshapes `find:segment` and `find:event`).
+`order by <column> [asc|desc]` sorts by a field of the result rows; `select` picks columns (with `in kg`/`in lb` units). Pipes ride on content queries — aggregates don't take them — and some targets ignore a pipe and say so via advisory (`:session` always orders by completion time; `| select` only reshapes `:segment` and `:event`).
 
 ## Try it {#try-it}
 

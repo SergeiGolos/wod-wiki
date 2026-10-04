@@ -39,9 +39,9 @@ export interface QueryBlockViewProps {
   attributes?: Record<string, string>;
   /** Optional RPE capture handler. */
   onCaptureRpe?: (resultId: string, rpe: number) => Promise<void>;
-  /** Optional click handler for opening a note from find:note results. */
+  /** Optional click handler for opening a note from :note results. */
   onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
-  /** Optional resolver returning the destination href for an item in find:note results. */
+  /** Optional resolver returning the destination href for an item in :note results. */
   noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
 }
 
@@ -452,18 +452,26 @@ function PipelineResultView({
     const sinkAttributes = Object.fromEntries(
       (result.chart?.filters ?? []).map((f) => [f.key, f.values.map((v) => v.value).join(',')]),
     );
+    // Bounded height: h-full resolves to 0 against an auto-height shell and
+    // leaves ResponsiveContainer charts with no size to measure.
     return (
-      <WidgetChart
-        type={chartHead}
-        result={toChartResult(result)}
-        label={fallbackLabel}
-        attributes={{ ...sinkAttributes, ...attributes }}
-      />
+      <div className="w-full h-[220px] min-h-[160px]">
+        <WidgetChart
+          type={chartHead}
+          result={toChartResult(result)}
+          label={fallbackLabel}
+          attributes={{ ...sinkAttributes, ...attributes }}
+        />
+      </div>
     );
   }
 
   if (result.series && result.series.length > 0) {
-    return <AnalyticsChart result={toChartResult(result)} metric={fallbackLabel} />;
+    return (
+      <div className="w-full h-[220px] min-h-[160px]">
+        <AnalyticsChart result={toChartResult(result)} metric={fallbackLabel} />
+      </div>
+    );
   }
 
   return <WqlEmptyState result={toChartResult(result)} />;

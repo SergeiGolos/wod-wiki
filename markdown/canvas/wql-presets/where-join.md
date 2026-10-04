@@ -1,5 +1,5 @@
 # Query sandbox
 
 ```query
-find:note{tags:pr,source:journal} last 8w where sum:totalVolume{} > 5000
+:note{tags:pr,source:journal} last 8w where sum:totalVolume{} > 5000
 ```

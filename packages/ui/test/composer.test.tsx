@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { autocompletion, completionStatus, selectedCompletionIndex, startCompletion } from '@codemirror/autocomplete';
-import { parseQuery, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isFindQuery, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
 import { WqlComposer } from '../src/composer/WqlComposer';
 import { WqlDiagnosticsStrip } from '../src/composer/WqlDiagnosticsStrip';
 import { WqlTextEditor, wqlEditorKeymap, wqlLint } from '../src/composer/WqlTextEditor';
@@ -13,22 +13,26 @@ afterEach(cleanup);
 describe('current visible draft actions', () => {
   it('first Run includes pending text without Enter or a debounce', () => {
     const submit = vi.fn();
-    render(<WqlComposer initialQuery="find:note{source:journal}" onSubmit={submit} actionLabel="Run" />);
+    render(<WqlComposer initialQuery=":note{source:journal}" onSubmit={submit} actionLabel="Run" />);
     fireEvent.change(screen.getByLabelText('Search text or WQL'), { target: { value: 'snatch' } });
     fireEvent.click(screen.getByRole('button', { name: /^Run$/ }));
-    expect(parseQuery(submit.mock.calls[0][0]).filters).toEqual([
-      { key: 'source', negate: false, values: [{ value: 'journal', wildcard: false }] },
-      { key: 'text', negate: false, values: [{ value: 'snatch', wildcard: false }] },
-    ]);
+    const submitted = parseQuery(submit.mock.calls[0][0]);
+    expect(isFindQuery(submitted)).toBe(true);
+    if (isFindQuery(submitted)) {
+      expect(submitted.filters).toEqual([
+        { key: 'source', negate: false, values: [{ value: 'journal', wildcard: false }] },
+        { key: 'text', negate: false, values: [{ value: 'snatch', wildcard: false }] },
+      ]);
+    }
   });
 
   it('invalid exact input prevents both button and shortcut submission', () => {
     const submit = vi.fn();
     const change = vi.fn();
-    render(<WqlComposer initialQuery="find:note" onSubmit={submit} onQueryChange={change} actionLabel="Apply" />);
+    render(<WqlComposer initialQuery=':note' onSubmit={submit} onQueryChange={change} actionLabel="Apply" />);
     const input = screen.getByLabelText('Search text or WQL');
-    fireEvent.change(input, { target: { value: 'find:note{tags:' } });
-    expect(change).toHaveBeenLastCalledWith('find:note{tags:');
+    fireEvent.change(input, { target: { value: ':note{tags:' } });
+    expect(change).toHaveBeenLastCalledWith(':note{tags:');
     fireEvent.click(screen.getByRole('button', { name: /^Apply$/ }));
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
     expect(submit).not.toHaveBeenCalled();
@@ -37,7 +41,7 @@ describe('current visible draft actions', () => {
 
   it('opening a picker emits no rewrite and starts without an active option', () => {
     const change = vi.fn();
-    const query = 'find:segment{effort:snatch}  by {effort} in lb | limit 5';
+    const query = ':segment{effort:snatch}  by {effort} in lb | limit 5';
     render(<WqlComposer initialQuery={query} onQueryChange={change} />);
     fireEvent.click(screen.getByTestId('token-slot-time'));
     expect(change).not.toHaveBeenCalled();
@@ -46,7 +50,7 @@ describe('current visible draft actions', () => {
 
   it('opening a picker from typed suggestions inserts no empty filter', () => {
     const change = vi.fn();
-    render(<WqlComposer initialQuery="find:note" onQueryChange={change} />);
+    render(<WqlComposer initialQuery=':note' onQueryChange={change} />);
     fireEvent.change(screen.getByLabelText('Search text or WQL'), { target: { value: 'effort' } });
     fireEvent.click(screen.getByTestId('wql-filter-typeahead-effort'));
     expect(screen.getByTestId('wql-clause-editor')).toBeDefined();
@@ -58,7 +62,7 @@ describe('current visible draft actions', () => {
 
   it('keyboard reaches the exact typed action when suggestions remain', () => {
     const change = vi.fn();
-    render(<WqlComposer initialQuery="find:note{text:prefix}" onQueryChange={change} />);
+    render(<WqlComposer initialQuery=":note{text:prefix*}" onQueryChange={change} />);
     fireEvent.click(screen.getByTestId('token-slot-text'));
     const input = screen.getByTestId('wql-picker-search');
     fireEvent.change(input, { target: { value: 'my exact phrase' } });
@@ -67,15 +71,19 @@ describe('current visible draft actions', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
     const last = change.mock.calls.at(-1);
     if (!last) throw new Error('Exact value did not update the draft');
-    expect(parseQuery(last[0]).filters).toEqual([{ key: 'text', negate: false, values: [{ value: 'my exact phrase', wildcard: false }] }]);
+    const exactDraft = parseQuery(last[0]);
+    expect(isFindQuery(exactDraft)).toBe(true);
+    if (isFindQuery(exactDraft)) {
+      expect(exactDraft.filters).toEqual([{ key: 'text', negate: false, values: [{ value: 'my exact phrase', wildcard: false }] }]);
+    }
   });
 
   it('external replacement discards pending text without replaying an edit', () => {
     const change = vi.fn();
-    const { rerender } = render(<WqlComposer query="find:note" onQueryChange={change} />);
+    const { rerender } = render(<WqlComposer query=':note' onQueryChange={change} />);
     fireEvent.change(screen.getByLabelText('Search text or WQL'), { target: { value: 'snatch' } });
     change.mockClear();
-    rerender(<WqlComposer query="find:block{source:feeds}" onQueryChange={change} />);
+    rerender(<WqlComposer query=":block{source:collections}" onQueryChange={change} />);
     expect(screen.getByLabelText('Search text or WQL').getAttribute('value')).toBe('');
     expect(screen.getByTestId('token-slot-value-target').textContent).toBe('block');
     expect(change).not.toHaveBeenCalled();
@@ -83,17 +91,17 @@ describe('current visible draft actions', () => {
 
   it('returning to an echoed checkpoint clears pending text', () => {
     const change = vi.fn();
-    const { rerender } = render(<WqlComposer query="find:note{source:collections}" onQueryChange={change} />);
+    const { rerender } = render(<WqlComposer query=":note{source:collections}" onQueryChange={change} />);
     fireEvent.change(screen.getByLabelText('Search text or WQL'), { target: { value: 'fresh' } });
     rerender(<WqlComposer query={change.mock.calls.at(-1)![0]} onQueryChange={change} />);
-    rerender(<WqlComposer query="find:note{source:collections}" onQueryChange={change} />);
+    rerender(<WqlComposer query=":note{source:collections}" onQueryChange={change} />);
     expect(screen.getByLabelText('Search text or WQL').getAttribute('value')).toBe('');
     expect(screen.queryByTestId('token-slot-text')).toBeNull();
   });
 
   it('Escape dismisses one picker level without reaching its host', () => {
     const host = vi.fn();
-    render(<div onKeyDown={host}><WqlComposer initialQuery="find:note" /></div>);
+    render(<div onKeyDown={host}><WqlComposer initialQuery=':note' /></div>);
     fireEvent.click(screen.getByTestId('token-slot-time'));
     fireEvent.keyDown(screen.getByTestId('wql-picker-search'), { key: 'Escape' });
     expect(screen.queryByTestId('wql-clause-editor')).toBeNull();
@@ -117,7 +125,7 @@ describe('current visible draft actions', () => {
 
   it('empty Backspace only focuses, then explicit chip removal can be undone', () => {
     const change = vi.fn();
-    const query = 'find:note{tags:strength}';
+    const query = ':note{tags:strength}';
     render(<WqlComposer initialQuery={query} onQueryChange={change} />);
     const input = screen.getByLabelText('Search text or WQL');
     input.focus();
@@ -132,7 +140,7 @@ describe('current visible draft actions', () => {
 
   it('requires confirmation before a kind pivot discards presentation pipes', () => {
     const change = vi.fn();
-    const query = 'find:segment{effort:snatch} by {effort} in lb | limit 5';
+    const query = ':segment{effort:snatch} by {effort} in lb | limit 5';
     render(<WqlComposer initialQuery={query} onQueryChange={change} actionLabel="Run" />);
     fireEvent.click(screen.getByTestId('token-slot-kind'));
     fireEvent.click(screen.getByRole('option', { name: 'Measure' }));
@@ -145,22 +153,22 @@ describe('current visible draft actions', () => {
 
   it('Enter does not submit during IME composition', () => {
     const submit = vi.fn();
-    render(<WqlComposer initialQuery="find:note" onSubmit={submit} />);
+    render(<WqlComposer initialQuery=':note' onSubmit={submit} />);
     fireEvent.keyDown(screen.getByLabelText('Search text or WQL'), { key: 'Enter', ctrlKey: true, isComposing: true });
     expect(submit).not.toHaveBeenCalled();
   });
 
   it('favorite choices change priority without excluding non-favorites', () => {
-    render(<WqlComposer initialQuery="find:note{source:journal}" preferredChoices={['feeds']} />);
+    render(<WqlComposer initialQuery=":note{source:journal}" preferredChoices={['guides']} />);
     fireEvent.click(screen.getByTestId('token-slot-source'));
     const options = screen.getAllByRole('option');
-    expect(options[0].textContent).toContain('Feeds');
+    expect(options[0].textContent).toContain('Guides');
     expect(screen.getByRole('option', { name: /Collections/ })).toBeDefined();
     expect(screen.getByRole('option', { name: /Journal/ }).getAttribute('aria-selected')).toBe('true');
   });
 
   it('untouched unsupported or invalid seed remains in exact WQL text', () => {
-    const query = 'find:note{tags:';
+    const query = ':note{tags:';
     const change = vi.fn();
     render(<WqlComposer initialQuery={query} onQueryChange={change} />);
     expect(screen.getByLabelText('WQL').textContent).toBe(query);
@@ -183,7 +191,7 @@ describe('WQL text editor keyboard and lint', () => {
     const view = new EditorView({
       parent: container,
       state: EditorState.create({
-        doc: 'find:note{so',
+        doc: ':note{so',
         extensions: [
           wqlLanguage,
           autocompletion({
@@ -217,13 +225,13 @@ describe('WQL text editor keyboard and lint', () => {
     fireEvent.keyDown(view.contentDOM, { key: 'Home' });
     expect(selectedCompletionIndex(view.state)).toBe(0);
     fireEvent.keyDown(view.contentDOM, { key: 'Tab' });
-    expect(view.state.doc.toString()).toBe('find:note{source');
+    expect(view.state.doc.toString()).toBe(':note{source');
     // CM's Safari path swallows a keydown within ~100ms of compositionend —
     // cross that native cooldown on the fake clock before the real Enter.
     fireEvent.compositionStart(view.contentDOM);
     fireEvent.keyDown(view.contentDOM, { key: 'Enter' });
     expect(submit).not.toHaveBeenCalled();
-    expect(view.state.doc.toString()).toBe('find:note{source');
+    expect(view.state.doc.toString()).toBe(':note{source');
     fireEvent.compositionEnd(view.contentDOM);
     expect(view.compositionStarted).toBe(false);
     vi.setSystemTime(Date.now() + 150);
@@ -233,13 +241,13 @@ describe('WQL text editor keyboard and lint', () => {
 
   it('real editor: Enter during an active composition never submits', () => {
     const submit = vi.fn();
-    render(<WqlTextEditor value="find:note{source:journal}" onChange={() => {}} onSubmit={submit} onEscape={() => false} autoFocus />);
+    render(<WqlTextEditor value=":note{source:journal}" onChange={() => {}} onSubmit={submit} onEscape={() => false} autoFocus />);
     const content = screen.getByLabelText('WQL');
     vi.useFakeTimers({ toFake: ['Date'] });
     fireEvent.compositionStart(content);
     fireEvent.keyDown(content, { key: 'Enter' });
     expect(submit).not.toHaveBeenCalled();
-    expect(content.textContent).toBe('find:note{source:journal}');
+    expect(content.textContent).toBe(':note{source:journal}');
     fireEvent.compositionEnd(content);
     vi.setSystemTime(Date.now() + 150);
     fireEvent.keyDown(content, { key: 'Enter' });
@@ -249,14 +257,14 @@ describe('WQL text editor keyboard and lint', () => {
   it('lint marks unsupported filter keys and parse errors at their text', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    const capable = new EditorView({ parent: container, state: EditorState.create({ doc: 'find:note{session:morning}', extensions: [wqlLanguage] }) });
+    const capable = new EditorView({ parent: container, state: EditorState.create({ doc: ':note{session:morning}', extensions: [wqlLanguage] }) });
     views.push(capable);
     const marks = wqlLint(capable);
     const [mark] = marks;
     if (!mark) throw new Error('Expected an unsupported-filter squiggle');
     expect(mark.severity).toBe('warning');
     expect(capable.state.sliceDoc(mark.from, mark.to)).toBe('session:morning');
-    const broken = new EditorView({ parent: container, state: EditorState.create({ doc: 'find:note{tags:', extensions: [wqlLanguage] }) });
+    const broken = new EditorView({ parent: container, state: EditorState.create({ doc: ':note{tags:', extensions: [wqlLanguage] }) });
     views.push(broken);
     const [errorMark] = wqlLint(broken);
     if (!errorMark) throw new Error('Expected a parse-error squiggle');
@@ -264,7 +272,7 @@ describe('WQL text editor keyboard and lint', () => {
   });
 
   it('strip reports matched of selected, explicit status words, and unsupported dims', () => {
-    const query = 'find:note{tags:x} by {bogus}';
+    const query = ':note{tags:x} by {bogus}';
     const { unmount } = render(
       <WqlDiagnosticsStrip
         diagnostics={{ valid: true, wql: query, ast: parseQuery(query) }}
@@ -278,7 +286,7 @@ describe('WQL text editor keyboard and lint', () => {
     expect(screen.getByTestId('diag-summary-groupby').getAttribute('title')).toContain('bogus');
     expect(screen.getByTestId('wql-diagnostics-strip').getAttribute('aria-live')).toBe('polite');
     unmount();
-    render(<WqlDiagnosticsStrip diagnostics={{ valid: false, wql: 'find:note{tags:', ast: parseQuery('find:note{tags:'), error: 'Unexpected end of query' }} />);
+    render(<WqlDiagnosticsStrip diagnostics={{ valid: false, wql: ':note{tags:', ast: parseQuery(':note{tags:'), error: 'Unexpected end of query' }} />);
     expect(screen.getByTestId('wql-validity-badge').textContent).toContain('Invalid');
   });
 });

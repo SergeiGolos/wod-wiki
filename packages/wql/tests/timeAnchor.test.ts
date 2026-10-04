@@ -59,13 +59,13 @@ describe('#1050 — time windows filter on "when it happened"', () => {
   it('a note dated two weeks ago but created today is excluded from last 1w and included in last 3w', async () => {
     const service = makeService([backdatedNote], []);
     const last1w = await service.runFind(
-      parseQuery('find:note{note:jrnl-backdated} last 1w') as ParsedFindQuery,
+      parseQuery(':note{note:jrnl-backdated} last 1w') as ParsedFindQuery,
       { anchorNow: NOW },
     );
     expect(last1w.notes).toHaveLength(0);
 
     const last3w = await service.runFind(
-      parseQuery('find:note{note:jrnl-backdated} last 3w') as ParsedFindQuery,
+      parseQuery(':note{note:jrnl-backdated} last 3w') as ParsedFindQuery,
       { anchorNow: NOW },
     );
     expect(last3w.notes.map((n) => n.id)).toEqual(['jrnl-backdated']);
@@ -74,17 +74,17 @@ describe('#1050 — time windows filter on "when it happened"', () => {
   it('notes without a date still filter on their creation time', async () => {
     const service = makeService([noDateNote], []);
     const result = await service.runFind(
-      parseQuery('find:note{note:jrnl-fresh} last 1w') as ParsedFindQuery,
+      parseQuery(':note{note:jrnl-fresh} last 1w') as ParsedFindQuery,
       { anchorNow: NOW },
     );
     expect(result.notes.map((n) => n.id)).toEqual(['jrnl-fresh']);
   });
 
-  it('find:note and sum: windows agree for the same back-dated workout', async () => {
+  it(':note and sum: windows agree for the same back-dated workout', async () => {
     const service = makeService([backdatedNote], events);
     // The metric is recorded 2026-09-16 (two weeks before NOW) — inside 3w, outside 1w.
     const notes1w = await service.runFind(
-      parseQuery('find:note{note:jrnl-backdated} last 1w') as ParsedFindQuery,
+      parseQuery(':note{note:jrnl-backdated} last 1w') as ParsedFindQuery,
       { anchorNow: NOW },
     );
     const vol1w = await service.run(
@@ -96,7 +96,7 @@ describe('#1050 — time windows filter on "when it happened"', () => {
     expect(matched1w).toHaveLength(0);
 
     const notes3w = await service.runFind(
-      parseQuery('find:note{note:jrnl-backdated} last 3w') as ParsedFindQuery,
+      parseQuery(':note{note:jrnl-backdated} last 3w') as ParsedFindQuery,
       { anchorNow: NOW },
     );
     const vol3w = await service.run(

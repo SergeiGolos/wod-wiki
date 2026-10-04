@@ -4,6 +4,7 @@ import { isFindQuery, isPipelineQuery, parseQuery, type QueryResult, type AnyPar
 import type { QueryExecutor } from '../contracts/query';
 import { WidgetFrame, WidgetToolButton, WidgetEditButton } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';
+import { toChartResult } from './chartData';
 import { DashboardTokenControls } from './DashboardTokenControls';
 
 /** A widget's grid placement — column span 1..4, or a forced full row. */
@@ -43,9 +44,80 @@ export interface DashboardViewProps {
   preferredUnit?: string;
 }
 
+/** Chart-input result plus the content-plane payloads list widgets read. */
+type WidgetRunResult = QueryResult & {
+  notes?: unknown[];
+  blocks?: unknown[];
+  efforts?: unknown[];
+  runs?: unknown[];
+  containers?: Record<string, { kind: 'page'; id: string; slug?: string; date?: string } | { kind: 'note'; id: string }>;
+};
+
 interface WidgetRun {
-  result?: QueryResult;
+  result?: WidgetRunResult;
   error?: string;
+}
+
+/**
+ * Executor→runner host adapter (ticket 19 cutover): the shared document
+ * runner drives family dispatch; the injected QueryExecutor stays the only
+ * execution seam. Range/unit ride every aggregate call; missing pipeline
+ * capability surfaces as an output diagnostic — never a silent empty result.
+ */
+export function createExecutorDocumentHost(
+  executor: QueryExecutor,
+  range: { rangeStart?: number; rangeEnd?: number; preferredUnit?: string; rollupEnsure?: () => Promise<void> } = {},
+): QueryDocumentRunnerHost {
+  return {
+    runAggregate: (queryText, overrides) =>
+      executor.runQuery(queryText, {
+        context: overrides.context,
+        rangeStart: range.rangeStart,
+        rangeEnd: range.rangeEnd,
+        preferredUnit: range.preferredUnit,
+      }),
+    runFind: async (queryText, context) => {
+      const parsed = parseQuery(queryText);
+      if (!isFindQuery(parsed)) return { kind: 'find', error: `not a content query: ${queryText}` };
+      const res = await executor.runFind(parsed, {
+        context,
+        range: range.rangeStart !== undefined
+          ? { start: range.rangeStart, end: range.rangeEnd ?? Number.MAX_SAFE_INTEGER, endExclusive: false }
+          : undefined,
+      });
+      return {
+        kind: 'find',
+        notes: res.notes,
+        blocks: res.blocks,
+        efforts: res.efforts,
+        containers: res.containers,
+        runs: res.runs,
+        table: res.table,
+      };
+    },
+    runPipeline: async (queryText, context) => {
+      const res = await executor.runPipeline?.(queryText, {
+        context,
+        rangeStart: range.rangeStart,
+        rangeEnd: range.rangeEnd,
+        preferredUnit: range.preferredUnit,
+      });
+      return res ?? { error: 'pipeline queries are not supported by this executor' };
+    },
+    rollupEnsure: range.rollupEnsure,
+  };
+}
+
+/** Document output → widget chart input (content payloads ride along). */
+function outputToRunResult(parsed: AnyParsedQuery, out: DocumentOutput): WidgetRunResult {
+  const base = toChartResult({ parsed, series: out.series, unit: out.unit, error: out.error, table: out.table });
+  return Object.assign(base, {
+    ...(out.notes ? { notes: out.notes } : {}),
+    ...(out.blocks ? { blocks: out.blocks } : {}),
+    ...(out.efforts ? { efforts: out.efforts } : {}),
+    ...(out.containers ? { containers: out.containers } : {}),
+    ...(out.runs ? { runs: out.runs } : {}),
+  });
 }
 
 /**
@@ -143,7 +215,7 @@ export function DashboardView({
 
     async function load() {
       const next: Record<string, WidgetRun> = {};
-      const runnable: Array<{ widget: DashboardWidget; query: string }> = [];
+      const runnable: Array<{ widget: DashboardWidget; query: string; parsed: AnyParsedQuery }> = [];
 
       for (const { widget, query, missing } of resolved) {
         if (widget.type !== '' && !isDashboardWidgetType(widget.type)) {
@@ -162,14 +234,14 @@ export function DashboardView({
         const resolvedType = resolveWidgetType(widget.type);
         if (isFindQuery(parsed)) {
           if (resolvedType !== 'table' && resolvedType !== 'list') {
-            next[widget.key] = { error: 'find: queries return things — use a table or list widget instead' };
+            next[widget.key] = { error: 'content queries return things — use a table or list widget instead' };
             continue;
           }
-        } else if (resolvedType === 'list') {
+        } else if (!isPipelineQuery(parsed) && resolvedType === 'list') {
           next[widget.key] = { error: 'aggregate queries return numbers — use a chart or value widget instead' };
           continue;
         }
-        runnable.push({ widget, query });
+        runnable.push({ widget, query, parsed });
       }
 
       if (!executor) {
@@ -180,27 +252,32 @@ export function DashboardView({
         return;
       }
 
-      const consumesRollups = runnable.some((r) => r.query.includes('calc.'));
-      if (consumesRollups && onEnsureRollupFacts) {
-        await onEnsureRollupFacts().catch(() => undefined);
-      }
+      // One runner host per dashboard run; each widget document gets its own
+      // captured execution context (ticket 12) — overlapping runs never
+      // borrow each other's snapshot. Rollup-ensure is AST-driven inside the
+      // runner (calc.* heads incl. pipeline stages), not string sniffing.
+      const host = createExecutorDocumentHost(executor, {
+        rangeStart,
+        rangeEnd,
+        preferredUnit,
+        rollupEnsure: onEnsureRollupFacts,
+      });
 
       await Promise.all(
-        runnable.map(async ({ widget, query }) => {
+        runnable.map(async ({ widget, query, parsed }) => {
           try {
-            const parsed = parseQuery(query);
-            if (isFindQuery(parsed) && executor.runFind) {
-              const res = await executor.runFind(parsed, {
-                range: rangeStart !== undefined ? { start: rangeStart, end: rangeEnd ?? Number.MAX_SAFE_INTEGER, endExclusive: false } : undefined,
-              });
-              next[widget.key] = {
-                result: res as unknown as QueryResult,
-              };
-            } else {
-              next[widget.key] = {
-                result: await executor.runQuery(query, { rangeStart, rangeEnd, preferredUnit }),
-              };
+            const runner = new SharedQueryDocumentRunner(host);
+            const res = await runner.run(query);
+            const out = res.outputs[0];
+            if (!out) {
+              next[widget.key] = { error: res.diagnostics[0] ?? 'widget produced no output' };
+              return;
             }
+            const error = out.error ?? res.diagnostics[0];
+            next[widget.key] = {
+              result: outputToRunResult(parsed, out),
+              ...(error ? { error } : {}),
+            };
           } catch (err) {
             next[widget.key] = { error: err instanceof Error ? err.message : String(err) };
           }

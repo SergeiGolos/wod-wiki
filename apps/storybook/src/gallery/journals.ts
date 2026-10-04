@@ -10,12 +10,12 @@
  * Card queries MUST pin `rangeEnd` to the journal's newest record: corpus
  * timestamps are June–July 2026, so default "last N weeks" windows are empty.
  *
- * Content plane: `find:note` reads the journal's notes directly;
- * `find:block` reads a block index DERIVED from the journal's records —
+ * Content plane: `:note` reads the journal's notes directly;
+ * `:block` reads a block index DERIVED from the journal's records —
  * one row per distinct (noteId, segmentId, segmentVersion, blockContentId),
  * `dataType: 'wod'`, `rawContent` = the note's title (the corpus journals
  * carry no markdown body — the derivation is a gallery-side projection,
- * not fixture data). `find:effort` reads the engine's bundled effort
+ * not fixture data). `:effort` reads the engine's bundled effort
  * registry — the same source the app loads via CompositeEffortRegistry.
  */
 import {

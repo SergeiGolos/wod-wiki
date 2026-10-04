@@ -82,17 +82,17 @@ describe('groupEntriesByDimension — ordered dimensions', () => {
 describe('parseGroupingDimensions — ordered', () => {
   it('reads every ordered dimension from the AST, lowercased in order', () => {
     expect(
-      parseGroupingDimensions('', parseQuery('find:note{tags:pr} by {Discipline, week}')),
+      parseGroupingDimensions('', parseQuery(':note{tags:pr} by {Discipline, week}')),
     ).toEqual(['discipline', 'week'])
   })
 
   it('parses the query string through the shared engine parser', () => {
-    expect(parseGroupingDimensions('find:note by {source, week}')).toEqual(['source', 'week'])
-    expect(parseGroupingDimensions('find:note by {tag}')).toEqual(['tag'])
+    expect(parseGroupingDimensions(':note by {source, week}')).toEqual(['source', 'week'])
+    expect(parseGroupingDimensions(':note by {tag}')).toEqual(['tag'])
   })
 
   it('is null for invalid queries and without grouping', () => {
-    expect(parseGroupingDimensions('find:note last 2w')).toBeNull()
+    expect(parseGroupingDimensions(':note last 2w')).toBeNull()
     expect(parseGroupingDimensions('not a query')).toBeNull()
   })
 })

@@ -86,7 +86,7 @@ const execute: WqlExecutor = async ast => {
 }
 
 /** Palette-style defaults: all note sources, no time window. */
-const paletteQuery = 'find:note'
+const paletteQuery = ':note'
 
 /** The dialog composer's free-text input (distinct placeholder keeps it
  *  unambiguous against any background page composer). */
@@ -139,13 +139,13 @@ describe('PaletteShell WQL mode', () => {
     })
 
     const input = findDraftInput()
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note'))
 
     // Typing re-runs the search with the pending text resolved as the same
     // text filter Enter commits — bare concatenation is invalid WQL and
     // would blank the results instead of narrowing them.
     fireEvent.change(input, { target: { value: 'fran' } })
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{text:fran}'), { timeout: 1_000 })
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{text:fran}'), { timeout: 1_000 })
   })
 
   it('applies the exact visible draft immediately — no debounce wait on the action', async () => {
@@ -186,7 +186,7 @@ describe('PaletteShell WQL mode', () => {
     search.mockClear()
 
     // An invalid draft never executes: sources keep the previous results.
-    fireEvent.change(findDraftInput(), { target: { value: 'find:note{oops' } })
+    fireEvent.change(findDraftInput(), { target: { value: ':note{oops' } })
     await act(async () => {})
     expect(search).not.toHaveBeenCalled()
     expect(screen.getByText('Fran')).toBeDefined()
@@ -207,7 +207,7 @@ describe('PaletteShell WQL mode', () => {
     let resolved = false
     const response = openPalette({
       // A source pill seeds the Where-stored value picker without Add condition.
-      wql: { initialQuery: 'find:note{source:journal}', execute },
+      wql: { initialQuery: ':note{source:journal}', execute },
       sources: [{ id: 'wql-search', search }],
     })
     void response.then(() => { resolved = true })
@@ -226,7 +226,7 @@ describe('PaletteShell WQL mode', () => {
 
     // The scope clause landed in the draft (multi-select ORs the scope
     // values) and re-searched…
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{source:journal|guides}'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{source:journal|guides}'))
     // …but the Enter did NOT activate the palette result…
     await act(async () => {})
     expect(resolved).toBe(false)
@@ -249,7 +249,7 @@ describe('PaletteShell WQL mode', () => {
     fireEvent.change(input, { target: { value: 'fran' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(screen.getByTestId('token-slot-text').textContent).toContain('fran')
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{text:fran}'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{text:fran}'))
 
     await screen.findByText('Fran')
 
@@ -296,7 +296,7 @@ describe('PaletteShell WQL mode', () => {
     // The sentinel-history machinery talks to window.history directly, so
     // this contract needs a real BrowserRouter (MemoryRouter keeps history
     // in memory and never writes history.state).
-    window.history.pushState(null, '', '/library?q=find%3Anote')
+    window.history.pushState(null, '', '/library?q=%3Anote')
     try {
       render(
         <BrowserRouter>
@@ -316,7 +316,7 @@ describe('PaletteShell WQL mode', () => {
       expect(usePaletteStore.getState().isOpen).toBe(false)
       // The sentinel entry is consumed — the visible URL is exactly the page's.
       await waitFor(() =>
-        expect(screen.getByTestId('location-probe').textContent).toBe('/library?q=find%3Anote'),
+        expect(screen.getByTestId('location-probe').textContent).toBe('/library?q=%3Anote'),
       )
     } finally {
       window.history.replaceState(null, '', '/')

@@ -41,7 +41,7 @@ export function WqlDiagnosticsStrip({
   const { valid, ast, error } = diagnostics;
   const header = variant === 'header';
   const advisories = ast.advisories ?? [];
-  const supportedDims = new Set(wqlGroupingDimensions(ast.family === 'find' ? ast.target : '', ast.family));
+  const supportedDims = new Set(isPipelineQuery(ast) ? [] : wqlGroupingDimensions(ast.family === 'find' ? ast.target : '', ast.family));
   const unsupportedDims = isPipelineQuery(ast) ? [] : (ast.groupBy ?? []).filter(dim => !supportedDims.has(dim));
   const warning = valid && (advisories.length > 0 || unsupportedDims.length > 0);
   const warningMessage = advisories[0] ?? `Unsupported grouping: ${unsupportedDims.join(', ')}`;

@@ -20,12 +20,12 @@
  */
 
 import type { EventRecord, Note, BlockIndexRow } from '@bitcobblers/wod-wiki-core';
-import { QueryDocumentRunner as FormulaAwareRunner, type DocumentResult, type DocumentOutput, type FormulaEvaluator, type FamilyRunPayload } from './documentRunner';
+import { QueryDocumentRunner as FormulaAwareRunner, type DocumentResult, type DocumentOutput, type FormulaEvaluator, type FamilyRunPayload, appendSuffixes } from './documentRunner';
 import { parseDocument, serializeDocument } from './document';
 import { captureContext, type ExecutionContext } from './calendar';
 import type { DocumentAssignment } from './document';
 import type { AnyParsedQuery, QueryWindow } from './wql';
-import type { RowsRun, TabularResult } from './QueryService';
+import type { RowsRun, TabularResult, NoteContainer } from './QueryService';
 
 export interface RollupTarget {
     /** The calc target key, e.g. `calc.acwr`. */
@@ -63,17 +63,12 @@ export interface QueryDocumentRunnerHost {
         unit?: string;
         error?: string;
     }>;
-    runRows?(queryText: string, context?: ExecutionContext): Promise<{
-        kind: 'rows';
-        table?: TabularResult;
-        runs?: unknown[];
-        error?: string;
-    }>;
     runFind?(queryText: string, context?: ExecutionContext): Promise<{
         kind: 'find';
         notes?: Note[];
         blocks?: BlockIndexRow[];
         efforts?: unknown[];
+        containers?: Record<string, NoteContainer>;
         runs?: RowsRun[];
         table?: TabularResult;
         unit?: string;
@@ -152,10 +147,6 @@ export class QueryDocumentRunner {
             // The injected evaluator (ticket 17 seam) wins; the host may also
             // carry one; otherwise the built-in evaluates.
             formulaEvaluator: captured.formulaEvaluator ?? this.host.formulaEvaluator,
-            runRows: async (queryText) => {
-                const res = await this.host.runRows?.(queryText, captured.context);
-                return res ?? { error: 'rows queries are not supported by this host' };
-            },
             runFind: async (queryText) => {
                 const res = await this.host.runFind?.(queryText, captured.context);
                 return res ?? { error: 'find queries are not supported by this host' };
@@ -169,20 +160,6 @@ export class QueryDocumentRunner {
     }
 }
 
-/** Append defaults window/groupBy as textual suffixes when merging down. */
-function appendSuffixes(queryText: string, window: import('./wql').QueryWindow, groupBy?: string[]): string {
-    let text = queryText;
-    if (groupBy && groupBy.length > 0 && !/by\s*\{/.test(text)) {
-        text += ` by {${groupBy.join(', ')}}`;
-    }
-    if (window.kind === 'relative' && !/\blast\b/.test(text)) {
-        text += ` last ${window.size}${window.unit}`;
-    } else if (window.kind === 'range' && !/\bfrom\b/.test(text)) {
-        text += ` from ${window.start}${window.end ? ` to ${window.end}` : ''}`;
-    }
-    return text;
-}
-
 /** Substitute `$name` tokens with active parameter values (raw text). */
 export function substituteTokens(text: string, tokens: Record<string, string>): string {
     return text.replace(/\$([A-Za-z_][\w-]*)/g, (match, name: string) => {
@@ -193,13 +170,18 @@ export function substituteTokens(text: string, tokens: Record<string, string>): 
 
 /**
  * AST rollup inspection (replaces `.includes('calc.')` string sniffing):
- * true when the parsed head's metric — or any pipeline transform stage's —
- * is a calc target whose derivation depends on workload rollup facts.
+ * true when the parsed head's metric — a pipeline's source aggregate metric
+ * or any transform stage's — is a calc target whose derivation depends on
+ * workload rollup facts.
  */
 export function consumesRollupFacts(parsed: AnyParsedQuery | undefined): boolean {
     if (!parsed) return false;
     if (parsed.family === 'aggregate') return ROLLUP_TARGETS.includes(parsed.metric);
-    if (parsed.family === 'pipeline') return parsed.transforms.some((t) => ROLLUP_TARGETS.includes(t.metric));
+    if (parsed.family === 'pipeline') {
+        if (parsed.source.kind === 'query' && parsed.source.query.family === 'aggregate'
+            && ROLLUP_TARGETS.includes(parsed.source.query.metric)) return true;
+        return parsed.transforms.some((t) => ROLLUP_TARGETS.includes(t.metric));
+    }
     return false;
 }
 

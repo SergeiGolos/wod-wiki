@@ -22,6 +22,19 @@ import {
 // wql's own IEffort — the engine umbrella re-exports lang's IEffort under the
 // same name, and the two differ on baseAttributes' index signature (0.6.36).
 import type { IEffort } from '@bitcobblers/wod-wiki-wql';
+import {
+  PageSourceRegistry,
+  captureContext,
+  civilDateOf,
+  civilDateAdd,
+  zonedStartOfDay,
+  toEventRows,
+  type PageSourceEntry,
+  type ExecutionContext,
+} from '@bitcobblers/wod-wiki-wql';
+import { toStoredOutputStatement } from '@bitcobblers/wod-wiki-lang';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
+import { getActiveWorkbenchSessionStore } from '@/stores/workbenchSessionStore';
 import { getAppEffortRegistry } from '@/services/effortRegistry';
 import { storageService } from '@/services/storage';
 import { staticNoteStore } from '@/services/content/staticBlockIndex';
@@ -65,8 +78,204 @@ export class RegistryEffortStore implements EffortQueryStore {
   }
 }
 
+// ─── Page-source datasets (@session / @today) ─────────────────────────────
+//
+// The registry is populated ONCE per page context — `ensurePageSources` is
+// memoized and every production query method awaits it before executing —
+// so `@session | :sum{metric:tis}` and `@today | …` pipelines resolve
+// in-memory through `QueryServiceStores.datasetStore` and never roundtrip
+// the database. `@session` projects the ACTIVE workbench runtime at query
+// time (no stale cross-provider runtime); `@today` is the DST-safe civil
+// day snapshot: telemetry events plus journal-day notes (junction page
+// date first, the note's own domain date as fallback).
+
+export const pageSourceRegistry = new PageSourceRegistry();
+
+const sessionEntry: PageSourceEntry = { events: [], notes: [] };
+const todayEntry: PageSourceEntry = { events: [], notes: [] };
+pageSourceRegistry.set('@session', sessionEntry);
+pageSourceRegistry.set('@today', todayEntry);
+
+/** Project the active workbench runtime's outputs into event rows — the
+ *  live `@session` facts and segment outputs. Returns the REGISTRY entry
+ *  (mutated in place) so every reader sees the same current projection. */
+function projectLiveSession(): PageSourceEntry {
+  const session = getActiveWorkbenchSessionStore().getState();
+  const outputs: IOutputStatement[] = session.runtime?.getOutputStatements() ?? [];
+  const entry = session.currentEntry;
+  sessionEntry.notes = entry
+    ? [{ id: entry.id, title: entry.title, createdAt: entry.createdAt, date: entry.targetDate }]
+    : [];
+  if (outputs.length === 0) {
+    sessionEntry.events = [];
+    return sessionEntry;
+  }
+  sessionEntry.events = toEventRows(outputs.map(toStoredOutputStatement), {
+    noteId: entry?.id ?? '',
+    resultId: `live:${entry?.id ?? 'session'}`,
+    origin: 'playground',
+    workoutTimestamp: entry?.targetDate,
+  });
+  return sessionEntry;
+}
+
+/** The note's civil day: the first junction page carrying a date wins
+ *  (highest container), else the note's own domain date, else its creation
+ *  date — every note resolves to exactly one civil day in the captured
+ *  timezone (never a raw timestamp comparison). */
+function noteCivilDay(
+  note: { id: string; date?: number; createdAt: number },
+  links: Array<{ pageId: string; position?: number; createdAt: number }>,
+  pages: ReadonlyMap<string, { date?: string } | undefined>,
+  timeZone: string,
+): string {
+  const ordered = [...links].sort(
+    (a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || a.createdAt - b.createdAt,
+  );
+  for (const link of ordered) {
+    const date = pages.get(link.pageId)?.date;
+    if (date) return date;
+  }
+  return civilDateOf(note.date ?? note.createdAt, timeZone);
+}
+
+async function populatePageSources(ctx: ExecutionContext, gen: number): Promise<void> {
+  const today = civilDateOf(ctx.instant, ctx.timeZone);
+  const start = zonedStartOfDay(today, ctx.timeZone);
+  const end = zonedStartOfDay(civilDateAdd(today, 1), ctx.timeZone);
+
+  const [rangeEvents, allNotes, allLinks] = await Promise.all([
+    storageService.getEventsByTimeRange(start, end),
+    storageService.getAllNotes(),
+    storageService.getAllPageNotes(),
+  ]);
+  // The store's window query treats the end as inclusive — the civil day
+  // is the half-open [local midnight, next local midnight).
+  const events = rangeEvents.filter((e) => e.timestamp >= start && e.timestamp < end);
+
+  const pageIds = Array.from(new Set(allLinks.map((l) => l.pageId)));
+  const pages = new Map<string, { date?: string } | undefined>();
+  await Promise.all(pageIds.map(async (id) => pages.set(id, await storageService.getPage(id))));
+
+  const linksByNote = new Map<string, Array<{ pageId: string; position?: number; createdAt: number }>>();
+  for (const link of allLinks) {
+    const links = linksByNote.get(link.noteId);
+    if (links) links.push(link);
+    else linksByNote.set(link.noteId, [link]);
+  }
+
+  const todays: typeof allNotes = [];
+  for (const note of allNotes) {
+    if (noteCivilDay(note, linksByNote.get(note.id) ?? [], pages, ctx.timeZone) === today) todays.push(note);
+  }
+
+  // A newer page context superseded this population — never let an older
+  // snapshot overwrite the registry or release the gate.
+  if (gen !== generation) return;
+  todayEntry.events = events;
+  todayEntry.notes = todays;
+  projectLiveSession();
+}
+
+let sourcesPromise: Promise<void> | null = null;
+let capturedDay: string | null = null;
+let generation = 0;
+let sourcesReady = false;
+const readyListeners = new Set<() => void>();
+
+function notifyReady(): void {
+  for (const l of readyListeners) l();
+}
+
+function startPopulation(ctx: ExecutionContext, today: string): Promise<void> {
+  capturedDay = today;
+  const gen = ++generation;
+  sourcesPromise = populatePageSources(ctx, gen);
+  // Release the gate on settle either way — a failure stays on the cached
+  // rejection so child queries surface the real storage error.
+  void sourcesPromise.then(
+    () => {
+      if (gen === generation) markReady();
+    },
+    () => {
+      if (gen === generation) markReady();
+    },
+  );
+  return sourcesPromise;
+}
+
+function markReady(): void {
+  sourcesReady = true;
+  notifyReady();
+}
+
+/** Populate the standard page-source datasets once per page context /
+ *  civil day — awaited by every production query method BEFORE execution.
+ *  Concurrent children coalesce on the in-flight promise; a stored failure
+ *  stays on the cached promise so queries surface the real error instead of
+ *  silently re-querying a broken store. One captured context drives both
+ *  the day key and the snapshot, so a midnight crossing can never split
+ *  them. */
+export function ensurePageSources(): Promise<void> {
+  const ctx = captureContext();
+  const today = civilDateOf(ctx.instant, ctx.timeZone);
+  if (!sourcesPromise || capturedDay !== today) return startPopulation(ctx, today);
+  return sourcesPromise;
+}
+
+/** Page-load population: a new page context re-populates (@today may have
+ *  changed since the previous page loaded). Resets the first-paint gate so
+ *  children wait for the fresh snapshot. */
+export function refreshPageSources(): Promise<void> {
+  sourcesReady = false;
+  const ctx = captureContext();
+  const today = civilDateOf(ctx.instant, ctx.timeZone);
+  return startPopulation(ctx, today);
+}
+
+/** Snapshot/subscribe gate for the first-paint hook — the pure service
+ *  module stays React-free so direct runtime imports (page.evaluate smoke
+ *  seams) never hit the React preamble. */
+export function sourcesReadySnapshot(): boolean {
+  return sourcesReady;
+}
+export function subscribePageSourcesReady(listener: () => void): () => void {
+  readyListeners.add(listener);
+  return () => {
+    readyListeners.delete(listener);
+  };
+}
+
+/**
+ * Production executor: the IndexedDB-wired QueryService with page-source
+ * population guaranteed before any query executes — Explorer, dashboards,
+ * canvas and note surfaces all go through this one seam.
+ */
+class PlaygroundQueryService extends QueryService {
+  override async runQuery(raw: string, options?: Parameters<QueryService['runQuery']>[1]) {
+    await ensurePageSources();
+    return super.runQuery(raw, options);
+  }
+  override async runPipeline(queryText: string, options?: Parameters<QueryService['runPipeline']>[1]) {
+    await ensurePageSources();
+    return super.runPipeline(queryText, options);
+  }
+  override async runFind(parsed: Parameters<QueryService['runFind']>[0], options?: Parameters<QueryService['runFind']>[1]) {
+    await ensurePageSources();
+    return super.runFind(parsed, options);
+  }
+  override async runRows(parsed: Parameters<QueryService['runRows']>[0], options?: Parameters<QueryService['runRows']>[1]) {
+    await ensurePageSources();
+    return super.runRows(parsed, options);
+  }
+  override async run(parsed: Parameters<QueryService['run']>[0], options?: Parameters<QueryService['run']>[1]) {
+    await ensurePageSources();
+    return super.run(parsed, options);
+  }
+}
+
 export function createQueryService(): QueryService {
-  return new QueryService({
+  return new PlaygroundQueryService({
     eventStore: indexedDbEventStore,
     noteStore: indexedDbNoteStore,
     blockStore: indexedDbBlockStore,
@@ -80,6 +289,16 @@ export function createQueryService(): QueryService {
     },
     noteTagsStore: {
       getAllFromIndex: (index, key) => storageService.getAllFromIndex('note_tags', index, key),
+    },
+    // Canonical page_notes junction reads for container resolution.
+    pageStore: {
+      getNotePages: (noteId) => storageService.getNotePages(noteId),
+      getPage: (pageId) => storageService.getPage(pageId),
+    },
+    // Named page-source datasets — @session projects live at query time;
+    // everything else reads the populated registry. No database roundtrip.
+    datasetStore: {
+      getDataset: (name) => (name === '@session' ? projectLiveSession() : pageSourceRegistry.getDataset(name)),
     },
   });
 }

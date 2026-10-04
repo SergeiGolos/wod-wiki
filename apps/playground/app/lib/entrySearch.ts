@@ -3,8 +3,8 @@
  * (Tickets #833/#834 deepened per Wayfinder Ticket 001).
  *
  * Provides a single, deep intake seam that:
- *   1. Accepts any valid find WQL query string or AST (find:note,
- *      find:block, find:effort, find:session, find:segment, find:event).
+ *   1. Accepts any valid content WQL query string or AST (:note,
+ *      :block, :effort, :session, :segment, :event).
  *   2. Dispatches to the appropriate query service method (runFind,
  *      runFindEffort) transparently behind a single seam.
  *   3. Maps all returned records into an extended, uniform Entry model
@@ -37,7 +37,7 @@ import {
 } from './entryMapper';
 
 /**
- * find:segment / find:event — the executor returns tabular scalar rows
+ * :segment / :event — the executor returns tabular scalar rows
  * (#1042), not notes/blocks. Map each row into a stream Entry from the
  * metadata the table actually emits (selected columns + `__id`/`__resultId`).
  * Unknown non-scalar fields are ignored; note identity is kept only when the
@@ -92,7 +92,7 @@ export interface StreamQueryEngineOptions {
   noteTitleResolver?: (noteId: string) => Promise<string | undefined> | string | undefined;
   noteTagsResolver?: (noteId: string) => Promise<string[]> | string[];
   /**
-   * When true, a find:note run also fetches the same query's block plane
+   * When true, a :note run also fetches the same query's block plane
    * (identical scope — no broadening) and attaches each note's excerpt lines
    * plus its first wod block's content id. The feed's rich preview cards and
    * their Run action consume this; one extra query per executed WQL, not per item.
@@ -147,9 +147,9 @@ export class StreamQueryEngine {
     const parsed: AnyParsedQuery = typeof input === 'string' ? parseQuery(input) : input;
     if (!parsed || parsed.error) return [];
 
-    // 1. Content and Effort Discovery Planes (find:)
+    // 1. Content and Effort Discovery Planes
     if (isFindQuery(parsed)) {
-      // find:effort — queries the effort registry via runFindEffort
+      // :effort — queries the effort registry via runFindEffort
       if (parsed.target === 'effort') {
         const result = this.service.runFindEffort
           ? await this.service.runFindEffort(parsed)
@@ -159,7 +159,7 @@ export class StreamQueryEngine {
         return entries;
       }
 
-      // find:block — one Entry per block in executor order: pipes
+      // :block — one Entry per block in executor order: pipes
       // (order/limit) are applied upstream, so no local re-sort (#855).
       if (parsed.target === 'block') {
         const result = await this.service.runFind(parsed);
@@ -167,7 +167,7 @@ export class StreamQueryEngine {
         emitStages(onStages, result.stages, entries);
         return entries;
       }
-      // find:session — session runs grouped into cards (#1041/#1042)
+      // :session — session runs grouped into cards (#1041/#1042)
       if (parsed.target === 'session') {
         const result = await this.service.runFind(parsed);
         onStages?.(result.stages);
@@ -186,7 +186,7 @@ export class StreamQueryEngine {
         return entries;
       }
 
-      // find:segment / find:event — the tabular rows plane (#1042). Mapped
+      // :segment / :event — the tabular rows plane (#1042). Mapped
       // from result.table rows; noteMap would silently drop them.
       if (parsed.target === 'segment' || parsed.target === 'event') {
         const target = parsed.target;
@@ -196,19 +196,19 @@ export class StreamQueryEngine {
         return entries;
       }
 
-      // find:note (or other content target)
+      // :note (or other content target)
       const hasText = parsed.filters.some(f => f.key === 'text' && !f.negate);
       const primaryPromise = this.service.runFind(parsed);
 
       // When free-text is present — or the caller asked for note block info —
-      // also run find:block to search body text / collect per-note previews.
+      // also run :block to search body text / collect per-note previews.
       const blockParsed: ParsedFindQuery | null = (hasText || this.noteBlockInfo) && parsed.target === 'note'
         ? (typeof input === 'string'
-            ? (parseQuery(input.replace(/^find:note/, 'find:block')) as ParsedFindQuery)
+            ? (parseQuery(input.replace(/^:note/, ':block')) as ParsedFindQuery)
             : {
                 ...parsed,
                 target: 'block',
-                raw: parsed.raw ? parsed.raw.replace(/^find:note/, 'find:block') : 'find:block',
+                raw: parsed.raw ? parsed.raw.replace(/^:note/, ':block') : ':block',
               })
         : null;
 

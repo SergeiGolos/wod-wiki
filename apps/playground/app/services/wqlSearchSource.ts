@@ -71,7 +71,6 @@ export function paletteTextFromWql(wql: string): string {
   }
   return wql
     .replace(/^:\w+/, ' ')
-    .replace(/^find:\w+/, ' ')
     .replace(/\bin\s+\w+/g, ' ')
     .replace(/\blast\s+\w+/g, ' ')
     .replace(/\bwhere\b/g, ' ')
@@ -97,7 +96,7 @@ export function withWqlText(source: PaletteDataSource): PaletteDataSource {
  * Palette-specific slot defaults (issue #834): whole-note results across all
  * sources with no time window — the fuzzy palette this replaces searched
  * everything, unbounded by date. A stored Route WQL Config default overrides
- * the seed; the secondary `find:block` companion dispatch is unchanged.
+ * the seed; the secondary :block companion dispatch is unchanged.
  */
 export function searchPaletteQuery(): string {
   return readRouteWqlConfig(PALETTE_ROUTE_ID).defaultWql ?? PALETTE_SEED_QUERY;

@@ -8,6 +8,7 @@
  * 3. Legacy query parameters and bookmarks seamlessly migrate into canonical WQL queries.
  */
 import { describe, it, expect } from 'bun:test'
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { resolveRouteView, type RouteViewDeps } from './routeView'
 import {
   JOURNAL_STREAM_PROFILE,
@@ -73,52 +74,72 @@ describe('Direct route mounting classification (routeView)', () => {
 describe('Route-aware stream profile resolution', () => {
   it('resolves canonical StreamProfile configurations per route', () => {
     expect(resolveStreamProfile('/journal')).toBe(JOURNAL_STREAM_PROFILE)
-    expect(resolveStreamProfile('/journal').defaultWql).toBe('find:note{source:journal} last 4w')
+    // Semantic, not spelling: the journal default scopes to the journal
+    // source over a 4-week window regardless of head alias.
+    const journalDefault = parseQuery(resolveStreamProfile('/journal').defaultWql)
+    expect(isFindQuery(journalDefault)).toBe(true)
+    if (isFindQuery(journalDefault)) {
+      expect(journalDefault.filters.some((f) => f.key === 'source' && f.values.some((v) => v.value === 'journal'))).toBe(true)
+      expect(journalDefault.window).toEqual({ kind: 'relative', size: 4, unit: 'w' })
+    }
 
     expect(resolveStreamProfile('/collections')).toBe(COLLECTIONS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/collections').defaultWql).toBe('find:note{source:collections} by {tag}')
+    expect(resolveStreamProfile('/collections').defaultWql).toBe(':collection{} by {tag}')
 
     expect(resolveStreamProfile('/feeds')).toBe(FEEDS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/feeds').defaultWql).toBe('find:note{source:feeds} last 2w')
+    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':note{} last 2w')
 
     expect(resolveStreamProfile('/library')).toBe(LIBRARY_STREAM_PROFILE)
-    expect(resolveStreamProfile('/library').defaultWql).toBe('find:note{source:collections} last 4w')
+    expect(resolveStreamProfile('/library').defaultWql).toBe(':collection{} last 4w')
 
     expect(resolveStreamProfile('/efforts')).toBe(EFFORTS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/efforts').defaultWql).toBe('find:effort')
+    expect(resolveStreamProfile('/efforts').defaultWql).toBe(':effort')
   })
 })
 
 describe('Legacy parameter migration across unified stream routes', () => {
   it('migrates legacy bookmarks on /journal into canonical WQL queries', () => {
     const legacy = JOURNAL_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('mode=plan'))).toBe('find:note{source:journal} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('mode=plan&s=2026-07-15&tags=pr'))).toBe('find:note{source:journal,tags:pr} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('text=snatch'))).toBe('find:note{source:journal,text:snatch} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('mode=plan'))).toBe(':note{source:journal} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('mode=plan&s=2026-07-15&tags=pr'))).toBe(':note{source:journal,tags:pr} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':note{source:journal,text:snatch} last 2w')
   })
 
   it('migrates legacy bookmarks on /collections into canonical WQL queries', () => {
     const legacy = COLLECTIONS_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('text=fran'))).toBe('find:note{source:collections,text:fran} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('timePreset=all'))).toBe('find:note{source:collections}')
+    expect(legacy.toQuery(new URLSearchParams('text=fran'))).toBe(':note{source:collections,text:fran} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':note{source:collections}')
   })
 
   it('migrates legacy bookmarks on /feeds into canonical WQL queries', () => {
     const legacy = FEEDS_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('s=2026-07-12'))).toBe('find:note{source:feeds} last 2w')
+    // The feeds scope is excised: the migrated query is an unscoped recent
+    // note listing. Semantic check — window only, no source narrowing.
+    const migrated = parseQuery(legacy.toQuery(new URLSearchParams('s=2026-07-12')) ?? '')
+    expect(isFindQuery(migrated)).toBe(true)
+    if (isFindQuery(migrated)) {
+      expect(migrated.filters.filter((f) => f.key === 'source')).toHaveLength(0)
+      expect(migrated.window).toEqual({ kind: 'relative', size: 2, unit: 'w' })
+    }
   })
 
   it('migrates legacy tri-state parameters on /library', () => {
     const legacy = LIBRARY_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe('find:note{source:journal} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe('find:note{source:collections} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on'))).toBe('find:note{source:feeds} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':note{source:journal} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':note{source:collections} last 2w')
+    // post=on mapped to the now-excised feeds scope: unscoped, same window.
+    const postOnly = parseQuery(legacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on')) ?? '')
+    expect(isFindQuery(postOnly)).toBe(true)
+    if (isFindQuery(postOnly)) {
+      expect(postOnly.filters.filter((f) => f.key === 'source')).toHaveLength(0)
+      expect(postOnly.window).toEqual({ kind: 'relative', size: 2, unit: 'w' })
+    }
   })
 
   it('migrates legacy parameters and plain-text query on /efforts', () => {
     const legacy = EFFORTS_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('origin=bundled&discipline=strength'))).toBe('find:effort{origin:bundled,discipline:strength}')
-    expect(legacy.salvageQ?.('fran', new URLSearchParams())).toBe('find:effort{text:fran}')
-    expect(legacy.salvageQ?.('snatch balance', new URLSearchParams('discipline=weightlifting'))).toBe('find:effort{text:"snatch balance",discipline:weightlifting}')
+    expect(legacy.toQuery(new URLSearchParams('origin=bundled&discipline=strength'))).toBe(':effort{origin:bundled,discipline:strength}')
+    expect(legacy.salvageQ?.('fran', new URLSearchParams())).toBe(':effort{text:fran}')
+    expect(legacy.salvageQ?.('snatch balance', new URLSearchParams('discipline=weightlifting'))).toBe(':effort{text:"snatch balance",discipline:weightlifting}')
   })
 })

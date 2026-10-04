@@ -41,7 +41,7 @@ export interface EventStore {
 }
 
 
-/** Store surface for content queries (`find:note`). */
+/** Store surface for content queries (`:note`). */
 export interface NoteQueryStore {
   getAllNotes(): Promise<Note[]>;
   getNoteIdsForTag(label: string): Promise<Set<string>>;
@@ -50,12 +50,12 @@ export interface NoteQueryStore {
   getNoteTagLabels(noteId: string): Promise<string[]>;
 }
 
-/** Store surface for block-index queries (`find:block`). */
+/** Store surface for block-index queries (`:block`). */
 export interface BlockQueryStore {
   getAllBlocks(): Promise<BlockIndexRow[]>;
 }
 
-/** Pure effort model interface for `find:effort` queries. */
+/** Pure effort model interface for `:effort` queries. */
 export interface IEffort {
   id: string;
   slug: string;

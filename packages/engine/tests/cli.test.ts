@@ -239,7 +239,9 @@ describe('wod CLI runner', () => {
       expect(code).toBe(0);
       const ir = JSON.parse(stdout);
       expect(ir.kind).toBe('pipeline-result');
+      // One segment statement carries round:1 — the count over it is 1.
       expect(ir.data.parsed.family).toBe('pipeline');
+      expect(ir.data.series[0].points[0].value).toBe(1);
     });
 
     it('returns exit code 1 when no dataset is provided', async () => {

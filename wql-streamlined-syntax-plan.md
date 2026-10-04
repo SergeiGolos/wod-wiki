@@ -25,49 +25,51 @@ Implement colon-prefixed WQL grammar (`:{source}`, `:{function}`, `:{chart}`), d
 
 ## Tasks
 
-- [ ] Task 1: Update Vocabulary & Constants
+- [x] Task 1: Update Vocabulary & Constants
   - **Files**: `packages/wql/src/vocabulary.ts`
   - **Changes**: Remove `feeds` from `WQL_SOURCE_VALUES`. Define `WQL_SOURCE_HEADS`, `WQL_FUNCTION_HEADS`, `WQL_CHART_HEADS`, and standard dataset names (`@session`, `@today`).
   - **Verify**: `npm run build -w packages/wql` succeeds without type errors.
 
-- [ ] Task 2: Grammar & Lexer Colon Head Support
+- [x] Task 2: Grammar & Lexer Colon Head Support
   - **Files**: `packages/wql/src/grammar/wql.grammar`
   - **Changes**: Update Lezer grammar to parse leading colon tokens (`:{word}`) and pipeline chaining (`|`). Support dataset references (`@name`). Recompile Lezer parser.
   - **Verify**: Parser generates tree with `Head` and `Pipeline` nodes for `:journal{effort:snatch} | :sum{metric:tis}`.
 
-- [ ] Task 3: AST Mapper & Pipeline Representation
+- [x] Task 3: AST Mapper & Pipeline Representation
   - **Files**: `packages/wql/src/wql.ts`
   - **Changes**: Parse colon heads directly into structured AST without `find:`. Map pipeline stages (`source -> transforms[] -> sink`). Enforce default scope `journal | collection | playground` on `:note`.
   - **Verify**: Unit test in `packages/wql/tests/wql.test.ts` successfully parses `:journal{effort:snatch}` and pipeline expressions.
 
-- [ ] Task 4: Unified EventRecord Execution & Container Resolution
+- [x] Task 4: Unified EventRecord Execution & Container Resolution
   - **Files**: `packages/wql/src/QueryService.ts`
   - **Changes**: Refactor telemetry scanning to share a single `EventRecord` path: `:segment` filters to `outputType === 'segment'` (domain data points); `:event` returns the full debug-level statement stream. Route source extractions (`:journal`, `:collection`, etc.) to respective stores. Resolve container links to parent `Page` when `page` ID exists, fallback to `Note`. Remove feed handling.
   - **Verify**: Both `:segment` and `:event` execute over `defaultEventStore` using `outputType` predicates; `runFind` returns `page` container URL for notes with parent page metadata.
 
-- [ ] Task 5: Auto-Populate Standard Page Datasets (`@session`, `@today`)
+- [x] Task 5: Auto-Populate Standard Page Datasets (`@session`, `@today`)
   - **Files**: `packages/wql/src/queryDocumentRunner.ts`, `apps/playground/src/services/`
   - **Changes**: On page load, register `@session` (active workout results/facts) and `@today` (civil day events) into `PageSourceRegistry` before child queries run.
   - **Verify**: Downstream query `@session | :sum{metric:tis}` evaluates in-memory without database roundtrip.
 
-- [ ] Task 6: Widget Runner & Pipeline Sink Evaluation
+- [x] Task 6: Widget Runner & Pipeline Sink Evaluation
   - **Files**: `packages/wql/src/queryDocumentRunner.ts`
   - **Changes**: Evaluate pipeline chains through to chart sink (`:timeseries`, `:bar`, `:table`), passing formatted datasets to rendering components.
   - **Verify**: Query block in test markdown file produces expected chart payload.
 
-- [ ] Task 7 (Phase X): Full Verification & Regression Run
+- [x] Task 7 (Phase X): Full Verification & Regression Run
   - **Files**: Full test suite
   - **Run**:
     - `npm run test` (or `npx vitest run packages/wql`)
     - `node ~/.agents/skills/whiteboard-html/check.mjs docs/wql-whiteboard-crosswalk.html`
   - **Verify**: All unit tests pass, zero regressions, and whiteboard document checks green.
+  - **Evidence**: `bun run build` passed for packages, playground, and Storybook. Sequential `bun run test` passed: 1,766 package tests, 2,636 playground tests, 104 Storybook tests, and 14 seed tests. Package suite retains 6 expected failures and 5 skips. `bun run lint && bun run typecheck:package` passed with 22 lint warnings. Whiteboard validation was already reported green; unchanged, not rerun.
+  - **Runtime smoke**: Shared event scan returned 2 segments and 4 debug statements; segment `tis` was 30 and `@today` was 37. Dataset pipelines made zero database reads; six chart sinks and parent-page links passed. Browser rendered value, bar, and donut widgets; `@session` was empty without an active session.
 
 ---
 
 ## Done When
-- [ ] Queries execute with colon-first syntax (`:journal{effort:snatch}`, `:sum{metric:tis}`) without `find:`.
-- [ ] Left-to-right pipelines (`:{source} | :{function} | :{chart}`) evaluate correctly.
-- [ ] `:segment` and `:event` are executed as inclusive filters over the unified `EventRecord` store (`:segment` = domain data points, `:event` = debug statement stream).
-- [ ] `@session` and `@today` are automatically populated on page load and queryable downstream.
-- [ ] Entities link to Page (if page-bound) or Note (if standalone).
-- [ ] Feeds are completely removed from vocabulary and queries.
+- [x] Queries execute with colon-first syntax (`:journal{effort:snatch}`, `:sum{metric:tis}`) without `find:`.
+- [x] Left-to-right pipelines (`:{source} | :{function} | :{chart}`) evaluate correctly.
+- [x] `:segment` and `:event` are executed as inclusive filters over the unified `EventRecord` store (`:segment` = domain data points, `:event` = debug statement stream).
+- [x] `@session` and `@today` are automatically populated on page load and queryable downstream.
+- [x] Entities link to Page (if page-bound) or Note (if standalone).
+- [x] Feeds are completely removed from vocabulary and queries.

@@ -15,7 +15,7 @@ import {
 describe('streamProfile presets', () => {
   it('defines the Journal stream profile', () => {
     expect(JOURNAL_STREAM_PROFILE.route).toBe('/journal')
-    expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe('find:note{source:journal} last 4w')
+    expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe(':journal{} last 4w')
     expect(JOURNAL_STREAM_PROFILE.level).toBe('note')
     expect(JOURNAL_STREAM_PROFILE.target).toBe('note')
     expect(JOURNAL_STREAM_PROFILE.scopeOptions).toEqual(['journal'])
@@ -23,7 +23,7 @@ describe('streamProfile presets', () => {
 
   it('defines the Collections stream profile', () => {
     expect(COLLECTIONS_STREAM_PROFILE.route).toBe('/collections')
-    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} by {tag}')
+    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe(':collection{} by {tag}')
     expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
     expect(COLLECTIONS_STREAM_PROFILE.target).toBe('note')
     expect(COLLECTIONS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
@@ -31,23 +31,24 @@ describe('streamProfile presets', () => {
 
   it('defines the Feeds stream profile', () => {
     expect(FEEDS_STREAM_PROFILE.route).toBe('/feeds')
-    expect(FEEDS_STREAM_PROFILE.defaultWql).toBe('find:note{source:feeds} last 2w')
+    expect(FEEDS_STREAM_PROFILE.defaultWql).toBe(':note{} last 2w')
     expect(FEEDS_STREAM_PROFILE.level).toBe('note')
     expect(FEEDS_STREAM_PROFILE.target).toBe('note')
-    expect(FEEDS_STREAM_PROFILE.scopeOptions).toEqual(['feeds', 'collections'])
+    // feeds is excised from WQL storage scopes.
+    expect(FEEDS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
   })
 
   it('defines the Library stream profile', () => {
     expect(LIBRARY_STREAM_PROFILE.route).toBe('/library')
-    expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe('find:note{source:collections} last 4w')
+    expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe(':collection{} last 4w')
     expect(LIBRARY_STREAM_PROFILE.level).toBe('note')
     expect(LIBRARY_STREAM_PROFILE.target).toBe('note')
-    expect(LIBRARY_STREAM_PROFILE.scopeOptions).toEqual(['journal', 'collections', 'feeds', 'guides', 'playground'])
+    expect(LIBRARY_STREAM_PROFILE.scopeOptions).toEqual(['journal', 'collections', 'guides', 'playground'])
   })
 
   it('defines the Efforts stream profile', () => {
     expect(EFFORTS_STREAM_PROFILE.route).toBe('/efforts')
-    expect(EFFORTS_STREAM_PROFILE.defaultWql).toBe('find:effort')
+    expect(EFFORTS_STREAM_PROFILE.defaultWql).toBe(':effort')
     expect(EFFORTS_STREAM_PROFILE.level).toBe('effort')
     expect(EFFORTS_STREAM_PROFILE.target).toBe('effort')
     expect(EFFORTS_STREAM_PROFILE.scopeOptions).toEqual([])
@@ -55,7 +56,7 @@ describe('streamProfile presets', () => {
 
   it('defines the Sessions stream profile (/sessions, rebranded from /results)', () => {
     expect(SESSIONS_STREAM_PROFILE.route).toBe('/sessions')
-    expect(SESSIONS_STREAM_PROFILE.defaultWql).toBe('find:session{} last 4w')
+    expect(SESSIONS_STREAM_PROFILE.defaultWql).toBe(':session{} last 4w')
     expect(SESSIONS_STREAM_PROFILE.level).toBe('result')
     expect(SESSIONS_STREAM_PROFILE.target).toBe('session')
     expect(SESSIONS_STREAM_PROFILE.scopeOptions).toEqual([])
@@ -63,7 +64,7 @@ describe('streamProfile presets', () => {
 
   it('defines the Playgrounds stream profile', () => {
     expect(PLAYGROUNDS_STREAM_PROFILE.route).toBe('/playgrounds')
-    expect(PLAYGROUNDS_STREAM_PROFILE.defaultWql).toBe('find:note{source:playground} last 4w')
+    expect(PLAYGROUNDS_STREAM_PROFILE.defaultWql).toBe(':playground{} last 4w')
     expect(PLAYGROUNDS_STREAM_PROFILE.level).toBe('note')
     expect(PLAYGROUNDS_STREAM_PROFILE.target).toBe('note')
     expect(PLAYGROUNDS_STREAM_PROFILE.scopeOptions).toEqual(['playground'])
@@ -141,24 +142,24 @@ describe('streamProfile presets', () => {
     const detail = getStreamProfile('/sessions/res-42')
     expect(detail).toBeDefined()
     expect(detail?.route).toBe('/sessions/res-42')
-    expect(detail?.defaultWql).toBe('find:session{result:res-42, plane:segment}')
+    expect(detail?.defaultWql).toBe(':session{result:res-42, plane:segment}')
     expect(detail?.level).toBe('segment')
     expect(detail?.target).toBe('session')
 
     // Trailing slash normalizes
     const trailing = getStreamProfile('/sessions/res-42/')
     expect(trailing?.route).toBe('/sessions/res-42')
-    expect(trailing?.defaultWql).toBe('find:session{result:res-42, plane:segment}')
+    expect(trailing?.defaultWql).toBe(':session{result:res-42, plane:segment}')
 
     // resolveStreamProfile returns the dynamic profile
-    expect(resolveStreamProfile('/sessions/res-99').defaultWql).toBe('find:session{result:res-99, plane:segment}')
+    expect(resolveStreamProfile('/sessions/res-99').defaultWql).toBe(':session{result:res-99, plane:segment}')
   })
 
   it('dynamically resolves a date-scoped sessions profile for /session/:date', () => {
     const byDate = getStreamProfile('/session/2026-09-17')
     expect(byDate).toBeDefined()
     expect(byDate?.route).toBe('/session/2026-09-17')
-    expect(byDate?.defaultWql).toBe('find:session{} from 2026-09-17 to 2026-09-17')
+    expect(byDate?.defaultWql).toBe(':session{} from 2026-09-17 to 2026-09-17')
     expect(byDate?.level).toBe('result')
     expect(byDate?.target).toBe('session')
   })
@@ -168,25 +169,26 @@ describe('streamProfile legacy configurations', () => {
   it('migrates legacy content parameters with default source', () => {
     const journalLegacy = JOURNAL_STREAM_PROFILE.legacy!
     expect(journalLegacy).toBeDefined()
-    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch'))).toBe('find:note{source:journal,text:snatch} last 2w')
-    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch+clean&timePreset=4w'))).toBe('find:note{source:journal,text:"snatch clean"} last 4w')
-    expect(journalLegacy.toQuery(new URLSearchParams('timePreset=all'))).toBe('find:note{source:journal}')
+    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':note{source:journal,text:snatch} last 2w')
+    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch+clean&timePreset=4w'))).toBe(':note{source:journal,text:"snatch clean"} last 4w')
+    expect(journalLegacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':note{source:journal}')
   })
 
   it('migrates legacy tri-state parameters', () => {
     const libraryLegacy = LIBRARY_STREAM_PROFILE.legacy!
     expect(libraryLegacy).toBeDefined()
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe('find:note{source:journal} last 2w')
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe('find:note{source:collections} last 2w')
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on'))).toBe('find:note{source:feeds} last 2w')
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':note{source:journal} last 2w')
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':note{source:collections} last 2w')
+    // `post` mapped to the feeds WQL scope — excised, so it no longer narrows.
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on'))).toBe(':note last 2w')
   })
 
   it('migrates legacy efforts parameters and salvages plain text query', () => {
     const effortsLegacy = EFFORTS_STREAM_PROFILE.legacy!
     expect(effortsLegacy).toBeDefined()
-    expect(effortsLegacy.toQuery(new URLSearchParams('origin=bundled&discipline=strength'))).toBe('find:effort{origin:bundled,discipline:strength}')
-    expect(effortsLegacy.salvageQ?.('pull-up', new URLSearchParams())).toBe('find:effort{text:pull-up}')
-    expect(effortsLegacy.salvageQ?.('handstand push-up', new URLSearchParams('origin=user'))).toBe('find:effort{text:"handstand push-up",origin:user}')
-    expect(effortsLegacy.salvageQ?.('find:effort', new URLSearchParams())).toBeNull()
+    expect(effortsLegacy.toQuery(new URLSearchParams('origin=bundled&discipline=strength'))).toBe(':effort{origin:bundled,discipline:strength}')
+    expect(effortsLegacy.salvageQ?.('pull-up', new URLSearchParams())).toBe(':effort{text:pull-up}')
+    expect(effortsLegacy.salvageQ?.('handstand push-up', new URLSearchParams('origin=user'))).toBe(':effort{text:"handstand push-up",origin:user}')
+    expect(effortsLegacy.salvageQ?.(':effort', new URLSearchParams())).toBeNull()
   })
 })

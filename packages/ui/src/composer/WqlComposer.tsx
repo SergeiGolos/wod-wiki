@@ -91,7 +91,9 @@ export function WqlComposer({
     const bi = preferredChoices?.indexOf(b.value) ?? -1;
     return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi);
   });
-  const allowed = allowedFilterTypesForTarget(resolved.ast.family === 'find' ? resolved.ast.target : '', resolved.ast.family);
+  // Pipelines render no filter pills (guided=false), so they need no
+  // capability table — empty set by model, not a suppressed call.
+  const allowed = isPipelineQuery(resolved.ast) ? new Set<string>() : allowedFilterTypesForTarget(resolved.ast.family === 'find' ? resolved.ast.target : '', resolved.ast.family);
   // Pipelines carry no top-level window; the date editor only opens on
   // find/aggregate drafts whose pills exist.
   const astWindow = isPipelineQuery(resolved.ast) ? undefined : resolved.ast.window;

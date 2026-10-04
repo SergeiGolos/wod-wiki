@@ -17,14 +17,14 @@ function semantics(query: string) {
 
 describe('lossless targeted WQL edits', () => {
   it('retains grouping, unit and every pipe after changing only the window', () => {
-    const query = 'find:segment{effort:snatch} by {effort} in lb | select resistance in lb, effort | order by resistance desc, effort | limit 5 offset 2';
+    const query = ':segment{effort:snatch} by {effort} in lb | select resistance in lb, effort | order by resistance desc, effort | limit 5 offset 2';
     const result = edit(query, 'time', 'last 3w');
     expect(result.valid).toBe(true);
     expect(semantics(result.wql)).toEqual({ ...semantics(query), window: { kind: 'relative', size: 3, unit: 'w' } });
   });
 
   it('edits a repeated-key occurrence without merging its sibling', () => {
-    const query = 'find:note{tags:strength,tags:benchmark}';
+    const query = ':note{tags:strength,tags:benchmark}';
     const result = edit(query, 'tag', 'competition', 1);
     expect(result.ast.filters).toEqual([
       { key: 'tags', negate: false, values: [{ value: 'strength', wildcard: false }] },
@@ -33,29 +33,29 @@ describe('lossless targeted WQL edits', () => {
   });
 
   it('storage scope does not change target or unrelated filters', () => {
-    const query = 'find:block{source:journal,text:snatch}';
-    const result = edit(query, 'source', 'collections|feeds');
+    const query = ':block{source:journal,text:snatch}';
+    const result = edit(query, 'source', 'collections|guides');
     expect(result.ast).toMatchObject({ family: 'find', target: 'block', filters: [
-      { key: 'source', values: [{ value: 'collections', wildcard: false }, { value: 'feeds', wildcard: false }] },
+      { key: 'source', values: [{ value: 'collections', wildcard: false }, { value: 'guides', wildcard: false }] },
       { key: 'text', values: [{ value: 'snatch', wildcard: false }] },
     ] });
   });
 
   it('retains negation, wildcard and civil range during an unrelated edit', () => {
-    const query = 'find:note{!tags:back*} from 2026-01-01 to 2026-02-01';
+    const query = ':note{!tags:back*} from 2026-01-01 to 2026-02-01';
     const result = edit(query, 'tag', 'front*');
     expect(result.ast).toMatchObject({ window: { kind: 'range', start: '2026-01-01', end: '2026-02-01' }, filters: [{ negate: true, values: [{ value: 'front', wildcard: true }] }] });
   });
 
   it('preserves exact untouched and invalid text', () => {
-    for (const query of ['find:segment{effort:snatch}  by {effort} in lb | offset 2', 'find:note{tags:']) {
+    for (const query of [':segment{effort:snatch}  by {effort} in lb | offset 2', ':note{tags:']) {
       expect(resolveQueryDraft(query).wql).toBe(query);
     }
-    expect(resolveQueryDraft('find:note', 'find:note{tags:').valid).toBe(false);
+    expect(resolveQueryDraft(':note', ':note{tags:').valid).toBe(false);
   });
 
   it('repeated free-search edits replace the intended text occurrence only', () => {
-    const first = resolveQueryDraft('find:note{tags:strength}', 'snatch');
+    const first = resolveQueryDraft(':note{tags:strength}', 'snatch');
     const second = resolveQueryDraft(first.wql, 'clean');
     expect(second.ast.filters).toEqual([
       { key: 'tags', negate: false, values: [{ value: 'strength', wildcard: false }] },
@@ -64,14 +64,14 @@ describe('lossless targeted WQL edits', () => {
   });
 
   it('rejects quote-containing literals instead of changing their meaning', () => {
-    const query = 'find:note{text:snatch}';
+    const query = ':note{text:snatch}';
     const result = edit(query, 'text', 'a"quoted" value');
     expect(result.valid).toBe(false);
     expect(result.wql).toBe(query);
   });
 
   it('reports unsupported target suffixes and preserves compatible joins', () => {
-    const query = 'find:note{tags:strength} by {week} last 2w where sum:tis{} > 0';
+    const query = ':note{tags:strength} by {week} last 2w where sum:tis{} > 0';
     const block = pivotQuery(query, 'target', 'block');
     expect(block.removed).toEqual([]);
     expect(block.draft.ast).toMatchObject({ target: 'block', join: parseQuery(query).join, groupBy: ['week'] });
@@ -83,7 +83,7 @@ describe('lossless targeted WQL edits', () => {
   });
 
   it('parser-recognized fragments change only their field', () => {
-    const query = 'find:segment{effort:snatch} by {effort} in lb | limit 5';
+    const query = ':segment{effort:snatch} by {effort} in lb | limit 5';
     expect(resolveQueryDraft(query, 'last 7d').ast).toMatchObject({ window: { kind: 'relative', size: 7, unit: 'd' }, groupBy: ['effort'], displayUnit: 'lb', pipes: { limit: 5 } });
     expect(resolveQueryDraft(query, 'effort:clean').ast.filters).toEqual([{ key: 'effort', negate: false, values: [{ value: 'clean', wildcard: false }] }]);
   });

@@ -1,7 +1,7 @@
 {
   "profile": {
     "route": "/journal",
-    "defaultWql": "find:note last 2w",
+    "defaultWql": ":note last 2w",
     "entityLevel": "note"
   },
   "entries": [

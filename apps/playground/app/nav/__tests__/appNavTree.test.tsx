@@ -95,7 +95,7 @@ describe('appNavTree - Library navigation', () => {
     expect(feeds.isActive!(mockLocation('/feed'))).toBe(true)
     expect(feeds.isActive!(mockLocation('/collections'))).toBe(false)
     expect(feeds.isActive!(mockLocation('/journal'))).toBe(false)
-    const playgroundLoc = { ...mockLocation('/library'), search: `?q=${encodeURIComponent('find:note{source:playground}')}` }
+    const playgroundLoc = { ...mockLocation('/library'), search: `?q=${encodeURIComponent(':note{source:playground}')}` }
     expect(playground.isActive!(playgroundLoc)).toBe(true)
     expect(playground.isActive!(mockLocation('/playground/example'))).toBe(true)
     expect(playground.isActive!(mockLocation('/playgrounds'))).toBe(true)
@@ -143,7 +143,7 @@ describe('appNavTree - Efforts navigation', () => {
     expect(strengthTag?.label).toBe('Strength')
     expect(strengthTag?.action).toEqual({
       type: 'route',
-      to: `${ROUTE_PATTERNS.efforts}?q=find:effort{discipline:strength}`,
+      to: `${ROUTE_PATTERNS.efforts}?q=:effort{discipline:strength}`,
     })
   })
 
@@ -168,7 +168,7 @@ describe('appNavTree - Efforts navigation', () => {
 
     const filteredLoc = {
       ...mockLocation('/efforts'),
-      search: '?q=find:effort{discipline:strength}',
+      search: '?q=:effort{discipline:strength}',
     }
     expect(allTag.isActive!(filteredLoc)).toBe(false)
     expect(strengthTag.isActive!(filteredLoc)).toBe(true)

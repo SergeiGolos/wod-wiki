@@ -28,9 +28,15 @@ async function completeAsync(scm: typeof source, doc: string) {
 }
 
 describe('wqlCompletionSource', () => {
-  it('offers aggregators at the query start, narrowed by prefix', () => {
-    expect(complete('')).toEqual(['find', 'rows', 'sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
+  it('offers heads at the query start, narrowed by prefix', () => {
+    expect(complete('')).toEqual([
+      'sum', 'avg', 'min', 'max', 'count', 'last', 'delta',
+      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'playground',
+      'timeseries', 'bar', 'table', 'donut', 'toplist', 'value',
+      '@session', '@today',
+    ]);
     expect(complete('su')).toEqual(['sum']);
+    expect(complete('@to')).toEqual(['@today']);
   });
 
   it('offers Canonical Metric Keys after the head colon', () => {
@@ -44,25 +50,26 @@ describe('wqlCompletionSource', () => {
   });
 
   it('resolves the head target and offers its supported filter keys', () => {
-    // find:note — target-aware keys, no discipline on note.
-    expect(complete('find:note{')).toEqual([...wqlFilterKeys('note', 'find')]);
-    expect(complete('find:note{')).not.toContain('discipline');
+    // :note — target-aware keys, no discipline on note.
+    expect(complete(':note{')).toEqual([...wqlFilterKeys('note', 'find')]);
+    expect(complete(':note{')).not.toContain('discipline');
     // partially typed target resolves through the unique prefix.
-    expect(complete('find:no{')).toEqual([...wqlFilterKeys('note', 'find')]);
+    expect(complete(':no{')).toEqual([...wqlFilterKeys('note', 'find')]);
     // aggregate heads keep the full fact-key list.
     expect(complete('sum:tis{')).toEqual([...wqlFilterKeys('', 'aggregate')]);
   });
 
   it('excludes already-used filter keys from the open group', () => {
-    const labels = complete('find:note{source:journal,')!;
+    const labels = complete(':note{source:journal,')!;
     expect(labels).not.toContain('source');
     expect(labels).toContain('text');
   });
 
   it('negation ! reopens the same field list as an exclude', () => {
-    const labels = complete('find:note{!')!;
+    const labels = complete(':note{!')!;
     expect(labels).toEqual([...wqlFilterKeys('note', 'find')]);
-    const picked = source(new CompletionContext(EditorState.create({ doc: 'find:note{!', extensions: [wqlLanguage] }), 11, true))!
+    const doc = ':note{!';
+    const picked = source(new CompletionContext(EditorState.create({ doc, extensions: [wqlLanguage] }), doc.length, true))!
       .options.find((o) => o.label === 'source')!;
     expect(picked.detail).toContain('exclude');
   });
@@ -89,7 +96,7 @@ describe('wqlCompletionSource', () => {
       effortNames: () => EFFORTS,
       values: async (key) => (key === 'discipline' ? [{ label: 'Strongman' }, { label: 'strength' }] : []),
     });
-    const options = await completeAsync(hosted, 'find:effort{discipline:');
+    const options = await completeAsync(hosted, ':effort{discipline:');
     // Host rank first; case-insensitive dedup collapses 'strength'; static fills the rest.
     expect(options!.map((o) => o.label)).toEqual([
       'Strongman', 'strength',
@@ -100,11 +107,11 @@ describe('wqlCompletionSource', () => {
 
   it('quotes whitespace values and never quotes inside an open quote', async () => {
     const spaced = wqlCompletionSource({ values: async (key) => (key === 'text' ? [{ label: '300 air squats' }] : []) });
-    const outside = await completeAsync(spaced, 'find:note{text:');
+    const outside = await completeAsync(spaced, ':note{text:');
     expect(outside!.map((o) => o.label)).toEqual(['300 air squats']);
     expect(typeof outside![0].apply).toBe('function'); // quote-wrap insertion
 
-    const inside = await completeAsync(spaced, 'find:note{text:"300 air squ');
+    const inside = await completeAsync(spaced, ':note{text:"300 air squ');
     expect(inside!.map((o) => o.label)).toEqual(['300 air squats']);
     expect(typeof inside![0].apply).toBe('function'); // runtime check inserts raw (no double quote)
   });
@@ -115,33 +122,33 @@ describe('wqlCompletionSource', () => {
       tagTypeValues: async (key) =>
         ({ domain: ['crossfit', 'parkour'], equipment: ['kettlebell', 'clubs'] })[key as 'domain' | 'equipment'] ?? [],
     });
-    expect((await completeAsync(typedSource, 'find:note{domain:')).map((o) => o.label)).toEqual(['crossfit', 'parkour']);
-    expect((await completeAsync(typedSource, 'find:note{equipment:kettlebell')).map((o) => o.label)).toEqual(['kettlebell']);
+    expect((await completeAsync(typedSource, ':note{domain:')).map((o) => o.label)).toEqual(['crossfit', 'parkour']);
+    expect((await completeAsync(typedSource, ':note{equipment:kettlebell')).map((o) => o.label)).toEqual(['kettlebell']);
   });
 
   it('closes quietly on free-form values (text stays as written)', () => {
-    expect(complete('find:note{domain:')).toBeNull();
+    expect(complete(':note{domain:')).toBeNull();
     expect(complete('sum:tis{note:')).toBeNull();
   });
 
   it('target-aware group-by dimensions with used-dim exclusion', () => {
     const aggregate = complete('sum:tis{} by {')!;
     for (const dim of ['day', 'week', 'session', 'effort']) expect(aggregate).toContain(dim);
-    const content = complete('find:note by {')!;
+    const content = complete(':note by {')!;
     expect(content).toEqual([...wqlGroupingDimensions('note', 'find')]);
-    expect(complete('find:note by {week,')!).not.toContain('week');
+    expect(complete(':note by {week,')!).not.toContain('week');
   });
 
   it('offers rollup periods inside .rollup() on aggregate heads only', () => {
     const labels = complete('sum:tis{}.rollup(')!;
     expect(labels).toContain('2w');
     expect(labels).toContain('4w');
-    expect(complete('find:note{}.rollup(')).toBeNull(); // find ignores rollup (advisory)
+    expect(complete(':note{}.rollup(')).toBeNull(); // find ignores rollup (advisory)
   });
 
   it('offers structural suffixes after a complete head', () => {
     expect(complete('sum:tis ')).toEqual(['by {}', '.rollup()', 'last', 'from']);
-    expect(complete('find:note ')).toEqual(['by {}', 'last', 'from', '|']);
+    expect(complete(':note ')).toEqual(['by {}', 'last', 'from', '|']);
   });
 
   it('disambiguates last the aggregator from last the time window', () => {
@@ -158,19 +165,19 @@ describe('wqlCompletionSource', () => {
   });
 
   it('completes relative window units after last <n>', () => {
-    expect(complete('find:note last 4')).toEqual(['d', 'w']);
-    expect(complete('find:note last 4w')).toBeNull();
-    expect(complete('find:note last ')).toEqual(['4w', '8w', '7d', '30d']); // placeholder windows
+    expect(complete(':note last 4')).toEqual(['d', 'w']);
+    expect(complete(':note last 4w')).toBeNull();
+    expect(complete(':note last ')).toEqual(['4w', '8w', '7d', '30d']); // placeholder windows
   });
 
   it('completes the date range from → to chain', () => {
-    expect(complete('find:note from ')).toEqual(['2026-01-01']);
-    expect(complete('find:note from 2026-01-01 ')).toEqual(['to']);
-    expect(complete('find:note from 2026-01-01 to ')).toEqual(['2026-03-31']);
+    expect(complete(':note from ')).toEqual(['2026-01-01']);
+    expect(complete(':note from 2026-01-01 ')).toEqual(['to']);
+    expect(complete(':note from 2026-01-01 to ')).toEqual(['2026-03-31']);
   });
 
   it('offers presentation pipe clauses after |, not inside braces', () => {
-    expect(complete('find:note | ')).toEqual(['order by', 'select', 'limit']);
+    expect(complete(':note | ')).toEqual(['order by', 'select', 'limit']);
     // OR pipe inside braces continues the same key's value list.
     expect(complete('sum:tis{effort:fran|')).toEqual(EFFORTS);
     // Quoted pipe/colon never becomes a suffix boundary.
@@ -178,19 +185,20 @@ describe('wqlCompletionSource', () => {
   });
 
   it('carries executor advisories on ignored pipe clauses', () => {
-    const state = EditorState.create({ doc: 'find:note | ', extensions: [wqlLanguage] });
-    ensureSyntaxTree(state, 12, 200);
-    const opts = source(new CompletionContext(state, 12, true))!.options;
+    const doc = ':note | ';
+    const state = EditorState.create({ doc, extensions: [wqlLanguage] });
+    ensureSyntaxTree(state, doc.length, 200);
+    const opts = source(new CompletionContext(state, doc.length, true))!.options;
     expect(opts.find((o) => o.label === 'select')!.detail).toContain('advisory');
   });
 
   it('completes per-target pipe columns, directions, units and limit', () => {
-    expect(complete('find:note | order by ')).toEqual(['title', 'date', 'createdAt', 'type', 'sourceId', 'catalog']);
-    expect(complete('find:note | order by title ')).toEqual(['asc', 'desc']);
-    expect(complete('find:segment | select ')).toContain('date');
-    expect(complete('find:segment | select distance ')).toEqual(['kg', 'lb']);
-    expect(complete('find:segment | select distance in ')).toEqual(['kg', 'lb']);
-    expect(complete('find:segment | limit ')).toBeNull(); // numeric placeholder is free-form
+    expect(complete(':note | order by ')).toEqual(['title', 'date', 'createdAt', 'type', 'sourceId', 'catalog']);
+    expect(complete(':note | order by title ')).toEqual(['asc', 'desc']);
+    expect(complete(':segment | select ')).toContain('date');
+    expect(complete(':segment | select distance ')).toEqual(['kg', 'lb']);
+    expect(complete(':segment | select distance in ')).toEqual(['kg', 'lb']);
+    expect(complete(':segment | limit ')).toBeNull(); // numeric placeholder is free-form
   });
 });
 
@@ -204,39 +212,117 @@ describe('wqlCompletionSource — aggressive slots', () => {
   };
 
   it('offers every sibling when a slot token is selected, replacing it', () => {
-    const head = at('find:note last 2w', 0, 4)!;
-    expect(head.labels).toEqual(['find', 'rows', 'sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
-    expect([head.from, head.to, head.filter]).toEqual([0, 4, false]);
+    // Legacy `agg:` head slot offers the retained aggregators.
+    const head = at('sum:tis{} last 2w', 0, 3)!;
+    expect(head.labels).toEqual(['sum', 'avg', 'min', 'max', 'count', 'last', 'delta']);
+    expect([head.from, head.to, head.filter]).toEqual([0, 3, false]);
 
-    const target = at('find:note last 2w', 5, 9)!;
-    expect(target.labels).toEqual(['note', 'block', 'effort', 'session', 'segment', 'event']);
-    expect([target.from, target.to, target.filter]).toEqual([5, 9, false]);
+    // The retired find: target slot is gone — a colon head word offers the
+    // head vocabulary instead.
+    const target = at(':note last 2w', 1, 5)!;
+    expect(target.labels).toContain('note');
+    expect(target.labels).toContain('journal');
+    expect(target.labels).toContain('sum');
+    expect([target.from, target.to, target.filter]).toEqual([1, 5, false]);
+  });
+
+  it('offers colon heads inside the colon head word, replacing it', () => {
+    const head = at(':segm last 2w', 1, 5)!;
+    expect(head.labels).toContain('segment');
+    expect(head.labels).toContain('sum');
+    expect([head.from, head.to, head.filter]).toEqual([1, 5, false]);
   });
 
   it('offers values for the selected filter value and keys for the selected key', () => {
-    const doc = 'find:note{source:journal}';
-    expect(at(doc, 17, 24)!.labels).toEqual(['journal', 'collections', 'feeds', 'guides', 'playground']);
-    expect(at(doc, 10, 16)!.labels).toEqual([...wqlFilterKeys('note', 'find')]);
+    const doc = ':note{source:journal}';
+    const keyFrom = doc.indexOf('source');
+    const valueFrom = doc.indexOf('journal');
+    expect(at(doc, valueFrom, valueFrom + 'journal'.length)!.labels).toEqual(['journal', 'collections', 'guides', 'playground']);
+    expect(at(doc, keyFrom, keyFrom + 'source'.length)!.labels).toEqual([...wqlFilterKeys('note', 'find')]);
   });
 
   it('opens the next slot right after a separator without a keystroke', () => {
-    const state = EditorState.create({ doc: 'find:note{', extensions: [wqlLanguage] });
-    ensureSyntaxTree(state, 10, 200);
-    const result = source(new CompletionContext(state, 10, false)) as any;
-    expect(result.options.map((o: any) => o.label)).toEqual([...wqlFilterKeys('note', 'find')]);
-    const valueState = EditorState.create({ doc: 'find:note{source:', extensions: [wqlLanguage] });
-    ensureSyntaxTree(valueState, 17, 200);
-    const values = source(new CompletionContext(valueState, 17, false)) as any;
-    expect(values.options.map((o: any) => o.label)).toContain('journal');
+    const doc = ':note{';
+    const state = EditorState.create({ doc, extensions: [wqlLanguage] });
+    ensureSyntaxTree(state, doc.length, 200);
+    const result = source(new CompletionContext(state, doc.length, false));
+    if (!result || !('options' in result)) throw new Error('expected completion options');
+    expect(result.options.map((o) => o.label)).toEqual([...wqlFilterKeys('note', 'find')]);
+    const valueDoc = ':note{source:';
+    const valueState = EditorState.create({ doc: valueDoc, extensions: [wqlLanguage] });
+    ensureSyntaxTree(valueState, valueDoc.length, 200);
+    const values = source(new CompletionContext(valueState, valueDoc.length, false));
+    if (!values || !('options' in values)) throw new Error('expected completion options');
+    expect(values.options.map((o) => o.label)).toContain('journal');
   });
 
   it('ranks host-supplied values ahead of the static vocabulary', async () => {
     const hosted = wqlCompletionSource({ values: async (key) => (key === 'source' ? [{ label: 'mine' }] : []) });
-    const doc = 'find:note{source:';
+    const doc = ':note{source:';
     const state = EditorState.create({ doc, extensions: [wqlLanguage] });
     ensureSyntaxTree(state, doc.length, 200);
     const result = await hosted(new CompletionContext(state, doc.length, true));
-    expect(result?.options.map((o) => o.label)).toEqual(['mine', 'journal', 'collections', 'feeds', 'guides', 'playground']);
+    expect(result?.options.map((o) => o.label)).toEqual(['mine', 'journal', 'collections', 'guides', 'playground']);
+  });
+});
+
+describe('wqlCompletionSource — colon heads', () => {
+  it('offers head names after the colon, narrowed by prefix', () => {
+    expect(complete(':')).toEqual([
+      'sum', 'avg', 'min', 'max', 'count', 'last', 'delta',
+      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'playground',
+      'timeseries', 'bar', 'table', 'donut', 'toplist', 'value',
+      '@session', '@today',
+    ]);
+    expect(complete(':j')).toEqual(['journal']);
+  });
+
+  it('resolves colon source heads to target-aware filter keys', () => {
+    expect(complete(':note{')).toEqual([...wqlFilterKeys('note', 'find')]);
+    // Scoped note heads resolve to the note plane.
+    expect(complete(':journal{')).toEqual([...wqlFilterKeys('note', 'find')]);
+    // Function heads keep the full fact-key list (metric included).
+    expect(complete(':sum{')).toEqual([...wqlFilterKeys('', 'aggregate')]);
+    expect(complete(':sum{')).toContain('metric');
+  });
+
+  it('offers structural suffixes after a complete colon head', () => {
+    expect(complete(':journal ')).toEqual(['by {}', 'last', 'from', '|']);
+    expect(complete(':sum ')).toEqual(['by {}', '.rollup()', 'last', 'from']);
+  });
+
+  it('carries target awareness into pipes after a colon head', () => {
+    expect(complete(':note | order by ')).toEqual(['title', 'date', 'createdAt', 'type', 'sourceId', 'catalog']);
+    expect(complete(':segment | select ')).toContain('date');
+  });
+});
+
+describe('wqlLanguage highlighting — colon heads', () => {
+  it('tags colon head names and dataset references as keywords', () => {
+    const doc = ':journal{effort:snatch} | :sum{metric:tis} | @today';
+    const tree = wqlLanguage.parser.parse(doc);
+    const classes: Record<string, string> = {};
+    highlightTree(
+      tree,
+      {
+        style: (tags) => {
+          if (tags.includes(t.keyword)) return 'keyword';
+          if (tags.includes(t.propertyName)) return 'property';
+          if (tags.includes(t.string)) return 'string';
+          return null;
+        },
+      },
+      (from, to, cls) => {
+        classes[doc.slice(from, to)] = cls;
+      },
+    );
+    expect(classes['journal']).toBe('keyword');
+    expect(classes['sum']).toBe('keyword');
+    expect(classes['effort']).toBe('property');
+    expect(classes['snatch']).toBe('string');
+    expect(classes['metric']).toBe('property');
+    expect(classes['tis']).toBe('string');
+    expect(classes['today']).toBe('keyword');
   });
 });
 

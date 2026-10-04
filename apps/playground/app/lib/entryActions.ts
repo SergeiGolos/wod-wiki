@@ -58,7 +58,7 @@ export function entryOpenHref(entry: Entry): string {
         return sessionDetailPath(entry.id)
       case 'segment':
       case 'event':
-        // Table-plane rows (find:segment/find:event) carry no execution
+        // Table-plane rows (:segment/:event) carry no execution
         // payload — their session identity lives in sourceItem (__resultId).
         return sessionDetailPath(
           entry.execution?.resultId ?? (entry.sourceCatalog === 'results' ? entry.sourceItem : entry.id),
@@ -79,7 +79,7 @@ export function entryIsPlayground(entry: Entry): boolean {
 /** Feed deep link for collection definition entries. */
 export function entryCollectionFeedHref(entry: Entry): string | null {
   if (entry.kind === 'session' && !entry.sourceItem) {
-    return `/feeds?q=${encodeURIComponent(`find:note{source:collections,catalog:${entry.sourceCatalog}}`)}`
+    return `/feeds?q=${encodeURIComponent(`:note{source:collections,catalog:${entry.sourceCatalog}}`)}`
   }
   return null
 }

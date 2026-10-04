@@ -147,7 +147,7 @@ function WqlDonut({ result, unit, label }: { result: QueryResult; unit?: string;
 
   return (
     <div
-      className="w-full h-full flex items-center justify-center"
+      className="w-full h-full flex flex-col items-center justify-center"
       role="img"
       aria-label={summary}
       data-testid="wql-donut"
@@ -155,7 +155,19 @@ function WqlDonut({ result, unit, label }: { result: QueryResult; unit?: string;
       {slices.length === 0 ? (
         <span className="text-xs text-muted-foreground">No data</span>
       ) : (
-        <ResponsiveDonut data={slices} unit={summaryUnit} />
+        <>
+          <div className="w-full h-[220px] min-h-[160px] shrink-0">
+            <ResponsiveDonut data={slices} unit={summaryUnit} />
+          </div>
+          <ul className="shrink-0 text-[10px] font-mono text-muted-foreground space-y-0.5" aria-hidden="true">
+            {slices.map((d) => (
+              <li key={d.name} className="flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-sm" style={{ background: d.fill }} />
+                <span>{`${d.name} ${compactNumber(d.value)}${summaryUnit}`}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

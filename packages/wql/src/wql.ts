@@ -333,7 +333,7 @@ function cannotParse(text: string): string {
 const CMP_RE = /^(.+?)\s*(>=|<=|!=|==|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
 
 function cannotParseJoin(text: string): string {
-  return `Cannot parse join "${text}". Expected find:target{filters} or agg:metric{filters} <op> <number>`;
+  return `Cannot parse join "${text}". Expected :source{filters} or find:target{filters}, or agg:metric{filters} <op> <number>`;
 }
 
 /**
@@ -382,21 +382,21 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
 export function rowsParseError(raw: string): string {
   const m = /^rows(?::(\w+))?\{([^}]*)\}/.exec(raw);
   if (!m) {
-    return 'The "rows:" query family is retired — use find:session, find:segment, or find:event instead.';
+    return 'The "rows:" query family is retired — use :session, :segment, or :event instead.';
   }
   const target = m[1] ?? 'all';
   const inner = m[2].trim();
   if (target === 'all' || ['note', 'block', 'effort', 'page'].includes(target)) {
-    return `rows:${target}{…} is retired — use find:session{${inner}} instead.`;
+    return `rows:${target}{…} is retired — use :session{${inner}} instead.`;
   }
   if (target === 'segment' && !inner.includes('result:') && !inner.includes('block:') && !inner.includes('note:')) {
-    return `rows:segment{…} is retired — use find:segment{${inner}} instead.`;
+    return `rows:segment{…} is retired — use :segment{${inner}} instead.`;
   }
   if (target === 'event') {
-    return `rows:event{…} is retired — use find:event{${inner}} instead.`;
+    return `rows:event{…} is retired — use :event{${inner}} instead.`;
   }
   const planePart = inner ? `${inner}, plane:${target}` : `plane:${target}`;
-  return `rows:${target}{…} is retired — use find:session{${planePart}} instead.`;
+  return `rows:${target}{…} is retired — use :session{${planePart}} instead.`;
 }
 
 // ── Colon heads & pipelines ─────────────────────────────────────────
@@ -456,13 +456,9 @@ function parseSingleQuery(raw: string): AnyParsedQuery {
         } else if ((WQL_SOURCE_HEADS as readonly string[]).includes(head.name)) {
             result = parseFindQuery(norm.query, { colon: true });
         } else {
-            result = {
-                family: 'find',
-                raw: norm.query,
-                target: '',
-                filters: [],
-                error: `Unknown head ":${head.name}". Sources: ${WQL_SOURCE_HEADS.join(', ')}; functions: ${WQL_FUNCTION_HEADS.join(', ')}; charts: ${WQL_CHART_HEADS.join(', ')}.`,
-            };
+            // Unknown colon word — let the source-head parser name it through
+            // the closed target enum (Unknown find target "…").
+            result = parseFindQuery(norm.query, { colon: true });
         }
     } else {
         result = parseAggregateQuery(norm.query, { colon: false });
@@ -688,7 +684,7 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
 /** Tree helpers over the Single/Pipeline grammar: a single query parses as
  *  Query → Single → Stage → Head Filters?. */
 function queryStageNode(top: SyntaxNode): SyntaxNode | undefined {
-  return top.getChild(terms.Single)?.getChild(terms.Stage) ?? top.getChild(terms.Stage);
+  return top.getChild(terms.Single)?.getChild(terms.Stage) ?? top.getChild(terms.Stage) ?? undefined;
 }
 
 function cannotParseFunction(text: string): string {
@@ -701,7 +697,7 @@ function cannotParseFunction(text: string): string {
  * the metric is extracted from the filters (and excluded from fact filters).
  * `:count{}` without `metric:` is legal — it counts observations in scope.
  */
-function parseAggregateQuery(raw: string, opts: { colon: boolean }): ParsedAggregateQuery {
+function parseAggregateQuery(raw: string, opts: { colon: boolean; inheritedMetric?: string }): ParsedAggregateQuery {
   const suffixes = parseWqlSuffixes(raw);
   const { where: whereText, displayUnit, groupBy, rollup, window: windowSuffix, primaryText: text } = suffixes;
   const win = toQueryWindow(windowSuffix);
@@ -754,6 +750,7 @@ function parseAggregateQuery(raw: string, opts: { colon: boolean }): ParsedAggre
   const head = stage?.getChild(terms.Head);
   const aggNode = head?.getChild(terms.Aggregator);
   const metricNode = head?.getChild(terms.Metric);
+  base.filters = stage ? extractFilters(stage, text) : [];
   if (opts.colon) {
     // Colon function head — `:sum{metric:tis, …}`: the aggregate name is the
     // head word; the metric rides the `metric:` filter and is pulled out of
@@ -773,12 +770,13 @@ function parseAggregateQuery(raw: string, opts: { colon: boolean }): ParsedAggre
     base.filters = base.filters.filter((f) => f.key !== 'metric');
     const mf = metricFilters[0];
     if (!mf) {
-      // :count{} counts observations in scope; every other function needs a measure.
-      if (fn !== 'count') {
+      // :count{} counts observations in scope; a bare numeric function in a
+      // pipeline inherits the previous stage's metric; standalone it errors.
+      if (fn !== 'count' && opts.inheritedMetric === undefined) {
         base.error = `:${fn} requires 'metric:<key>' — e.g. :${fn}{metric:tis}`;
         return base;
       }
-      base.metric = '';
+      base.metric = fn === 'count' ? '' : opts.inheritedMetric!;
     } else if (mf.negate || metricFilters.length > 1 || mf.values.length !== 1 || mf.values[0]!.wildcard) {
       base.error = `:${fn} takes a single 'metric:<key>' clause — no negation, OR values, or wildcards`;
       return base;
@@ -799,7 +797,6 @@ function parseAggregateQuery(raw: string, opts: { colon: boolean }): ParsedAggre
     }
     base.agg = aggText as Aggregator;
     base.metric = text.slice(metricNode.from, metricNode.to);
-    base.filters = extractFilters(stage, text);
   }
 
   // Content-plane keys on an aggregate are a category error — a fact row
@@ -836,7 +833,7 @@ function parseAggregateQuery(raw: string, opts: { colon: boolean }): ParsedAggre
 // ── Find query parsing ──────────────────────────────────────────────
 
 function cannotParseFind(text: string): string {
-  return `Cannot parse "${text}". Expected find:<target>{key:value, !key:value}; filters are optional. Optional suffixes include by {dimension}, last <n>d or last <n>w, from YYYY-MM-DD [to YYYY-MM-DD], where <aggregator>:<metric>{filters} <operator> <number>, and | order by <column> | limit <n>. Support depends on the target.`;
+  return `Cannot parse "${text}". Expected :source{key:value, !key:value}; filters are optional. Optional suffixes include by {dimension}, last <n>d or last <n>w, from YYYY-MM-DD [to YYYY-MM-DD], where <aggregator>:<metric>{filters} <operator> <number>, and | order by <column> | limit <n>. Support depends on the target.`;
 }
 
 function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuery {
@@ -981,6 +978,147 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
   return result;
 }
 
+// ── Pipeline parsing ────────────────────────────────────────────────
+
+/** Stage classification for pipeline validation. */
+type StageKind = 'dataset' | 'source' | 'function' | 'chart' | 'unknown';
+
+function stageKind(head: { name: string; dataset: boolean } | undefined): StageKind {
+  if (!head) return 'unknown';
+  if (head.dataset) return 'dataset';
+  if ((WQL_FUNCTION_HEADS as readonly string[]).includes(head.name)) return 'function';
+  if ((WQL_SOURCE_HEADS as readonly string[]).includes(head.name)) return 'source';
+  if ((WQL_CHART_HEADS as readonly string[]).includes(head.name)) return 'chart';
+  return 'unknown';
+}
+
+/**
+ * Parse a left-to-right value pipeline: one input stage (dataset, source or
+ * function head), ordered function stages, at most one terminal chart. Every
+ * stage keeps its own suffixes (windows/grouping/unit/joins). The stripped
+ * stage list re-parses through the Lezer grammar so Head/Pipeline/
+ * DatasetReference nodes are the structural authority — a stage that is not
+ * a clean head+filters (or a `|` with nothing after it) fails here.
+ */
+function parsePipelineQuery(raw: string, segments: string[]): ParsedPipelineQuery {
+  const advisories: string[] = [];
+  const fail = (error: string): ParsedPipelineQuery => ({
+    family: 'pipeline',
+    raw,
+    source: { kind: 'dataset', name: '' },
+    transforms: [],
+    error,
+  });
+
+  const heads = segments.map(leadingHeadName);
+  const kinds = heads.map(stageKind);
+  // The first stage may also be the retained legacy aggregate head
+  // (`sum:tis{…} by {session}`) — parse it through the single-query path;
+  // anything else headless (row pipes, garbage) fails here.
+  let legacySource: ParsedAggregateQuery | undefined;
+  if (!heads[0]) {
+    if (ROW_PIPE_RE.test(segments[0]!)) {
+      return fail('Presentation pipes (| select / order by / limit) apply to a single source query — they cannot sit between pipeline stages.');
+    }
+    const legacy = parseAggregateQuery(segments[0]!, { colon: false });
+    if (legacy.error) return fail(legacy.error);
+    legacySource = legacy;
+    kinds[0] = 'function';
+  }
+  for (let i = 0; i < segments.length; i++) {
+    if (i === 0 && legacySource) continue;
+    const name = heads[i] ? `:${heads[i]!.name}` : `"${segments[i]!.trim()}"`;
+    if (!heads[i]) {
+      return fail(`Empty or unparseable pipeline stage ${name} — check for doubled or trailing "|".`);
+    }
+    if (kinds[i] === 'unknown') {
+      return fail(`Unknown pipeline head ${name}. Sources: ${WQL_SOURCE_HEADS.join(', ')}; functions: ${WQL_FUNCTION_HEADS.join(', ')}; charts: ${WQL_CHART_HEADS.join(', ')}.`);
+    }
+    if (i > 0 && (kinds[i] === 'source' || kinds[i] === 'dataset')) {
+      return fail(`Pipeline stage ${name} must come first — a pipeline starts at its source, transforms follow.`);
+    }
+    if (kinds[i] === 'chart' && i < segments.length - 1) {
+      return fail(`Chart head ${name} must be the final pipeline stage — nothing may follow a chart.`);
+    }
+  }
+
+  // Structural gate: the stripped stages must re-parse as a clean Lezer
+  // Pipeline (or a lone Stage for the implicit-source single chart).
+  const stripped = segments.map((s) => parseWqlSuffixes(s).primaryText.trim());
+  const treeText = stripped.join(' | ');
+  const tree = wqlParser.parse(treeText);
+  let syntaxError = false;
+  tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
+  const pipelineNode = syntaxError ? undefined : tree.topNode.getChild(terms.Pipeline);
+  const singleNode = syntaxError ? undefined : tree.topNode.getChild(terms.Single);
+  const stageNodes = pipelineNode
+    ? pipelineNode.getChildren(terms.Stage)
+    : singleNode
+      ? [singleNode.getChild(terms.Stage)].filter((s): s is SyntaxNode => s !== null)
+      : [];
+  if (!pipelineNode && segments.length > 1) return fail(cannotParsePipeline(raw));
+  if (stageNodes.length !== segments.length) return fail(cannotParsePipeline(raw));
+
+  const last = segments.length - 1;
+  let source: PipelineSource;
+  if (kinds[0] === 'dataset') {
+    source = { kind: 'dataset', name: '@' + heads[0]!.name };
+  } else if (kinds[0] === 'chart') {
+    // Lone chart head: implicit `:segment` source — the executor may reject
+    // unusable chart/data combinations rather than fabricate values.
+    source = { kind: 'query', query: { family: 'find', raw: ':segment{}', target: 'segment', filters: [] } };
+  } else {
+    const q = kinds[0] === 'function'
+      // Leading ':' chooses the colon grammar; the retained legacy
+      // `sum:tis{…}` aggregate head stays parseable as a pipeline source.
+      ? parseAggregateQuery(segments[0]!, { colon: segments[0]!.trimStart().startsWith(':') })
+      : parseFindQuery(segments[0]!, { colon: true });
+    if (q.error) return fail(q.error);
+    source = { kind: 'query', query: q };
+  }
+
+  const transforms: ParsedAggregateQuery[] = [];
+  // Bare numeric stages reduce the carried stage: `:sum{metric:tis} | :max{}`
+  // inherits 'tis' at parse. count keeps its metric-less form; find sources
+  // carry no single metric, so a bare function after one errors clearly.
+  let carriedMetric: string | undefined =
+    source.kind === 'query' && source.query.family === 'aggregate' ? source.query.metric : undefined;
+  const lastFunction = kinds[last] === 'chart' ? last - 1 : last;
+  for (let i = 1; i <= lastFunction; i++) {
+    const t = parseAggregateQuery(segments[i]!, { colon: true, inheritedMetric: carriedMetric });
+    if (t.error) return fail(t.error);
+    transforms.push(t);
+    carriedMetric = t.metric || carriedMetric;
+  }
+
+  let sink: PipelineSink | undefined;
+  if (kinds[last] === 'chart') {
+    const chartStage = stageNodes[last]!;
+    const word = chartStage.getChild(terms.Head)?.getChild(terms.Word);
+    if (!word) return fail(cannotParsePipeline(raw));
+    const chartHead = treeText.slice(word.from, word.to).toLowerCase();
+    if (!(WQL_CHART_HEADS as readonly string[]).includes(chartHead)) {
+      return fail(`Unknown chart head ":${chartHead}". Try: ${WQL_CHART_HEADS.join(', ')}`);
+    }
+    const chartSuffixes = parseWqlSuffixes(segments[last]!);
+    if (chartSuffixes.window || chartSuffixes.rollup || chartSuffixes.groupBy
+        || chartSuffixes.displayUnit || chartSuffixes.where || chartSuffixes.legacyScope) {
+      advisories.push(`:${chartHead} ignores query suffixes — apply windows and grouping to the source or function stages.`);
+    }
+    sink = { head: chartHead as WqlChartHead, filters: extractFilters(chartStage, treeText) };
+  }
+
+  const result: ParsedPipelineQuery = {
+    family: 'pipeline',
+    raw,
+    source,
+    transforms,
+    ...(sink ? { sink } : {}),
+    ...(advisories.length ? { advisories } : {}),
+  };
+  return result;
+}
+
 /**
  * Target-capability advisories for a find AST: every clause the executor will
  * silently drop, apply differently than written, or group outside the
@@ -996,8 +1134,8 @@ export function findTargetAdvisories(query: ParsedFindQuery): string[] {
   if (ignored.length) {
     const custom = target === 'segment' || target === 'event' ? ', custom fact dimensions' : '';
     const effortKey = ignored.find(key => (WQL_EFFORT_FILTER_KEYS as readonly string[]).includes(key));
-    const recovery = effortKey && target !== 'effort' ? ` To filter by ${effortKey}, use find:effort{${effortKey}:…}.` : '';
-    advisories.push(`find:${target} ignores ${ignored.map(key => `'${key}:'`).join(', ')} — the filter is not applied.${recovery} Supported keys: ${wqlFilterKeys(target, 'find').join(', ')}${custom}.`);
+    const recovery = effortKey && target !== 'effort' ? ` To filter by ${effortKey}, use :effort{${effortKey}:…}.` : '';
+    advisories.push(`:${target} ignores ${ignored.map(key => `'${key}:'`).join(', ')} — the filter is not applied.${recovery} Supported keys: ${wqlFilterKeys(target, 'find').join(', ')}${custom}.`);
   }
   for (const filter of query.filters) {
     if (ignored.includes(filter.key)) continue;
@@ -1007,33 +1145,33 @@ export function findTargetAdvisories(query: ParsedFindQuery): string[] {
       : target === 'block' ? ['text', 'type', 'tags', 'effort'].includes(filter.key)
       : (target === 'session' || target === 'segment' || target === 'event') && scope;
     if (filter.negate && negationIgnored) {
-      advisories.push(`find:${target} does not support '!${filter.key}:' negation; this clause is not applied as a negated filter.`);
+      advisories.push(`:${target} does not support '!${filter.key}:' negation; this clause is not applied as a negated filter.`);
     }
     const wildcardSupported = target === 'effort' ? ['effort', 'text'].includes(filter.key)
       : (target === 'segment' || target === 'event') && !scope;
     if (filter.values.some(value => value.wildcard) && !wildcardSupported) {
-      advisories.push(`find:${target} does not support '${filter.key}:…*' wildcards; values are matched without wildcard expansion.`);
+      advisories.push(`:${target} does not support '${filter.key}:…*' wildcards; values are matched without wildcard expansion.`);
     }
   }
   if (query.window && !supported.has('time')) {
-    advisories.push(`find:${target} ignores the window because its registry has no time dimension.`);
+    advisories.push(`:${target} ignores the window because its registry has no time dimension.`);
   }
   if (query.groupBy?.length) {
     const dimensions = wqlGroupingDimensions(target, 'find');
     const unsupported = query.groupBy.filter(dim => !dimensions.includes(dim));
     if (target === 'note' || target === 'block') {
-      if (unsupported.length) advisories.push(`find:${target} cannot group by ${unsupported.join(', ')}; grouped by tag instead. Valid alternatives: ${dimensions.join(', ')}.`);
+      if (unsupported.length) advisories.push(`:${target} cannot group by ${unsupported.join(', ')}; grouped by tag instead. Valid alternatives: ${dimensions.join(', ')}.`);
     } else if (target === 'segment' || target === 'event') {
       const selected = query.pipes?.select?.map(column => column.col);
       const unavailable = query.groupBy.filter(dim => selected ? !selected.includes(dim) : !dimensions.includes(dim));
-      if (unavailable.length) advisories.push(`find:${target} groups only emitted table columns; ${unavailable.join(', ')} may be unassigned. Select each grouping column explicitly.`);
+      if (unavailable.length) advisories.push(`:${target} groups only emitted table columns; ${unavailable.join(', ')} may be unassigned. Select each grouping column explicitly.`);
     } else if (unsupported.length) {
-      advisories.push(`find:${target} cannot group by ${unsupported.join(', ')}; the view groups by content dimensions. Valid alternatives: ${dimensions.join(', ')}.`);
+      advisories.push(`:${target} cannot group by ${unsupported.join(', ')}; the view groups by content dimensions. Valid alternatives: ${dimensions.join(', ')}.`);
     }
   }
-  if (query.displayUnit && !supported.has('unit')) advisories.push(`find:${target} ignores the display unit 'in ${query.displayUnit}'.`);
-  if (query.join && !supported.has('where')) advisories.push(`find:${target} ignores the 'where' join; joins are supported by find:note and find:block.`);
-  if (query.pipes?.select && target !== 'segment' && target !== 'event') advisories.push(`find:${target} ignores '| select'; the result keeps its original fields.`);
-  if (query.pipes?.order && target === 'session') advisories.push(`find:session ignores '| order by'; sessions remain ordered by completion time.`);
+  if (query.displayUnit && !supported.has('unit')) advisories.push(`:${target} ignores the display unit 'in ${query.displayUnit}'.`);
+  if (query.join && !supported.has('where')) advisories.push(`:${target} ignores the 'where' join; joins are supported by :note and :block.`);
+  if (query.pipes?.select && target !== 'segment' && target !== 'event') advisories.push(`:${target} ignores '| select'; the result keeps its original fields.`);
+  if (query.pipes?.order && target === 'session') advisories.push(`:session ignores '| order by'; sessions remain ordered by completion time.`);
   return [...new Set(advisories)];
 }

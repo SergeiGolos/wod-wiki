@@ -4,9 +4,9 @@
  *
  * Asserts:
  *   1. Invalid (mid-edit) WQL yields no rows and never executes a query.
- *   2. find:note results map to entry palette items (kind → category).
- *   3. A text filter also runs a find:block body search, deduped by note.
- *   4. find:block hits map to entries via the synthesized note.
+ *   2. :note results map to entry palette items (kind → category).
+ *   3. A text filter also runs a :block body search, deduped by note.
+ *   4. :block hits map to entries via the synthesized note.
  *   5. paletteTextFromWql extracts text terms (valid + salvaged invalid).
  *   6. withWqlText delegates with the extracted text, never raw WQL.
  *   7. searchPaletteClauses compiles to the unbounded global default.
@@ -77,18 +77,18 @@ describe('wqlSearchSource', () => {
   it('returns no rows for invalid WQL and never executes', async () => {
     setup(async parsed => emptyResult(parsed.raw ?? ''))
     // Multi-word text is a reachable composer state that fails the grammar.
-    const results = await wqlSearchSource().search('find:note{text:hello world} in all')
+    const results = await wqlSearchSource().search(':note{text:hello world} in all')
     expect(results).toEqual([])
     expect(runFindCalls).toEqual([])
   })
 
-  it('maps find:note results to journal entry items', async () => {
+  it('maps :note results to journal entry items', async () => {
     setup(async parsed => {
       const result = emptyResult(parsed.raw ?? '')
       result.notes = [JOURNAL_NOTE]
       return result
     })
-    const results = await wqlSearchSource().search('find:note in journal')
+    const results = await wqlSearchSource().search(':note in journal')
 
     expect(results).toHaveLength(1)
     const item = results[0]!
@@ -101,10 +101,10 @@ describe('wqlSearchSource', () => {
     expect(entry.sourceItem).toBe('journal/2026-07-30')
   })
 
-  it('runs a secondary find:block body search for text filters, deduped by note', async () => {
+  it('runs a secondary :block body search for text filters, deduped by note', async () => {
     setup(async parsed => {
       const result = emptyResult(parsed.raw ?? '')
-      if ((parsed.raw ?? '').startsWith('find:block')) {
+      if ((parsed.raw ?? '').startsWith(':block')) {
         // Body-text hit for the note the primary query already returned.
         result.blocks = [{ ...STATIC_BLOCK, noteId: JOURNAL_NOTE.id, noteTitle: JOURNAL_NOTE.title, sourceId: undefined }]
       } else {
@@ -112,23 +112,23 @@ describe('wqlSearchSource', () => {
       }
       return result
     })
-    const results = await wqlSearchSource().search('find:note{text:fran} in all')
+    const results = await wqlSearchSource().search(':note{text:fran} in all')
 
     expect(runFindCalls.map(c => c.raw)).toEqual([
-      'find:note{text:fran} in all',
-      'find:block{text:fran} in all',
+      ':note{text:fran} in all',
+      ':block{text:fran} in all',
     ])
     // The block hit dedupes into the note the primary query returned.
     expect(results.map(r => r.id)).toEqual(['entry:journal/2026-07-30'])
   })
 
-  it('maps find:block hits to session entries via the synthesized note', async () => {
+  it('maps :block hits to session entries via the synthesized note', async () => {
     setup(async parsed => {
       const result = emptyResult(parsed.raw ?? '')
       result.blocks = [STATIC_BLOCK]
       return result
     })
-    const results = await wqlSearchSource().search('find:block{type:wod} in collections')
+    const results = await wqlSearchSource().search(':block{type:wod} in collections')
 
     expect(results).toHaveLength(1)
     const item = results[0]!
@@ -143,15 +143,15 @@ describe('wqlSearchSource', () => {
 
 describe('paletteTextFromWql', () => {
   it('extracts text filter values from valid queries', () => {
-    expect(paletteTextFromWql('find:note{text:fran, tags:girl} in all')).toBe('fran')
+    expect(paletteTextFromWql(':note{text:fran, tags:girl} in all')).toBe('fran')
   })
 
   it('returns an empty string when the query has no text filter', () => {
-    expect(paletteTextFromWql('find:note in all')).toBe('')
+    expect(paletteTextFromWql(':note in all')).toBe('')
   })
 
   it('salvages typed words from invalid (mid-edit) WQL', () => {
-    expect(paletteTextFromWql('find:note{text:hello world} in all')).toBe('hello world')
+    expect(paletteTextFromWql(':note{text:hello world} in all')).toBe('hello world')
   })
 })
 
@@ -166,7 +166,7 @@ describe('withWqlText', () => {
       },
     }
     const adapted = withWqlText(inner)
-    const results = await adapted.search('find:note{text:fran} in all')
+    const results = await adapted.search(':note{text:fran} in all')
 
     expect(seen).toEqual(['fran'])
     expect(results).toHaveLength(1)
@@ -214,16 +214,16 @@ describe('searchPaletteQuery', () => {
   })
 
   it('is the unbounded global default (all notes, no window)', () => {
-    expect(searchPaletteQuery()).toBe('find:note')
+    expect(searchPaletteQuery()).toBe(':note')
   })
 
   it('uses the configured palette default when one is stored', () => {
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: 'find:note{source:journal} last 4w' })
-    expect(searchPaletteQuery()).toBe('find:note{source:journal} last 4w')
+    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':note{source:journal} last 4w' })
+    expect(searchPaletteQuery()).toBe(':note{source:journal} last 4w')
   })
 
   it('falls back to the system seed when the stored default is only options', () => {
     writeRouteWqlConfig(PALETTE_ROUTE_ID, { typeOptions: ['notes'] })
-    expect(searchPaletteQuery()).toBe('find:note')
+    expect(searchPaletteQuery()).toBe(':note')
   })
 })

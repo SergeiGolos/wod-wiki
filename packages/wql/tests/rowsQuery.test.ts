@@ -120,4 +120,14 @@ describe('QueryService.runFind for :session (#1041/#1042)', () => {
     const res = await makeService().runFind(findQuery(':session{block:bc-1} last 6d'), { anchorNow: day0 });
     expect(res.runs!.map((r) => r.resultId)).toEqual(['rA']);
   });
+
+  it('overlapping result/note scopes fetch every row once — no doubling', async () => {
+    // Scopes UNION across keys: note n1 owns rA AND rB, so the run set is
+    // rA + rB; rA's rows arrive via BOTH fetches and must appear once each.
+    const res = await makeService().runFind(findQuery(':session{result:rA, note:n1}'));
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB']);
+    const events = res.runs!.flatMap((r) => r.events);
+    expect(events).toHaveLength(6);
+    expect(new Set(events.map((e) => e.id)).size).toBe(6);
+  });
 });

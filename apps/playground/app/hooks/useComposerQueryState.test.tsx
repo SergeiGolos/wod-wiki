@@ -21,7 +21,7 @@ import { useComposerQueryState, type ComposerQueryState } from './useComposerQue
 
 afterEach(cleanup)
 
-const DEFAULT_QUERY = 'find:note'
+const DEFAULT_QUERY = ':note'
 
 let captured: ComposerQueryState
 let capturedNavigate: ReturnType<typeof useNavigate>
@@ -58,7 +58,7 @@ describe('useComposerQueryState', () => {
     try {
       render(<BrowserRouter><Probe /></BrowserRouter>)
       act(() => {
-        captured.setQuery('find:note{tags:strength}')
+        captured.setQuery(':note{tags:strength}')
         window.history.replaceState(null, '', '/library')
         window.dispatchEvent(new window.PopStateEvent('popstate'))
       })
@@ -75,10 +75,10 @@ describe('useComposerQueryState', () => {
     // Each emission is flushed through a real render before the next — the
     // composer echoes resolved drafts synchronously, and the URL write must
     // reflect each without opening a new history entry.
-    act(() => captured.setQuery('find:note{tags:strength}'))
-    await waitFor(() => expect(qParam()).toBe('find:note{tags:strength}'))
-    act(() => captured.setQuery('find:note{tags:strength,text:fran}'))
-    await waitFor(() => expect(qParam()).toBe('find:note{tags:strength,text:fran}'))
+    act(() => captured.setQuery(':note{tags:strength}'))
+    await waitFor(() => expect(qParam()).toBe(':note{tags:strength}'))
+    act(() => captured.setQuery(':note{tags:strength,text:fran}'))
+    await waitFor(() => expect(qParam()).toBe(':note{tags:strength,text:fran}'))
 
     // The burst is one scratch entry: a single Back reaches the pristine
     // landing, a second leaves the page.
@@ -92,29 +92,29 @@ describe('useComposerQueryState', () => {
   it('a Back/Forward restore is committed — the next edit pushes a fresh spell', async () => {
     renderAt(['/elsewhere', '/library'], 1)
 
-    act(() => captured.setQuery('find:note{tags:strength}'))
-    await waitFor(() => expect(qParam()).toBe('find:note{tags:strength}'))
+    act(() => captured.setQuery(':note{tags:strength}'))
+    await waitFor(() => expect(qParam()).toBe(':note{tags:strength}'))
     act(() => capturedNavigate(-1))
     await waitFor(() => expect(query()).toBe(DEFAULT_QUERY))
 
     // Forward lands on the scratch entry as an external restore.
     act(() => capturedNavigate(1))
-    await waitFor(() => expect(query()).toBe('find:note{tags:strength}'))
+    await waitFor(() => expect(query()).toBe(':note{tags:strength}'))
 
     // The restored entry is committed: editing pushes a NEW entry, so Back
     // returns to the restored query rather than leaving the page.
-    act(() => captured.setQuery('find:note{tags:x}'))
-    await waitFor(() => expect(qParam()).toBe('find:note{tags:x}'))
+    act(() => captured.setQuery(':note{tags:x}'))
+    await waitFor(() => expect(qParam()).toBe(':note{tags:x}'))
     act(() => capturedNavigate(-1))
-    await waitFor(() => expect(query()).toBe('find:note{tags:strength}'))
+    await waitFor(() => expect(query()).toBe(':note{tags:strength}'))
   })
 
   it('never writes an unparseable draft to the URL', async () => {
     renderAt(['/library'])
-    act(() => captured.setQuery('find:note{source:collections} backproof'))
+    act(() => captured.setQuery(':note{source:collections} backproof'))
     expect(qParam()).toBe('')
-    act(() => captured.setQuery('find:note{tags:strength}'))
-    await waitFor(() => expect(qParam()).toBe('find:note{tags:strength}'))
+    act(() => captured.setQuery(':note{tags:strength}'))
+    await waitFor(() => expect(qParam()).toBe(':note{tags:strength}'))
   })
 
   it('keeps a no-op edit from pushing a history entry', async () => {
@@ -131,24 +131,24 @@ describe('useComposerQueryState', () => {
   it('an unchanged-URL popstate (palette sentinel) keeps the exact local draft', async () => {
     // Real browser history: the valid edit reached the actual URL (the hook
     // writes it there); the INVALID continuation stays local only.
-    window.history.replaceState(null, '', '/library?q=find:note{tags:strength}')
+    window.history.replaceState(null, '', '/library?q=:note{tags:strength}')
     try {
       render(
         <BrowserRouter>
           <Probe />
         </BrowserRouter>,
       )
-      await waitFor(() => expect(query()).toBe('find:note{tags:strength}'))
+      await waitFor(() => expect(query()).toBe(':note{tags:strength}'))
 
-      act(() => captured.setQuery('find:note{tags:strength} backproof'))
-      expect(query()).toBe('find:note{tags:strength} backproof')
+      act(() => captured.setQuery(':note{tags:strength} backproof'))
+      expect(query()).toBe(':note{tags:strength} backproof')
 
       // Palette Cancel pops its SAME-location sentinel entry — the URL is
       // unchanged — so the composer must keep the exact invalid draft.
       act(() => {
         window.dispatchEvent(new PopStateEvent('popstate'))
       })
-      expect(query()).toBe('find:note{tags:strength} backproof')
+      expect(query()).toBe(':note{tags:strength} backproof')
     } finally {
       window.history.replaceState(null, '', '/library')
     }

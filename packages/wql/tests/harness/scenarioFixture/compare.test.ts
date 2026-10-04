@@ -125,7 +125,7 @@ describe('compareScenarioResult', () => {
       title: 's1',
       corpus: 'c',
       match: 'closed',
-      query: 'find:session{result:res-1}',
+      query: ':session{result:res-1}',
       expected: {
         runs: [
           {
