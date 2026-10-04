@@ -63,6 +63,7 @@ Implement colon-prefixed WQL grammar (`:{source}`, `:{function}`, `:{chart}`), d
   - **Verify**: All unit tests pass, zero regressions, and whiteboard document checks green.
   - **Evidence**: `bun run build` passed for packages, playground, and Storybook. Sequential `bun run test` passed: 1,766 package tests, 2,636 playground tests, 104 Storybook tests, and 14 seed tests. Package suite retains 6 expected failures and 5 skips. `bun run lint && bun run typecheck:package` passed with 22 lint warnings. Whiteboard validation was already reported green; unchanged, not rerun.
   - **Runtime smoke**: Shared event scan returned 2 segments and 4 debug statements; segment `tis` was 30 and `@today` was 37. Dataset pipelines made zero database reads; six chart sinks and parent-page links passed. Browser rendered value, bar, and donut widgets; `@session` was empty without an active session.
+  - **CI build prerequisite**: PR #1057 initially failed because `build:packages:seq` omitted `packages/storage`, leaving its `dist` export unavailable on clean runners. Added storage after core/lang; `bun run build && bun run test` passed.
 
 ---
 

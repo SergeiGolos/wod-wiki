@@ -1,7 +1,7 @@
 name: Packages
 
 # Reusable leg 2a of the unified parallel DAG: lint, typecheck, unit-test and
-# build the five @bitcobblers/wod-wiki-* workspaces under packages/.
+# build the @bitcobblers/wod-wiki-* workspaces under packages/.
 #
 # Consumed by:
 #   - pull-request.yml (PR preview gate)
