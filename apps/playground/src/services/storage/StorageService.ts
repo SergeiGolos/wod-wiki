@@ -649,3 +649,37 @@ export class StorageService implements NotePersistenceStorage {
     await this.storage.wipe();
   }
 }
+
+/**
+ * NoteSegment row id. The segments store is globally keyed ['id', 'version'];
+ * parsed section ids are content-derived, so bare ids collide across notes.
+ * Namespacing by note gives each note exclusive row ownership.
+ */
+export function segmentRowId(noteId: string, sectionId: string): string {
+  return `${noteId}:${sectionId}`;
+}
+
+/**
+ * Resolve a segment for this note from a possibly raw (runtime parse) id.
+ * Namespaced lookup first; the raw fallback is accepted only when the row is
+ * owned by this note — a colliding legacy row of another note never joins.
+ * With `version`, resolves that pinned incarnation (same ownership rules).
+ */
+export async function resolveLatestSegment(
+  lookup: Pick<StorageService, 'getLatestSegmentVersion'> & { getSegment?(segmentId: string, version: number): Promise<NoteSegment | undefined> },
+  noteId: string,
+  segmentId: string | undefined,
+  version?: number,
+): Promise<NoteSegment | undefined> {
+  if (!segmentId) return undefined;
+  if (version != null && lookup.getSegment) {
+    const scoped = await lookup.getSegment(segmentRowId(noteId, segmentId), version);
+    if (scoped) return scoped;
+    const raw = await lookup.getSegment(segmentId, version);
+    return raw?.noteId === noteId ? raw : undefined;
+  }
+  const namespaced = await lookup.getLatestSegmentVersion(segmentRowId(noteId, segmentId));
+  if (namespaced) return namespaced;
+  const raw = await lookup.getLatestSegmentVersion(segmentId);
+  return raw?.noteId === noteId ? raw : undefined;
+}

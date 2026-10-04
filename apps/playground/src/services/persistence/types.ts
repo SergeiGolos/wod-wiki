@@ -90,6 +90,8 @@ export interface NoteMutation {
     title: string;
     tags: string[];
     journalDate: string;
+    /** Unix ms — domain date (`Note.date`) kept in sync with the calendar page. */
+    targetDate: number;
     notes: string;
     type: NoteKind;
     /** `null` clears the note's source — promotion out of a source bucket
@@ -148,6 +150,8 @@ export interface NotePersistenceStorage {
   saveResult(result: Session): Promise<string>;
   /** V6 — cross-note collection aggregation: every result for one blockContentId, across all notes. */
   getResultsByContentId(blockContentId: string): Promise<Session[]>;
+  /** Preferred session-row source for getSimilarSessions when the backend has it. */
+  getSessionsByContentId?(blockContentId: string): Promise<Session[]>;
   getResultsForSection(noteId: string, sectionId: string): Promise<Session[]>;
   getResultById(resultId: string): Promise<Session | undefined>;
   getAttachmentsForNote(noteId: string): Promise<Attachment[]>;

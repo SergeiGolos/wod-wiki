@@ -2,6 +2,7 @@
 
 import * as Headless from '@headlessui/react'
 import React, { useEffect, useRef, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
@@ -26,7 +27,7 @@ function CloseMenuIcon() {
   )
 }
 
-function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open: boolean; close: () => void }>) {
+function MobileSidebar({ open, close, onCreate, children }: React.PropsWithChildren<{ open: boolean; close: () => void; onCreate?: () => void }>) {
   return (
     <Headless.Dialog open={open} onClose={close} className="lg:hidden">
       <Headless.DialogBackdrop
@@ -38,10 +39,23 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
         className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-out data-closed:-translate-x-full"
       >
         <div className="flex h-full flex-col rounded-lg bg-card shadow-xs ring-1 ring-foreground/5">
-          <div className="-mb-3 px-4 pt-3">
+          <div className="-mb-3 flex items-center px-4 pt-3">
             <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
               <CloseMenuIcon />
             </Headless.CloseButton>
+            {/* Close before onCreate — two focus traps would fight. */}
+            {onCreate && (
+              <NavbarItem
+                onClick={() => {
+                  close()
+                  onCreate()
+                }}
+                aria-label="New journal note"
+                className="ml-auto"
+              >
+                <Plus className="size-5" />
+              </NavbarItem>
+            )}
           </div>
           {children}
         </div>
@@ -54,6 +68,7 @@ export function SidebarLayout({
   navbar,
   sidebar,
   onSearch,
+  onCreate,
   secondary,
   children,
 }: React.PropsWithChildren<{
@@ -61,6 +76,8 @@ export function SidebarLayout({
   sidebar: React.ReactNode
   /** Opens the global search palette — wired to the icon rail's search button. */
   onSearch?: () => void
+  /** Opens the global new-journal-note dialog (rail, mobile header, drawer). */
+  onCreate?: () => void
   /** Route-declared secondary nav (zone 4); the page index merges in. */
   secondary?: MenuSpec
 }>) {
@@ -80,14 +97,14 @@ export function SidebarLayout({
         {/* Main desktop nav — L1 Icon rail + L2 Context sidebar */}
         <nav aria-label="Main" className="hidden lg:flex">
           <div className="w-14 shrink-0 sticky top-0 h-svh flex flex-col items-center border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm z-40 py-3">
-            <AppRail onSearch={onSearch ?? (() => {})} />
+            <AppRail onSearch={onSearch ?? (() => {})} onCreate={onCreate} />
           </div>
 
           <div className="w-60 shrink-0 sticky top-0 self-start h-svh overflow-y-auto border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col">
             {sidebar}
           </div>
         </nav>
-        <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
+        <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)} onCreate={onCreate}>
           {sidebar}
         </MobileSidebar>
 
@@ -103,6 +120,13 @@ export function SidebarLayout({
               </NavbarItem>
             </div>
             <div className="min-w-0 flex-1">{navbar}</div>
+            {onCreate && (
+              <div className="py-2.5 shrink-0">
+                <NavbarItem onClick={onCreate} aria-label="New journal note">
+                  <Plus className="size-5" />
+                </NavbarItem>
+              </div>
+            )}
           </header>
 
         <main className="flex flex-1 flex-col lg:min-w-0">

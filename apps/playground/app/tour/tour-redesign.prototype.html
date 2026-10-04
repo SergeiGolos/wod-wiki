@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROTOTYPE — Home Landing Page Redesign (wod.wiki)</title>
+<!--
+  Landing-page redesign prototype. Standalone: no CDN, no fonts, no requests, no persistence.
+  Design tokens + metric colors copied verbatim from packages/ui/src/styles.css
+  (Mineral light / Arctic Frost dark). All demo state lives in page memory only.
+-->
+<style>
+/* ── Tokens: verbatim from packages/ui/src/styles.css ─────────────────── */
+:root{
+  --background:40 20% 96%; --foreground:30 16% 15%;
+  --card:40 38% 98%; --card-foreground:30 16% 15%;
+  --muted:38 18% 90%; --muted-foreground:30 13% 45%;
+  --border:36 14% 76%; --input:36 14% 82%; --ring:212 32% 50%;
+  --primary:212 32% 50%; --accent:46 42% 85%; --accent-foreground:46 52% 28%;
+  --success:140 28% 42%; --warning:46 52% 37%; --destructive:0 34% 48%;
+  --metric-time:212 32% 50%; --metric-rep:30 46% 45%; --metric-effort:140 28% 42%;
+  --metric-rounds:270 26% 50%; --metric-distance:180 36% 40%;
+  --metric-resistance:0 34% 48%; --metric-action:46 52% 37%; --metric-rest:172 30% 40%;
+  --signal-positive:160 74% 40%; --signal-caution:38 92% 50%; --signal-negative:350 78% 52%;
+}
+.dark{
+  --background:222 16% 21%; --foreground:218 22% 76%;
+  --card:222 17% 28%; --card-foreground:218 22% 76%;
+  --muted:222 18% 18%; --muted-foreground:219 14% 62%;
+  --border:218 17% 30%; --input:218 17% 30%; --ring:210 35% 64%;
+  --primary:210 35% 64%; --accent:40 55% 28%; --accent-foreground:40 67% 80%;
+  --success:95 30% 65%; --warning:40 67% 74%; --destructive:354 34% 58%;
+  --metric-time:210 35% 64%; --metric-rep:14 46% 63%; --metric-effort:95 30% 65%;
+  --metric-rounds:305 24% 63%; --metric-distance:178 27% 65%;
+  --metric-resistance:354 34% 58%; --metric-action:40 67% 74%; --metric-rest:172 30% 60%;
+  --signal-positive:158 55% 58%; --signal-caution:40 85% 62%; --signal-negative:354 62% 64%;
+}
+/* ── Base ─────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0; background:hsl(var(--background)); color:hsl(var(--foreground));
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:6rem; -webkit-font-smoothing:antialiased;
+}
+.mono,code,pre,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,"Cascadia Mono",Consolas,monospace}
+h1,h2,h3{line-height:1.12;letter-spacing:-.02em;margin:0 0 .5em}
+p{margin:0 0 1em}
+a{color:hsl(var(--metric-time));text-underline-offset:2px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px;border-radius:4px}
+.wrap{max-width:74rem;margin:0 auto;padding:0 1.25rem}
+.skip{position:absolute;left:-9999px;top:0;background:hsl(var(--card));padding:.5rem 1rem;z-index:100}
+.skip:focus{left:.5rem;top:.5rem}
+.c-time{color:hsl(var(--metric-time))}.c-rep{color:hsl(var(--metric-rep))}
+.c-effort{color:hsl(var(--metric-effort))}.c-rounds{color:hsl(var(--metric-rounds))}
+.c-dist{color:hsl(var(--metric-distance))}.c-res{color:hsl(var(--metric-resistance))}
+.c-act{color:hsl(var(--metric-action))}.c-rest{color:hsl(var(--metric-rest))}
+.mut{color:hsl(var(--muted-foreground))}
+.small{font-size:.8rem}.tiny{font-size:.72rem}
+hr{border:0;border-top:1px solid hsl(var(--border))}
+/* ── Header ───────────────────────────────────────────────────────────── */
+.hdr{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  padding:.6rem 1.25rem;border-bottom:1px solid hsl(var(--border));
+  background:hsl(var(--background)/.88);backdrop-filter:blur(8px)}
+.brand{font-weight:900;letter-spacing:-.02em;display:flex;align-items:center;gap:.5rem;white-space:nowrap}
+.brand i{width:.8rem;height:.8rem;border-radius:2px;background:hsl(var(--metric-effort));display:inline-block}
+.pill{font:700 .68rem/1 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.12em;
+  padding:.35rem .6rem;border:1px solid hsl(var(--border));border-radius:999px;background:hsl(var(--card));
+  color:hsl(var(--muted-foreground));white-space:nowrap}
+.pill.warn{border-color:hsl(var(--warning)/.5);color:hsl(var(--warning))}
+.hdr .sp{flex:1}
+/* ── Buttons / chips / fields ─────────────────────────────────────────── */
+.btn{font:600 .8rem/1 ui-monospace,Menlo,monospace;padding:.55rem .9rem;border-radius:.55rem;
+  border:1px solid hsl(var(--border));background:hsl(var(--card));color:hsl(var(--foreground));
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.4rem}
+.btn:hover{border-color:hsl(var(--ring))}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.pri{background:hsl(var(--success));border-color:transparent;color:#fff}
+.dark .btn.pri{color:hsl(222 16% 18%)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:.4rem .6rem;font-size:.72rem}
+.chip{display:inline-flex;align-items:center;gap:.35rem;font:600 .7rem/1 ui-monospace,Menlo,monospace;
+  padding:.35rem .55rem;border-radius:.4rem;border:1px solid hsl(var(--border));background:hsl(var(--card));max-width:100%}
+.chip.sample{border-color:hsl(var(--signal-caution)/.6);color:hsl(var(--warning))}
+.field{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.field label{font:700 .65rem/1.2 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.1em;color:hsl(var(--muted-foreground))}
+.field input{font:600 .95rem/1.2 ui-monospace,Menlo,monospace;padding:.5rem .6rem;width:100%;
+  border:1px solid hsl(var(--input));border-radius:.5rem;background:hsl(var(--card));color:hsl(var(--foreground))}
+.field input:focus{border-color:hsl(var(--ring));outline:none;box-shadow:0 0 0 2px hsl(var(--ring)/.25)}
+select.ctl{font:600 .78rem/1.2 ui-monospace,Menlo,monospace;padding:.45rem .5rem;border-radius:.45rem;
+  border:1px solid hsl(var(--input));background:hsl(var(--card));color:hsl(var(--foreground));max-width:100%}
+/* ── Cards, windows, code ─────────────────────────────────────────────── */
+.card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:.9rem;padding:1.25rem}
+.mac{border:1px solid hsl(var(--border));border-radius:.9rem;overflow:hidden;background:hsl(var(--card));
+  box-shadow:0 10px 30px hsl(30 16% 15%/.08)}
+.dark .mac{box-shadow:0 10px 30px hsl(222 30% 5%/.5)}
+.mac-bar{display:flex;align-items:center;gap:.45rem;padding:.55rem .9rem;
+  background:hsl(var(--muted)/.6);border-bottom:1px solid hsl(var(--border))}
+.mac-bar i{width:.62rem;height:.62rem;border-radius:999px;display:inline-block}
+.mac-bar .t{font:500 .72rem ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground));margin-left:.35rem}
+.mac-body{padding:1rem 1.1rem}
+pre.fence{margin:0;font:600 .85rem/1.7 ui-monospace,Menlo,monospace;white-space:pre;overflow-x:auto;
+  background:hsl(var(--muted)/.45);border:1px solid hsl(var(--border));border-radius:.6rem;padding:.8rem 1rem}
+code.k{font:600 .78rem ui-monospace,Menlo,monospace;background:hsl(var(--muted)/.7);
+  border:1px solid hsl(var(--border));border-radius:.35rem;padding:.1rem .35rem}
+/* ── Sections & layout ────────────────────────────────────────────────── */
+.variant{display:none}
+.variant.active{display:block}
+.kick{font:800 .7rem/1 ui-monospace,Menlo,monospace;letter-spacing:.22em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
+.sec{padding:3.2rem 0;border-top:1px solid hsl(var(--border))}
+.sec:first-of-type{border-top:0}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.4rem}
+.cols{display:grid;gap:1.25rem}
+@media(min-width:880px){.cols.c2{grid-template-columns:1fr 1fr}.cols.c32{grid-template-columns:3fr 2fr}
+  .cols.c23{grid-template-columns:2fr 3fr}.cols.c3{grid-template-columns:repeat(3,1fr)}}
+.cols>*,.bench>*,.jgrid>*,.logentry>*,.stage{min-width:0}
+html{overflow-x:clip}
+.tblwrap{overflow-x:auto;max-width:100%} /* tables scroll inside their container, never the page */
+.wcard.sp2{grid-column:span 2}
+@media(max-width:640px){.wcard.sp2{grid-column:auto}} /* a lone span-2 would overflow single-column auto-fit */
+.handoff{border:1px dashed hsl(var(--metric-action)/.5);background:hsl(var(--accent)/.35);
+  border-radius:.7rem;padding:.7rem 1rem;font:500 .82rem/1.5 ui-monospace,Menlo,monospace}
+.handoff b{color:hsl(var(--accent-foreground))}
+.learn-links{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
+.learn-links>*,.chip>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.chip{flex-wrap:wrap;line-height:1.4}
+.card,.wcard{min-width:0}
+.ctl{max-width:100%}
+.note{font-size:.78rem;color:hsl(var(--muted-foreground));line-height:1.5}
+.note b{color:hsl(var(--foreground))}
+/* ── Tables ───────────────────────────────────────────────────────────── */
+table.tbl{width:100%;border-collapse:collapse;font:500 .78rem/1.4 ui-monospace,Menlo,monospace}
+.tbl th{text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;
+  color:hsl(var(--muted-foreground));padding:.4rem .5rem;border-bottom:1px solid hsl(var(--border))}
+.tbl td{padding:.42rem .5rem;border-bottom:1px solid hsl(var(--border)/.6)}
+.tbl tr[data-ev]{cursor:pointer}
+.tbl tr[data-ev]:hover{background:hsl(var(--muted)/.5)}
+.tbl tr.hl td{background:hsl(var(--metric-action)/.18);box-shadow:inset 3px 0 0 hsl(var(--metric-action))}
+.tbl tr.hl td:first-child{border-radius:4px 0 0 4px}
+.badge-smp{font:700 .6rem/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;color:hsl(var(--warning));
+  border:1px solid hsl(var(--signal-caution)/.55);border-radius:3px;padding:.15rem .3rem;white-space:nowrap}
+/* ── Metric cards & bars ──────────────────────────────────────────────── */
+.mgrid{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr))}
+.mcard{border:1px solid hsl(var(--border));border-radius:.7rem;padding:.8rem .9rem;background:hsl(var(--card));transition:box-shadow .15s}
+.mcard .lab{font:700 .62rem/1.2 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.1em;color:hsl(var(--muted-foreground))}
+.mcard .val{font:800 1.25rem/1.25 ui-monospace,Menlo,monospace;margin-top:.25rem}
+.mcard.hl{box-shadow:0 0 0 2px hsl(var(--metric-action));border-color:hsl(var(--metric-action))}
+.bar{display:flex;align-items:flex-end;gap:.5rem;height:5.5rem;padding-top:.4rem}
+.bar .col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:.25rem;min-width:0}
+.bar .col i{width:100%;min-height:2px;border-radius:3px 3px 0 0;background:hsl(var(--metric-time));display:block}
+.bar .col.smp i{background:repeating-linear-gradient(45deg,hsl(var(--metric-time)/.45),hsl(var(--metric-time)/.45) 4px,transparent 4px,transparent 8px)}
+.bar .col u{text-decoration:none;font:600 .6rem ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground));white-space:nowrap}
+/* ── Variant B workbench ──────────────────────────────────────────────── */
+.bench{display:grid;gap:1.25rem}
+@media(min-width:960px){.bench{grid-template-columns:13rem minmax(0,1fr) 17rem}}
+.rail{display:flex;flex-direction:column;gap:.4rem}
+@media(max-width:959px){.rail{flex-direction:row;flex-wrap:wrap}}
+.rail .btn{justify-content:flex-start}
+.rail .btn.on{border-color:hsl(var(--metric-resistance));background:hsl(var(--metric-resistance)/.12);color:hsl(var(--metric-resistance))}
+.stage{display:none}
+.stage.on{display:block}
+/* ── Variant C journal ────────────────────────────────────────────────── */
+.jgrid{display:grid;gap:1.5rem}
+@media(min-width:1000px){.jgrid{grid-template-columns:minmax(0,1fr) 19rem}}
+.jnote{font:500 .95rem/1.9 ui-monospace,Menlo,monospace;background:hsl(var(--card));
+  border:1px solid hsl(var(--border));border-radius:.9rem;padding:1.4rem 1.5rem;overflow-x:auto}
+.jnote h1{font-size:1.3rem;margin-bottom:.8rem}
+.mnote{border-left:3px solid hsl(var(--metric-action));background:hsl(var(--card));
+  border-radius:0 .6rem .6rem 0;padding:.7rem .9rem;font-size:.82rem}
+.mnote .n{display:inline-grid;place-items:center;width:1.15rem;height:1.15rem;border-radius:999px;
+  background:hsl(var(--metric-action));color:hsl(var(--background));font:800 .62rem/1 ui-monospace,Menlo,monospace;margin-right:.35rem}
+sup.mk{font:800 .68rem/1 ui-monospace,Menlo,monospace;color:hsl(var(--metric-action));cursor:pointer;
+  border:0;background:none;padding:0 .1em}
+.logentry{display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;padding:1rem 0;border-top:1px solid hsl(var(--border))}
+@media(max-width:700px){.logentry{grid-template-columns:1fr}}
+.logentry time{font:700 .7rem/1.5 ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.08em}
+/* ── Switcher / dialog / footer ───────────────────────────────────────── */
+.switcher{position:fixed;bottom:.8rem;left:50%;transform:translateX(-50%);z-index:60;
+  display:flex;align-items:center;gap:.4rem;padding:.35rem .5rem;border-radius:999px;
+  border:1px solid hsl(var(--border));background:hsl(var(--card)/.94);backdrop-filter:blur(8px);
+  box-shadow:0 8px 24px hsl(30 16% 15%/.18);max-width:calc(100vw - 1rem)}
+.switcher .lab{font:700 .68rem ui-monospace,Menlo,monospace;white-space:nowrap;padding:0 .3rem}
+.switcher .btn{border-radius:999px;padding:.45rem .6rem}
+.switcher .btn.on{background:hsl(var(--success));border-color:transparent;color:#fff}
+.dark .switcher .btn.on{color:hsl(222 16% 18%)}
+dialog.learn{border:1px solid hsl(var(--border));border-radius:1rem;background:hsl(var(--background));
+  color:hsl(var(--foreground));max-width:44rem;width:calc(100vw - 2.5rem);max-height:82vh;padding:0}
+dialog.learn::backdrop{background:hsl(30 16% 10%/.55)}
+dialog.learn .dh{display:flex;align-items:center;gap:.6rem;padding:.9rem 1.2rem;border-bottom:1px solid hsl(var(--border));position:sticky;top:0;background:hsl(var(--background))}
+dialog.learn .db{padding:1.1rem 1.2rem;overflow-y:auto}
+dialog.learn section{margin:0 0 1.4rem}
+.anch{display:inline-block;margin:.15rem .25rem .15rem 0}
+footer.site{border-top:1px solid hsl(var(--border));margin-top:3rem;padding:2.5rem 0 2rem;background:hsl(var(--muted)/.35)}
+@keyframes pulse{50%{opacity:.45}}
+.pulse{animation:pulse 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+.prov{font:600 .72rem/1.6 ui-monospace,Menlo,monospace;border:1px solid hsl(var(--border));
+  border-radius:.6rem;padding:.6rem .8rem;background:hsl(var(--card));overflow-wrap:anywhere}
+details.fence-details{margin-top:.6rem}
+details.fence-details summary{cursor:pointer;font:700 .68rem ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.08em}
+.wcard{border:1px solid hsl(var(--border));border-radius:.7rem;background:hsl(var(--card));padding:.8rem .9rem;display:flex;flex-direction:column;gap:.5rem}
+.wcard .whd{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+@media(max-width:640px){
+  .switcher .lab span.long{display:none}
+  body{padding-bottom:4.5rem}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="hdr">
+  <span class="brand"><i></i>wod.wiki</span>
+  <span class="pill warn">Prototype · in-memory demo only</span>
+  <span class="pill mono" data-v="mini" aria-live="polite">3×10 @ 24kg · idle · 0/6 entries</span>
+  <span class="sp"></span>
+  <button class="btn sm" id="theme-btn" type="button">Theme</button>
+</header>
+
+<!-- ==================================================================== -->
+<!-- VARIANT A · Continuous editorial walkthrough (RECOMMENDED)           -->
+<!-- ==================================================================== -->
+<main class="variant active" id="variant-A" data-variant="A">
+  <section class="sec" id="A-hero" style="padding-top:3rem">
+    <div class="wrap">
+      <p class="kick">Your training log that runs your workout</p>
+      <h1 style="font-size:clamp(2.2rem,5.5vw,4.2rem);font-weight:900;max-width:20ch">
+        Write it as text.<br>Run it as a timer.<br>Keep every rep.<br>Ask it anything.</h1>
+      <p class="mut" style="max-width:44rem;font-size:1.05rem">A plain-text note becomes the clock for today's session and the database of your training history. The demo below is the real <code class="k">home/sample-script.md</code> — edit the labeled fields and everything on this page recomputes.</p>
+      <nav class="learn-links" aria-label="Walkthrough sections" style="margin:1rem 0 1.6rem">
+        <a class="btn sm" href="#A-write"><span class="c-res">01 Write</span> ↓</a>
+        <a class="btn sm" href="#A-run"><span class="c-effort">02 Run</span> ↓</a>
+        <a class="btn sm" href="#A-metrics"><span class="c-rep">03 Ledger</span> ↓</a>
+        <a class="btn sm" href="#A-query"><span class="c-rounds">04 Query</span> ↓</a>
+        <a class="btn sm" href="#A-dash"><span class="c-time">05 Dashboard</span> ↓</a>
+      </nav>
+
+      <div class="mac">
+        <div class="mac-bar">
+          <i style="background:hsl(0 60% 60%)"></i><i style="background:hsl(45 80% 60%)"></i><i style="background:hsl(140 50% 55%)"></i>
+          <span class="t">sample-script.md — “Edit Me: Morning Strength”</span>
+          <span class="sp" style="flex:1"></span>
+          <span class="pill" data-v="phase">idle</span>
+        </div>
+        <div class="mac-body">
+          <div class="cols c32">
+            <div>
+              <div class="cols" style="grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:.9rem">
+                <div class="field"><label for="A-f-rounds">Rounds</label><input id="A-f-rounds" data-f="rounds" type="number" min="1" max="12" value="3"></div>
+                <div class="field"><label for="A-f-reps">Swings / round</label><input id="A-f-reps" data-f="reps" type="number" min="1" max="60" value="10"></div>
+                <div class="field"><label for="A-f-load">Load (kg)</label><input id="A-f-load" data-f="load" type="number" min="1" max="300" value="24"></div>
+              </div>
+              <pre class="fence" data-v="fence" aria-label="Generated time fence"></pre>
+              <p class="note" style="margin-top:.6rem">The fence is generated from the fields above — always a valid <code class="k">```time</code> block. The demo does not parse free text; it keeps this one script honest. <button class="btn sm ghost" type="button" data-learn="start#fences">Fences &amp; movements →</button></p>
+            </div>
+            <div class="prov" role="status">
+              <b>Live state</b> <span data-v="mini2">3×10 @ 24kg · idle</span><br>
+              Clock <b class="c-time" data-v="clock">0:00</b> · <span data-v="prog">0 of 6 entries</span><br>
+              <span data-v="prov">No entries recorded yet — nothing claimed, nothing saved.</span>
+            </div>
+          </div>
+          <div class="learn-links">
+            <button class="btn pri sm" type="button" data-act="run">▶ Run</button>
+            <button class="btn sm" type="button" data-act="pause" disabled>Pause</button>
+            <button class="btn sm" type="button" data-act="next" disabled>Next — lock split</button>
+            <button class="btn sm" type="button" data-act="complete">Complete sample session <span class="badge-smp">illustrative</span></button>
+            <button class="btn sm ghost" type="button" data-act="reset">Reset</button>
+          </div>
+        </div>
+      </div>
+      <p class="note" style="margin-top:.8rem">Honesty rule: this page runs an <b>in-memory simulation</b> of the clock. It never claims the real engine, never saves to a journal, and every illustrative number is badged <span class="badge-smp">SAMPLE</span>.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="A-write">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="kick c-res">01 / 05 · Write</p><h2 style="font-size:2rem">Write it in Markdown</h2></div>
+        <span class="pill mono" data-v="echo">demo: 3×10 @ 24kg</span>
+      </div>
+      <div class="cols c2">
+        <div class="card">
+          <h3>Blank page + typeahead</h3>
+          <p class="small mut">Notes are freeform Markdown. A fenced block tagged <code class="k">```time</code> runs as a workout timer; <code class="k">```log</code> records without running; <code class="k">```log:climbing</code> scopes the climbing dialect. In-note analytics use <code class="k">```query</code> — there is no <code class="k">```wql</code> fence.</p>
+          <p class="small">Every line collects metrics: <span class="c-rep">reps</span> (<code class="k">10 Kettlebell Swings</code>), <span class="c-res">resistance</span> (<code class="k">24kg</code>), <span class="c-time">timed rest</span> (<code class="k">*:30 Rest</code>), <span class="c-rounds">rounds</span> (<code class="k">(3)</code>).</p>
+          <div class="learn-links">
+            <button class="btn sm" type="button" data-learn="start#first-workout">Lesson 1 — First Workout</button>
+            <button class="btn sm" type="button" data-learn="metrics#planned-vs-recorded">What each line collects →</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Line-by-line parse</h3>
+          <div data-v="chips" class="learn-links" style="margin-top:0"></div>
+          <p class="note" style="margin-top:.8rem">Chips recompute as you edit the hero fields — the same parse the homepage promises, scoped to this verified script shape.</p>
+        </div>
+      </div>
+      <div class="handoff" style="margin-top:1.25rem">👉 <b>Handoff:</b> “This block is also a runnable workout — scroll on and run it.” Your edits above ride along: <span data-v="echo2" class="c-res">3×10 @ 24kg</span>.</div>
+    </div>
+  </section>
+
+  <section class="sec" id="A-run">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="kick c-effort">02 / 05 · Run</p><h2 style="font-size:2rem">Run it as a timer</h2></div>
+        <span class="pill mono" data-v="phase2">idle</span>
+      </div>
+      <div class="cols c23">
+        <div class="mac">
+          <div class="mac-bar"><i style="background:hsl(0 60% 60%)"></i><i style="background:hsl(45 80% 60%)"></i><i style="background:hsl(140 50% 55%)"></i><span class="t">Working clock · “Living Room TV” cast mirror</span></div>
+          <div class="mac-body" style="text-align:center">
+            <div class="c-time" data-v="clock" style="font:900 3.6rem/1 ui-monospace,Menlo,monospace">0:00</div>
+            <p class="mut small" data-v="prog2">0 of 6 entries · press Run to start</p>
+            <div class="learn-links" style="justify-content:center">
+              <button class="btn pri sm" type="button" data-act="run">▶ Run</button>
+              <button class="btn sm" type="button" data-act="pause" disabled>Pause</button>
+              <button class="btn sm" type="button" data-act="next" disabled>Next — lock split</button>
+              <button class="btn sm" type="button" data-act="complete">Complete sample <span class="badge-smp">illustrative</span></button>
+              <button class="btn sm ghost" type="button" data-act="reset">Reset</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <h3>The clock steps through your script</h3>
+            <p class="small mut">Run launches the clock from 0:00 — nothing auto-starts. Each <b>Next</b> locks the elapsed time of the current entry as a split: first the swings, then the required <code class="k">*:30 Rest</code>, once per round. Cast to a big screen mirrors the same clock.</p>
+            <div class="learn-links">
+              <button class="btn sm" type="button" data-learn="clock#run-next">How Run &amp; Next behave →</button>
+              <button class="btn sm" type="button" data-learn="protocols#required-rest">Required rest (*:) →</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:1rem">
+            <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em" >Split log <span class="mut">(click a row — it highlights the metrics &amp; query rows it feeds)</span></h3>
+            <div data-v="events"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="A-metrics">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="kick c-rep">03 / 05 · Ledger</p><h2 style="font-size:2rem">Every rep becomes a record</h2></div>
+        <span class="pill mono" data-v="prov2">provenance: —</span>
+      </div>
+      <div data-v="metrics"></div>
+      <div class="learn-links" style="margin-top:1rem">
+        <button class="btn sm" type="button" data-learn="metrics#planned-vs-recorded">Planned vs recorded →</button>
+        <button class="btn sm" type="button" data-learn="metrics#calculated">Calculated metrics →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="A-query">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="kick c-rounds">04 / 05 · Query</p><h2 style="font-size:2rem">Ask it anything (WQL)</h2></div>
+        <span class="pill">live string · same rows as the ledger</span>
+      </div>
+      <div class="cols c23">
+        <div class="card">
+          <div class="learn-links" style="margin-top:0;margin-bottom:.8rem">
+            <label class="tiny mut" for="A-q-f">Filter</label>
+            <select class="ctl" id="A-q-f" data-q="f">
+              <option value="">{} — all rows</option>
+              <option value="discipline:strength" selected>{discipline:strength}</option>
+              <option value="discipline:strength|gymnastics">{discipline:strength|gymnastics}</option>
+              <option value="!discipline:recovery">{!discipline:recovery}</option>
+            </select>
+            <label class="tiny mut" for="A-q-agg">Aggregate</label>
+            <select class="ctl" id="A-q-agg" data-q="agg">
+              <option value="sum:totalVolume" selected>sum:totalVolume</option>
+              <option value="sum:totalReps">sum:totalReps</option>
+              <option value="avg:tis">avg:tis</option>
+            </select>
+            <label class="tiny mut" for="A-q-dim">Group by</label>
+            <select class="ctl" id="A-q-dim" data-q="dim">
+              <option value="week" selected>{week}</option>
+              <option value="effort">{effort}</option>
+              <option value="day">{day}</option>
+            </select>
+            <label class="tiny mut" for="A-q-win">Window</label>
+            <select class="ctl" id="A-q-win" data-q="win">
+              <option value="last 6w" selected>last 6w</option>
+              <option value="last 4w">last 4w</option>
+              <option value="from 2026-09-01 to 2026-10-04">from 2026-09-01 to 2026-10-04</option>
+            </select>
+          </div>
+          <pre class="fence"><code data-v="qstr">sum:totalVolume{discipline:strength} by {week} last 6w</code></pre>
+          <p class="note" style="margin-top:.6rem">Filter shapes above are the verified vocabulary (negation <code class="k">!</code>, OR <code class="k">|</code>, windows <code class="k">last 6w</code> / <code class="k">from…to</code>). A full WQL parser is deliberately out of prototype scope.</p>
+        </div>
+        <div class="card">
+          <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Result — computed from the ledger rows</h3>
+          <div data-v="qout"></div>
+        </div>
+      </div>
+      <div class="learn-links" style="margin-top:1rem">
+        <button class="btn sm" type="button" data-learn="wql#aggregate">WQL anatomy →</button>
+        <button class="btn sm" type="button" data-learn="wql#filters">Filters &amp; sources →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="A-dash">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="kick c-time">05 / 05 · Dashboard</p><h2 style="font-size:2rem">A dashboard is just N queries on one screen</h2></div>
+        <span class="pill">seed: training-block-review.md</span>
+      </div>
+      <div data-v="board"></div>
+      <div class="learn-links" style="margin-top:1rem">
+        <button class="btn sm" type="button" data-learn="dashboards#widgets">Widget fences →</button>
+        <button class="btn sm" type="button" data-learn="dashboards#seeded-boards">The six seeded boards →</button>
+      </div>
+      <div class="handoff" style="margin-top:1.25rem">👉 <b>It’s your data.</b> Every widget here executes against your live journal — these are the sample answers until you have logged work of your own. <span data-v="prov3"></span></div>
+    </div>
+  </section>
+</main>
+<!-- ==================================================================== -->
+<!-- VARIANT B · Stage-based workbench (content lives OUTSIDE the tabs)   -->
+<!-- ==================================================================== -->
+<main class="variant" id="variant-B" data-variant="B">
+  <section class="sec" id="B-hero" style="padding-top:3rem">
+    <div class="wrap">
+      <p class="kick">Variant B · Stage-based workbench</p>
+      <h1 style="font-size:clamp(2rem,5vw,3.4rem);font-weight:900;max-width:24ch">The workout studio: five stages, one pipeline.</h1>
+      <p class="mut" style="max-width:46rem">Write → Run → Ledger → Query → Dashboard. The stage panel switches; the context column and live status strip never leave — the story stays on screen instead of hiding inside tabs.</p>
+      <div class="prov" style="margin-top:1rem" role="status">
+        <b>Live state (persists across stages):</b> <span data-v="mini">3×10 @ 24kg · idle · 0/6 entries</span> ·
+        Clock <b class="c-time" data-v="clock">0:00</b> · <span data-v="prov"></span>
+      </div>
+      <div class="learn-links" style="margin-top:1rem">
+        <button class="btn sm" type="button" data-learn="start#first-workout">Lesson 1 — First Workout</button>
+        <button class="btn sm" type="button" data-learn="dashboards#composer">The composer flow →</button>
+        <button class="btn sm" type="button" data-learn="sessions#intent">Dialects &amp; sessions →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="B-bench">
+    <div class="wrap">
+      <div class="bench">
+        <nav class="rail" aria-label="Workbench stages">
+          <button class="btn sm on" type="button" data-stage="write"><span class="c-res">01 Write</span></button>
+          <button class="btn sm" type="button" data-stage="run"><span class="c-effort">02 Run</span></button>
+          <button class="btn sm" type="button" data-stage="metrics"><span class="c-rep">03 Ledger</span></button>
+          <button class="btn sm" type="button" data-stage="query"><span class="c-rounds">04 Query</span></button>
+          <button class="btn sm" type="button" data-stage="dash"><span class="c-time">05 Dashboard</span></button>
+        </nav>
+
+        <div>
+          <!-- Stage 01 -->
+          <div class="stage on" data-stage-panel="write">
+            <div class="mac">
+              <div class="mac-bar"><i style="background:hsl(0 60% 60%)"></i><i style="background:hsl(45 80% 60%)"></i><i style="background:hsl(140 50% 55%)"></i><span class="t">sample-script.md — editor</span><span style="flex:1"></span><span class="pill" data-v="phase">idle</span></div>
+              <div class="mac-body">
+                <div class="cols" style="grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:.9rem">
+                  <div class="field"><label for="B-f-rounds">Rounds</label><input id="B-f-rounds" data-f="rounds" type="number" min="1" max="12" value="3"></div>
+                  <div class="field"><label for="B-f-reps">Swings / round</label><input id="B-f-reps" data-f="reps" type="number" min="1" max="60" value="10"></div>
+                  <div class="field"><label for="B-f-load">Load (kg)</label><input id="B-f-load" data-f="load" type="number" min="1" max="300" value="24"></div>
+                </div>
+                <pre class="fence" data-v="fence" aria-label="Generated time fence"></pre>
+                <div data-v="chips" class="learn-links" style="margin-top:.8rem"></div>
+                <div class="learn-links" style="margin-top:.8rem">
+                  <button class="btn pri sm" type="button" data-goto-stage="run">Proceed to Timer (Run) →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Stage 02 -->
+          <div class="stage" data-stage-panel="run">
+            <div class="mac">
+              <div class="mac-bar"><i style="background:hsl(0 60% 60%)"></i><i style="background:hsl(45 80% 60%)"></i><i style="background:hsl(140 50% 55%)"></i><span class="t">Working clock · cast mirror</span></div>
+              <div class="mac-body" style="text-align:center">
+                <div class="c-time" data-v="clock" style="font:900 3.6rem/1 ui-monospace,Menlo,monospace">0:00</div>
+                <p class="mut small" data-v="prog2">0 of 6 entries · press Run to start</p>
+                <div class="learn-links" style="justify-content:center">
+                  <button class="btn pri sm" type="button" data-act="run">▶ Run</button>
+                  <button class="btn sm" type="button" data-act="pause" disabled>Pause</button>
+                  <button class="btn sm" type="button" data-act="next" disabled>Next — lock split</button>
+                  <button class="btn sm" type="button" data-act="complete">Complete sample <span class="badge-smp">illustrative</span></button>
+                  <button class="btn sm ghost" type="button" data-act="reset">Reset</button>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin-top:1rem">
+              <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Split log</h3>
+              <div data-v="events"></div>
+            </div>
+          </div>
+          <!-- Stage 03 -->
+          <div class="stage" data-stage-panel="metrics">
+            <div data-v="metrics"></div>
+          </div>
+          <!-- Stage 04 -->
+          <div class="stage" data-stage-panel="query">
+            <div class="card">
+              <div class="learn-links" style="margin-top:0;margin-bottom:.8rem">
+                <label class="tiny mut" for="B-q-f">Filter</label>
+                <select class="ctl" id="B-q-f" data-q="f">
+                  <option value="">{} — all rows</option>
+                  <option value="discipline:strength" selected>{discipline:strength}</option>
+                  <option value="discipline:strength|gymnastics">{discipline:strength|gymnastics}</option>
+                  <option value="!discipline:recovery">{!discipline:recovery}</option>
+                </select>
+                <label class="tiny mut" for="B-q-agg">Aggregate</label>
+                <select class="ctl" id="B-q-agg" data-q="agg">
+                  <option value="sum:totalVolume" selected>sum:totalVolume</option>
+                  <option value="sum:totalReps">sum:totalReps</option>
+                  <option value="avg:tis">avg:tis</option>
+                </select>
+                <label class="tiny mut" for="B-q-dim">Group by</label>
+                <select class="ctl" id="B-q-dim" data-q="dim">
+                  <option value="week" selected>{week}</option>
+                  <option value="effort">{effort}</option>
+                  <option value="day">{day}</option>
+                </select>
+                <label class="tiny mut" for="B-q-win">Window</label>
+                <select class="ctl" id="B-q-win" data-q="win">
+                  <option value="last 6w" selected>last 6w</option>
+                  <option value="last 4w">last 4w</option>
+                  <option value="from 2026-09-01 to 2026-10-04">from 2026-09-01 to 2026-10-04</option>
+                </select>
+              </div>
+              <pre class="fence"><code data-v="qstr"></code></pre>
+            </div>
+            <div class="card" style="margin-top:1rem"><div data-v="qout"></div></div>
+          </div>
+          <!-- Stage 05 -->
+          <div class="stage" data-stage-panel="dash">
+            <div data-v="board"></div>
+          </div>
+        </div>
+
+        <aside class="card" data-v="stagectx" aria-live="polite"></aside>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ==================================================================== -->
+<!-- VARIANT C · Journal-note-first annotated walkthrough                 -->
+<!-- ==================================================================== -->
+<main class="variant" id="variant-C" data-variant="C">
+  <section class="sec" id="C-hero" style="padding-top:3rem">
+    <div class="wrap">
+      <p class="kick">Variant C · Journal-note first</p>
+      <h1 style="font-size:clamp(2rem,5vw,3.4rem);font-weight:900;max-width:24ch">The note is the product.</h1>
+      <p class="mut" style="max-width:46rem">Today’s journal entry sits center; every walkthrough beat is a margin annotation on the note itself. Change the fields and the note, the annotations, and the log below all stay in sync.</p>
+      <div class="prov" style="margin-top:1rem" role="status"><b>Log state:</b> <span data-v="mini">3×10 @ 24kg · idle · 0/6 entries</span> · <span data-v="prov"></span></div>
+    </div>
+  </section>
+
+  <section class="sec" id="C-note">
+    <div class="wrap">
+      <div class="jgrid">
+        <div>
+          <div class="jnote" aria-label="Journal note: Morning Strength">
+            <h1># Edit Me: Morning Strength <span class="mut small">· sample-script.md</span></h1>
+            <div>Change the reps, movements, or rest below and see the workout update live.</div>
+            <div>&nbsp;</div>
+            <div class="c-res">```time <sup class="mk" data-ann="1" title="Annotation 1">①</sup></div>
+            <div class="c-rounds">(<span data-v="rounds">3</span>) <sup class="mk" data-ann="2" title="Annotation 2">②</sup></div>
+            <div>&nbsp;&nbsp;<span class="c-rep" data-v="reps">10</span> Kettlebell Swings <span class="c-res" data-v="load">24kg</span> <sup class="mk" data-ann="3" title="Annotation 3">③</sup></div>
+            <div>&nbsp;&nbsp;<span class="c-rest">*:<span data-v="restmm">30</span> Rest</span> <sup class="mk" data-ann="4" title="Annotation 4">④</sup></div>
+            <div class="c-res">```</div>
+            <div>&nbsp;</div>
+            <div class="cols" style="grid-template-columns:repeat(3,1fr);gap:.7rem;margin:.4rem 0 .8rem">
+              <div class="field"><label for="C-f-rounds">Rounds</label><input id="C-f-rounds" data-f="rounds" type="number" min="1" max="12" value="3"></div>
+              <div class="field"><label for="C-f-reps">Swings / round</label><input id="C-f-reps" data-f="reps" type="number" min="1" max="60" value="10"></div>
+              <div class="field"><label for="C-f-load">Load (kg)</label><input id="C-f-load" data-f="load" type="number" min="1" max="300" value="24"></div>
+            </div>
+            <div class="learn-links">
+              <button class="btn pri sm" type="button" data-act="run">▶ Run</button>
+              <button class="btn sm" type="button" data-act="pause" disabled>Pause</button>
+              <button class="btn sm" type="button" data-act="next" disabled>Next — lock split <sup class="mk" data-ann="5" title="Annotation 5">⑤</sup></button>
+              <button class="btn sm" type="button" data-act="complete">Complete sample <span class="badge-smp">illustrative</span></button>
+              <button class="btn sm ghost" type="button" data-act="reset">Reset</button>
+            </div>
+            <div style="margin-top:.8rem">Clock <b class="c-time" data-v="clock" style="font-size:1.4rem">0:00</b> · <span data-v="prog"></span> · <span class="pill" data-v="phase">idle</span></div>
+          </div>
+        </div>
+        <aside aria-label="Annotations">
+          <div class="mnote" data-mnote="1"><span class="n">1</span><b>Fences.</b> Only <code class="k">time</code>, <code class="k">log</code>, <code class="k">log:climbing</code> are runnable/recordable fences — no <code class="k">wod</code>/<code class="k">plan</code>/<code class="k">wql</code>. Queries use <code class="k">query</code>. <button class="btn sm ghost" type="button" data-learn="start#fences">start.md#fences</button></div>
+          <div class="mnote" data-mnote="2" style="margin-top:.7rem"><span class="n">2</span><b>Rounds.</b> <code class="k">(3)</code> repeats the indented block; <code class="k">(3 Rounds)</code>, <code class="k">(21-15-9)</code> ladders, nesting. <button class="btn sm ghost" type="button" data-learn="structure#rounds">structure.md#rounds</button></div>
+          <div class="mnote" data-mnote="3" style="margin-top:.7rem"><span class="n">3</span><b>Measures ride along.</b> Reps + <code class="k">24kg</code> collect into reps/volume at runtime. <button class="btn sm ghost" type="button" data-learn="metrics#planned-vs-recorded">metrics.md</button></div>
+          <div class="mnote" data-mnote="4" style="margin-top:.7rem"><span class="n">4</span><b>Required rest.</b> <code class="k">*:30</code> can’t be skipped; <code class="k">^5:00</code> counts up, bare <code class="k">5:00</code> counts down. <button class="btn sm ghost" type="button" data-learn="protocols#required-rest">protocols.md</button></div>
+          <div class="mnote" data-mnote="5" style="margin-top:.7rem"><span class="n">5</span><b>Splits.</b> Next locks elapsed per entry; Pause/Skip behave per the clock guide. <button class="btn sm ghost" type="button" data-learn="clock#run-next">clock.md#run-next</button> <button class="btn sm ghost" type="button" data-learn="clock#pause-skip">#pause-skip</button></div>
+          <div class="mnote" data-mnote="6" style="margin-top:.7rem"><span class="n">6</span><b>Then it compounds.</b> Efforts × measures → facts → WQL → dashboard. <button class="btn sm ghost" type="button" data-learn="wql#aggregate">wql.md</button> <button class="btn sm ghost" type="button" data-learn="dashboards#widgets">dashboards.md</button></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="C-log">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="kick c-act">Annotated session log</p><h2 style="font-size:2rem">What the note did today</h2></div>
+        <span class="pill mono" data-v="phase2">idle</span>
+      </div>
+
+      <div class="logentry">
+        <time>06:12 · Run</time>
+        <div>
+          <p class="small"><b>Pressed Run.</b> The clock started from 0:00 — the homepage never auto-starts a timer. Current script: <span data-v="echo" class="c-res">3×10 @ 24kg</span>. Casting to the gym TV mirrors this same clock. <button class="btn sm ghost" type="button" data-learn="clock#casting">clock.md#casting</button></p>
+          <div class="learn-links">
+            <button class="btn pri sm" type="button" data-act="run">▶ Run</button>
+            <button class="btn sm" type="button" data-act="pause" disabled>Pause</button>
+            <button class="btn sm" type="button" data-act="next" disabled>Next — lock split</button>
+            <button class="btn sm" type="button" data-act="complete">Complete sample <span class="badge-smp">illustrative</span></button>
+            <button class="btn sm ghost" type="button" data-act="reset">Reset</button>
+            <span class="chip">Clock <b class="c-time" data-v="clock">0:00</b></span>
+            <span class="chip" data-v="prog2">0 of 6 entries</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="logentry">
+        <time>06:14 · Splits</time>
+        <div>
+          <p class="small"><b>Every Next locked a split.</b> Each row below is one entry of the note, with its recorded duration and provenance. Select a row to see the metric cards and query rows it feeds light up. <button class="btn sm ghost" type="button" data-learn="metrics#capture">metrics.md#capture</button></p>
+          <div data-v="events"></div>
+        </div>
+      </div>
+
+      <div class="logentry">
+        <time>06:16 · Ledger</time>
+        <div><p class="small"><b>Efforts collect metrics.</b> Planned vs recorded, the exact volume formula, and missing data called out — no fabricated heart rate, no invented trends. <button class="btn sm ghost" type="button" data-learn="metrics#session-rpe">Session RPE →</button></p><div data-v="metrics"></div></div>
+      </div>
+
+      <div class="logentry">
+        <time>06:18 · Query</time>
+        <div>
+          <p class="small"><b>Ask it anything.</b> The string below is live — the same rows as the ledger, never canned numbers. <button class="btn sm ghost" type="button" data-learn="wql#windows">Windows →</button> <button class="btn sm ghost" type="button" data-learn="wql#joins">Where-joins →</button></p>
+          <div class="cols c2">
+            <div class="card">
+              <div class="learn-links" style="margin-top:0;margin-bottom:.8rem">
+                <label class="tiny mut" for="C-q-f">Filter</label>
+                <select class="ctl" id="C-q-f" data-q="f">
+                  <option value="">{} — all rows</option>
+                  <option value="discipline:strength" selected>{discipline:strength}</option>
+                  <option value="discipline:strength|gymnastics">{discipline:strength|gymnastics}</option>
+                  <option value="!discipline:recovery">{!discipline:recovery}</option>
+                </select>
+                <label class="tiny mut" for="C-q-agg">Aggregate</label>
+                <select class="ctl" id="C-q-agg" data-q="agg">
+                  <option value="sum:totalVolume" selected>sum:totalVolume</option>
+                  <option value="sum:totalReps">sum:totalReps</option>
+                  <option value="avg:tis">avg:tis</option>
+                </select>
+                <label class="tiny mut" for="C-q-dim">Group by</label>
+                <select class="ctl" id="C-q-dim" data-q="dim">
+                  <option value="week" selected>{week}</option>
+                  <option value="effort">{effort}</option>
+                  <option value="day">{day}</option>
+                </select>
+                <label class="tiny mut" for="C-q-win">Window</label>
+                <select class="ctl" id="C-q-win" data-q="win">
+                  <option value="last 6w" selected>last 6w</option>
+                  <option value="last 4w">last 4w</option>
+                  <option value="from 2026-09-01 to 2026-10-04">from 2026-09-01 to 2026-10-04</option>
+                </select>
+              </div>
+              <pre class="fence"><code data-v="qstr"></code></pre>
+            </div>
+            <div class="card"><div data-v="qout"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="logentry">
+        <time>06:20 · Board</time>
+        <div><p class="small"><b>Compose a dashboard.</b> Dataset → calculation → visualization, inspectable down to the widget fence. Seeded from <code class="k">training-block-review.md</code>. <button class="btn sm ghost" type="button" data-learn="dashboards#note-frontmatter">Frontmatter &amp; tokens →</button> <button class="btn sm ghost" type="button" data-learn="sessions#full-session">Complex sessions →</button></p><div data-v="board"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+<!-- ═══ Shared footer: exits, learning directory, source coverage ═══ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><p class="kick">Where to next?</p><h2 style="font-size:1.6rem">Exits, learning, and sources</h2></div>
+      <span class="pill mono" data-v="provfoot"></span>
+    </div>
+
+    <div class="cols c3" role="navigation" aria-label="Product exits">
+      <a class="card" href="/collections" style="text-decoration:none;color:inherit">
+        <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Collections →</h3>
+        <p class="small mut">Best for: browsing curated workout libraries block by block. In WQL the source scope is plural: <code class="k">source:collections</code>.</p>
+      </a>
+      <a class="card" href="/journal" style="text-decoration:none;color:inherit">
+        <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Journal →</h3>
+        <p class="small mut">Best for: today’s note — the exact artifact this page demos (<code class="k">sample-script.md</code>). Efforts registry lives at <code class="k">/efforts</code>.</p>
+      </a>
+      <a class="card" href="/feeds" style="text-decoration:none;color:inherit">
+        <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Feeds →</h3>
+        <p class="small mut">Best for: following outside sources into your library. Plural scope: <code class="k">source:feeds</code>.</p>
+      </a>
+    </div>
+    <p class="note" style="margin-top:.6rem">Exit cards link to the real app routes — a standalone HTML file can’t open them. Everything else on this page (sections, learning panels, demos) works offline by design.</p>
+
+    <h3 style="margin-top:2.2rem;font-size:1.15rem">Learn the language — proposed 8-page collection <span class="pill">markdown/canvas/learn-proposed/</span></h3>
+    <p class="small mut">One embedded detail panel per page — double-clicking this file still works standalone. “Source” links resolve relative to repo root from both prototype locations.</p>
+    <div class="cols c3" style="margin-top:1rem" id="learn-dir"></div>
+
+    <details class="fence-details" style="margin-top:2.2rem">
+      <summary>Reviewer area — prototype scope, design verdict, source coverage</summary>
+      <div class="cols c2" style="margin-top:1rem">
+        <div>
+          <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Scope note (deliberate)</h3>
+          <p class="note">Static design prototype: native HTML/CSS/JS, zero requests, zero persistence, no CDN. The clock is an in-memory simulation — it does <b>not</b> execute the real engine (<code class="k">packages/wql</code>, ScriptRuntime) and never saves to a journal or casts to a device. Metrics shown are limited to the recorded-fact vocabulary; invented fields (e.g. heart rate) are omitted, not faked. Invalid legacy syntax from the old prototype (<code class="k">{tag:…}</code>, <code class="k">since:</code>, <code class="k">&#96;&#96;&#96;wql</code>, <code class="k">source:all</code>) is deliberately absent. Multi-week history exists only as an explicitly opt-in, clearly badged SAMPLE dataset.</p>
+          <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em;margin-top:1.2rem">Design verdict</h3>
+          <p class="note"><b>Ship Variant A</b> — the continuous walkthrough keeps demo context visible at every beat and matches the existing scroll-caption story. <b>B</b> is the strongest power-user surface and a natural future home for the studio; its stage-context column is the pattern worth reusing. <b>C</b> is the most distinctive but the most layout-fragile; steal its margin annotations for the journal empty state. All three share one state machine, so the choice is purely presentational.</p>
+          <div class="prov" style="margin-top:1rem" role="status"><b>Provenance readout</b><br><span data-v="provfull"></span></div>
+        </div>
+        <div>
+          <h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Source coverage</h3>
+          <ul class="note" style="list-style:none;padding:0;margin:0;line-height:2">
+            <li>→ <a data-src="markdown/canvas/home/sample-script.md">markdown/canvas/home/sample-script.md</a> — demo script (orphaned today; promoted here as the existing example)</li>
+            <li>→ <a data-src="markdown/canvas/home/welcome-1.md">markdown/canvas/home/welcome-1.md</a> — default homepage note</li>
+            <li>→ <a data-src="markdown/dashboards/training-block-review.md">markdown/dashboards/training-block-review.md</a> — dashboard seed</li>
+            <li>→ <a data-src="packages/ui/src/styles.css">packages/ui/src/styles.css</a> — color tokens used verbatim</li>
+            <li>→ <a data-src="apps/playground/app/tour/TourCaptions.tsx">apps/playground/app/tour/TourCaptions.tsx</a> — scroll captions &amp; presets</li>
+          </ul>
+          <p class="note" style="margin-top:.8rem">Proposed pages (LearningCollection worker): <span id="src-pages" class="mono tiny"></span></p>
+        </div>
+      </div>
+    </details>
+  </div>
+</footer>
+
+<!-- ═══ Variant switcher ═══ -->
+<aside class="switcher" aria-label="Prototype variant switcher">
+  <button class="btn sm" type="button" data-cycle="-1" aria-label="Previous variant">←</button>
+  <button class="btn sm on" type="button" data-var="A" aria-label="Variant A">A</button>
+  <button class="btn sm" type="button" data-var="B" aria-label="Variant B">B</button>
+  <button class="btn sm" type="button" data-var="C" aria-label="Variant C">C</button>
+  <button class="btn sm" type="button" data-cycle="1" aria-label="Next variant">→</button>
+  <span class="lab"><span class="long" id="var-label">A · Continuous walkthrough ★</span><span class="long mut" style="display:none" id="var-hint">← → keys</span></span>
+</aside>
+
+<!-- ═══ Learning detail panel (local, accessible) ═══ -->
+<dialog class="learn" id="learn-dlg" aria-labelledby="learn-title">
+  <div class="dh">
+    <strong id="learn-title">Learn</strong>
+    <span class="pill" id="learn-file"></span>
+    <span style="flex:1"></span>
+    <button class="btn sm" type="button" id="learn-close">Close ✕</button>
+  </div>
+  <div class="db" id="learn-body"></div>
+</dialog>
+
+<script>
+'use strict';
+/* ponytail: demo engine is a purpose-built state machine for the one verified
+   script shape (rounds × [swings, *:30 rest]). A general parser is the real
+   app's job; upgrade path: swap renderers for engine output, keep the bindings. */
+const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=ms=>{const s=Math.round(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const isoWeek=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));return Math.ceil((((t-new Date(Date.UTC(t.getUTCFullYear(),0,1)))/864e5)+1)/7)};
+const REST_MS=30000, SWING_SAMPLE_MS=40000; // deterministic sample timings
+const AS_OF=new Date(2026,9,4); // deterministic demo as-of (matches the offered from…to window), shown in query + board
+
+const S={rounds:3,reps:10,load:24,phase:'idle',elapsed:0,base:0,idx:0,events:[],sel:null,hist:false,
+  q:{agg:'sum:totalVolume',f:'discipline:strength',dim:'week',win:'last 6w'},
+  widgets:[
+    {type:'value',span:1,title:'Total volume',question:'How much total work?',q:'sum:totalVolume{}',aq:'sum:totalVolume',f:'',dim:null},
+    {type:'value',span:1,title:'Avg TIS',question:'How hard are sessions?',q:'avg:tis{}',aq:'avg:tis',f:'',dim:null},
+    {type:'timeseries',span:2,title:'Weekly tonnage',question:'Is volume rising?',q:'sum:totalVolume{} by {week}',aq:'sum:totalVolume',f:'',dim:'week'},
+    {type:'toplist',span:1,title:'Volume by effort',question:'Where does the volume go?',q:'sum:totalVolume{} by {effort}',aq:'sum:totalVolume',f:'',dim:'effort'}]};
+
+const seqLen=()=>S.rounds*2;
+const seqLabel=i=>{const r=Math.floor(i/2)+1;return 'Round '+r+' · '+(i%2?'Rest':'Swings')};
+const phaseLab={idle:'idle',running:'running',paused:'paused',done:'complete'};
+
+/* ── timer ── */
+setInterval(()=>{if(S.phase==='running'){S.elapsed=performance.now()-S.base;paintClock()}},200);
+function paintClock(){$$('[data-v="clock"]').forEach(e=>e.textContent=fmt(S.elapsed))}
+
+/* ── actions ── */
+function actRun(){if(S.phase==='done')return;if(S.phase==='paused'||S.phase==='running')return;S.phase='running';S.base=performance.now()-S.elapsed;render()}
+function actPause(){if(S.phase==='running'){S.elapsed=performance.now()-S.base;S.phase='paused'}else if(S.phase==='paused'){S.phase='running';S.base=performance.now()-S.elapsed}render()}
+function actNext(){
+  if(S.phase!=='running'||S.idx>=seqLen())return;
+  const splitStart=S.idx?S.events[S.idx-1].cum:0;
+  const actual=Math.max(1000,Math.round((S.elapsed-splitStart)/1000)*1000);
+  const kind=S.idx%2?'rest':'swing';
+  S.events.push({round:Math.floor(S.idx/2)+1,kind,actualMs:actual,cum:splitStart+actual,src:'next'});
+  S.idx++;S.sel=S.events.length-1;
+  if(S.idx>=seqLen()){S.elapsed=S.events[S.events.length-1].cum;S.phase='done'}
+  render();
+}
+function actComplete(){ /* deterministic illustrative session */
+  S.events=[];S.idx=0;let cum=0;
+  for(let r=1;r<=S.rounds;r++){
+    cum+=SWING_SAMPLE_MS;S.events.push({round:r,kind:'swing',actualMs:SWING_SAMPLE_MS,cum,src:'sample'});
+    cum+=REST_MS;S.events.push({round:r,kind:'rest',actualMs:REST_MS,cum,src:'sample'});
+  }
+  S.elapsed=cum;S.phase='done';S.sel=null;render();
+}
+function actReset(){S.phase='idle';S.elapsed=0;S.idx=0;S.events=[];S.sel=null;render()}
+
+/* ── derivations ── */
+function swings(){return S.events.filter(e=>e.kind==='swing')}
+function plannedVol(){return S.rounds*S.reps*S.load}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dataset(){
+  const rows=[],sw=swings(),today=AS_OF;
+  if(sw.length){const reps=sw.reduce((a,e)=>a+S.reps,0);
+    const src=S.events.some(e=>e.src==='next')?'recorded':'sample'; // sample-complete sessions stay SAMPLE
+    rows.push({effort:'Kettlebell Swing',discipline:'strength',date:iso(today),day:'today',week:'W'+isoWeek(today),reps,vol:reps*S.load,src})}
+  if(S.hist){const f=[.72,.8,.9,.86,1.05]; // deterministic factors, dated (5-i)*7 days back
+    f.forEach((k,i)=>{const d=new Date(today);d.setDate(d.getDate()-(5-i)*7);
+      rows.push({effort:'Kettlebell Swing',discipline:'strength',date:iso(d),day:'—',week:'W'+isoWeek(d),reps:null,vol:Math.round(plannedVol()*k/10)*10,src:'sample'})})}
+  return rows;
+}
+function matchF(r,f){ /* real key:value parsing for the offered verified shapes */
+  if(!f)return true;
+  const neg=f.charAt(0)==='!',body=neg?f.slice(1):f,ix=body.indexOf(':');
+  if(ix<0)return true; // ponytail: offered filters are all key:value
+  const vals=body.slice(ix+1).split('|'),hit=vals.includes(r[body.slice(0,ix)]);
+  return neg?!hit:hit;
+}
+function winMatch(r,win,asof){ /* windows genuinely applied against real row dates (ISO strings compare chronologically, TZ-proof) */
+  if(!win)return true;
+  let m=win.match(/^last (\d+)([dw])$/);
+  if(m){const from=new Date(asof);from.setDate(from.getDate()-(+m[1]*(m[2]==='w'?7:1)));return r.date>=iso(from)}
+  m=win.match(/^from (\d{4}-\d{2}-\d{2})(?: to (\d{4}-\d{2}-\d{2}))?$/);
+  if(m){return r.date>=m[1]&&(!m[2]||r.date<=m[2])}
+  return true; // ponytail: only the offered verified window shapes are parsed
+}
+function aggregate(rows,aq){
+  if(aq==='avg:tis')return null;
+  if(aq==='sum:totalReps')return rows.reduce((a,r)=>a+(r.reps==null?0:r.reps),0); // skipped rows add nothing
+  return rows.reduce((a,r)=>a+r.vol,0);
+}
+function aggSkip(rows,aq){return aq==='sum:totalReps'?rows.filter(r=>r.reps==null).length:0}
+function unit(aq){return aq==='sum:totalReps'?' reps':' kg'}
+function groupRows(rows,dim,aq){ /* grouped aggregates that respect aq and never zero-fill missing reps */
+  const g={};let skip=0;
+  rows.forEach(r=>{const k=r[dim];const o=g[k]=g[k]||{val:0,rec:0,smp:0,nodata:false};
+    if(r.src==='recorded')o.rec++;else o.smp++;
+    if(aq==='sum:totalReps'){if(r.reps==null){skip++;o.nodata=true}else o.val+=r.reps}else o.val+=r.vol});
+  return {g,skip};
+}
+function srcLab(g){return (g.rec?'recorded':'')+(g.rec&&g.smp?' + ':'')+(g.smp?'<span class="badge-smp">SAMPLE</span>':'')}
+function skipNote(n){return '<span class="badge-smp">'+n+' SAMPLE row'+(n===1?'':'s')+' carry no rep count — excluded, not zero-filled</span>'}
+
+/* ── renderers ── */
+function rFields(){ $$('[data-f]').forEach(el=>{if(document.activeElement!==el)el.value=S[el.dataset.f]}) }
+function rFence(){
+  const h='&#96;&#96;&#96;time\n(<b class="c-rounds">'+S.rounds+'</b>)\n  <b class="c-rep">'+S.reps+'</b> Kettlebell Swings <b class="c-res">'+S.load+'kg</b>\n  <b class="c-rest">*:30 Rest</b>\n&#96;&#96;&#96;';
+  $$('[data-v="fence"]').forEach(e=>e.innerHTML=h);
+}
+function rChips(){
+  const rest=fmt(S.rounds*REST_MS);
+  $$('[data-v="chips"]').forEach(e=>e.innerHTML=
+    '<span class="chip c-rounds">Rounds ×'+S.rounds+'</span><span class="chip c-rep">Reps '+S.reps+'/round</span>'+
+    '<span class="chip c-res">Load '+S.load+'kg</span><span class="chip c-rest">Rest *:30 · required</span>'+
+    '<span class="chip c-time">Planned Duration '+rest+' <i class="mut">(rest tokens only)</i></span>');
+}
+function rStatus(){
+  const mini=S.rounds+'×'+S.reps+' @ '+S.load+'kg · '+phaseLab[S.phase]+' · '+S.events.length+'/'+seqLen()+' entries';
+  $$('[data-v="mini"],[data-v="mini2"]').forEach(e=>e.textContent=mini);
+  $$('[data-v="phase"],[data-v="phase2"]').forEach(e=>e.textContent=phaseLab[S.phase]);
+  $$('[data-v="echo"],[data-v="echo2"]').forEach(e=>e.textContent=S.rounds+'×'+S.reps+' @ '+S.load+'kg');
+  const prog=S.events.length+' of '+seqLen()+' entries'+(S.phase==='running'&&S.idx<seqLen()?' · current: '+seqLabel(S.idx):S.phase==='idle'?' · press Run to start':'');
+  $$('[data-v="prog"],[data-v="prog2"]').forEach(e=>e.textContent=prog);
+  const viaNext=S.events.filter(e=>e.src==='next').length,viaSample=S.events.length-viaNext;
+  const prov=S.events.length
+    ? viaSample===S.events.length?'All '+S.events.length+' entries are SAMPLE · illustrative timings (deterministic) — nothing recorded via Next.'
+    : viaNext+' locked via Next · '+viaSample+' sample illustrative · in this page’s memory only — no journal save, no cast.'
+    :'No entries recorded yet — nothing claimed, nothing saved.';
+  $$('[data-v="prov"]').forEach(e=>e.textContent=prov);
+  $$('[data-v="prov2"]').forEach(e=>e.textContent='provenance: '+prov.split(' ·')[0]);
+  $$('[data-v="prov3"]').forEach(e=>e.textContent=prov);
+  $$('[data-v="provfoot"]').forEach(e=>e.textContent='variant '+(S.variant||'A'));
+  $$('[data-v="provfull"]').forEach(e=>e.textContent='variant='+(S.variant||'A')+' · rounds='+S.rounds+' reps='+S.reps+' load='+S.load+'kg · entries='+S.events.length+'/'+seqLen()+' ('+viaNext+' Next / '+viaSample+' sample) · SAMPLE history '+(S.hist?'ON (opt-in, illustrative)':'off')+' · phase='+S.phase+' · storage: page memory only');
+  $$('[data-v="rounds"]').forEach(e=>e.textContent=S.rounds);
+  $$('[data-v="reps"]').forEach(e=>e.textContent=S.reps);
+  $$('[data-v="load"]').forEach(e=>e.textContent=S.load+'kg');
+  // control states
+  $$('[data-act="pause"]').forEach(b=>{b.disabled=!(S.phase==='running'||S.phase==='paused');b.textContent=S.phase==='paused'?'Resume':'Pause'});
+  $$('[data-act="next"]').forEach(b=>b.disabled=S.phase!=='running');
+  $$('[data-act="run"]').forEach(b=>{b.disabled=S.phase==='running'||S.phase==='done'});
+  $$('[data-act="complete"]').forEach(b=>b.disabled=false);
+}
+function rEvents(){
+  let h;
+  if(!S.events.length){
+    h='<p class="note">No entries yet. Press <b>Run</b> and lock splits with <b>Next</b> — or use <b>Complete sample session</b> to view a fully labeled example. An empty visitor always gets a <i>labeled</i> example; there is no hidden fabricated history.</p>';
+  }else{
+    h='<div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Round</th><th>Entry</th><th>Detail</th><th>Recorded</th><th>Source</th></tr></thead><tbody>';
+    S.events.forEach((e,i)=>{
+      const hl=S.sel===i?' class="hl"':'';
+      const det=e.kind==='swing'?S.reps+' × '+S.load+' kg':'*:30 required · planned '+fmt(REST_MS);
+      const src=e.src==='next'?'locked via Next':'<span class="badge-smp">SAMPLE · illustrative</span>';
+      h+='<tr data-ev="'+i+'" tabindex="0"'+hl+'><td>'+(i+1)+'</td><td>'+e.round+'</td><td class="'+(e.kind==='swing'?'c-rep':'c-rest')+'">'+(e.kind==='swing'?'Kettlebell Swings':'Rest')+'</td><td>'+det+'</td><td>'+fmt(e.actualMs)+'</td><td>'+src+'</td></tr>';
+    });
+    h+='</tbody></table></div><p class="note" style="margin-top:.4rem">Select a row: the metric cards and query rows it feeds highlight. Durations are wall-clock per entry; rest planned 0:30 each.</p>';
+  }
+  $$('[data-v="events"]').forEach(e=>e.innerHTML=h);
+  $$('[data-v="events"] [data-ev]').forEach(tr=>{
+    tr.addEventListener('click',()=>{S.sel=S.sel===+tr.dataset.ev?null:+tr.dataset.ev;render()});
+    tr.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();S.sel=S.sel===+tr.dataset.ev?null:+tr.dataset.ev;render()}});
+  });
+}
+function rMetrics(){
+  const sw=swings(),plannedReps=S.rounds*S.reps,doneReps=sw.length*S.reps;
+  const vol=doneReps*S.load,totMs=S.events.reduce((a,e)=>a+e.actualMs,0);
+  const actMs=sw.reduce((a,e)=>a+e.actualMs,0),restMs=S.events.filter(e=>e.kind==='rest').reduce((a,e)=>a+e.actualMs,0);
+  const sel=S.sel!=null?S.events[S.sel]:null;
+  const repList=sw.map(()=>S.reps).join('+');
+  const volFormula=sw.length?('Σ(reps × load) = ('+repList+') × '+S.load+' kg = <b>'+vol.toLocaleString()+' kg</b>'+(sw.length<S.rounds?' · <i>'+sw.length+' of '+S.rounds+' rounds</i>':'')):'— no swings recorded';
+  const volVal=sw.length?vol.toLocaleString()+' kg':'—';
+  const elapsedVal=S.events.length?fmt(totMs):'—';
+  $$('[data-v="metrics"]').forEach(e=>e.innerHTML=
+    '<div class="mgrid">'
+    +'<div class="mcard" style="border-top:3px solid hsl(var(--metric-rounds))"><div class="lab c-rounds">Planned · from script text</div><div class="val">'+plannedReps+' reps</div><div class="note">'+S.rounds+' rounds × '+S.reps+' swings · load '+S.load+'kg<br>Planned Duration '+fmt(S.rounds*REST_MS)+' <i>(rest tokens only)</i></div></div>'
+    +'<div class="mcard'+(sel&&sel.kind==='swing'?' hl':'')+'" data-mkind="swing" style="border-top:3px solid hsl(var(--metric-rep))"><div class="lab c-rep">Recorded reps</div><div class="val">'+(sw.length?doneReps+' <span class="mut small">/ '+plannedReps+'</span>':'—')+'</div><div class="note">'+(sw.length?sw.length+' of '+S.rounds+' rounds locked':'awaiting entries')+'</div></div>'
+    +'<div class="mcard'+(sel&&sel.kind==='swing'?' hl':'')+'" data-mkind="swing" style="border-top:3px solid hsl(var(--metric-resistance))"><div class="lab c-res">totalVolume</div><div class="val">'+volVal+'</div><div class="note">'+volFormula+'</div></div>'
+    +'<div class="mcard'+(sel&&sel.kind==='rest'?' hl':'')+'" data-mkind="rest" style="border-top:3px solid hsl(var(--metric-time))"><div class="lab c-time">Elapsed · recorded</div><div class="val">'+elapsedVal+'</div><div class="note">'+(S.events.length?('active swings '+fmt(actMs)+' · rest '+fmt(restMs)):'awaiting entries')+'</div></div>'
+    +'</div>'
+    +'<p class="note" style="margin-top:.7rem"><b>Missing data, stated:</b> heart rate is not in the WQL vocabulary — not shown. Swing durations are not planned by the script (no duration token; <code class="k">:?</code> would collect a time at runtime) — they exist only as recorded splits. '+(S.events.length?'Entries: '+S.events.filter(x=>x.src==='next').length+' via Next · '+S.events.filter(x=>x.src==='sample').length+' sample illustrative.':'No recorded entries yet — planned values above are parser output, not performance.')+'</p>');
+}
+function rQuery(){
+  $$('[data-q]').forEach(el=>{if(el.value!==S.q[el.dataset.q])el.value=S.q[el.dataset.q]});
+  const qs=S.q.agg+'{'+S.q.f+'} by {'+S.q.dim+'} '+S.q.win;
+  $$('[data-v="qstr"]').forEach(e=>e.textContent=qs);
+  const all=dataset(),pre=all.filter(r=>matchF(r,S.q.f)),rows=pre.filter(r=>winMatch(r,S.q.win,AS_OF)),outw=pre.length-rows.length;
+  const rec=rows.filter(r=>r.src==='recorded').length,smp=rows.length-rec;
+  const val=aggregate(rows,S.q.agg);
+  let h='<p class="note"><b>'+rows.length+' source row'+(rows.length===1?'':'s')+' matched</b> ('+rec+' recorded · '+smp+' SAMPLE) — window “'+esc(S.q.win)+'” applied as of '+iso(AS_OF)+(outw?' · '+outw+' matched row'+(outw===1?'':'s')+' outside the window':'')+' — derived from '+S.events.length+' ledger entr'+(S.events.length===1?'y':'ies')+' in this page’s memory, never canned numbers.</p>';
+  if(!rows.length){h+='<p class="note" style="border-left:3px solid hsl(var(--signal-caution));padding-left:.7rem"><b>— no matching rows.</b> Nothing to aggregate: zero is not shown as a substitute for missing data. Run the demo above or opt into the SAMPLE history.</p>'}
+  else if(val===null){h+='<p class="note" style="border-left:3px solid hsl(var(--signal-caution));padding-left:.7rem"><b>avg:tis — no data.</b> TIS is not recorded by this demo; missing data is shown explicitly, not zero-filled.</p>'}
+  else{
+    const gr=groupRows(rows,S.q.dim,S.q.agg);
+    h+='<div class="tblwrap"><table class="tbl"><thead><tr><th>{'+S.q.dim+'}</th><th>'+S.q.agg+'</th><th>Source</th></tr></thead><tbody>';
+    Object.keys(gr.g).forEach(k=>{const g=gr.g[k];
+      h+='<tr'+(S.sel!=null&&g.rec?' class="hl"':'')+'><td>'+esc(k)+'</td><td><b>'+(g.nodata?'—':g.val.toLocaleString()+unit(S.q.agg))+'</b></td><td>'+srcLab(g)+'</td></tr>'});
+    h+='</tbody></table></div>';
+    if(gr.skip)h+='<p class="note" style="margin-top:.4rem">'+skipNote(gr.skip)+' for sum:totalReps — missing data, not zero-filled.</p>';
+    if(S.q.dim==='week'){const ks=Object.keys(gr.g).filter(k=>!(gr.g[k].nodata&&gr.g[k].val===0));
+      if(ks.length){const mx=Math.max(1,...ks.map(k=>gr.g[k].val));
+        h+='<div class="bar">'+ks.map(k=>{const g=gr.g[k];return '<div class="col'+(g.smp&&!g.rec?' smp':'')+'"><u>'+esc(k)+'</u><i style="height:'+Math.round(g.val/mx*100)+'%" title="'+esc(k)+': '+g.val+'"></i></div>'}).join('')+'</div>'}}
+  }
+  $$('[data-v="qout"]').forEach(e=>e.innerHTML=h);
+}
+function widgetViz(w){
+  const rows=dataset().filter(r=>matchF(r,w.f)&&winMatch(r,S.q.win,AS_OF));
+  if(w.aq==='avg:tis')return '<div class="val" style="font:800 2rem/1.2 ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground))">—</div><p class="note">no data — TIS not recorded by this demo (shown explicitly, not zero-filled).</p>';
+  if(w.type==='value'){
+    if(!rows.length)return '<div class="val" style="font:800 2rem/1.2 ui-monospace,Menlo,monospace;color:hsl(var(--muted-foreground))">—</div><p class="note">No matching rows yet — zero is not shown as a substitute for missing data.</p>';
+    const skip=aggSkip(rows,w.aq),v=skip?null:aggregate(rows,w.aq);
+    return '<div class="val c-res" style="font:800 2rem/1.2 ui-monospace,Menlo,monospace">'+(v==null?'—':v.toLocaleString()+unit(w.aq))+'</div><p class="note">'+rows.length+' source row'+(rows.length===1?'':'s')+' · '+rows.filter(r=>r.src==='recorded').length+' recorded'+(skip?' · '+skipNote(skip):'')+'</p>';
+  }
+  if(!w.dim)return '<p class="note">—</p>';
+  if(!rows.length)return '<p class="note">— no source rows yet: run the demo above, or opt into the SAMPLE history (clearly badged).</p>';
+  const gr=groupRows(rows,w.dim,w.aq);
+  if(w.type==='table'){
+    let t='<div class="tblwrap"><table class="tbl"><thead><tr><th>{'+w.dim+'}</th><th>'+w.aq+'</th><th>Source</th></tr></thead><tbody>';
+    Object.keys(gr.g).forEach(k=>{const g=gr.g[k];t+='<tr><td>'+esc(k)+'</td><td><b>'+(g.nodata?'—':g.val.toLocaleString()+unit(w.aq))+'</b></td><td>'+srcLab(g)+'</td></tr>'});
+    t+='</tbody></table></div>';
+    if(gr.skip)t+='<p class="note" style="margin-top:.4rem">'+skipNote(gr.skip)+' for sum:totalReps — missing data, not zero-filled.</p>';
+    return t;
+  }
+  const keys=Object.keys(gr.g).filter(k=>!(gr.g[k].nodata&&gr.g[k].val===0));
+  if(!keys.length)return '<p class="note">— no '+esc(w.aq)+' data in these rows: SAMPLE history carries volume only, rep counts are never fabricated.</p>';
+  if(w.type==='toplist')keys.sort((a,b)=>gr.g[b].val-gr.g[a].val);
+  const mx=Math.max(1,...keys.map(k=>gr.g[k].val));
+  return '<div class="bar">'+keys.map(k=>{const g=gr.g[k];return '<div class="col'+(g.smp&&!g.rec?' smp':'')+'"><u>'+esc(k)+'</u><i style="height:'+Math.max(4,Math.round(g.val/mx*100))+'%"></i></div>'}).join('')+'</div>';
+}
+function rBoard(){
+  const all=dataset(),rec=all.filter(r=>r.src==='recorded').length;
+  $$('[data-v="board"]').forEach(e=>{
+    let h='<div class="card" style="margin-bottom:1rem">'
+      +'<h3 class="small" style="text-transform:uppercase;letter-spacing:.1em">Dataset → Calculation → Visualization</h3>'
+      +'<div class="learn-links" style="margin-top:0">'
+      +'<span class="chip"><b>1 · Dataset</b>&nbsp;'+all.length+' rows ('+rec+' recorded'+(S.hist?' · '+(all.length-rec)+' SAMPLE':'')+') · as of '+iso(AS_OF)+'</span>'
+      +'<span class="chip"><b>2 · Calculation</b>&nbsp;<code>'+S.q.agg+'{'+(S.q.f||'')+'} by {'+S.q.dim+'} '+S.q.win+'</code></span>'
+      +'<label class="chip"><b>3 · Visualization</b>&nbsp;<select class="ctl" data-wtype><option value="value">value</option><option value="table">table</option><option value="timeseries" selected>timeseries</option><option value="toplist">toplist</option></select></label>'
+      +'<button class="btn sm pri" type="button" data-act="addwidget">Add widget from this query</button>'
+      +'<label class="chip"><input type="checkbox" data-act="hist" '+(S.hist?'checked':'')+'> Include SAMPLE 6-week history <span class="badge-smp">opt-in · illustrative</span></label>'
+      +'</div>'
+      +'<details class="fence-details"><summary>Inspect the board note (training-block-review.md)</summary>'
+      +'<pre class="fence">---\ndashboard: true\ntitle: Training Block Review\ntags:\n  - coaching\n---\n\n## Weekly tonnage\nIs volume rising?\n\n&#96;&#96;&#96;query:timeseries-2\nsum:totalVolume{} by {week}\n&#96;&#96;&#96;</pre>'
+      +'<p class="note">Heading = widget title; the paragraph above the fence = its question. Frontmatter tokens like <code class="k">dashboard.weeks: 16</code> substitute as <code class="k">$weeks</code>. Vault boards are editable notes; seeded boards are read-only with Inspect + “Clone to vault”.</p></details></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.8rem">';
+    S.widgets.forEach((w,i)=>{
+      h+='<div class="wcard'+(w.span>1?' sp2':'')+'">'
+        +'<div class="whd"><div><b>'+esc(w.title)+'</b><div class="note" style="margin:0">'+esc(w.question)+'</div></div>'
+        +'<button class="btn sm ghost" type="button" data-del="'+i+'" aria-label="Remove widget '+esc(w.title)+'">✕</button></div>'
+        +widgetViz(w)
+        +'<details class="fence-details"><summary>inspect fence</summary><pre class="fence">&#96;&#96;&#96;query:'+w.type+(w.span>1?'-'+w.span:'')+'\n'+esc(w.q)+'\n&#96;&#96;&#96;</pre></details>'
+        +'</div>';
+    });
+    h+='</div><p class="note" style="margin-top:.6rem">Every widget renders the same ledger rows — “It’s your data… these are the sample answers until you have logged work of your own.” No journal save occurs.</p>';
+    e.innerHTML=h;
+    e.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{S.widgets.splice(+b.dataset.del,1);render()}));
+    const t=e.querySelector('[data-wtype]');if(t)t.value=S.wtype||'timeseries';
+    e.querySelectorAll('[data-wtype]').forEach(sel=>sel.addEventListener('change',()=>{S.wtype=sel.value}));
+    e.querySelectorAll('[data-act="hist"]').forEach(c=>c.addEventListener('change',()=>{S.hist=c.checked;render()}));
+  });
+}
+function rStageCtx(){
+  const el=$('[data-v="stagectx"]');if(!el)return;
+  const CTX={
+    write:{t:'01 · Write',b:'Notes are freeform Markdown. A <code class="k">&#96;&#96;&#96;time</code> fence runs; <code class="k">log</code> records; <code class="k">log:climbing</code> scopes the climbing dialect. The homepage typeahead scaffolds presets like this Morning Strength script.',l:[['start#first-workout','First Workout'],['start#reference','Compact reference'],['metrics#planned-vs-recorded','What lines collect']]},
+    run:{t:'02 · Run',b:'Run starts the clock from 0:00 — nothing auto-starts. Next locks each entry’s elapsed split: swings first, then required <code class="k">*:30</code> rest, per round. Pause/Skip and casting behave per the clock guide.',l:[['clock#run-next','Run & Next'],['clock#pause-skip','Pause & Skip'],['clock#casting','Casting'],['protocols#required-rest','Required rest *:']]},
+    metrics:{t:'03 · Ledger',b:'Planned values come from parser output (Duration from <code class="k">*:30</code> rest tokens only); recorded values come from locked spans; calculated <code class="k">calc.*</code> rollups need real history. Provenance and missing data are stated on every card.',l:[['metrics#planned-vs-recorded','Planned vs recorded'],['metrics#calculated','Calculated metrics'],['metrics#capture','Capture :? & ?lb']]},
+    query:{t:'04 · Query',b:'WQL: <code class="k">agg:metric{filters} by {dim} window</code>. Verified shapes only here — negation, OR, plural sources, <code class="k">last 6w</code> / <code class="k">from…to</code> windows. <code class="k">source:all</code> is retired.',l:[['wql#planes','Two planes'],['wql#filters','Filters'],['wql#windows','Windows'],['wql#sources','Sources (plural!)']]},
+    dash:{t:'05 · Dashboard',b:'A dashboard is N <code class="k">&#96;&#96;&#96;query:&lt;type&gt;</code> fences on one note. The composer walks dataset → calculation → visualization and executes with the same executor, range, and unit preferences.',l:[['dashboards#note-frontmatter','Frontmatter & $tokens'],['dashboards#widgets','Widget types'],['dashboards#seeded-boards','Seeded boards'],['dashboards#composer','Inspect & clone']]}
+  };
+  const c=CTX[S.stage||'write'];
+  el.innerHTML='<p class="kick">Context · outside the tabs</p><h3 style="font-size:1.05rem">'+c.t+'</h3><p class="small mut">'+c.b+'</p><div class="learn-links">'+c.l.map(x=>'<button class="btn sm" type="button" data-learn="'+x[0]+'">'+x[1]+'</button>').join('')+'</div><hr style="margin:1rem 0"><p class="note">Live state survives stage switches: <span data-v="mini" class="c-res"></span> · <span data-v="prov"></span></p>';
+}
+function render(){rFields();rFence();rChips();rStatus();paintClock();rEvents();rMetrics();rQuery();rBoard();rStageCtx()}
+
+/* ── events (delegated) ── */
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-act],[data-learn],[data-stage],[data-goto-stage],[data-var],[data-cycle],[data-ann]');
+  if(!b)return;
+  if(b.dataset.act==='run')actRun();
+  else if(b.dataset.act==='pause')actPause();
+  else if(b.dataset.act==='next')actNext();
+  else if(b.dataset.act==='complete')actComplete();
+  else if(b.dataset.act==='reset')actReset();
+  else if(b.dataset.act==='addwidget'){
+    const t=S.wtype||'timeseries';
+    S.widgets.push({type:t,span:t==='timeseries'?2:1,title:'Custom · '+(S.q.f||'all')+' by '+S.q.dim,question:'Added from the live query — removable.',q:S.q.agg+'{'+S.q.f+'} by {'+S.q.dim+'} '+S.q.win,aq:S.q.agg,f:S.q.f,dim:S.q.dim});
+    render();
+  }
+  else if(b.dataset.learn)openLearn(b.dataset.learn);
+  else if(b.dataset.stage)setStage(b.dataset.stage);
+  else if(b.dataset.gotoStage)setStage(b.dataset.gotoStage);
+  else if(b.dataset.var)setVariant(b.dataset.var);
+  else if(b.dataset.cycle)cycleVariant(+b.dataset.cycle);
+  else if(b.dataset.ann){const m=document.querySelector('[data-mnote="'+b.dataset.ann+'"]');if(m){m.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});m.style.boxShadow='0 0 0 2px hsl(var(--metric-action))';setTimeout(()=>m.style.boxShadow='',1200)}}
+});
+document.addEventListener('input',ev=>{
+  const f=ev.target.closest('[data-f]');if(!f)return;
+  const v=Math.max(+f.min||1,Math.min(+f.max||999,parseInt(f.value||'1',10)||1));
+  S[f.dataset.f]=v;render();
+});
+document.addEventListener('change',ev=>{
+  const q=ev.target.closest('[data-q]');if(q){S.q[q.dataset.q]=q.value;render()}
+});
+function setStage(s){S.stage=s;
+  $$('[data-stage]').forEach(b=>b.classList.toggle('on',b.dataset.stage===s));
+  $$('[data-stage-panel]').forEach(p=>p.classList.toggle('on',p.dataset.stagePanel===s));
+  rStageCtx();rStatus();
+}
+
+/* ── variants ── */
+const KEYS=['A','B','C'],VLAB={A:'A · Continuous walkthrough ★',B:'B · Stage workbench',C:'C · Journal-note first'};
+function setVariant(k){k=KEYS.includes(k)?k:'A';S.variant=k;
+  $$('.variant').forEach(m=>m.classList.toggle('active',m.dataset.variant===k));
+  $$('[data-var]').forEach(b=>b.classList.toggle('on',b.dataset.var===k));
+  const l=$('#var-label');if(l)l.textContent=VLAB[k];
+  const u=new URL(location.href);u.searchParams.set('variant',k);history.replaceState(null,'',u);
+  requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));rStatus();
+}
+function cycleVariant(d){setVariant(KEYS[(KEYS.indexOf(S.variant||'A')+d+KEYS.length)%KEYS.length])}
+addEventListener('keydown',e=>{
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  const t=e.target,tag=t.tagName.toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select'||t.isContentEditable)return;
+  if($('#learn-dlg').open)return;
+  cycleVariant(e.key==='ArrowRight'?1:-1);
+});
+
+/* ── theme ── */
+const themeBtn=$('#theme-btn');
+if(matchMedia('(prefers-color-scheme: light)').matches)document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');
+themeBtn.addEventListener('click',()=>document.documentElement.classList.toggle('dark'));
+
+/* ═══ Learning collection: 8 embedded panels (source-verified) ═══ */
+const LEARN={
+start:{t:'First Workout',file:'markdown/canvas/learn-proposed/start.md',secs:[
+ ['first-workout','Your first workout','<p>The smallest valid workout is one line: <code class="k">Pushups</code>. Add reps and load — <code class="k">10 Pushups</code>, <code class="k">5 Back Squat 225lb</code> — and the homepage note <code class="k">welcome-1.md</code> shows the loop: write, press Run, watch the clock.</p>'],
+ ['fences','Fences (ground truth)','<p>Runnable/recordable fences are exactly: <code class="k">&#96;&#96;&#96;time</code> (run), <code class="k">&#96;&#96;&#96;log</code> (record), <code class="k">&#96;&#96;&#96;log:climbing</code> (sport suffix). There is <b>no</b> <code class="k">wod</code>/<code class="k">plan</code>/<code class="k">wql</code> fence — older docs say otherwise and are wrong; in-note analytics use <code class="k">&#96;&#96;&#96;query</code>.</p>'],
+ ['measurements','Measurements','<p>Inline units: <code class="k">225lb</code>, <code class="k">100kg</code>, <code class="k">Run 400m</code>, <code class="k">10 miles</code>. Unknown-at-write-time values are captured at runtime: load <code class="k">?lb</code>/<code class="k">?kg</code>, distance <code class="k">?m</code>/<code class="k">?km</code>/<code class="k">?mile</code>, reps <code class="k">?</code> — and <code class="k">:?</code> collects a time.</p>'],
+ ['actions-comments','Actions & comments','<p>Cue cards: <code class="k">[Setup Barbell]</code>. Comments: <code class="k">// Warmup</code>. Effort words: <code class="k">hard</code>/<code class="k">easy</code>. Inline JSON metrics: <code class="k">{"intensity": 80}</code>.</p>'],
+ ['reference','Compact reference','<p>No separate cheat-sheet page: the eight-page collection folds it in. This page ends with the compact syntax reference table (<code class="k">#reference</code>), and the analytics cheatsheet folds into WQL + Dashboards.</p>']]},
+protocols:{t:'Timers & Protocols',file:'markdown/canvas/learn-proposed/protocols.md',secs:[
+ ['countdown-countup','Countdown vs countup','<p><code class="k">5:00 Run</code> counts down; <code class="k">^5:00 Row</code> counts up; <code class="k">1:30:00 Long Row</code> is H:MM:SS.</p>'],
+ ['amrap','AMRAP','<p>Canonical form is <code class="k">20:00 AMRAP</code> (the parenthesized <code class="k">(AMRAP)</code> variant in old tab pages is deduped away).</p>'],
+ ['emom','EMOM','<p><code class="k">(10) :60 EMOM</code> — canonical; alternating and custom intervals build on it, e.g. <code class="k">(5) 2:00 EMOM</code>.</p>'],
+ ['tabata-intervals','Tabata & intervals','<p><code class="k">(8) :20/:10</code> = 8 rounds of 20s work / 10s rest; <code class="k">:20 Max Effort Burpees</code> + <code class="k">:10 Rest</code> spell it out longhand.</p>'],
+ ['caps','Caps','<p>A bare <code class="k">20:00</code> is a time cap; chained AMRAPs and distance intervals extend the same grammar.</p>'],
+ ['distance-intervals','Distance intervals','<p><code class="k">5:00 Run 400m</code> pairs a window with distance; rest rows separate efforts.</p>'],
+ ['required-rest','Required rest (*:)','<p><code class="k">*:30 Rest</code> cannot be skipped — the star makes it required. This demo’s script uses exactly that. (Rest/skip runtime behavior lives in the Clock page, <code class="k">clock.md#pause-skip</code>.)</p>']]},
+structure:{t:'Structure & Rounds',file:'markdown/canvas/learn-proposed/structure.md',secs:[
+ ['rounds','Rounds','<p><code class="k">(3)</code>, <code class="k">(3 Rounds)</code>, <code class="k">(5 Sets)</code> repeat the indented block. Indentation is the nesting mechanism — one thing per line.</p>'],
+ ['rep-schemes','Rep schemes','<p>Ladders: <code class="k">(21-15-9)</code>, <code class="k">(10-8-6-4-2)</code>. The presets in TourCaptions map 1:1 here (21-15-9, (3 Rounds) burpees, (5 Sets) back squat).</p>'],
+ ['nesting','Nesting','<p>Rounds nest inside rounds inside protocols; mixed sections are fine — the full 4-section session lives in sessions.md.</p>'],
+ ['named-sections','Named sections','<p>Two legal ways to label a section: <code class="k">(Warmup)</code> is a parenthesized label — a named group node that organizes without repeating — and <code class="k">// Warmup</code> is a comment line that labels sections as pure text. The fixtures bless both.</p>'],
+ ['rep-math','Rep math','<p>Rounds × reps compound into totals at runtime; behaviors/rounds.md explains how rep schemes interact with timers.</p>']]},
+metrics:{t:'Metrics: Planned, Recorded, Calculated',file:'markdown/canvas/learn-proposed/metrics.md',secs:[
+ ['planned-vs-recorded','Planned vs recorded','<p><b>Planned</b> is parser-owned: Duration comes from script text (<code class="k">*:30</code> → 30,000 ms; <code class="k">:?</code> = collectible placeholder); rep schemes and loads are read, never computed at runtime. <b>Recorded</b> is runtime-owned: Spans (raw start/stop) are the source of truth; Elapsed = Σ active spans; splits lock on Next. This demo shows both side by side and says which is which.</p>'],
+ ['custom-metrics','Custom metrics','<p>Inline JSON anywhere on a line: <code class="k">10 Thrusters 95lb {"intensity": 80}</code> — unknown keys become custom metrics.</p>'],
+ ['capture','Capture prompts','<p><code class="k">:? Max Effort Pushups</code> (prefix) and <code class="k">5:00 Run :?</code> (suffix) both collect a <b>time</b>; <code class="k">?m</code>/<code class="k">?km</code>/<code class="k">?mile</code> collect distance, <code class="k">?</code> collects reps, <code class="k">?lb</code>/<code class="k">?kg</code> collect load. When the prompt fires relative to the work is not documented — this collection does not claim one.</p>'],
+ ['session-rpe','Session RPE / RIR','<p>Session-level RPE/RIR ride along as custom metrics and are queryable by exact fact key (e.g. <code class="k">avg:rpe{}</code>). The namespaced <code class="k">wod.rpe</code> key from capture.md appears in no vocabulary list.</p>'],
+ ['calculated','Calculated (calc.*)','<p>The engine publishes rollups: readiness (soreness⁻¹ 40% / sleep 30% / HRV 30% from <code class="k">&#96;&#96;&#96;wellness</code> captures), e1rm, acwr, monotony, strain, ctl/atl/tsb, adherence… Unlanded ones render a labeled “proposed” placeholder — never a number.</p>']]},
+clock:{t:'Run, Track & Capture (the Clock)',file:'markdown/canvas/learn-proposed/clock.md',secs:[
+ ['run-next','Run & Next','<p>Run executes your exact script without forced countdown caps. Next advances rounds or movements and locks the elapsed time as a split — the homepage caption verbatim: “every click locks the elapsed time… as a split.”</p>'],
+ ['pause-skip','Pause, skip & rest','<p>Pause/resume mid-entry; required rest (<code class="k">*:</code>) cannot be skipped; optional rest can. Rest/skip behavior lives here, not on the protocols page.</p>'],
+ ['capture-prompts','Capture prompts','<p>Lines carrying <code class="k">:?</code>, <code class="k">?</code>, or unit unknowns collect values at runtime (<code class="k">:?</code> = time). The exact prompt moment is undocumented; trendlines, 1RM and PR detection build on captured facts.</p>'],
+ ['casting','Casting','<p>Cast to a big screen mirrors the working clock — Chromecast/gym TV — same script, same state, bigger pixels.</p>'],
+ ['provenance','Provenance','<p>Fact origins matter: parser (planned), runtime (recorded), engine (calculated). This prototype states the origin on every card and refuses to blur them.</p>']]},
+wql:{t:'Query Your Training (WQL)',file:'markdown/canvas/learn-proposed/wql.md',secs:[
+ ['planes','Two planes','<p><b>Metrics plane</b>: <code class="k">sum:totalVolume{discipline:strength} by {week}</code>. <b>Content plane</b>: <code class="k">find:note{tags:pr,source:journal} last 8w where sum:totalVolume{} &gt; 5000</code> (find:note/block/effort documented; session/segment/event work too).</p>'],
+ ['aggregate','Anatomy','<p><code class="k">agg:metric{filters} by {dim.rollup()}</code>. Aggregators: sum avg min max count last delta. Tiers: reps/distance/resistance/elapsed + totalVolume/totalReps/tis/sessionLoad + 17 calc.*.</p>'],
+ ['filters','Filters','<p>Tag filters support negation <code class="k">{!discipline:recovery}</code> and OR <code class="k">{discipline:strength|gymnastics}</code>; substring matches too. The old prototype’s <code class="k">{tag:…}</code>/<code class="k">{intensity:zone4}</code> were invalid — real key is <code class="k">tags:</code>, intensity tiers are <code class="k">low|moderate|high</code>.</p>'],
+ ['sources','Sources — plural','<p>Canonical scopes are plural: <code class="k">source:collections</code>, <code class="k">source:feeds</code>, journal, guides, playground; <code class="k">collection:&lt;id&gt;</code> / <code class="k">feed:&lt;id&gt;</code> target one. Singular is legacy-tolerated. <code class="k">source:all</code> is <b>retired with a hard error</b>.</p>'],
+ ['windows','Windows','<p><code class="k">last 6w</code>, <code class="k">last 30d</code>, and <code class="k">from 2026-01-01 to 2026-03-31</code>. There is <b>no</b> <code class="k">since:</code> — the old prototype invented it.</p>'],
+ ['grouping-rollup','Grouping & rollup','<p>Virtual dims: <code class="k">day week session round</code> + camelCase custom properties. Rollups: <code class="k">.rollup(2w)</code> / <code class="k">.rollup(4w)</code> only.</p>'],
+ ['joins','Where-joins','<p><code class="k">find:note{tags:pr} last 8w where sum:totalVolume{} &gt; 5000</code> filters content by an aggregate over its rows.</p>'],
+ ['content','Content find:','<p><code class="k">find:note/block/effort</code> with keys type/text/has/source/catalog/effort/discipline/intensity/grade/origin. <code class="k">find:page</code> retired.</p>'],
+ ['pipes','Pipes (undocumented but real)','<p><code class="k">| order by &lt;col&gt; [asc|desc] | select | limit &lt;n&gt;</code> and <code class="k">rows:&lt;plane&gt;</code> work today; this collection documents them.</p>']]},
+dashboards:{t:'Dashboards & Cookbook',file:'markdown/canvas/learn-proposed/dashboards.md',secs:[
+ ['note-frontmatter','Note frontmatter & tokens','<p>A dashboard is a note: <code class="k">dashboard: true</code>, <code class="k">title:</code>, plus tokens like <code class="k">dashboard.weeks: 16</code> referenced as <code class="k">$weeks</code> (unknown tokens render a visible refusal). Heading = widget title; paragraph above the fence = its question.</p>'],
+ ['widgets','Widget fences','<p><code class="k">&#96;&#96;&#96;query:&lt;type&gt;[-&lt;span 1..4&gt;|-full] key=value…</code> with ONE WQL line. Types: table list value timeseries bar toplist stacked-bar goal-rings zone-distribution. Verbatim from the seed board:</p><pre class="fence">&#96;&#96;&#96;query:value\navg:tis{}\n&#96;&#96;&#96;\n\n&#96;&#96;&#96;query:timeseries-2\nsum:totalVolume{} by {week}\n&#96;&#96;&#96;\n\n&#96;&#96;&#96;query:toplist\nsum:totalVolume{} by {effort}\n&#96;&#96;&#96;</pre>'],
+ ['composer','Composer, inspect & clone','<p>WidgetComposerDialog = dataset → calculation (pills) → visualization (type + span) → preview with the same executor, range, units, and token values. Seeded boards: read-only + Inspect; vault boards: editable, revision-guarded; “Clone to vault” copies a seed.</p>'],
+ ['cookbook','Cookbook queries','<p>The five canonical queries plus <code class="k">&#96;&#96;&#96;query</code> embeds in notes; grid max 4 columns; range and kg/lb preferences ride every board.</p>'],
+ ['seeded-boards','The six seeded boards','<p>training-block-review · road-to-560-total · polarized-base-marathon · finger-strength-v8 · benchmark-pr-board · recovery-readiness. Home analytics showcase: <code class="k">sum:totalVolume{discipline:strength} by {effort} last 6w</code>, <code class="k">sum:totalReps{} by {effort} last 6w</code>, <code class="k">avg:tis{} last 6w</code> — verified in homeAnalyticsData.ts.</p>']]},
+sessions:{t:'Dialects & Complex Sessions',file:'markdown/canvas/learn-proposed/sessions.md',secs:[
+ ['intent','Fence intent','<p><code class="k">time</code> runs the clock; <code class="k">log</code> records without running; <code class="k">log:climbing</code> adds the climbing dialect stack. There is no separate <code class="k">wod</code>/<code class="k">plan</code> fence — intent lives in the fence you choose.</p>'],
+ ['full-session','A full session','<p>The complex guides’ 4-section session (warmup → strength → engine → cooldown) in one note, sections named by <code class="k">// comments</code>.</p>'],
+ ['nested','Nested protocols','<p>Barbell-cycling EMOMs inside rounds inside caps — the grammar composes without parentheses soup.</p>'],
+ ['partner','Partner windows','<p>Alternating work/rest windows for two athletes, one script.</p>'],
+ ['swimming','Swimming','<p>Distance intervals on the clock; meters ride along as measures.</p>'],
+ ['barbell-cycling','Barbell cycling','<p>Touch-and-go barbell EMOMs — the canonical nested case.</p>'],
+ ['climbing','Climbing','<p><code class="k">&#96;&#96;&#96;log:climbing</code> scopes grades and sends metrics.</p>']]}
+};
+function openLearn(ref){
+  const [id,anch]=ref.split('#'),p=LEARN[id];if(!p)return;
+  $('#learn-title').textContent='Learn · '+p.t;
+  const fl=$('#learn-file');fl.textContent=p.file;
+  const body=$('#learn-body');
+  let h='<div class="learn-links" style="margin-top:0">'+p.secs.map(s=>'<button class="btn sm ghost anch" type="button" data-dlg-anchor="'+s[0]+'">#'+s[0]+'</button>').join('')+'</div>';
+  p.secs.forEach(s=>{h+='<section id="dlg-'+s[0]+'"><h3 style="font-size:1rem">'+s[1]+'</h3>'+s[2]+'</section>'});
+  h+='<hr><p class="note">Panel content is embedded so this prototype stays standalone. Full page (source): <a data-src="'+p.file+'">'+p.file+'</a> — proposed docs, not yet routed.</p>';
+  body.innerHTML=h;bindSrcLinks(body);
+  body.querySelectorAll('[data-dlg-anchor]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=body.querySelector('#dlg-'+a.dataset.dlgAnchor);if(t)t.scrollIntoView({behavior:'smooth'})}));
+  const dlg=$('#learn-dlg');if(!dlg.open)dlg.showModal();
+  if(anch){const t=body.querySelector('#dlg-'+anch);if(t)setTimeout(()=>t.scrollIntoView(),50)}
+}
+$('#learn-close').addEventListener('click',()=>$('#learn-dlg').close());
+$('#learn-dlg').addEventListener('click',e=>{if(e.target===$('#learn-dlg'))e.target.close()});
+
+/* learning directory cards */
+(function(){
+  const dir=$('#learn-dir');if(!dir)return;
+  const blurbs={start:'Fences, lines, measurements — the smallest valid workout.',protocols:'AMRAP, EMOM, Tabata, caps, required rest.',structure:'Rounds, ladders, nesting, named sections.',metrics:'Planned vs recorded vs calculated — fact origins.',clock:'Run, Next, pause/skip, capture, casting.',wql:'agg:metric{filters} by {dim} — both planes.',dashboards:'Note frontmatter, widget fences, composer, seeds.',sessions:'time/log/log:climbing intent, complex sessions.'};
+  dir.innerHTML=Object.keys(LEARN).map((k,i)=>'<div class="card" style="padding:1rem"><p class="kick c-time" style="letter-spacing:.15em">P'+(i+1)+'</p><h3 style="font-size:1rem;margin:.3rem 0">'+LEARN[k].t+'</h3><p class="note">'+blurbs[k]+'</p><div class="learn-links"><button class="btn sm" type="button" data-learn="'+k+'">Open panel</button><a class="btn sm ghost" data-src="'+LEARN[k].file+'">source</a></div></div>').join('');
+  $('#src-pages').textContent=Object.keys(LEARN).map(k=>'markdown/canvas/learn-proposed/'+k+'.md').join(' · ');
+})();
+
+/* source-relative links: both prototype locations resolve to repo root */
+function bindSrcLinks(root){(root?[...root.querySelectorAll('[data-src]')]:$$('[data-src]')).forEach(a=>{
+  const base=location.pathname.includes('/app/tour/')?'../../../../':'';
+  a.href=base+a.dataset.src;a.target='_blank';a.rel='noopener';
+})}
+bindSrcLinks();
+
+/* init */
+if('scrollRestoration' in history)history.scrollRestoration='manual'; // avoid browser-restore cropping the sticky header on reload
+const vParam=new URLSearchParams(location.search).get('variant');
+setVariant(KEYS.includes(vParam)?vParam:'A');
+setStage('write');
+render();
+</script>
+</body>
+</html>

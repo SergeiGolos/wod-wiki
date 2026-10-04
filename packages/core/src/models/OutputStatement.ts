@@ -67,6 +67,11 @@ export interface OutputStatementOptions {
   /** The source statement ID (optional) */
   sourceStatementId?: number;
 
+  /** Original source line/text/dialect (when rebuilding from stored records) */
+  line?: number;
+  text?: string;
+  dialect?: string;
+
   /** Runtime-collected metrics */
   metrics?: MetricContainer | IMetric[];
 
@@ -124,6 +129,9 @@ export class OutputStatement extends CodeStatement implements IOutputStatement {
       this.timeSpan = options.timeSpan;
       this.sourceBlockKey = options.sourceBlockKey ?? '';
       this.sourceStatementId = options.sourceStatementId;
+      this.line = options.line;
+      this.text = options.text;
+      this.dialect = options.dialect;
       this.stackLevel = options.stackLevel ?? 0;
       this.metrics = MetricContainer.from(options.metrics, this.id);
       this.metricMeta = options.metricMeta ?? new Map();
@@ -146,6 +154,9 @@ export class OutputStatement extends CodeStatement implements IOutputStatement {
       this.children = [];
       this.isLeaf = true;
       this.meta = stmt?.meta ?? new CodeMetadata(0, 0, 0, 0);
+      this.line = stmt?.line;
+      this.text = stmt?.text;
+      this.dialect = stmt?.dialect;
       this.timestamp = timestamp ?? Date.now();
     }
   }

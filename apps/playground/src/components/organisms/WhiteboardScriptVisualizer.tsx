@@ -11,7 +11,8 @@ export interface WhiteboardScriptVisualizerProps {
   showTimestamps?: boolean;
   showDurations?: boolean;
   autoScroll?: boolean;
-  selectedLine?: number;
+  /** Statement ID to highlight (identity, not source line). */
+  selectedStatementId?: number;
   highlightedLine?: number;
   /** Display size variant @default 'normal' */
   size?: VisualizerSize;
@@ -48,7 +49,7 @@ export const WhiteboardScriptVisualizer: React.FC<WhiteboardScriptVisualizerProp
   statements,
   showDurations,
   autoScroll,
-  selectedLine,
+  selectedStatementId,
   size,
   filter,
   onSelectionChange,
@@ -82,14 +83,14 @@ export const WhiteboardScriptVisualizer: React.FC<WhiteboardScriptVisualizerProp
     });
   }, [statements]);
 
-  // Determine active item based on selectedLine
+  // Determine active item from the selected Statement ID
   const activeItemId = useMemo(() => {
-    if (selectedLine !== undefined) {
-      const found = entries.find(e => Number(e.source.id) === selectedLine);
+    if (selectedStatementId !== undefined) {
+      const found = entries.find(e => Number(e.source.id) === selectedStatementId);
       return found ? String(found.source.id) : undefined;
     }
     return undefined;
-  }, [entries, selectedLine]);
+  }, [entries, selectedStatementId]);
 
   return (
     <MetricSourceList

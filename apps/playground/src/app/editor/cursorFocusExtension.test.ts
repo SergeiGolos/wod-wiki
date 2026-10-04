@@ -89,6 +89,16 @@ describe("cursorFocusExtension", () => {
     expect(dimDurationMark?.cls).toBe("cm-metric-underline-duration-dim");
   });
 
+  it('focuses metrics owned by both statements on an inline rounds line', () => {
+    const doc = '```time\n5x5 Back Squat @100kg\n```';
+    const state = EditorState.create({ doc, extensions: [sectionField, cursorFocusExtension] });
+    for (const [token, type] of [['5x5', MetricType.Rounds], ['Back Squat', MetricType.Effort], ['@100kg', MetricType.Resistance]] as const) {
+      const focused = getCursorFocusState(state.update({ selection: { anchor: doc.indexOf(token) + 1 } }).state);
+      expect(focused?.focusedMetric?.type).toBe(type);
+      expect(focused?.statement?.metricMeta.has(focused.focusedMetric!)).toBe(true);
+    }
+  });
+
   it("updates focus state when cursor moves between lines", () => {
     const doc = [
       "```time",

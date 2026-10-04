@@ -947,11 +947,11 @@ export function createWorkbenchSessionStore(
           );
 
           // Live: subscribe to stack snapshots. Derive active segments from
-          // `snapshot.blocks` + the leaf's `sourceIds`.
+          // `snapshot.blocks` + the current (leaf) block's `sourceIds`.
           subscriptionDisposers.push(
             runtime.subscribeToStack((snapshot) => {
-              // The leaf block is the last entry in the bottom-to-top stack.
-              const leaf = snapshot.blocks[snapshot.blocks.length - 1];
+              // StackSnapshot.blocks is top-first: blocks[0] is the current block.
+              const leaf = snapshot.blocks[0];
               const segmentIds = new Set<number>();
               // Active segment identity is a hash of the block key; the prior
               // `useWorkbenchEffects` used the same `hashCode` helper. We

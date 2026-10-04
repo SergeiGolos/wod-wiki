@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WQL Language Crosswalk & Stored Sources Whiteboard</title>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #0b0f17;
+    --paper: #111722;
+    --card: #161f30;
+    --card-hover: #1c273c;
+    --border: #222f44;
+    --border-bright: #3b506d;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-faint: #64748b;
+    --heading: #ffffff;
+    --accent: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.15);
+    --green: #34d399;
+    --green-bg: rgba(52, 211, 153, 0.12);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251, 191, 36, 0.12);
+    --rose: #f43f5e;
+    --rose-bg: rgba(244, 63, 94, 0.12);
+    --purple: #c084fc;
+    --purple-bg: rgba(192, 132, 252, 0.12);
+    --cyan: #22d3ee;
+    --code-bg: #080c14;
+    --code-text: #f1f5f9;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f8fafc;
+    --paper: #ffffff;
+    --card: #f1f5f9;
+    --card-hover: #e2e8f0;
+    --border: #cbd5e1;
+    --border-bright: #94a3b8;
+    --text: #0f172a;
+    --text-dim: #475569;
+    --text-faint: #64748b;
+    --heading: #020617;
+    --accent: #0284c7;
+    --accent-glow: rgba(2, 132, 199, 0.12);
+    --green: #059669;
+    --green-bg: rgba(5, 150, 105, 0.12);
+    --amber: #d97706;
+    --amber-bg: rgba(217, 119, 6, 0.12);
+    --rose: #e11d48;
+    --rose-bg: rgba(225, 29, 72, 0.12);
+    --purple: #9333ea;
+    --purple-bg: rgba(147, 51, 234, 0.12);
+    --cyan: #0891b2;
+    --code-bg: #e2e8f0;
+    --code-text: #0f172a;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14.5px/1.6 var(--font-sans);
+    padding: 0;
+    margin: 0;
+  }
+
+  header {
+    background: var(--paper);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 32px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .badge-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font: 600 11px/1 var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    background: var(--accent-glow);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--heading);
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .theme-toggle-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font: 600 12px var(--font-mono);
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .theme-toggle-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  nav.top-nav {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-top: 16px;
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  nav.top-nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: all .15s ease;
+  }
+  nav.top-nav a:hover, nav.top-nav a.active {
+    background: var(--card);
+    color: var(--accent);
+  }
+
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 32px 96px;
+  }
+
+  section {
+    margin-bottom: 56px;
+    scroll-margin-top: 140px;
+  }
+
+  h2 {
+    font-size: 20px;
+    color: var(--heading);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  h2 span.num {
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  h3 {
+    font-size: 16px;
+    color: var(--heading);
+    margin: 24px 0 10px;
+  }
+
+  p {
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    line-height: 1.65;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--code-text);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font: 12.5px/1.55 var(--font-mono);
+    overflow-x: auto;
+    color: var(--code-text);
+    margin-bottom: 16px;
+  }
+
+  /* Grid and Cards */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 1024px) {
+    .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .card:hover {
+    border-color: var(--border-bright);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--heading);
+  }
+  .card-badge {
+    font: 600 11px var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--accent-glow);
+    color: var(--accent);
+  }
+
+  /* Tables */
+  .table-container {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--paper);
+    margin-bottom: 24px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    text-align: left;
+  }
+  th, td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--card);
+    font: 600 11.5px var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--heading);
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  tr:hover td {
+    background: var(--card-hover);
+  }
+
+  /* Whiteboard Visual Banner */
+  .whiteboard-banner {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(192, 132, 252, 0.08) 100%);
+    border: 1px dashed var(--accent);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  .whiteboard-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    margin: 18px 0;
+  }
+  .diagram-node {
+    background: var(--paper);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .diagram-node.highlight {
+    border-color: var(--accent);
+    background: var(--card);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .diagram-node.purple {
+    border-color: var(--purple);
+    background: var(--card);
+    color: var(--purple);
+    font-weight: 700;
+  }
+  .diagram-arrow {
+    color: var(--text-faint);
+    font-size: 18px;
+  }
+
+  /* Before / After Panels */
+  .ba-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  @media (max-width: 900px) {
+    .ba-container { grid-template-columns: 1fr; }
+  }
+  .ba-panel {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .ba-label {
+    display: inline-block;
+    font: 700 11px var(--font-mono);
+    letter-spacing: .06em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .ba-before .ba-label {
+    background: var(--rose-bg);
+    color: var(--rose);
+  }
+  .ba-after .ba-label {
+    background: var(--green-bg);
+    color: var(--green);
+  }
+
+  /* Interactive Simulator Applet */
+  .simulator-box {
+    background: var(--paper);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+  }
+  .sim-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .sim-field label {
+    display: block;
+    font: 600 12px var(--font-mono);
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .sim-field select, .sim-field input {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font: 13px var(--font-sans);
+  }
+  .sim-field select:focus, .sim-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .sim-output {
+    background: var(--code-bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: var(--font-mono);
+  }
+  .sim-metric-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .sim-metric-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .sim-metric-chip strong {
+    color: var(--green);
+  }
+
+  /* Utility classes */
+  .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font: 11px var(--font-mono);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .tag-green { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+  .tag-amber { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
+  .tag-purple { background: var(--purple-bg); color: var(--purple); border-color: var(--purple); }
+  .tag-cyan { background: rgba(34, 211, 238, 0.12); color: var(--cyan); border-color: var(--cyan); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="badge-tag">WOD-WIKI · ARCHITECTURE SPEC & WHITEBOARD</div>
+      <h1>WQL Language Crosswalk & Stored Sources Whiteboard</h1>
+      <div class="subtitle">Complete Discovery Matrix · Grouping & Filter Dictionary · Date Range Variants · The Reactive <code>=&gt; @source</code> Binding</div>
+    </div>
+    <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()">☀️ / 🌙 Mode</button>
+  </div>
+  <nav class="top-nav">
+    <a href="#overview" class="active">0. Architecture Whiteboard</a>
+    <a href="#find-crosswalk">1. Find Logic Crosswalk</a>
+    <a href="#grouping-matrix">2. Grouping Properties</a>
+    <a href="#filtering-matrix">3. Filtering Vocabulary</a>
+    <a href="#date-ranges">4. Date Range Variants & Anchors</a>
+    <a href="#stored-sources">5. The <code>=&gt; @source</code> Operator</a>
+    <a href="#downstream-ergonomics">6. Simplified Aggregate Syntax</a>
+    <a href="#case-studies">7. Dashboard Before & After</a>
+    <a href="#interactive-simulator">8. Interactive Whiteboard</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- 0. ARCHITECTURE WHITEBOARD OVERVIEW -->
+  <section id="overview">
+    <div class="whiteboard-banner">
+      <div class="badge-tag tag-cyan">WHITEBOARD CONCEPT</div>
+      <h2 style="border:none; margin-bottom: 6px;">The 4-Part Mental Model + Reactive Page Datasets</h2>
+      <p>Every WQL query follows one uniform sequence: <code>WHAT{WHICH} WHEN by {GROUP} | SHAPE</code>. Today, dashboard widgets repeat the full query string 6 to 10 times, forcing multiple full scans across SQLite/telemetry facts. With the <strong>Stored Source (<code>=&gt; @source</code>)</strong> operator, a page extracts a bounded dataset once, and every downstream chart performs instant micro-aggregates.</p>
+      
+      <div class="whiteboard-diagram">
+        <div class="diagram-node">Database / Facts<br><small style="color:var(--text-faint)">Notes · Segments · Events</small></div>
+        <div class="diagram-arrow">➔</div>
+        <div class="diagram-node highlight">find:segment{effort:snatch} last 12w =&gt; @snatches<br><small style="color:var(--text-faint)">Evaluated ONCE at page level</small></div>
+        <div class="diagram-arrow">➔</div>
+        <div class="diagram-node purple">In-Memory Page Table<br><small style="color:var(--text-faint)">@snatches cached dataset</small></div>
+        <div class="diagram-arrow">➔</div>
+        <div class="diagram-node">
+          <strong>Downstream Charts:</strong><br>
+          <code>@snatches | sum:volume by {week}</code><br>
+          <code>@snatches | max:resistance by {week}</code><br>
+          <code>@snatches | sum:reps by {week}</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1. FIND LOGIC CROSSWALK -->
+  <section id="find-crosswalk">
+    <h2><span class="num">1.</span> WQL Find Logic Crosswalk Matrix</h2>
+    <p>WQL exposes six distinct discovery nouns under the <code>find:</code> head. The noun directly dictates the grain, result shape, supported dimensions, and default time anchors:</p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Noun / Head</th>
+            <th>Output Grain & Shape</th>
+            <th>Supported Filter Keys</th>
+            <th>Grouping Dimensions</th>
+            <th>Time Anchor</th>
+            <th>Pipes & Units</th>
+            <th>Canonical Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>find:note</code></td>
+            <td>List of Markdown note cards (Cards / Feed)</td>
+            <td><code>source</code>, <code>type</code>, <code>intent</code>, <code>format</code>, <code>category</code>, <code>tags</code>, frontmatter keys</td>
+            <td><code>by {tag}</code>, <code>by {source}</code>, <code>by {category}</code>, <code>by {format}</code></td>
+            <td>Note <code>date</code> (falls back to <code>createdAt</code>)</td>
+            <td><code>| order by title | limit N</code></td>
+            <td><code>find:note{source:journal, tags:benchmark} last 4w</code></td>
+          </tr>
+          <tr>
+            <td><code>find:block</code></td>
+            <td>Parsed workout block cards (WODs, EMOMs, intervals)</td>
+            <td><code>effort</code>, <code>format</code>, <code>discipline</code>, <code>intensity</code>, <code>origin</code></td>
+            <td><code>by {format}</code>, <code>by {discipline}</code>, <code>by {effort}</code></td>
+            <td>Parent Note <code>date</code></td>
+            <td><code>| limit N</code></td>
+            <td><code>find:block{effort:thruster, format:amrap} last 8w | limit 20</code></td>
+          </tr>
+          <tr>
+            <td><code>find:effort</code></td>
+            <td>Registry items from movement catalog</td>
+            <td><code>discipline</code>, <code>intensity</code>, <code>category</code>, <code>plane</code></td>
+            <td><code>by {discipline}</code>, <code>by {intensity}</code></td>
+            <td><em>N/A (Registry catalog)</em></td>
+            <td><code>| order by name</code></td>
+            <td><code>find:effort{discipline:strength, intensity:high}</code></td>
+          </tr>
+          <tr>
+            <td><code>find:session</code></td>
+            <td>Grouped run cards (1 per result execution)</td>
+            <td><code>result</code>, <code>note</code>, <code>plane</code>, <code>discipline</code>, <code>source</code></td>
+            <td><code>by {week}</code>, <code>by {discipline}</code>, <code>by {plane}</code></td>
+            <td><code>completedAt</code> (falls back to <code>startedAt</code>)</td>
+            <td><code>| order by date desc | limit N</code></td>
+            <td><code>find:session{plane:load} last 4w</code></td>
+          </tr>
+          <tr>
+            <td><code>find:segment</code></td>
+            <td>Flat tabular rows at movement/segment grain</td>
+            <td><code>effort</code>, <code>discipline</code>, <code>intensity</code>, <code>plane</code>, <code>origin</code></td>
+            <td><code>by {effort}</code>, <code>by {week}</code>, <code>by {day}</code></td>
+            <td>Recorded <code>metricDate</code></td>
+            <td><code>in kg|lb</code>, <code>| select ... | order by ... | limit N</code></td>
+            <td><code>find:segment{effort:snatch} last 12w in kg | select date, totalVolume</code></td>
+          </tr>
+          <tr>
+            <td><code>find:event</code></td>
+            <td>Granular raw telemetry fact events</td>
+            <td><code>effort</code>, <code>discipline</code>, <code>metric</code>, <code>origin</code></td>
+            <td><code>by {day}</code>, <code>by {effort}</code></td>
+            <td>Recorded <code>metricDate</code></td>
+            <td><code>| limit N</code></td>
+            <td><code>find:event{effort:back-squat} last 7d | limit 100</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Content Discovery (Notes &amp; Blocks)</span>
+          <span class="card-badge tag-green">Lists</span>
+        </div>
+        <p>Searches authored markdown documents and block content hashes. Grouping produces visual <strong>shelves</strong> (e.g. grouped by tag or format) in stream and collection views.</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Session Runs (Planes)</span>
+          <span class="card-badge tag-amber">Run Cards</span>
+        </div>
+        <p>Replaces old <code>rows:all</code> and <code>rows:&lt;plane&gt;</code> heads. Grouped by result session ID, showing segment cards, load distributions, and system metadata.</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Telemetry Tables (Segment &amp; Event)</span>
+          <span class="card-badge tag-purple">Tabular</span>
+        </div>
+        <p>Cross-workout flat data table. Accepts column projection with <code>| select</code>, unit conversion with <code>in kg|lb</code>, and sorting with <code>| order by</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. GROUPING PROPERTIES CROSSWALK -->
+  <section id="grouping-matrix">
+    <h2><span class="num">2.</span> Properties for Grouping (<code>by {...}</code>)</h2>
+    <p>Grouping partitions results into distinct shelves (for lists/tables) or distinct series / bar clusters (for numeric charts). Multiple dimensions can be chained hierarchically.</p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Dimension Family</th>
+            <th>Keywords / Values</th>
+            <th>Granularity &amp; Alignment</th>
+            <th>Effect on Lists (find:*)</th>
+            <th>Effect on Charts (agg:*)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Civil Time Buckets</strong></td>
+            <td><code>day</code>, <code>week</code>, <code>month</code>, <code>quarter</code>, <code>year</code></td>
+            <td>Local timezone: <code>day</code> is 00:00–23:59; <code>week</code> is strictly Monday–Sunday civil week.</td>
+            <td>Splits items into time sections (e.g. "This Week", "Last Week").</td>
+            <td>Buckets X-axis timestamps into discrete bars or data points.</td>
+          </tr>
+          <tr>
+            <td><strong>Workout Structure</strong></td>
+            <td><code>session</code>, <code>round</code>, <code>block</code></td>
+            <td>Execution grain: <code>session</code> = discrete workout; <code>round</code> = interval/set; <code>block</code> = WOD section.</td>
+            <td>Groups blocks/cards by session.</td>
+            <td>Splits series per session or round (e.g. pacing across rounds).</td>
+          </tr>
+          <tr>
+            <td><strong>Movement Taxonomy</strong></td>
+            <td><code>effort</code>, <code>discipline</code>, <code>intensity</code></td>
+            <td><code>effort</code> = movement slug; <code>discipline</code> = strength / gymnastics; <code>intensity</code> = low / mod / high.</td>
+            <td>Shelves by movement or sport discipline.</td>
+            <td>Creates multi-line series or stacked bars by category.</td>
+          </tr>
+          <tr>
+            <td><strong>Provenance &amp; Source</strong></td>
+            <td><code>source</code>, <code>origin</code>, <code>plane</code></td>
+            <td>Where the item lives (<code>journal</code>, <code>collections</code>) or who generated it (<code>user</code>, <code>runtime</code>).</td>
+            <td>Groups cards by catalog or journal origin.</td>
+            <td>Segments telemetry by system plane or user input.</td>
+          </tr>
+          <tr>
+            <td><strong>Authored Tags &amp; Metadata</strong></td>
+            <td><code>tag</code>, <code>coach</code>, <code>format</code>, <code>equipment</code></td>
+            <td>Any custom tag or frontmatter attribute assigned to notes/blocks.</td>
+            <td>Shelves items by author or equipment.</td>
+            <td>Slices volume by custom coaching tag.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Hierarchical Multi-Dimension Grouping</h3>
+    <p>When multiple dimensions are specified, outer dimensions group first, followed by nested sub-dimensions:</p>
+    <pre><code>sum:sessionLoad{} by {intensity, week}
+// Splits first by intensity tier (high/mod/low), then buckets weekly on civil Mondays
+
+sum:tis{} by {session, day}
+// Groups by civil day on X-axis, with stacked/clustered bars per session
+
+find:note{source:collections} by {discipline, format}
+// Shelves collection notes into Discipline headers, then sub-shelves by workout format (EMOM/AMRAP)</code></pre>
+
+    <div class="card" style="border-left: 4px solid var(--amber);">
+      <strong>Rule on <code>.rollup()</code> vs <code>by {week}</code>:</strong>
+      <p style="margin: 6px 0 0 0;">Single-unit rollups like <code>.rollup(1w)</code> and <code>.rollup(1d)</code> are obsolete and prohibited; write <code>by {week}</code> (civil Monday) or <code>by {day}</code> instead. Rollups are preserved strictly for multi-unit smoothing, such as <code>.rollup(2w)</code> (bi-weekly buckets) or <code>.rollup(4w)</code> (4-week rolling blocks).</p>
+    </div>
+  </section>
+
+  <!-- 3. FILTERING VOCABULARY -->
+  <section id="filtering-matrix">
+    <h2><span class="num">3.</span> Properties for Filtering (<code>{key:value}</code>)</h2>
+    <p>Filters are comma-separated inside curly braces. WQL supports a rich boolean algebra for precise targeting:</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Filter Operators</span>
+          <span class="card-badge tag-cyan">Algebra</span>
+        </div>
+        <table style="font-size:12.5px;">
+          <tr><td><code>,</code></td><td><strong>AND</strong></td><td><code>{effort:snatch, intensity:high}</code></td></tr>
+          <tr><td><code>|</code></td><td><strong>OR</strong></td><td><code>{effort:snatch|clean-and-jerk}</code></td></tr>
+          <tr><td><code>!</code></td><td><strong>NOT</strong></td><td><code>{!discipline:recovery}</code></td></tr>
+          <tr><td><code>*</code></td><td><strong>Prefix Wildcard</strong></td><td><code>{effort:squat*}</code> matches back/front/overhead</td></tr>
+          <tr><td><code>"..."</code></td><td><strong>Quoted Phrase</strong></td><td><code>{text:"300 Air Squats"}</code></td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Core Filter Dictionary</span>
+          <span class="card-badge tag-green">Properties</span>
+        </div>
+        <table style="font-size:12.5px;">
+          <tr><td><code>effort</code></td><td>Movement slug (e.g. <code>snatch</code>, <code>fran</code>, <code>burpee</code>)</td></tr>
+          <tr><td><code>discipline</code></td><td><code>strength</code>, <code>gymnastics</code>, <code>monostructural</code>, <code>hyrox</code>, <code>climbing</code></td></tr>
+          <tr><td><code>intensity</code></td><td><code>low</code>, <code>moderate</code>, <code>high</code></td></tr>
+          <tr><td><code>source</code></td><td><code>journal</code>, <code>collections</code>, <code>feeds</code>, <code>guides</code>, <code>playground</code></td></tr>
+          <tr><td><code>plane</code></td><td><code>segment</code>, <code>system</code>, <code>load</code>, <code>event</code>, <code>wellness</code>, <code>completion</code></td></tr>
+          <tr><td><code>format</code></td><td><code>amrap</code>, <code>emom</code>, <code>for-time</code>, <code>tabata</code>, <code>intervals</code></td></tr>
+          <tr><td><code>tags</code></td><td>Arbitrary label (e.g. <code>benchmark</code>, <code>pr</code>, <code>open</code>)</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. DATE RANGE VARIANTS & ANCHORS -->
+  <section id="date-ranges">
+    <h2><span class="num">4.</span> Date Range Selection Variants &amp; Time Anchors</h2>
+    <p>Time clauses restrict queries along the temporal axis. WQL supports rolling relative windows, civil calendar spans, and preset macro anchors.</p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Variant Type</th>
+            <th>Syntax Pattern</th>
+            <th>Semantics &amp; Resolution</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Rolling Relative</strong></td>
+            <td><code>last &lt;N&gt;&lt;unit&gt;</code></td>
+            <td>
+              <code>d</code> (days), <code>w</code> (weeks), <code>m</code> (months), <code>y</code> (years), <code>h</code> (hours).<br>
+              Calculated dynamically from current clock timestamp backwards.
+            </td>
+            <td>
+              <code>last 4w</code> (last 28 days)<br>
+              <code>last 90d</code> (rolling quarter)<br>
+              <code>last 48h</code> (recent telemetry)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Closed Civil Range</strong></td>
+            <td><code>from YYYY-MM-DD to YYYY-MM-DD</code></td>
+            <td>Inclusive bounds matching local calendar days from start 00:00 to end 23:59:59.</td>
+            <td><code>from 2026-01-01 to 2026-03-31</code></td>
+          </tr>
+          <tr>
+            <td><strong>Open Civil Range</strong></td>
+            <td><code>from YYYY-MM-DD</code></td>
+            <td>From specified starting date up to the current live moment.</td>
+            <td><code>from 2026-09-01</code></td>
+          </tr>
+          <tr>
+            <td><strong>Calendar Macros</strong> <em>(Proposed)</em></td>
+            <td><code>this week</code>, <code>this month</code>, <code>ytd</code></td>
+            <td>Aligns to current calendar milestone (e.g. Monday midnight for <code>this week</code>, Jan 1 for <code>ytd</code>).</td>
+            <td><code>sum:totalVolume{} this month by {week}</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The Unified "When It Happened" Invariant</h3>
+    <p>Historical versions of WQL suffered from time-anchor divergence (e.g. back-dated journal notes filtering on <code>createdAt</code> while telemetry facts filtered on <code>metricDate</code>). Under the unified model, all nouns filter on <strong>when the training actually occurred</strong>:</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <span class="tag tag-green">find:note</span>
+        <h4 style="margin: 8px 0 4px;">Note Date</h4>
+        <p style="font-size:12.5px;">Evaluates note frontmatter <code>date</code>. Falls back to <code>createdAt</code> only if backdate metadata is absent.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-amber">find:session</span>
+        <h4 style="margin: 8px 0 4px;">Completion Timestamp</h4>
+        <p style="font-size:12.5px;">Evaluates session <code>completedAt</code>. Falls back to <code>startedAt</code> for aborted/in-progress runs.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">Telemetry (agg &amp; segment)</span>
+        <h4 style="margin: 8px 0 4px;">Metric Date</h4>
+        <p style="font-size:12.5px;">Evaluates recorded <code>metricDate</code> timestamp emitted by the workout clock/sensor.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. THE => @SOURCE OPERATOR -->
+  <section id="stored-sources">
+    <h2><span class="num">5.</span> The New <code>=&gt; @source</code> Stored Source Operator</h2>
+    <div class="badge-tag tag-purple">NEW CAPABILITY · PAGE DATASETS</div>
+    <p>Dashboard pages and complex review notes often contain 5 to 10 widgets examining the same cohort of workouts over the same time window. Today, each widget independently repeats the same filters, date clauses, and join predicates. This leads to code duplication, fragile updates, and redundant SQLite/fact scans.</p>
+
+    <p>The <code>=&gt; @sourceName</code> operator binds the output of any discovery query to a <strong>named in-memory page source</strong> on the current page:</p>
+
+    <pre><code>// 1. Declare once at top of dashboard or note
+find:segment{effort:snatch|clean*, intensity:high} last 12w =&gt; @olyLifts
+
+// 2. Downstream widgets query directly against @olyLifts:
+@olyLifts | sum:totalVolume by {week}
+@olyLifts | max:resistance by {week}
+@olyLifts | avg:pace by {effort}
+@olyLifts | select date, effort, totalVolume | order by date desc | limit 5</code></pre>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">How It Works in Page Lifecycle</span>
+          <span class="card-badge tag-green">Execution Model</span>
+        </div>
+        <ul style="padding-left: 18px; font-size: 13.5px; color: var(--text-dim); line-height: 1.7;">
+          <li><strong>Single Evaluation:</strong> The query engine runs <code>find:segment</code> once upon page load.</li>
+          <li><strong>Reactive Cache:</strong> The result is registered in <code>PageSourceRegistry</code> under the key <code>@olyLifts</code>.</li>
+          <li><strong>Zero DB Scans Downstream:</strong> Downstream widgets do not touch SQLite; they compute in-memory aggregations and projections directly against <code>@olyLifts</code> in microseconds.</li>
+          <li><strong>Reactive Cascade:</strong> If the user changes a date range or filter on <code>@olyLifts</code>, all 5 subscriber charts update instantly in lockstep.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Stored Source Contract</span>
+          <span class="card-badge tag-cyan">Interface</span>
+        </div>
+        <ul style="padding-left: 18px; font-size: 13.5px; color: var(--text-dim); line-height: 1.7;">
+          <li><strong>Identifier Syntax:</strong> Starts with <code>@</code> followed by alphanumeric/kebab-case identifier (e.g. <code>@olyLifts</code>, <code>@benchmarks</code>, <code>@recentRuns</code>).</li>
+          <li><strong>Scope:</strong> Page-local (lives within the current dashboard / note session).</li>
+          <li><strong>Result Shape:</strong> Stores typed tabular rows (<code>find:segment</code>, <code>find:event</code>) or grouped runs (<code>find:session</code>) or card entities (<code>find:note</code>).</li>
+          <li><strong>Secondary Slicing:</strong> Downstream queries can apply further sub-filters: <code>@olyLifts | sum:totalVolume{effort:snatch} by {week}</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. SIMPLIFIED AGGREGATE SYNTAX -->
+  <section id="downstream-ergonomics">
+    <h2><span class="num">6.</span> How Aggregate Operations Become Simpler to Reason About</h2>
+    <p>Once data sets can be stored into <code>@source</code>, the syntax of aggregate operations collapses from repetitive database queries down to <strong>pure mathematical reductions over a known table</strong>.</p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Syntax Variant</th>
+            <th>Grammar Pattern</th>
+            <th>Ergonomic Advantage</th>
+            <th>Ideal Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Pipeline Pipe (Recommended)</strong></td>
+            <td><code>@source | &lt;agg&gt;:&lt;metric&gt; by {&lt;dims&gt;}</code></td>
+            <td>Reads naturally left-to-right: "Take dataset @source, pipe into volume sum grouped by week".</td>
+            <td>Interactive query blocks, dashboard widgets, CLI workbench.</td>
+          </tr>
+          <tr>
+            <td><strong>Arrow Flow</strong></td>
+            <td><code>@source =&gt; &lt;agg&gt;:&lt;metric&gt; by {&lt;dims&gt;}</code></td>
+            <td>Uses the same arrow symbol for chaining: Source produces dataset ➔ flows into aggregate reducer.</td>
+            <td>Notebook pipelines, multi-step metric transformations.</td>
+          </tr>
+          <tr>
+            <td><strong>Preposition Directive</strong></td>
+            <td><code>&lt;agg&gt;:&lt;metric&gt; in @source by {&lt;dims&gt;}</code></td>
+            <td>Reuses familiar SQL/WQL preposition <code>in</code>.</td>
+            <td>Single-metric callouts, embedded inline telemetry chips.</td>
+          </tr>
+          <tr>
+            <td><strong>Widget Block Attribute</strong></td>
+            <td><code>```query:timeseries(source=@source)</code></td>
+            <td>Cleanest markdown fence: query body contains only the bare metric and grouping.</td>
+            <td>Dashboard markdown files.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Why Downstream Queries Are Vastly Simpler</h3>
+    <div class="grid-3">
+      <div class="card">
+        <h4 style="color:var(--heading); margin-bottom: 6px;">1. Zero Date / Filter Noise</h4>
+        <p style="font-size: 13px;">No need to re-type <code>last 12w</code>, <code>effort:snatch|clean*</code>, or <code>intensity:high</code> across 6 widgets. The source defines the bounded cohort once.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--heading); margin-bottom: 6px;">2. Pre-baked Relational Joins</h4>
+        <p style="font-size: 13px;">Complex cross-store joins (e.g. <code>where find:note{format:emom}</code>) execute once when populating <code>@source</code>. Downstream queries don't need to join again.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--heading); margin-bottom: 6px;">3. Instant Client-Side Slicing</h4>
+        <p style="font-size: 13px;">Downstream charts can perform micro-slices with near-zero latency: <code>@olyLifts | sum:volume{effort:snatch} by {week}</code> filters the in-memory array in &lt;1ms.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. BEFORE & AFTER CASE STUDIES -->
+  <section id="case-studies">
+    <h2><span class="num">7.</span> Dashboard Case Studies: Before &amp; After</h2>
+    <p>Let's inspect how real production dashboards in <code>markdown/dashboards/</code> transform when adopting stored sources.</p>
+
+    <h3>Case Study: Coaching Training Block Review (<code>training-block-review.md</code>)</h3>
+    <div class="ba-container">
+      <div class="ba-panel ba-before">
+        <span class="ba-label">BEFORE: 6 Independent DB Scans &amp; Repetitive Filters</span>
+        <pre><code>```query:value
+avg:tis{source:journal} last 8w
+```
+
+```query:value
+sum:totalVolume{source:journal} last 8w
+```
+
+```query:timeseries-2
+sum:totalVolume{source:journal} last 8w by {week}
+```
+
+```query:timeseries
+avg:tis{source:journal} last 8w by {week}
+```
+
+```query:toplist
+sum:totalVolume{source:journal} last 8w by {effort}
+```
+
+```query:stacked-bar
+sum:sessionLoad{source:journal} last 8w by {intensity, week}
+```</code></pre>
+        <p style="font-size: 12.5px; color: var(--rose);">
+          ❌ 6 separate database table queries.<br>
+          ❌ Changing window from 8w to 12w requires 6 manual edits.<br>
+          ❌ High cache contention and risk of inconsistent time windows.
+        </p>
+      </div>
+
+      <div class="ba-panel ba-after">
+        <span class="ba-label">AFTER: 1 Bounded Source + 6 Micro-Aggregates</span>
+        <pre><code>// Define page dataset once at top:
+find:segment{source:journal} last 8w =&gt; @blockData
+
+```query:value
+@blockData | avg:tis
+```
+
+```query:value
+@blockData | sum:totalVolume
+```
+
+```query:timeseries-2
+@blockData | sum:totalVolume by {week}
+```
+
+```query:timeseries
+@blockData | avg:tis by {week}
+```
+
+```query:toplist
+@blockData | sum:totalVolume by {effort}
+```
+
+```query:stacked-bar
+@blockData | sum:sessionLoad by {intensity, week}
+```</code></pre>
+        <p style="font-size: 12.5px; color: var(--green);">
+          ✅ 1 single database scan populates <code>@blockData</code>.<br>
+          ✅ Change <code>last 8w</code> in one place to update all 6 widgets.<br>
+          ✅ Downstream queries contain 0 boilerplate noise.
+        </p>
+      </div>
+    </div>
+
+    <h3>Case Study: Benchmark PR Retest Board (<code>benchmark-pr-board.md</code>)</h3>
+    <div class="ba-container">
+      <div class="ba-panel ba-before">
+        <span class="ba-label">BEFORE: Redundant Benchmark Filters</span>
+        <pre><code>```query:table-2
+last:elapsed{tags:benchmark, tags:pr} by {effort} last 26w
+```
+
+```query:timeseries
+last:elapsed{tags:benchmark, effort:fran} by {week} last 26w
+```
+
+```query:timeseries
+sum:totalReps{tags:benchmark} by {week} last 26w
+```
+
+```query:bar
+sum:tis{tags:benchmark} by {session, day} last 26w
+```</code></pre>
+      </div>
+
+      <div class="ba-panel ba-after">
+        <span class="ba-label">AFTER: One Named Benchmark Source</span>
+        <pre><code>find:segment{tags:benchmark} last 26w =&gt; @benchmarks
+
+```query:table-2
+@benchmarks | last:elapsed{tags:pr} by {effort}
+```
+
+```query:timeseries
+@benchmarks | last:elapsed{effort:fran} by {week}
+```
+
+```query:timeseries
+@benchmarks | sum:totalReps by {week}
+```
+
+```query:bar
+@benchmarks | sum:tis by {session, day}
+```</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. INTERACTIVE WHITEBOARD SIMULATOR -->
+  <section id="interactive-simulator">
+    <h2><span class="num">8.</span> Interactive Whiteboard Simulator</h2>
+    <p>Experiment with query configurations below. Watch how the primary WQL query is formed, and toggle <strong>"Bind to Stored Source"</strong> to see how downstream widget queries automatically simplify.</p>
+
+    <div class="simulator-box">
+      <div class="sim-controls">
+        <div class="sim-field">
+          <label>Discovery Noun (WHAT)</label>
+          <select id="simNoun" onchange="updateSim()">
+            <option value="segment">find:segment (Flat telemetry table)</option>
+            <option value="session">find:session (Session run cards)</option>
+            <option value="note">find:note (Markdown card list)</option>
+            <option value="block">find:block (Parsed workout blocks)</option>
+            <option value="event">find:event (Raw telemetry facts)</option>
+          </select>
+        </div>
+
+        <div class="sim-field">
+          <label>Movement Filter</label>
+          <select id="simEffort" onchange="updateSim()">
+            <option value="snatch">effort:snatch</option>
+            <option value="clean*">effort:clean* (wildcard)</option>
+            <option value="back-squat">effort:back-squat</option>
+            <option value="fran">effort:fran</option>
+            <option value="">(any movement)</option>
+          </select>
+        </div>
+
+        <div class="sim-field">
+          <label>Discipline / Intensity</label>
+          <select id="simDiscipline" onchange="updateSim()">
+            <option value="discipline:strength, intensity:high">strength + high intensity</option>
+            <option value="discipline:gymnastics">discipline:gymnastics</option>
+            <option value="discipline:monostructural">discipline:monostructural</option>
+            <option value="">(all disciplines)</option>
+          </select>
+        </div>
+
+        <div class="sim-field">
+          <label>Time Window (WHEN)</label>
+          <select id="simWindow" onchange="updateSim()">
+            <option value="last 12w">last 12w (Quarterly rolling)</option>
+            <option value="last 4w">last 4w (Monthly rolling)</option>
+            <option value="from 2026-08-01 to 2026-10-01">from 2026-08-01 to 2026-10-01</option>
+            <option value="this month">this month (Civil calendar)</option>
+          </select>
+        </div>
+
+        <div class="sim-field">
+          <label>Bind to Stored Source?</label>
+          <select id="simBindSource" onchange="updateSim()">
+            <option value="olyLifts">=&gt; @olyLifts (Stored Source)</option>
+            <option value="mesoCohort">=&gt; @mesoCohort (Stored Source)</option>
+            <option value="none">No (Direct execution)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 8px; font-weight:600; font-size:12px; font-family:var(--font-mono); color:var(--accent);">
+        GENERATED WQL PRIMARY QUERY:
+      </div>
+      <div class="sim-output" id="primaryWqlOutput">
+        find:segment{effort:snatch, discipline:strength, intensity:high} last 12w =&gt; @olyLifts
+      </div>
+
+      <div id="downstreamWidgetSection" style="margin-top: 20px;">
+        <div style="margin-bottom: 8px; font-weight:600; font-size:12px; font-family:var(--font-mono); color:var(--purple);">
+          DOWNSTREAM DASHBOARD WIDGETS (CONSUMING STORED SOURCE):
+        </div>
+        <div class="sim-output" id="downstreamWidgetsOutput" style="border-color: var(--purple);">
+          // Widget 1: Weekly Volume Trend
+@olyLifts | sum:totalVolume by {week}
+
+// Widget 2: Peak Resistance Lifted
+@olyLifts | max:resistance by {week}
+
+// Widget 3: Rep Workload Distribution
+@olyLifts | sum:reps by {effort}
+
+// Widget 4: Top 5 Recent Efforts Table
+@olyLifts | select date, effort, totalVolume | order by date desc | limit 5
+        </div>
+
+        <div class="sim-metric-row">
+          <div class="sim-metric-chip">Database Roundtrips: <strong id="simRoundtrips">1 (vs 5)</strong></div>
+          <div class="sim-metric-chip">Boilerplate Lines Eliminated: <strong id="simLinesSaved">18 lines (-72%)</strong></div>
+          <div class="sim-metric-chip">Date Window Drift Risk: <strong style="color:var(--cyan);">0% (Synchronized)</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function toggleTheme() {
+    const root = document.documentElement;
+    const current = root.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+  }
+
+  function updateSim() {
+    const noun = document.getElementById('simNoun').value;
+    const effort = document.getElementById('simEffort').value;
+    const discipline = document.getElementById('simDiscipline').value;
+    const windowVal = document.getElementById('simWindow').value;
+    const bindSource = document.getElementById('simBindSource').value;
+
+    const filters = [];
+    if (effort) filters.push(effort);
+    if (discipline) filters.push(discipline);
+
+    const filterStr = filters.length > 0 ? '{' + filters.join(', ') + '}' : '{}';
+    let query = `find:${noun}${filterStr} ${windowVal}`;
+
+    if (bindSource !== 'none') {
+      query += ` => @${bindSource}`;
+      document.getElementById('downstreamWidgetSection').style.display = 'block';
+
+      document.getElementById('downstreamWidgetsOutput').innerText =
+`// Widget 1: Weekly Volume Trend
+@${bindSource} | sum:totalVolume by {week}
+
+// Widget 2: Peak Resistance Lifted
+@${bindSource} | max:resistance by {week}
+
+// Widget 3: Rep Workload Distribution
+@${bindSource} | sum:reps by {effort}
+
+// Widget 4: Top 5 Recent Efforts Table
+@${bindSource} | select date, effort, totalVolume | order by date desc | limit 5`;
+
+      document.getElementById('simRoundtrips').innerText = '1 (vs 5)';
+      document.getElementById('simLinesSaved').innerText = '18 lines (-72%)';
+    } else {
+      document.getElementById('downstreamWidgetSection').style.display = 'none';
+    }
+
+    document.getElementById('primaryWqlOutput').innerText = query;
+  }
+
+  // Initialize simulator
+  updateSim();
+</script>
+</body>
+</html>

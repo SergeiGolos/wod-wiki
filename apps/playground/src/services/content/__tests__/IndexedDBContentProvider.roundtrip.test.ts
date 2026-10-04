@@ -119,4 +119,68 @@ describe('IndexedDBContentProvider saved source', () => {
     await provider.updateEntry('legacy', { rawContent: exact });
     await reloadAndRead('legacy', exact);
   });
+
+  it('reuses date pages, moves memberships without touching siblings, and clones independently', async () => {
+    const day1 = new Date(2026, 9, 15).getTime(); // 2026-10-15 local
+    const day2 = new Date(2026, 9, 16).getTime(); // 2026-10-16 local
+
+    // Two distinct notes on one date share a single calendar Page; saveEntry
+    // returns the supplied targetDate (not the creation timestamp).
+    const a = await provider.saveEntry({ title: 'A', rawContent: '# A\n', tags: [], targetDate: day1, journalDate: '2026-10-15', type: 'journal' });
+    const b = await provider.saveEntry({ title: 'B', rawContent: '# B\n', tags: [], targetDate: day1, journalDate: '2026-10-15', type: 'journal' });
+    expect(a.id).not.toBe(b.id);
+    expect(a.targetDate).toBe(day1);
+    const page1 = await service.getPageByDate('2026-10-15');
+    expect((await service.getPageNotes(page1!.id)).map(link => link.noteId).sort()).toEqual([a.id, b.id].sort());
+    expect(await provider.getEntry(a.id)).toMatchObject({ targetDate: day1, journalDate: '2026-10-15' });
+
+    // Moving A to another date: returned + fresh-read date is current, identity
+    // and content survive, B's membership on the old page is untouched.
+    const moved = await provider.updateEntry(a.id, { journalDate: '2026-10-16' });
+    expect(moved.id).toBe(a.id);
+    expect(moved.journalDate).toBe('2026-10-16');
+    expect(moved.rawContent).toBe('# A\n');
+    expect(await provider.getEntry(a.id)).toMatchObject({ journalDate: '2026-10-16', targetDate: day1 });
+    expect((await service.getPageNotes(page1!.id)).map(link => link.noteId)).toEqual([b.id]);
+    expect(await provider.getEntry(b.id)).toMatchObject({ journalDate: '2026-10-15' });
+
+    // Shared named page: A joins B on 'gym', then moves on to 'travel' — the
+    // 'gym' page keeps its slug and B; journalDate and slug stay independent.
+    await provider.updateEntry(b.id, { slug: 'gym' });
+    await provider.updateEntry(a.id, { slug: 'gym' });
+    const gym = await service.getPageBySlug('gym');
+    expect((await service.getPageNotes(gym!.id)).map(link => link.noteId).sort()).toEqual([a.id, b.id].sort());
+    const movedSlug = await provider.updateEntry(a.id, { slug: 'travel' });
+    expect(movedSlug.slug).toBe('travel');
+    expect(movedSlug.journalDate).toBe('2026-10-16');
+    const gymAfter = await service.getPageBySlug('gym');
+    expect(gymAfter?.id).toBe(gym!.id);
+    expect(gymAfter?.slug).toBe('gym');
+    expect((await service.getPageNotes(gym!.id)).map(link => link.noteId)).toEqual([b.id]);
+    expect(await provider.getEntry(a.id)).toMatchObject({ slug: 'travel', journalDate: '2026-10-16' });
+
+    // Cloning B to another date: independent note (own id/content), journal
+    // type, lineage via sourceId, chosen targetDate and its local date page.
+    const clone = await provider.cloneEntry(b.id, day2);
+    expect(clone.id).not.toBe(b.id);
+    expect(clone.type).toBe('journal');
+    expect(clone.sourceId).toBe(b.id);
+    expect(clone.targetDate).toBe(day2);
+    expect(clone.journalDate).toBe('2026-10-16');
+    expect(clone.rawContent).toBe('# B\n');
+    await provider.updateEntry(clone.id, { rawContent: '# Clone\n' });
+    expect((await provider.getEntry(b.id))?.rawContent).toBe('# B\n');
+    const page2 = await service.getPageByDate('2026-10-16');
+    expect((await service.getPageNotes(page2!.id)).map(link => link.noteId).sort()).toEqual([a.id, clone.id].sort());
+
+    // Plain journalNotes-style create with IDENTICAL content (the same risk as
+    // template/creation sources): both notes keep exclusive segment rows — the
+    // later save must not overwrite the earlier note's content.
+    const d = await provider.saveEntry({ title: 'D', rawContent: '# B\n', tags: [], targetDate: day1, journalDate: '2026-10-15', type: 'journal' });
+    expect(d.rawContent).toBe('# B\n');
+    expect((await provider.getEntry(b.id))?.rawContent).toBe('# B\n');
+    await provider.updateEntry(d.id, { rawContent: '# D\n' });
+    expect((await provider.getEntry(b.id))?.rawContent).toBe('# B\n');
+    expect((await provider.getEntry(d.id))?.rawContent).toBe('# D\n');
+  });
 });

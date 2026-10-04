@@ -5,8 +5,10 @@ import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
 import { playgroundRecorder } from '@/services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
-import { useSearchParams, Link, Navigate } from 'react-router-dom';
+import { useSearchParams, Link, Navigate, useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { noteByIdPath } from '../lib/routes';
+import { CreateJournalNoteDialog } from '../components/organisms/journal/CreateJournalNoteDialog';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { ResponsiveActions } from '../nav/ResponsiveActions'
@@ -31,6 +33,8 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
   const [viewMode, setViewMode] = useState<'read' | 'edit'>('edit');
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
@@ -156,12 +160,27 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     </Button>
   ) : undefined;
 
+  const handleCreated = (created: HistoryEntry) => {
+    journalNotes.listByDate(journalDate).then(setNotes).catch(() => {});
+    navigate(`${noteByIdPath(created.id)}?edit=1`);
+  };
+
   return (
     <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
       <JournalPageShell
           title={journalDate}
           subtitle={`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
-          actions={<ResponsiveActions navbar={editToggle} />}
+          actions={
+            <ResponsiveActions
+              navbar={editToggle}
+              primary={
+                <Button type="button" onClick={() => setCreateOpen(true)}>
+                  <Plus className="size-4 mr-1.5" aria-hidden="true" />
+                  New note
+                </Button>
+              }
+            />
+          }
           editor={
         <div className="flex flex-col gap-8 px-4 py-6 sm:px-6">
           {notes.length > 1 && (
@@ -178,20 +197,37 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             </nav>
           )}
           {notes.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
+            <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-border p-6">
+              <p className="text-sm text-muted-foreground">No Notes on this date yet.</p>
+              <Button type="button" size="lg" onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4 mr-1.5" aria-hidden="true" />
+                Create a note
+              </Button>
+            </div>
           ) : notes.length === 1 ? (
-            <NoteEditor
-              key={notes[0].id}
-              value={notes[0].rawContent}
-              onChange={(val) => handleNoteContentChange(notes[0].id, val)}
-              noteId={notes[0].id}
-              readonly={viewMode === 'read'}
-              theme={theme}
-              showLineNumbers={false}
-              onBlocksChange={setBlocks}
-              onCompleteWorkout={(bId, res, resId, runB) => handleCompleteWorkout(bId, res, resId, runB, notes[0].id)}
-              onViewCreated={(view) => handleViewCreatedForNote(notes[0].id, view)}
-            />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                <Link
+                  to={noteByIdPath(notes[0].id)}
+                  className="text-sm font-semibold hover:underline text-foreground"
+                  aria-label={`Open note page for ${notes[0].title || 'untitled note'}`}
+                >
+                  {notes[0].title || 'Untitled note'}
+                </Link>
+              </div>
+              <NoteEditor
+                key={notes[0].id}
+                value={notes[0].rawContent}
+                onChange={(val) => handleNoteContentChange(notes[0].id, val)}
+                noteId={notes[0].id}
+                readonly={viewMode === 'read'}
+                theme={theme}
+                showLineNumbers={false}
+                onBlocksChange={setBlocks}
+                onCompleteWorkout={(bId, res, resId, runB) => handleCompleteWorkout(bId, res, resId, runB, notes[0].id)}
+                onViewCreated={(view) => handleViewCreatedForNote(notes[0].id, view)}
+              />
+            </div>
           ) : (
             <div className="space-y-6">
               {notes.map((note, index) => (
@@ -221,6 +257,12 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           )}
       </div>
           }
+      />
+      <CreateJournalNoteDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultDate={journalDate}
+        onCreated={handleCreated}
       />
       {isTimerOpen && timerBlock && (
         <FullscreenTimer

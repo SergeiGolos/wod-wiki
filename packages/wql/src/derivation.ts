@@ -249,6 +249,10 @@ export function toEventRows(
       : undefined,
     sourceBlockKey: output.sourceBlockKey,
     stackLevel: output.stackLevel,
+    line: output.line,
+    sourceStatementId: output.sourceStatementId,
+    text: output.text,
+    dialect: output.dialect,
     completionReason: output.completionReason,
     segmentId: identity.segmentId,
     segmentVersion: identity.segmentVersion,
@@ -485,6 +489,10 @@ export function eventsToStoredLogs(events: readonly EventRecord[]): StoredOutput
     metrics: row.metrics,
     sourceBlockKey: row.sourceBlockKey,
     stackLevel: row.stackLevel,
+    line: row.line,
+    sourceStatementId: row.sourceStatementId,
+    text: row.text,
+    dialect: row.dialect,
     completionReason: row.completionReason,
   }));
 }

@@ -9,7 +9,7 @@ export interface SyntaxMeta {
 }
 
 interface BasePrimitive {
-  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'heading' | 'quantity' | 'effort' | 'property' | 'metric_object';
+  kind: 'lap' | 'duration' | 'rounds' | 'round_scheme' | 'action' | 'text' | 'heading' | 'quantity' | 'effort' | 'property' | 'metric_object';
   raw: string;
   meta: SyntaxMeta;
 }
@@ -35,6 +35,16 @@ export interface RoundsPrimitive extends BasePrimitive {
   kind: 'rounds';
   sequence?: number[];
   label?: string;
+}
+
+/**
+ * Inline NxM rounds scheme — `5x5` or `5 x 5` — lexed as one token so a bare
+ * `x` inside effort words is never stolen. N rounds x M reps per round.
+ */
+export interface RoundSchemePrimitive extends BasePrimitive {
+  kind: 'round_scheme';
+  rounds: number;
+  reps: number;
 }
 
 export interface ActionPrimitive extends BasePrimitive {
@@ -79,6 +89,7 @@ export type SyntaxPrimitive =
   | LapPrimitive
   | DurationPrimitive
   | RoundsPrimitive
+  | RoundSchemePrimitive
   | ActionPrimitive
   | TextPrimitive
   | HeadingPrimitive

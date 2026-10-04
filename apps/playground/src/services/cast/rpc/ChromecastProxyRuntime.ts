@@ -31,7 +31,8 @@ class ProxyStack implements IRuntimeStack {
 
     get blocks(): readonly IRuntimeBlock[] { return this._blocks; }
     get count(): number { return this._blocks.length; }
-    get current(): IRuntimeBlock | undefined { return this._blocks[this._blocks.length - 1]; }
+    // Wire snapshots are top-first; the contract's `current` is the top block.
+    get current(): IRuntimeBlock | undefined { return this._blocks[0]; }
     get keys(): BlockKey[] { return this._blocks.map(b => b.key); }
 
     push(_block: IRuntimeBlock): void {
@@ -446,7 +447,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
                 ? { type: 'initial', blocks }
                 : {
                     type: message.snapshotType as 'push' | 'pop',
-                    block: affectedBlock ?? blocks[blocks.length - 1],
+                    block: affectedBlock ?? blocks[0],
                     depth: message.depth,
                     blocks,
                 };

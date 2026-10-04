@@ -1301,7 +1301,7 @@ export function ActiveStackPanel(props: RuntimeControlsProps) {
           <p className="py-4 text-center text-xs text-muted-foreground">Stack empty.</p>
         ) : (
           blocks.map((b: IRuntimeBlock, idx: number) => {
-            const isTop = idx === blocks.length - 1;
+            const isTop = idx === 0; // snapshot.blocks is top-first
             return (
               <div
                 key={b.key?.toString() || idx}
@@ -1349,7 +1349,7 @@ export function ActiveMemoryPanel() {
   const blocks = snapshot.blocks ?? [];
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
 
-  const activeBlock: IRuntimeBlock | undefined = blocks[selectedIdx] ?? blocks[blocks.length - 1];
+  const activeBlock: IRuntimeBlock | undefined = blocks[selectedIdx] ?? blocks[0];
 
   const allMemory: IMetric[] = useMemo(() => {
     if (!activeBlock?.getAllMemory) return [];

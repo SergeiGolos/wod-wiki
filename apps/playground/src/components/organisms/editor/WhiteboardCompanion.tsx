@@ -401,11 +401,11 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
   );
 
   const chips = useMemo(
-    () => (activeStatement ? metricChips(activeStatement) : []),
-    [activeStatement],
+    () => activeStatement ? statements.filter(s => s.meta?.line === activeStatement.meta.line).flatMap(metricChips) : [],
+    [activeStatement, statements],
   );
 
-  const lineSummary = useScriptLineResults(results, activeStatement?.id);
+  const lineSummary = useScriptLineResults(results, activeStatement?.meta?.line);
 
   if (!section) return null;
 

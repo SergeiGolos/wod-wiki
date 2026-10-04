@@ -17,6 +17,9 @@ import type { PageKind } from './lib/routeView'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
 import { canvasRouteSource, constructSource } from './services/paletteDataSources'
+import { CreateJournalNoteDialog } from './components/organisms/journal/CreateJournalNoteDialog'
+import { noteByIdPath } from './lib/routes'
+import type { HistoryEntry } from '@/types/history'
 import {
   wqlSearchSource,
   withWqlText,
@@ -75,6 +78,21 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   const view = useRouteView()
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
+
+  // Global new-journal-note dialog; prefilled from /journal/YYYY-MM-DD routes.
+  const [journalCreateOpen, setJournalCreateOpen] = useState(false)
+  const openJournalCreate = useCallback(() => setJournalCreateOpen(true), [])
+  const journalCreateDate = useMemo(
+    () => /^\/journal\/(\d{4}-\d{2}-\d{2})\/?$/.exec(location.pathname)?.[1],
+    [location.pathname],
+  )
+  const handleJournalNoteCreated = useCallback(
+    (entry: HistoryEntry) => {
+      navigate(`${noteByIdPath(entry.id)}?edit=1`)
+    },
+    [navigate],
+  )
+
   // General layout shell state: breadcrumb (active L1 › page identity) and
   // the L3 index channel (canvas pages publish here; note pages publish via
   // useNotePageNav — bare shells, so the writers never overlap).
@@ -345,6 +363,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
       secondary={secondarySpec}
       onSearch={openSearchPalette}
+      onCreate={openJournalCreate}
     >
       {/* Global Page options for the mobile thumb dock — stacked function
           rows (secondary nav, On this page, download) under every
@@ -352,6 +371,12 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
       <ResponsiveActions fallback label="Page options">
         <PageOptionsSheetRows currentWorkout={currentWorkout} />
       </ResponsiveActions>
+      <CreateJournalNoteDialog
+        open={journalCreateOpen}
+        onOpenChange={setJournalCreateOpen}
+        defaultDate={journalCreateDate}
+        onCreated={handleJournalNoteCreated}
+      />
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {renderShell(renderInner[view.page]())}

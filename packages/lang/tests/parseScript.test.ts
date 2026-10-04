@@ -16,11 +16,13 @@ describe('parseScript (Headless Lezer Parser Seam)', () => {
 
   it('parses single-line and multi-line workouts into statements', () => {
     const script = parseScript('5:00 Run\n10:00 Row');
+    const [first, second] = script.statements;
     expect(script.statements).toHaveLength(2);
-    expect(script.statements[0].id).toBe(1);
-    expect(script.statements[0].line).toBe(1);
-    expect(script.statements[1].id).toBe(2);
-    expect(script.statements[1].line).toBe(2);
+    expect(new Set([first.id, second.id]).size).toBe(2);
+    expect(first.line).toBe(1);
+    expect(second.line).toBe(2);
+    expect(script.getId(first.id)).toBe(first);
+    expect(script.getId(second.id)).toBe(second);
 
     // First statement has Duration and Effort
     const s1Metrics = script.statements[0].metrics;
@@ -73,9 +75,11 @@ describe('parseScript (Headless Lezer Parser Seam)', () => {
 
   it('supports IScript navigation methods (getId, getIds, getAt)', () => {
     const script = parseScript('Line 1\nLine 2\nLine 3');
-    expect(script.getAt(0)?.id).toBe(1);
-    expect(script.getId(2)?.id).toBe(2);
-    expect(script.getIds([1, 3])).toHaveLength(2);
+    const [first, second, third] = script.statements;
+    expect(new Set(script.statements.map(s => s.id)).size).toBe(3);
+    expect(script.getAt(0)?.id).toBe(first.id);
+    expect(script.getId(second.id)?.id).toBe(second.id);
+    expect(script.getIds([first.id, third.id])).toHaveLength(2);
   });
 
   it('handles property lines and syntax structures', () => {

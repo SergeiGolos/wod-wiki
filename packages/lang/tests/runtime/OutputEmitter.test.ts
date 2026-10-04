@@ -669,3 +669,4 @@ describe('OutputEmitter — emitLoad', () => {
         expect(emitter.getAll()).toHaveLength(2);
     });
 });
+

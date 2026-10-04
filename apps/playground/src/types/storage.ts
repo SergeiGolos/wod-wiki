@@ -6,7 +6,7 @@
  * `segments` store and adds `attachments` + `analytics` stores.
  */
 
-import type { ScriptBlock } from '../components/Editor/types';
+import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources

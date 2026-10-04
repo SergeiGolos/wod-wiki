@@ -153,7 +153,12 @@ function computeFocusState(
     const docLine = state.doc.line(cursorLine);
     statements = parseStatements(cursorSection, state);
     const lineInContent = cursorLine - cursorSection.startLine;
-    statementIndex = statements?.findIndex((s) => s.meta?.line === lineInContent) ?? -1;
+    statementIndex = statements?.findIndex(s => s.meta?.line === lineInContent && s.metrics.some(metric => {
+      const meta = s.metricMeta.get(metric);
+      const offset = head - (cursorSection.contentFrom ?? 0);
+      return meta && offset >= meta.startOffset && offset <= meta.endOffset;
+    })) ?? -1;
+    if (statementIndex < 0) statementIndex = statements?.findIndex(s => s.meta?.line === lineInContent) ?? -1;
     stmt = statementIndex >= 0 && statements ? statements[statementIndex] : null;
 
     focus = {

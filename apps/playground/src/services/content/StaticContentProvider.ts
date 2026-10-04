@@ -74,7 +74,7 @@ export class StaticContentProvider implements IContentProvider {
 
   async updateEntry(
     _id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { blockContentId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'slug' | 'type' | 'sourceId'>> & { journalDate?: string | null; blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const now = Date.now();
     

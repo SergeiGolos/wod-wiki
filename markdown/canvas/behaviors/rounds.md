@@ -28,10 +28,12 @@ A dash-separated list inside parentheses creates a **rep scheme**. The scheme be
 | Scheme | Rounds | Reps per round |
 |---|---|---|
 | `(21-15-9)` | 3 | 21, 15, 9 |
-| `(5 Sets)` | 5 | same reps each set |
+| `5x5` or `(5) 5` | 5 | 5 |
 | `(10-8-6-4-2)` | 5 | descending ladder |
 
 So `(21-15-9) Thruster / Pull-up` means 21 thrusters and 21 pull-ups, then 15 of each, then 9 of each. The rep scheme is a round behavior; the movements inherit the current round's rep count.
+
+For one movement, write `5x5 Back Squat @100kg`. `5 x 5` and `(5) 5` mean the same thing. The parser creates a rounds parent and exercise child on the same source line, and the runtime records five separate sets of five reps. Keep indented children for circuits and supersets.
 
 ## Supersets and interval groups {sticky}
 

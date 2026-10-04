@@ -13,9 +13,9 @@
  * section boundaries when running (see OverlayTrack.tsx).
  *
  * Gutter line highlighting:
- *   Each stack snapshot's top block has `sourceIds` = statement.meta.line
- *   (1-based within the content block, per lezer-mapper.ts).
- *   Document line = block.startLine + 1 + sourceId.
+ *   Each stack snapshot's top block carries `sourceIds` = Statement IDs.
+ *   Lines are resolved through runtime.script.getId(id) (meta.line, 1-based
+ *   within the content block); Document line = block.startLine + 1 + meta.line.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -39,6 +39,7 @@ import { dispatchGutterHighlights } from '@bitcobblers/wod-wiki-ui/extensions';
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { buildSessions, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
+import { sourceIdsToContentLines } from "@/components/organisms/editor/gutterHighlights";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
 // PROTOTYPE — throwaway import; delete with proto-timer/
@@ -195,8 +196,8 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [nothingToRun, setNothingToRun] = useState(false);
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
-  // statement sourceId = 1-based line within content
-  // document line = (block.startLine + 1) + sourceId
+  // statement source line = meta.line, 1-based within the fence content
+  // document line = (block.startLine + 1) + meta.line
   const gutterBase = block.startLine + 1;
   const { overrides, setOverride } = useUserOverrides(true);
   const { collectionItems } = useCollectionMetrics([], overrides, preRunScript);
@@ -224,9 +225,14 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
           dispatchGutterHighlights(view, []);
           return;
         }
-        const topBlock = snapshot.blocks[snapshot.blocks.length - 1];
+        // StackSnapshot.blocks is top-first: blocks[0] is the current block.
+        const topBlock = snapshot.blocks[0];
         if (topBlock?.sourceIds?.length) {
-          const docLines = topBlock.sourceIds.map((id) => gutterBase + id);
+          // sourceIds are Statement IDs, not lines — resolve each to its
+          // statement's content-relative source line, deduped (parent and
+          // child statements can share one source line).
+          const docLines = sourceIdsToContentLines(rt.script, topBlock.sourceIds)
+            .map((line) => gutterBase + line);
           dispatchGutterHighlights(view, docLines);
         } else {
           dispatchGutterHighlights(view, []);

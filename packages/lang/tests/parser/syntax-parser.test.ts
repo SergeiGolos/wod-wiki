@@ -137,18 +137,18 @@ describe('extractSyntaxFacts', () => {
   it('preserves indentation-based ancestry and compose grouping', () => {
     const state = buildState(`- warmup\n  - squat\n  + press\n    - run\n`);
     const facts = extractSyntaxFacts(state);
-    const byId = new Map(facts.statements.map((statement) => [statement.id, statement]));
+    const [root, squat, press, run] = facts.statements;
 
-    expect(facts.statements.map((statement) => statement.id)).toEqual([1, 2, 3, 4]);
+    expect(new Set(facts.statements.map((statement) => statement.id)).size).toBe(4);
 
-    expect(byId.get(2)?.parentId).toBe(1);
-    expect(byId.get(3)?.parentId).toBe(1);
-    expect(byId.get(4)?.parentId).toBe(3);
+    expect(squat.parentId).toBe(root.id);
+    expect(press.parentId).toBe(root.id);
+    expect(run.parentId).toBe(press.id);
 
     // Current behavior keeps deep descendants in all ancestors' flat child lists.
-    expect(byId.get(1)?.children).toEqual([[2, 3], [4]]);
-    expect(byId.get(3)?.children).toEqual([[4]]);
-    expect(byId.get(2)?.children).toEqual([]);
+    expect(root.children).toEqual([[squat.id, press.id], [run.id]]);
+    expect(press.children).toEqual([[run.id]]);
+    expect(squat.children).toEqual([]);
   });
 
   describe('Slash and Pipe tokens — ride as effort primitives with raw "/" or "|"', () => {

@@ -20,6 +20,7 @@ export type {
   StoreType,
 };
 export { IndexedDBStorage, InMemoryStorage, StorageService };
+export { segmentRowId, resolveLatestSegment } from './StorageService';
 export { LocalStore, InMemoryBackend, browserLocalStorageBackend };
 export type { StorageBackend };
 

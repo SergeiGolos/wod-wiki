@@ -586,15 +586,15 @@ describe('workbenchSessionStore', () => {
     const fakeRuntime = new FakeRuntime();
     store.getState().setRuntime(fakeRuntime as unknown as IScriptRuntime);
 
-    // Emit a synthetic snapshot with two blocks; the leaf (top) carries
-    // sourceIds. The session derives segmentIds from block-key hashes and
-    // statementIds from the leaf's sourceIds.
+    // Emit a synthetic snapshot with two blocks in real (top-first) order;
+    // the current leaf block is blocks[0]. The session derives segmentIds
+    // from block-key hashes and statementIds from the leaf's sourceIds.
     fakeRuntime.emitStack({
       type: 'push',
       depth: 2,
       blocks: [
-        { key: { toString: () => 'block-root' }, sourceIds: [10, 20] },
         { key: { toString: () => 'block-leaf' }, sourceIds: [30, 40] },
+        { key: { toString: () => 'block-root' }, sourceIds: [10, 20] },
       ],
       clockTime: new Date(0),
     });

@@ -10,6 +10,7 @@ import {
   MetricObjectPrimitive,
   PropertyPrimitive,
   QuantityPrimitive,
+  RoundSchemePrimitive,
   RoundsPrimitive,
   SyntaxFacts,
   SyntaxMeta,
@@ -75,8 +76,10 @@ export function extractSyntaxFacts(
         const primitive = createPropertyPrimitive(locator, source, node.from, node.to);
         if (primitive) {
           const meta = primitive.meta;
+          // Structural identity: document-order ordinal, independent of the
+          // physical line. Source location stays in `line`/`meta`.
           statements.push({
-            id: meta.line,
+            id: statements.length,
             line: meta.line,
             meta,
             primitives: [primitive],
@@ -92,8 +95,10 @@ export function extractSyntaxFacts(
       lastProperty = null;
 
       const statementMeta = createMeta(locator, node.from, node.to, source.slice(node.from, node.to));
+      // Structural identity: document-order ordinal, independent of the
+      // physical line. Source location stays in `line`/`meta`.
       const statement: SyntaxStatement = {
-        id: statementMeta.line,
+        id: statements.length,
         line: statementMeta.line,
         meta: statementMeta,
         primitives: [],
@@ -217,6 +222,20 @@ function mapFragmentToPrimitive(
               .map((n) => parseInt(n.trim(), 10))
           : undefined,
         label: label ? source.slice(label.from, label.to) : undefined,
+      };
+      return primitive;
+    }
+
+    case terms.RoundScheme: {
+      const match = raw.match(/^(\d+)\s*[xX]\s*(\d+)$/);
+      if (!match) return null;
+
+      const primitive: RoundSchemePrimitive = {
+        kind: 'round_scheme',
+        raw,
+        meta,
+        rounds: parseInt(match[1], 10),
+        reps: parseInt(match[2], 10),
       };
       return primitive;
     }

@@ -138,7 +138,9 @@ export function useCollectionMetrics(
               metricType: metric.type as MetricType,
               hint: metric.image || '?',
               origin: 'hinted',
-              statementIndex: (seg as unknown as { context?: { sourceStatementId?: number } }).context?.sourceStatementId ?? 0,
+              // Post-run items never resolve back through script.statements;
+              // sourceStatementId is a Statement ID, not an array index.
+              statementIndex: 0,
               roundIndex: roundMatch ? parseInt(roundMatch[1]) + 1 : undefined,
               setIndex: setMatch ? parseInt(setMatch[1]) + 1 : undefined,
             } satisfies ValueCollectionItem);

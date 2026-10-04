@@ -7,7 +7,7 @@
  * only constant chrome across sections.
  */
 
-import { Dumbbell, Settings } from 'lucide-react'
+import { Dumbbell, Plus, Settings } from 'lucide-react'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
@@ -20,7 +20,7 @@ import { executeNavAction } from './navTypes'
 import { isItemActive } from './NavSidebar'
 import type { NavItem, NavActionDeps } from './navTypes'
 
-export function AppRail({ onSearch }: { onSearch: () => void }) {
+export function AppRail({ onSearch, onCreate }: { onSearch: () => void; onCreate?: () => void }) {
   const { tree, navState, dispatch } = useNav()
   const navigate = useNavigate()
   const location = useLocation()
@@ -81,6 +81,19 @@ export function AppRail({ onSearch }: { onSearch: () => void }) {
           )
         })}
       </nav>
+
+      {onCreate && (
+        <button
+          type="button"
+          onClick={onCreate}
+          title="New journal note"
+          aria-label="New journal note"
+          data-testid="app-rail-create"
+          className="mt-1.5 grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+        >
+          <Plus className="size-5" />
+        </button>
+      )}
 
       <div className="flex-1" />
 

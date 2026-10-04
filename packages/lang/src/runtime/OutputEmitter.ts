@@ -115,6 +115,8 @@ export class OutputEmitter {
             ? this._analyticsEngine.run(output)
             : output;
 
+        this._propagateSourceLine(processed);
+
         this._outputStatements.push(processed);
 
         for (const listener of this._outputListeners) {
@@ -450,4 +452,15 @@ export class OutputEmitter {
     // =========================================================================
     // Private helpers
     // =========================================================================
+
+    /** Options-built outputs carry only sourceStatementId — copy the source
+     *  statement's line/text/dialect so persisted logs stay joinable by line. */
+    private _propagateSourceLine(output: IOutputStatement): void {
+        if (output.sourceStatementId === undefined || output.line !== undefined) return;
+        const src = this._script?.getId(output.sourceStatementId);
+        if (!src) return;
+        output.line = src.line;
+        output.text ??= src.text;
+        output.dialect ??= src.dialect;
+    }
 }
