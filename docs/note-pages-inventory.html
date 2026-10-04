@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Note Pages Inventory — wod-wiki playground</title>
+<style>
+  :root {
+    --bg: #f8f9fb; --panel: #ffffff; --ink: #1a2332; --muted: #5b6577;
+    --line: #e3e7ee; --accent: #2563eb; --accent-soft: #eff4ff;
+    --green: #0f766e; --green-soft: #ecfdf9; --amber: #92400e; --amber-soft: #fff7ed;
+    --purple: #6d28d9; --purple-soft: #f5f0ff; --code: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 48px 0 12px; padding-top: 16px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; margin: 28px 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 8px; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  code { background: #eef1f6; border-radius: 4px; padding: 1px 5px; font-size: 13px;
+         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  pre code { background: none; padding: 0; }
+  pre { background: var(--code); color: #e2e8f0; padding: 12px 14px; border-radius: 8px;
+        overflow-x: auto; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); margin: 12px 0;
+          border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #f1f4f9; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+          padding: 18px 20px; margin: 14px 0; }
+  .view { border-left: 4px solid var(--accent); }
+  .view.effort { border-left-color: var(--green); }
+  .view.dash { border-left-color: var(--purple); }
+  .view h3 { margin: 0 0 2px; }
+  .path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px;
+          background: var(--accent-soft); color: var(--accent); border-radius: 5px;
+          padding: 2px 7px; display: inline-block; margin: 2px 4px 2px 0; }
+  .path.effort { background: var(--green-soft); color: var(--green); }
+  .path.dash { background: var(--purple-soft); color: var(--purple); }
+  .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+         color: var(--muted); margin: 14px 0 4px; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  .tag { display: inline-block; font-size: 12px; border: 1px solid var(--line); border-radius: 99px;
+         padding: 1px 9px; margin: 2px 3px 2px 0; background: #fbfcfe; color: var(--muted); }
+  .btn { display: inline-block; font-size: 12.5px; font-weight: 600; border-radius: 6px;
+         padding: 2px 8px; margin: 2px 3px 2px 0; border: 1px solid #c7d4ea; background: var(--accent-soft);
+         color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.log { background: var(--green-soft); color: var(--green); border-color: #b6e3d7; }
+  .btn.warn { background: var(--amber-soft); color: var(--amber); border-color: #ecd9b8; }
+  .pill { display:inline-block; font-size:12px; background:#eef1f6; border-radius:5px; padding:1px 7px; margin:1px 3px 1px 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .two { grid-template-columns: 1fr; } }
+  .note { background: var(--amber-soft); border: 1px solid #ecd9b8; border-radius: 8px;
+          padding: 10px 14px; font-size: 13.5px; margin: 12px 0; }
+  .toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Note Pages Inventory</h1>
+<p class="sub">Every page in the playground app that renders a <strong>note object</strong>, and the chrome each one shows.</p>
+<p class="meta">wod-wiki · playground app · generated 2026-10-04 · sources: <code>apps/playground/app/App.tsx</code>, <code>lib/routeView.ts</code>, <code>lib/routes.ts</code>, <code>app/nav/appNavTree.ts</code>, <code>src/panels/page-shells/StickyPageHeader.tsx</code>, <code>app/hooks/useScriptBlockCommands.tsx</code>, verified against component sources.</p>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ul>
+    <li><a href="#model">1 · The note object &amp; the three view families</a></li>
+    <li><a href="#chrome">2 · Shared chrome — sidebar (L2/L3), sticky header, time &amp; log items</a></li>
+    <li><a href="#notes">3 · Notes views (per source)</a></li>
+    <li><a href="#efforts">4 · Efforts views</a></li>
+    <li><a href="#dashboards">5 · Dashboards views</a></li>
+  </ul>
+</div>
+
+<h2 id="model">1 · The note object &amp; the three families</h2>
+
+<p>The app routes through a pure classifier (<code>routeView.ts</code>) that maps each URL to one of 14 <code>PageKind</code> values; the page surface (<code>AppContent.tsx</code>) then mounts the component. Three families of pages render a note object:</p>
+
+<table>
+  <tr><th>Family</th><th>What the "note object" is here</th><th>Pages</th></tr>
+  <tr>
+    <td><strong>Notes</strong></td>
+    <td>The stored <code>Note</code> (<code>id</code>, <code>title</code>, <code>type</code>, <code>sourceId</code>, <code>catalog</code>, <code>slug</code>). The <strong>source</strong> (playground · journal · collection · feed · guides · effort · canvas) drives display rules: which buttons exist, whether it is editable, and how list entries link to it.</td>
+    <td><code>/notes/:noteId</code>, <code>/journal/:date</code>, <code>/playground/:id</code>, <code>/c/:collection/:workout</code>, <code>/feeds/…</code>, <code>/collections/:slug/:date</code>, canvas corpus pages (<code>/p/*</code>, <code>/c/:slug</code>, <code>/</code>)</td>
+  </tr>
+  <tr>
+    <td><strong>Efforts</strong></td>
+    <td><em>Not</em> a note — a registry object (<code>IEffort</code>: slug, label, aliases, baseAttributes, <code>registrySource: bundled|user</code>) serialized as a YAML-frontmatter note document and edited with the standard note editor under the synthetic id <code>effort/&lt;slug&gt;</code>. A shadow note (sourceId <code>effort</code>) is mirrored into the note store on first save so the library can index it.</td>
+    <td><code>/efforts</code> (catalog), <code>/e/:slug</code> (detail)</td>
+  </tr>
+  <tr>
+    <td><strong>Dashboards</strong></td>
+    <td><em>Literally</em> a note: a vault note with <code>dashboard: true</code> frontmatter whose body <code>```query</code> fences are the dashboard widgets. Every widget add/edit/move/remove is a revision-guarded text operation on <code>note.rawContent</code>. A vault note shadows a prebuilt seed of the same slug.</td>
+    <td><code>/dashboards</code> (explorer), <code>/dashboard/:slug</code> / <code>/d/:slug</code> (view)</td>
+  </tr>
+</table>
+
+<h2 id="chrome">2 · Shared chrome</h2>
+
+<h3>Left sidebar — L1 / L2 / L3</h3>
+<p>The sidebar shows the static L1 tree from <code>appNavTree.ts</code>; the L2 list is the children of whichever L1 is active for the current pathname (auto-synced in <code>NavContext</code>). L3 is <em>never</em> static — each note page publishes its own "On this page" index at runtime.</p>
+
+<table>
+  <tr><th>L1</th><th>L2 items (type of link)</th></tr>
+  <tr><td>Home</td><td><strong>Syntax</strong> (guide-page links, from seeded canvas routes) · <strong>Behaviors</strong> (guide pages) · <strong>Analytics</strong> (guide pages)</td></tr>
+  <tr><td>Library</td><td><strong>Journal</strong> → <code>/journal</code> · <strong>Collections</strong> → <code>/collections</code> · <strong>Feeds</strong> → <code>/feeds</code> · <strong>Playgrounds</strong> → <code>/playgrounds</code></td></tr>
+  <tr><td>Dashboard</td><td><em>Dynamic panel</em> (<code>DashboardsNavPanel</code>): Explorer link + list of all dashboards (vault first, then prebuilts) + <strong>New dashboard</strong> action</td></tr>
+  <tr><td>Efforts</td><td><strong>All Efforts</strong> → <code>/efforts</code> + one tag link per discipline (Cardio, Strength, …) → <code>/efforts?q=find:effort{discipline:…}</code></td></tr>
+  <tr><td>Sessions</td><td><em>Dynamic panel</em> (<code>SessionsNavPanel</code>): All Sessions link + recent note pages</td></tr>
+  <tr><td>Settings</td><td>Appearance · System · Queries · Tags …</td></tr>
+</table>
+
+<p><strong>L3 items</strong> (published per page via <code>useNotePageNav</code> → <code>NavContext.setL3Items</code>):</p>
+<ul>
+  <li>Every markdown <strong>heading</strong> in the note (scroll anchors).</li>
+  <li>One entry per <code>```time</code> fence — carries a <strong>Run</strong> secondary action and a result-count badge when results exist.</li>
+  <li>One entry per <code>```log</code> fence — <strong>display-only</strong> (badge yes, Run affordance no, #891/#894).</li>
+  <li>Rendered inside the ⋮ ActionsMenu ("On this page") below 2xl; owned by the secondary rail from 2xl up.</li>
+</ul>
+<div class="note">Deep link <code>/notes/:noteId</code> matches no L1 <code>isActive</code> predicate, so no L2 zone is expanded there — the sidebar shows L1 items only.</div>
+
+<h3>Sticky header (desktop lg+; hidden on mobile)</h3>
+<p>Every page mounts <code>StickyPageHeader</code> (via <code>JournalPageShell</code> on note pages). Slots:</p>
+<table>
+  <tr><th>Slot</th><th>Values typically shown</th></tr>
+  <tr><td><code>title</code></td><td>Note title / date / effort label / item name / dashboard title</td></tr>
+  <tr><td><code>subtitle</code></td><td>Route id, "N notes", "Editable dashboard note." / "Prebuilt — read-only until cloned", feed source</td></tr>
+  <tr><td><code>titleAccessory</code></td><td>Challenge badge (canvas), Bundled/Custom badge (effort)</td></tr>
+  <tr><td><code>actions</code></td><td><code>PageActions</code> — see below</td></tr>
+  <tr><td><code>queryBar</code></td><td>WQL composer on stream/explorer pages (the header <em>is</em> the query bar)</td></tr>
+  <tr><td><code>subheader</code></td><td>e.g. collection workout filter strip</td></tr>
+</table>
+
+<p><strong>Functions in the header action bar</strong> (<code>PageActions</code>, mode-driven):</p>
+<ul>
+  <li><span class="btn primary">Search</span> opens the command palette / WQL search (Ctrl/Cmd+K).</li>
+  <li><span class="btn">Cast</span> chromecast the page.</li>
+  <li><span class="btn">⋮ Page options</span> ActionsMenu: secondary nav sections + <strong>On this page</strong> (L3 index) + <strong>Download Markdown</strong>.</li>
+  <li><span class="btn warn">New</span> <span class="btn warn">Reset</span> — <em>playground mode only</em>: create a new playground note / reset current page to the default template.</li>
+</ul>
+<p>On mobile the header is hidden; <code>ResponsiveActions</code> relocates the same actions into the navbar pin / thumb dock (FAB opens search; dock sheet hosts the page options; playground's New|Reset still renders).</p>
+
+<h3>"Time and log" items</h3>
+<p>Workout blocks in the note body: <code>```time</code> = a runnable timer script, <code>```log</code> = a record-only script. They surface in three places:</p>
+<ol>
+  <li><strong>L3 index entries</strong> (above) — Run secondary on <code>time</code> links only.</li>
+  <li><strong>InlineCommandBar</strong> — floating pill buttons at the top-right of each block, from <code>useScriptBlockCommands(mode)</code>. Pages only supply handlers they implement; a <code>log</code> block swaps <strong>Log</strong> in place of <strong>Play</strong> and drops Today/Schedule (#891/#894).</li>
+  <li><strong>ResultListItem rows</strong> — logged results under the block: clock time, status icon, title/subtitle; the whole row is a button opening the recorded entry.</li>
+</ol>
+
+<p>Button matrix by page mode (verified in <code>useScriptBlockCommands.tsx</code>):</p>
+<table>
+  <tr><th>Page mode</th><th>Buttons on a <code>time</code> block</th><th>On a <code>log</code> block</th></tr>
+  <tr><td><code>playground</code></td><td><span class="btn primary">Play</span><span class="btn log">Log*</span><span class="btn">Share</span><span class="btn">Today</span><span class="btn">Schedule</span></td><td><span class="btn primary">Log</span><span class="btn">Share</span></td></tr>
+  <tr><td><code>journal-active</code></td><td><span class="btn primary">Play</span><span class="btn log">Log*</span><span class="btn">Share</span><span class="btn">Schedule</span></td><td><span class="btn primary">Log</span><span class="btn">Share</span></td></tr>
+  <tr><td><code>journal-history</code></td><td><span class="btn">Share</span><span class="btn">Schedule</span></td><td><span class="btn">Share</span><span class="btn">Schedule</span></td></tr>
+  <tr><td><code>journal-plan</code></td><td><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span></td><td><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span></td></tr>
+  <tr><td><code>collection-readonly</code> (collection · feed · effort · canvas)</td><td><span class="btn primary">Play</span><span class="btn log">Log*</span><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span></td><td><span class="btn primary">Log</span><span class="btn">Playground</span><span class="btn">Share</span></td></tr>
+</table>
+<p class="meta">* Log appears only when the page wires an <code>onLog</code> handler. Play/Log semantics: Play starts a runtime (<code>/run/:runtimeId</code>); Log opens the block in record mode; Today appends it to today's journal; Schedule opens a date picker; Playground opens it as a new playground page; Share copies a deep link.</p>
+
+<h2 id="notes">3 · Notes views — one per source</h2>
+
+<div class="card view">
+  <h3>Canonical note — <em>NoteByIdPage</em></h3>
+  <span class="path">/notes/:noteId</span>
+  <p class="sub">Source-agnostic fallback for every note kind (journal, collection item, playground, feed, effort shadow…). Deliberately plain: source does <em>not</em> change display here.</p>
+  <div class="lbl">Data displayed</div>
+  <p>Note title + note id path; raw markdown body in the editor (read mode default). Loading / "Note not found." states.</p>
+  <div class="lbl">L2 (left)</div><p>None — pathname lights no L1 zone.</p>
+  <div class="lbl">L3</div><p>Page index from the note's headings + time/log fences (no result badges wired, no Run on this page).</p>
+  <div class="lbl">Time/log buttons</div><p><strong>None</strong> — no command matrix is mounted on this page.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = entry title, subtitle = <code>/notes/:noteId</code>. <strong>Functions:</strong> Edit ↔ Read mode toggle; Back button on missing note. Autosave via content provider on idle/blur in edit mode.</p>
+</div>
+
+<div class="card view">
+  <h3>Journal date — <em>JournalDatePage</em></h3>
+  <span class="path">/journal/:date</span><span class="path">/journal/:identity → redirect</span>
+  <p class="sub">All journal notes for one date, sorted by createdAt. Journal is the fully-writable source.</p>
+  <div class="lbl">Data displayed</div>
+  <p>Date title + "N notes" subtitle; one editor per note (single note → bare editor, multiple → bordered cards with title headers); multi-note chip nav linking each note; result blocks (<code>query:table</code>) injected when a workout completes.</p>
+  <div class="lbl">L2 (left)</div><p>Library zone: Journal · Collections · Feeds · Playgrounds.</p>
+  <div class="lbl">L3</div><p>Per-note index (headings + time fences) with <strong>Run</strong> secondary and result-count badges; log entries display-only.</p>
+  <div class="lbl">Time/log buttons</div><p><code>journal-active</code> matrix: <span class="btn primary">Play</span><span class="btn log">Log</span><span class="btn">Share</span><span class="btn">Schedule</span>. Completion writes a result block + records the session.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = date, subtitle = "N notes". <strong>Functions:</strong> Edit toggle (default <em>edit</em> — the opposite of the canonical note); <code>?autoStart=&lt;runtimeId&gt;</code> boots the FullscreenTimer.</p>
+</div>
+
+<div class="card view">
+  <h3>Playground note — <em>PlaygroundNotePage</em></h3>
+  <span class="path">/playground/:id</span><span class="path">/playground → mints a new note</span>
+  <p class="sub">Personal sandbox note. IDB-first with bundled fallback; only source with Reset + custom widgets.</p>
+  <div class="lbl">Data displayed</div>
+  <p>Formatted page title; markdown body with custom widget components (run-tip, attention, code-example, syntax-group); per-note results; <code>$CURSOR</code> placement.</p>
+  <div class="lbl">L2 (left)</div><p>Library zone: Playgrounds highlighted.</p>
+  <div class="lbl">L3</div><p>Page index with Run secondary + result badges (results wired on this page).</p>
+  <div class="lbl">Time/log buttons</div><p><code>playground</code> matrix: <span class="btn primary">Play</span><span class="btn log">Log</span><span class="btn">Share</span><span class="btn">Today</span><span class="btn">Schedule</span>.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = playground page title. <strong>Functions:</strong> <span class="btn warn">New</span> create note · <span class="btn warn">Reset</span> restore default template · Search · Cast · ⋮ menu · <strong>Move to journal</strong> (promotes the same UUID into the journal, clearing the playground source).</p>
+</div>
+
+<div class="card view">
+  <h3>Collection workout — <em>WorkoutEditorPage</em></h3>
+  <span class="path">/c/:collection/:workout</span><span class="path">/note/:category/:name (legacy → falls through)</span>
+  <p class="sub">Bundled collection item. Read-first; viewing must not mint a note (seeding off at source, #856).</p>
+  <div class="lbl">Data displayed</div>
+  <p>Workout name title; markdown body; page nav index; sourceNote stamping on journal copies.</p>
+  <div class="lbl">L2 (left)</div><p>Library zone: Collections highlighted.</p>
+  <div class="lbl">L3</div><p>Page index (headings + time/log fences) with Run secondary.</p>
+  <div class="lbl">Time/log buttons</div><p><code>collection-readonly</code> matrix: <span class="btn primary">Play</span><span class="btn log">Log</span><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span> (+ Add-to-today wired). Run appends to today's journal then auto-starts — except <code>syntax</code> category, which runs in a popup.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = workout name. <strong>Functions:</strong> Edit ↔ Read toggle (default read) · Search · Cast · ⋮ menu (incl. Download Markdown).</p>
+</div>
+
+<div class="card view">
+  <h3>Feed item — <em>FeedItemPage</em> <span class="tag">read-only at source</span></h3>
+  <span class="path">/feeds/:feedSlug/:feedDate/:feedItem</span>
+  <p class="sub">Feed workouts are immutable at source; local edits survive as a scratch overlay keyed <code>feed/{slug}/{date}/{item}</code>. No seeding on view (#856).</p>
+  <div class="lbl">Data displayed</div>
+  <p>Feed item name title; markdown body; "Feed item not found." fallback.</p>
+  <div class="lbl">L2 (left)</div><p>Library zone: Feeds highlighted.</p>
+  <div class="lbl">L3</div><p>Page index with Run secondary.</p>
+  <div class="lbl">Time/log buttons</div><p><code>collection-readonly</code> matrix: <span class="btn primary">Play</span><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Today</span><span class="btn">Schedule</span>. Run Now clones into today's journal and auto-starts.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = item name. <strong>Functions:</strong> Search · Cast · ⋮ menu (Download Markdown of the feed content).</p>
+</div>
+
+<div class="card view">
+  <h3>Collection date index — <em>CollectionDatePage</em></h3>
+  <span class="path">/collections/:slug/:date</span>
+  <p class="sub">Date-scoped list of collection notes (catalog filter) — links only, no editor.</p>
+  <div class="lbl">Data displayed</div><p>Date title + collection slug subtitle; list of note title + time links → <code>/notes/:noteId</code>.</p>
+  <div class="lbl">L2 (left)</div><p>Collections zone.</p>
+  <div class="lbl">L3</div><p>None.</p>
+  <div class="lbl">Time/log buttons</div><p>None.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = date, subtitle = collection slug. <strong>Functions:</strong> standard PageActions.</p>
+</div>
+
+<div class="card view">
+  <h3>Canvas corpus pages — <em>MarkdownCanvasPage / ScrollCanvasPage</em></h3>
+  <span class="path">/p/*</span><span class="path">/c/:slug</span><span class="path">/</span><span class="path">+ all seeded markdown/canvas/** routes</span>
+  <p class="sub">Note-backed (note id <code>canvas:&lt;route&gt;</code>) but layout is declared by the markdown itself: prose sections + buttons/widgets + a sticky editor/runtime panel per section <code>view</code> block.</p>
+  <div class="lbl">Data displayed</div>
+  <p>Prose column (sections with theme/density); widget heroes (carousel, workouts-list); challenge blocks with badge; quests/chapters/scroll specs; per-section editor or runtime panel resolved through the <code>resolveSource</code> DSL.</p>
+  <div class="lbl">L2 (left)</div><p>Home zone (guide pillars) or Collections zone for <code>/c/:slug</code> collection READMEs.</p>
+  <div class="lbl">L3</div><p>With-index variant: "On this page" from page headings.</p>
+  <div class="lbl">Time/log buttons</div><p>Section command pipelines via <code>collection-readonly</code> mode (Play/Playground/Share/Schedule + view-block buttons).</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> page title + subtitle; workout filter strip subheader on <code>/c</code>. <strong>Functions:</strong> PageActions <code>collection-readonly</code> (Search · Cast · ⋮).</p>
+</div>
+
+<h2 id="efforts">4 · Efforts views</h2>
+
+<div class="card view effort">
+  <h3>Effort catalog — <em>QueriableStreamView</em> (EFFORTS_STREAM_PROFILE)</h3>
+  <span class="path effort">/efforts</span>
+  <div class="lbl">Data displayed</div>
+  <p>Effort rows from <code>find:effort</code>: label, slug (mono), registrySource, discipline; date-group stream or property-table layout per View settings.</p>
+  <div class="lbl">L2 (left)</div><p>Efforts zone: All Efforts + per-discipline tag links (Cardio, Strength, …).</p>
+  <div class="lbl">L3</div><p>None — stream list, no page index.</p>
+  <div class="lbl">Time/log buttons</div><p>None.</p>
+  <div class="lbl">Sticky header</div><p>Header-less variant: the header <em>is</em> the WQL query bar. <strong>Functions:</strong> WQL composer (debounced run, examples, vocabulary chips, field catalog) · <span class="btn primary">New</span> (create effort) · View settings (layout/fields/group-by) · Recent entries menu.</p>
+</div>
+
+<div class="card view effort">
+  <h3>Effort detail — <em>EffortDetailPage</em></h3>
+  <span class="path effort">/e/:slug</span><span class="path effort">/effort/:slug → redirect</span><span class="path effort">/e/new?mode=create</span>
+  <p class="sub">Effort registry object rendered as a note document: YAML frontmatter + markdown body. <code>registrySource</code> is the editability rule — bundled is read-only until first edit auto-clones to <code>&lt;slug&gt;-custom</code> (user tier).</p>
+  <div class="lbl">Data displayed</div>
+  <p>Effort label title; <strong>Bundled / Custom</strong> source badge; frontmatter rendered as a table (met, discipline, intensityTier, aliases, derivation); markdown body; "Effective Resolution" widget (effective MET with base-delta warning, discipline factor, applied-modifier badges, parent slug) toggled by Show Resolved.</p>
+  <div class="lbl">L2 (left)</div><p>Efforts zone.</p>
+  <div class="lbl">L3</div><p>Page index from the effort document (headings + time/log fences).</p>
+  <div class="lbl">Time/log buttons</div><p><code>collection-readonly</code> matrix: <span class="btn primary">Play</span> (→ <code>/run/:runtimeId</code>) <span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span> (schedule clones into the journal, category <code>effort</code>).</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title = effort label, accessory = Bundled/Custom badge. <strong>Functions:</strong> <span class="btn primary">Clone</span> (bundled → editable custom copy) · Back to catalog · Show/Hide Resolved · live editing (debounced save to registry + shadow note) · Search · Cast · ⋮ menu.</p>
+</div>
+
+<h2 id="dashboards">5 · Dashboards views</h2>
+
+<div class="card view dash">
+  <h3>Dashboard explorer — <em>AnalyticsExplorerPage</em></h3>
+  <span class="path dash">/dashboards</span><span class="path dash">/analytics → redirect</span><span class="path dash">/dashboard → redirect</span>
+  <div class="lbl">Data displayed</div>
+  <p>WQL query results in a single WidgetFrame: scalar value, timeseries, bars, or date-grouped find stream; RawPointsTable of matched facts; "Records in this calculation" disclosure with derived find WQL; draft-validity indicator + metric/filter vocabulary chips.</p>
+  <div class="lbl">L2 (left)</div><p>Dashboard zone (dynamic panel): Explorer + dashboard list + New dashboard.</p>
+  <div class="lbl">L3</div><p>None.</p>
+  <div class="lbl">Time/log buttons</div><p>None.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> header-less — WQL composer query bar. <strong>Functions:</strong> Run · <span class="btn primary">Save</span> (opens QueryToDashboardDialog: pick editable dashboard or New → appends widget → navigates to <code>/dashboard/:slug</code>) · Inspect pipeline · Records toggle · Explorer options (weeks range, unit) · example chips.</p>
+</div>
+
+<div class="card view dash">
+  <h3>Dashboard view — <em>DashboardViewPage</em></h3>
+  <span class="path dash">/dashboard/:slug</span><span class="path dash">/d/:slug</span>
+  <p class="sub">Renders a dashboard note: <code>dashboard: true</code> frontmatter + <code>```query</code> fences parsed into a responsive 1/2/4-column widget grid. Vault note shadows prebuilt seed of the same slug.</p>
+  <div class="lbl">Data displayed</div>
+  <p>Dashboard title + "Editable dashboard note." / "Prebuilt — read-only until cloned" subtitle; widget frames (title, question, query) of types: <span class="pill">table</span><span class="pill">list</span><span class="pill">value</span><span class="pill">timeseries</span><span class="pill">bar</span><span class="pill">toplist</span><span class="pill">stacked-bar</span><span class="pill">goal-rings</span><span class="pill">zone-distribution</span>; frontmatter tokens (<code>$name</code>) as token controls; per-widget errors (unknown type, missing token, parse failure); SampleDataPrompt when the event store is empty.</p>
+  <div class="lbl">L2 (left)</div><p>Dashboard zone; the active dashboard is highlighted in the panel list.</p>
+  <div class="lbl">L3</div><p>None.</p>
+  <div class="lbl">Time/log buttons</div><p>None — the analog is the per-widget toolbar in edit mode: <span class="btn">edit</span><span class="btn">move up/down</span><span class="btn">resize (1/2/4/full)</span><span class="btn">duplicate</span><span class="btn">remove</span>.</p>
+  <div class="lbl">Sticky header</div><p><strong>Values:</strong> title (from the parsed document), subtitle = editable vs prebuilt. <strong>Functions:</strong> Edit/Done toggle (vault only) · <span class="btn primary">Add widget</span> (composer: dataset + calculation + visualization + preview) · Range selector · Unit preference · per-widget mutations are revision-guarded note-text ops · prebuilt: read-only inspect + <span class="btn primary">Clone to vault</span>.</p>
+</div>
+
+<footer>
+  Key sources: <code>apps/playground/app/App.tsx</code> (route table) · <code>app/lib/routeView.ts</code> (PageKind) · <code>app/lib/routes.ts</code> (path patterns) · <code>app/nav/appNavTree.ts</code> (L1/L2) · <code>app/pages/shared/useNotePageNav.ts</code> + <code>pageUtils.ts</code> (L3 index) · <code>src/panels/page-shells/StickyPageHeader.tsx</code> + <code>app/pages/shared/PageActions.tsx</code> + <code>PageToolbar.tsx</code> (header/actions) · <code>app/hooks/useScriptBlockCommands.tsx</code> (time/log button matrix) · <code>app/pages/*</code> (per-view details) · <code>app/views/dashboards/*</code> · <code>packages/wql/src/dashboard/model.ts</code> · <code>apps/playground/src/repositories/effort-markdown.ts</code>.
+</footer>
+
+</div>
+</body>
+</html>

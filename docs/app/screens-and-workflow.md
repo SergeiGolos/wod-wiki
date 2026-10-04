@@ -19,9 +19,11 @@ The WOD Wiki application follows a continuous loop: **Plan → Track → Analyze
 
 ### Note editing
 
-Properties inputs suggest registered property names and typed tag values. General tag inputs suggest tags across types and exclude existing chips. Focus, typing, and Ctrl+Space open suggestions; arrow keys select an option, Enter or Tab accepts the selected option, and Escape closes the list. Add tag focuses the existing tags input instead of creating another property.
+Properties inputs suggest registered property names and typed tag values. General tag inputs suggest tags across types and exclude existing chips. Focus and Ctrl+Space open all available suggestions; typing filters them. Arrow keys select an option, Enter or Tab accepts it, and Escape closes the list. Add tag focuses an existing tag input or opens a draft; no empty property is saved until a tag commits. Escape cancels the draft, and duplicate tag values are ignored case-insensitively.
 
-Raw YAML frontmatter supports property scaffolds and tag completion. Accepting a property opens its value list; deleting a filter to empty shows all values again. Tab accepts a highlighted completion rather than indenting. Enter on an empty inline or list value creates a newline regardless of completion latency. Enter with a typed filter accepts the selected suggestion. Completion stops at the closing frontmatter fence.
+Edit YAML reveals the note's frontmatter source without changing its contents. Moving the caret into the body restores the Properties widget. Raw YAML supports property scaffolds and tag completion. Accepting a property opens its value list; deleting a filter to empty shows all values again. Tab accepts a highlighted completion rather than indenting. Enter on an empty inline or list value creates a newline regardless of completion latency. Enter with a typed filter accepts the selected suggestion. Completion stops at the closing frontmatter fence.
+
+Entering edit mode focuses the editor. Arrow keys move between visual rows, including wrapped paragraphs; Shift+ArrowUp extends selection by one row, and Home on an empty line stays there.
 
 Workout metrics refresh on the current line as it changes. Movement names are parsed live, not autocompleted. Newly saved notes retain exact source fragments, including blank lines, fence spelling, trailing whitespace, and line endings; older notes retain their legacy reconstruction until saved.
 
