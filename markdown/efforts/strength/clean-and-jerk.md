@@ -6,6 +6,7 @@ aliases:
   - c&j
   - clean jerk
   - clean & jerk
+  - "Clean & Jerks"
 baseAttributes:
   met: 8.0
   discipline: strength

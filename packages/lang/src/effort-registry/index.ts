@@ -6,3 +6,4 @@ export * from './CompositeEffortRegistry';
 export * from './fuzzyMatch';
 export * from './fixtures';
 export * from './data/bundled-efforts';
+export * from './aliasManagement';

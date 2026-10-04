@@ -5,6 +5,7 @@ label: Burpee
 aliases:
   - burpees
   - chest-to-floor burpee
+  - "Max Effort Burpees"
 baseAttributes:
   met: 10.0
   discipline: bodyweight

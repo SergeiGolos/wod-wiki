@@ -83,6 +83,7 @@ export interface IEffort {
 export interface IEffortRegistry {
   // Read
   resolve(slug: string): IEffort | null;
+  resolveByAlias(label: string): IEffort | null;
   list(): readonly IEffort[];
   listByOrigin(origin: EffortRegistrySource): readonly IEffort[];
 

@@ -722,6 +722,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [baseExtensions, extraExtensions, mode, isDark, languages]);
 
+  // Focus on open / readonly→editable transition. Must stay AFTER the
+  // reconfigure effect above: .cm-content only takes focus once the view is
+  // actually editable (previously activeElement stayed on the Edit button).
+  useEffect(() => {
+    if (!readonly) viewRef.current?.focus();
+  }, [readonly]);
+
   // Handle external scroll requests
   useEffect(() => {
     if (scrollToSectionId && viewRef.current) {

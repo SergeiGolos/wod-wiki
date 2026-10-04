@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { parseEffortRouteModifiers, parseEffortRouteOptions } from '../../../playground/src/lib/routes';
+import { parseEffortRouteModifiers, parseEffortRouteOptions } from '../../app/lib/routes';
 
 describe('Effort Route Utilities', () => {
   describe('parseEffortRouteModifiers', () => {
@@ -69,6 +69,12 @@ describe('Effort Route Utilities', () => {
       expect(modifiers).toEqual({ speed: '6mph', weight: '200lb' });
       expect(options.mode).toBe('view');
       expect(options.tab).toBe('definition');
+    });
+
+    it('should parse mode=create option for direct effort authoring deep links', () => {
+      const params = new URLSearchParams('mode=create');
+      const options = parseEffortRouteOptions(params);
+      expect(options.mode).toBe('create');
     });
   });
 });

@@ -44,6 +44,7 @@ import { parseScript } from '@bitcobblers/wod-wiki-lang';
 import { parseDocumentSections, type Section } from '@bitcobblers/wod-wiki-core';
 import { extractEffortSlugs } from '@/services/storage/StorageService';
 import { fileToDisplayName } from '@/repositories/groupings';
+import { parseEffortFile } from '@/repositories/effort-markdown';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
@@ -83,6 +84,8 @@ export interface GenerateSeedOptions {
   version?: number;
   /** Repo root the corpus paths resolve against. */
   corpusRoot?: string;
+  /** Automatically scaffold markdown files for newly discovered efforts */
+  scaffoldDiscoveredEfforts?: boolean;
 }
 
 export interface GenerateSeedResult {
@@ -161,7 +164,10 @@ export function partitionIntoChunks(paths: string[]): ChunkGroup[] {
  */
 function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDataType {
   switch (section.type) {
-    case 'wod': return 'wod';
+    case 'wod':
+    case 'time':
+    case 'log':
+      return 'wod';
     case 'title': {
       const l = section.level ?? 1;
       return `h${Math.min(Math.max(l, 1), 6)}` as SegmentDataType;
@@ -333,24 +339,166 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
 }
 
 /**
+ * Uncataloged effort discovered during workout block analysis.
+ */
+export interface DiscoveredEffort {
+  slug: string;
+  label: string;
+  rawLabels: string[];
+}
+
+const NON_EFFORT_SLUGS = new Set([
+  'amrap', 'emom', 'tabata', 'for-time', 'rounds', 'sets', 'repetitions', 'count-down', 'total-reps',
+  'warmup', 'cooldown', 'cool-down', 'transition', 'rest', 'break', 'work',
+  'i-suck-at-this', 'isuckatthis', 'movement', 'movement-you', 'selected-exercise',
+  'training-setup', 'grade-system', 'hangs', 'warm-light-wind', 'basin', 'rock-canyon',
+  'b-onsight', 'a-redpoint', 'd-redpoint', 'v0-flash', 'v2-flash', 'v7-redpoint',
+  'avgrpe-mean', 'calculate', 'totalload-sum', 'query', 'by',
+  '', '-', '...', 'x', 's', 'bw'
+]);
+
+function formatDiscoveredLabel(raw: string): string {
+  const clean = raw.replace(/[-_]+/g, ' ').trim();
+  return clean
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+export function loadExistingEffortMap(markdownDir: string): {
+  slugs: Set<string>;
+  aliasToCanonical: Map<string, string>;
+} {
+  const slugs = new Set<string>();
+  const aliasToCanonical = new Map<string, string>();
+  const effortsDir = join(markdownDir, 'efforts');
+  if (!existsSync(effortsDir)) return { slugs, aliasToCanonical };
+
+  const glob = new Glob('**/*.md');
+  for (const file of glob.scanSync({ cwd: effortsDir, onlyFiles: true })) {
+    const raw = readFileSync(join(effortsDir, file), 'utf8');
+    const parsed = parseEffortFile(raw);
+    if (!parsed) continue;
+
+    slugs.add(parsed.slug);
+    aliasToCanonical.set(parsed.slug, parsed.slug);
+    aliasToCanonical.set(parsed.label.toLowerCase(), parsed.slug);
+    aliasToCanonical.set(parsed.slug.replace(/-/g, ' '), parsed.slug);
+
+    for (const alias of parsed.aliases) {
+      aliasToCanonical.set(alias.toLowerCase(), parsed.slug);
+      aliasToCanonical.set(alias.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), parsed.slug);
+    }
+  }
+
+  return { slugs, aliasToCanonical };
+}
+
+export function discoverUncatalogedEfforts(markdownDir: string, corpusRoot: string): DiscoveredEffort[] {
+  const { slugs, aliasToCanonical } = loadExistingEffortMap(markdownDir);
+  const blocks = buildBlockIndexRows(markdownDir, corpusRoot);
+  const discovered = new Map<string, { label: string; rawLabels: Set<string> }>();
+
+  for (const block of blocks) {
+    if (block.dataType !== 'wod' || !block.rawContent) continue;
+    const script = parseScript(block.rawContent);
+    for (const statement of script.statements) {
+      const effortLabel = statement.metrics?.getMetric?.('effort')?.effort ?? statement.exerciseId;
+      if (!effortLabel) continue;
+
+      const slugified = effortLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      if (!slugified || NON_EFFORT_SLUGS.has(slugified)) continue;
+
+      const canonical = aliasToCanonical.get(slugified) ?? aliasToCanonical.get(effortLabel.toLowerCase());
+      if (canonical && slugs.has(canonical)) continue;
+
+      const existing = discovered.get(slugified);
+      if (existing) {
+        existing.rawLabels.add(effortLabel);
+      } else {
+        discovered.set(slugified, {
+          label: formatDiscoveredLabel(effortLabel),
+          rawLabels: new Set([effortLabel]),
+        });
+      }
+    }
+  }
+
+  return Array.from(discovered.entries()).map(([slug, data]) => ({
+    slug,
+    label: data.label,
+    rawLabels: Array.from(data.rawLabels),
+  }));
+}
+
+export function scaffoldDiscoveredEfforts(
+  discovered: DiscoveredEffort[],
+  markdownDir: string,
+): string[] {
+  const targetDir = join(markdownDir, 'efforts', 'discovered');
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true });
+  }
+
+  const createdPaths: string[] = [];
+  for (const effort of discovered) {
+    const filePath = join(targetDir, `${effort.slug}.md`);
+    if (existsSync(filePath)) continue;
+
+    const aliases = effort.rawLabels
+      .filter((l) => l.toLowerCase() !== effort.label.toLowerCase())
+      .map((l) => `  - "${l.replace(/"/g, '\\"')}"`);
+
+    const content = [
+      '---',
+      `id: effort-bundled-${effort.slug}`,
+      `slug: ${effort.slug}`,
+      `label: "${effort.label.replace(/"/g, '\\"')}"`,
+      aliases.length > 0 ? `aliases:\n${aliases.join('\n')}` : 'aliases: []',
+      'baseAttributes:',
+      '  met: 5.0',
+      '  discipline: general',
+      '  intensityTier: moderate',
+      'registrySource: bundled',
+      '---',
+      '',
+    ].join('\n');
+
+    writeFileSync(filePath, content, 'utf8');
+    createdPaths.push(filePath);
+  }
+
+  return createdPaths;
+}
+
+/**
  * Derive BlockEffort[] containment rows from the block-index row set.
  * Requires a second pass over the source markdown to parse the script AST,
  * which is safe because the corpus is static and the pass is compile-time.
  */
 export function buildBlockEffortRows(markdownDir: string, corpusRoot: string): BlockEffort[] {
   const efforts: BlockEffort[] = [];
+  const { aliasToCanonical } = loadExistingEffortMap(markdownDir);
   const blocks = buildBlockIndexRows(markdownDir, corpusRoot);
   for (const block of blocks) {
     if (block.dataType !== 'wod' || !block.rawContent) continue;
     const script = parseScript(block.rawContent);
     const effortSlugs = extractEffortSlugs(script.statements);
-    for (const effortSlug of effortSlugs) {
+    for (const rawSlug of effortSlugs) {
+      const norm = rawSlug.toLowerCase().trim();
+      const canonicalSlug =
+        aliasToCanonical.get(norm) ??
+        aliasToCanonical.get(norm.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) ??
+        norm.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      if (!canonicalSlug || NON_EFFORT_SLUGS.has(canonicalSlug) || NON_EFFORT_SLUGS.has(norm)) {
+        continue;
+      }
       efforts.push({
-        id: `${block.id}:${effortSlug}`,
+        id: `${block.id}:${canonicalSlug}`,
         noteId: block.noteId,
         blockId: block.segmentId,
         blockContentId: block.blockContentId,
-        effortSlug,
+        effortSlug: canonicalSlug,
         isStatic: block.isStatic,
         createdAt: block.createdAt,
       });
@@ -371,6 +519,12 @@ export function generateSeed(options: GenerateSeedOptions = {}): GenerateSeedRes
   const outDir = options.outDir ?? DEFAULT_OUT_DIR;
   const version = options.version ?? Date.now();
   const corpusRoot = options.corpusRoot ?? ROOT;
+  if (options.scaffoldDiscoveredEfforts) {
+    const discovered = discoverUncatalogedEfforts(markdownDir, corpusRoot);
+    if (discovered.length > 0) {
+      scaffoldDiscoveredEfforts(discovered, markdownDir);
+    }
+  }
   const paths = collectCorpusMarkdown(markdownDir);
   const groups = partitionIntoChunks(paths);
   if (existsSync(templateFile)) {
@@ -440,7 +594,8 @@ export function generateSeed(options: GenerateSeedOptions = {}): GenerateSeedRes
 
 function main(): void {
   const started = Date.now();
-  const { manifest, outDir, totalFiles } = generateSeed();
+  const scaffold = process.argv.includes('--scaffold');
+  const { manifest, outDir, totalFiles } = generateSeed({ scaffoldDiscoveredEfforts: scaffold });
   const kb = (n: number): string => `${(n / 1024).toFixed(0)} KB`;
   const totalBytes = manifest.chunks.reduce((s, c) => s + c.bytes, 0);
   console.log(`[generate-seed] schema v${manifest.schema} version ${manifest.version} → ${outDir}`);

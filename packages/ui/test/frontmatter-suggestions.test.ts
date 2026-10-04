@@ -113,6 +113,7 @@ describe('inline frontmatter suggestions', () => {
     expect(format.getAttribute('aria-expanded')).toBe('true');
     expect(format.hasAttribute('aria-activedescendant')).toBe(false);
     format.blur();
+    await settle();
     expect(view.state.doc.toString()).toContain('format: am');
   });
 

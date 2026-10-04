@@ -5,7 +5,6 @@ label: Toes-to-Bar
 aliases:
   - ttb
   - toes to bar
-  - knees to elbows
   - kte
 baseAttributes:
   met: 5.0

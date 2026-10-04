@@ -5,6 +5,7 @@ import type { EditorView } from '@codemirror/view';
 import { completionStatus, currentCompletions, setSelectedCompletion, startCompletion } from '@codemirror/autocomplete';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { InMemoryStorage, resetStorageForTesting, setStorageForTesting, storageService } from '@/hooks/useBrowserServices';
+import type { Tag } from '@/types/storage';
 
 const zeroRect = { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) };
 Object.defineProperty(window.Range.prototype, 'getClientRects', { configurable: true, value: () => [] });
@@ -25,9 +26,9 @@ afterEach(() => {
   resetStorageForTesting();
 });
 
-function editor(doc: string, cursor = doc.length) {
+function editor(doc: string, cursor = doc.length, { preview = false }: { preview?: boolean } = {}) {
   let createdView: EditorView | undefined;
-  render(<NoteEditor value={doc} onChange={() => {}} enablePreview={false} enableLinting={false}
+  render(<NoteEditor value={doc} onChange={() => {}} enablePreview={preview} enableLinting={false}
     hideDefaultCommands onViewCreated={(view) => { createdView = view; }} />);
   if (!createdView) throw new Error('Editor did not mount');
   const view = createdView;
@@ -130,6 +131,76 @@ describe('NoteEditor frontmatter keyboard behavior', () => {
       expect(view.state.doc.lineAt(view.state.selection.main.head).number).toBe(2);
     } finally {
       coords.mockRestore();
+    }
+  });
+});
+
+describe('NoteEditor frontmatter raw editing reachability (preview on)', () => {
+  it('reveals closed frontmatter for completion while raw editing and restores the widget on exit', async () => {
+    const doc = '---\ndomain: climbing\n---\n\nBody text.';
+    const view = editor(doc, doc.length, { preview: true });
+    await waitFor(() => expect(screen.getByLabelText('Property name domain')).toBeTruthy());
+    expect(view.contentDOM.textContent).not.toContain('domain: climbing');
+
+    act(() => { fireEvent.click(screen.getByLabelText('Edit YAML')); });
+    await waitFor(() => expect(view.contentDOM.textContent).toContain('domain: climbing'));
+    await waitFor(() => expect(screen.queryByLabelText('Property name domain')).toBeNull());
+
+    // New property typed on a fresh line inside the closed block.
+    const at = view.state.doc.line(2).to;
+    act(() => {
+      view.dispatch({ changes: { from: at, insert: '\nfor' }, selection: { anchor: at + 4 }, userEvent: 'input.type' });
+    });
+    await complete(view, 'format');
+    act(() => { view.dispatch({ effects: setSelectedCompletion(1) }); });
+    key(view, 'Tab');
+    expect(view.state.doc.toString()).toBe('---\ndomain: climbing\nformat:\n  - \n---\n\nBody text.');
+    await waitFor(() => expect(currentCompletions(view.state).map((option) => option.label)).toContain('amrap'));
+    act(() => { view.dispatch({ effects: setSelectedCompletion(0) }); });
+    key(view, 'Tab');
+    expect(view.state.doc.toString()).toBe('---\ndomain: climbing\nformat:\n  - amrap\n---\n\nBody text.');
+
+    act(() => { view.dispatch({ selection: { anchor: view.state.doc.length } }); });
+    await waitFor(() => expect(screen.getByLabelText('Property name format')).toBeTruthy());
+    expect(view.contentDOM.textContent).not.toContain('format:\n  - amrap');
+  });
+
+  it('keeps completion reachable in open frontmatter with preview enabled', async () => {
+    const view = editor('---\ndom', undefined, { preview: true });
+    await complete(view, 'domain');
+    key(view, 'Enter');
+    expect(view.state.doc.toString()).toBe('---\ndomain:\n  - ');
+    await waitFor(() => expect(currentCompletions(view.state).map((option) => option.label)).toContain('climbing'));
+    expect(view.state.selection.main.head).toBe(view.state.doc.length);
+  });
+
+  it('consumes Tab without changes while a gated value source is in flight, then accepts', async () => {
+    const view = editor('---\ndom');
+    await complete(view, 'domain');
+    const realGetAllTags = storageService.getAllTags.bind(storageService);
+    let release: (tags: Tag[]) => void = () => {};
+    const gate = new Promise<Tag[]>((resolve) => { release = resolve; });
+    storageService.getAllTags = () => gate;
+    try {
+      key(view, 'Tab');
+      expect(view.state.doc.toString()).toBe('---\ndomain:\n  - ');
+
+      // Type while the value source triggered by the scaffold acceptance is
+      // gated: Tab must neither indent nor accept anything yet.
+      const at = view.state.doc.length;
+      act(() => {
+        view.dispatch({ changes: { from: at, insert: 'c' }, selection: { anchor: at + 1 }, userEvent: 'input.type' });
+      });
+      key(view, 'Tab');
+      expect(view.state.doc.toString()).toBe('---\ndomain:\n  - c');
+      expect(view.state.doc.sliceString(at)).not.toContain('\t');
+
+      release(await realGetAllTags());
+      await waitFor(() => expect(currentCompletions(view.state).map((option) => option.label)).toContain('climbing'));
+      key(view, 'Tab');
+      expect(view.state.doc.toString()).toBe('---\ndomain:\n  - climbing');
+    } finally {
+      storageService.getAllTags = realGetAllTags;
     }
   });
 });

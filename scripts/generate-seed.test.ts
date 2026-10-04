@@ -17,10 +17,13 @@ import { join } from 'node:path';
 
 import {
   buildBlockIndexRows,
+  buildBlockEffortRows,
   canvasRouteSlug,
   collectCorpusMarkdown,
+  discoverUncatalogedEfforts,
   generateSeed,
   partitionIntoChunks,
+  scaffoldDiscoveredEfforts,
   chunkIdFor,
 } from './generate-seed';
 import { SEED_SCHEMA } from '@/types/seed';
@@ -184,6 +187,67 @@ describe('buildBlockIndexRows — guides (canvas corpus)', () => {
       // READMEs and pages without a route never reach the index.
       const ids = new Set(rows.map((r) => r.noteId));
       expect(ids).toEqual(new Set(['guide/syntax/basics']));
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('discoverUncatalogedEfforts & scaffoldDiscoveredEfforts', () => {
+  function makeCorpusWithNewEffort(): string {
+    const tmp = mkdtempSync(join(tmpdir(), 'seed-effort-discovery-'));
+    mkdirSync(join(tmp, 'markdown/efforts/strength'), { recursive: true });
+    mkdirSync(join(tmp, 'markdown/collections/workout'), { recursive: true });
+
+    // Existing effort
+    writeFileSync(
+      join(tmp, 'markdown/efforts/strength/pull-up.md'),
+      '---\nid: effort-bundled-pull-up\nslug: pull-up\nlabel: Pull-Up\naliases:\n  - pullups\nbaseAttributes:\n  met: 5.0\n---\n',
+    );
+
+    // Workout with an existing effort alias (pullups) and a brand new effort (zercher-squat)
+    writeFileSync(
+      join(tmp, 'markdown/collections/workout/day1.md'),
+      '# Day 1\n\n```time\n10 Pullups\n5 Zercher Squat 60kg\n```\n',
+    );
+    return tmp;
+  }
+
+  it('discovers uncataloged efforts while mapping existing ones via alias', () => {
+    const tmp = makeCorpusWithNewEffort();
+    try {
+      const discovered = discoverUncatalogedEfforts(join(tmp, 'markdown'), tmp);
+      expect(discovered.map((d) => d.slug)).toContain('zercher-squat');
+      expect(discovered.map((d) => d.slug)).not.toContain('pull-up');
+      expect(discovered.map((d) => d.slug)).not.toContain('pullups');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('scaffolds discovered efforts into markdown/efforts/discovered/', () => {
+    const tmp = makeCorpusWithNewEffort();
+    try {
+      const discovered = discoverUncatalogedEfforts(join(tmp, 'markdown'), tmp);
+      const createdFiles = scaffoldDiscoveredEfforts(discovered, join(tmp, 'markdown'));
+      expect(createdFiles.length).toBe(1);
+      const createdPath = createdFiles[0];
+      expect(existsSync(createdPath)).toBe(true);
+      const content = readFileSync(createdPath, 'utf8');
+      expect(content).toContain('slug: zercher-squat');
+      expect(content).toContain('Zercher Squat');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves aliases to canonical slugs in buildBlockEffortRows', () => {
+    const tmp = makeCorpusWithNewEffort();
+    try {
+      const rows = buildBlockEffortRows(join(tmp, 'markdown'), tmp);
+      const slugs = rows.map((r) => r.effortSlug);
+      expect(slugs).toContain('pull-up'); // Pullups mapped to pull-up
+      expect(slugs).not.toContain('pullups');
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

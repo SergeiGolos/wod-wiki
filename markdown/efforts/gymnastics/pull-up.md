@@ -7,6 +7,13 @@ aliases:
   - pull ups
   - strict pull-up
   - kipping pull-up
+  - "Dead-Hang Pull Ups"
+  - "Kipping Pull Ups"
+  - "Max Effort Pull Ups"
+  - "Pull Up"
+  - "Pull-ups"
+  - "Pullups"
+  - "Weighted Pullup"
 baseAttributes:
   met: 5.0
   discipline: gymnastics

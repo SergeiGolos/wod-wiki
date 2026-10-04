@@ -7,6 +7,7 @@ aliases:
   - double under
   - double unders
   - jump rope du
+  - "Double-Unders"
 baseAttributes:
   met: 12.0
   discipline: gymnastics

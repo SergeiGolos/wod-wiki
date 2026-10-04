@@ -6,6 +6,7 @@ aliases:
   - bench
   - bp
   - chest press
+  - "Max Effort Body-Weight Bench Press"
 baseAttributes:
   met: 5.0
   discipline: strength

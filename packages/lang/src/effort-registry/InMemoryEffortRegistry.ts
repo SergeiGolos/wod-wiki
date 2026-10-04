@@ -1,5 +1,6 @@
 import type { IEffort, IEffortRegistry, EffortRegistrySource } from './types';
 import { bundledEfforts } from './data/bundled-efforts';
+import { normalizeForFuzzy } from './fuzzyMatch';
 
 /**
  * In-Memory Effort Registry
@@ -46,6 +47,17 @@ export class InMemoryEffortRegistry implements IEffortRegistry {
   }
   resolve(slug: string): IEffort | null {
     return this.efforts.get(slug) ?? null;
+  }
+
+  resolveByAlias(label: string): IEffort | null {
+    const normalized = normalizeForFuzzy(label);
+    for (const effort of this.efforts.values()) {
+      if (normalizeForFuzzy(effort.label) === normalized) return effort;
+      for (const alias of effort.aliases) {
+        if (normalizeForFuzzy(alias) === normalized) return effort;
+      }
+    }
+    return null;
   }
 
   list(): readonly IEffort[] {

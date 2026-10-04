@@ -21,6 +21,7 @@ import {
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
+import { Select } from '@/components/atoms/primitives/select';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
@@ -30,7 +31,7 @@ import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
-import { EffortResolver, type IEffort, type ResolvedEffort } from '@bitcobblers/wod-wiki-lang';
+import { EffortResolver, addAliasToEffort, type IEffort, type ResolvedEffort } from '@bitcobblers/wod-wiki-lang';
 import { effortsPath, parseEffortRouteOptions, effortPath, noteByIdPath } from '../lib/routes';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/atoms/primitives/toast';
@@ -41,6 +42,8 @@ import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { EditorDialog } from '@bitcobblers/wod-wiki-ui';
 import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
 import { ResponsiveActions } from '../nav/ResponsiveActions';
+import { fileToDisplayName } from '@/repositories/groupings';
+import { storageService } from '@/services/storage';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
 
@@ -113,13 +116,15 @@ export function EffortDetailPage() {
 
   // ── Create-custom mode ("/effort/new?mode=create") ───────────────────────
   const opts = parseEffortRouteOptions(searchParams);
-  const isCreateMode = slug === 'new' && opts.mode === 'create';
+  const isCreateMode = opts.mode === 'create';
   const [createDocument, setCreateDocument] = useState(() => {
+    const initialSlug = slug && slug !== 'new' ? slug.trim().toLowerCase().replace(/\s+/g, '-') : '';
+    const initialLabel = initialSlug ? fileToDisplayName(initialSlug) : '';
     const blank: IEffort = {
       id: `effort-user-${crypto.randomUUID()}`,
-      slug: '',
-      label: '',
-      aliases: [],
+      slug: initialSlug,
+      label: initialLabel,
+      aliases: initialSlug ? [initialSlug.replace(/[-_]+/g, ' ')] : [],
       baseAttributes: { met: 5.0 },
       registrySource: 'user',
       createdAt: new Date().toISOString(),
@@ -127,6 +132,31 @@ export function EffortDetailPage() {
     };
     return effortToDocument(blank);
   });
+  const [showAliasLinking, setShowAliasLinking] = useState(false);
+  const [selectedTargetSlug, setSelectedTargetSlug] = useState<string>('');
+  const existingEfforts = useMemo(() => {
+    if (!registry) return [];
+    return [...registry.list()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [registry]);
+
+  const handleLinkAlias = useCallback(async () => {
+    if (!slug || !selectedTargetSlug || !registry) return;
+    try {
+      await addAliasToEffort(registry, selectedTargetSlug, slug);
+      await refresh();
+      toast({
+        title: 'Alias Linked',
+        description: `Linked "${slug}" as an alias to ${selectedTargetSlug}.`,
+      });
+      navigate(effortPath(selectedTargetSlug));
+    } catch (err) {
+      toast({
+        title: 'Failed to link alias',
+        description: err instanceof Error ? err.message : String(err),
+        variant: 'destructive',
+      });
+    }
+  }, [slug, selectedTargetSlug, registry, refresh, navigate]);
 
   const handleCreateSubmit = useCallback(async () => {
     if (!isReady || !registry) return;
@@ -148,12 +178,37 @@ export function EffortDetailPage() {
       return;
     }
 
-    parsed.slug = parsed.slug.trim().toLowerCase().replace(/\s+/g, '-');
-    parsed.label = parsed.label.trim() || parsed.slug;
+    parsed.slug = parsed.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    parsed.label = parsed.label.trim() || fileToDisplayName(parsed.slug);
     parsed.updatedAt = new Date().toISOString();
 
     try {
       await registry.upsert(parsed);
+      const noteId = `effort/${parsed.slug}`;
+      try {
+        const existingNote = await storageService.getNote(noteId);
+        const now = Date.now();
+        await storageService.saveNote({
+          id: existingNote?.id ?? noteId,
+          title: parsed.label,
+          slug: noteId,
+          createdAt: existingNote?.createdAt ?? now,
+          type: 'note',
+          sourceId: 'effort',
+        });
+        await storageService.saveSegment({
+          id: `seg-${existingNote?.id ?? noteId}`,
+          version: 1,
+          noteId: existingNote?.id ?? noteId,
+          position: 0,
+          dataType: 'markdown',
+          rawContent: createDocument,
+          createdAt: now,
+          updatedAt: now,
+        });
+      } catch {
+        // IDB note sync fallback
+      }
       await refresh();
       navigate(effortPath(parsed.slug), { replace: true });
     } catch (err) {
@@ -288,13 +343,85 @@ export function EffortDetailPage() {
     );
   }
 
-  if (isLoading || error || !effort) {
+  if (isLoading) {
     return (
-      <div data-testid={TEST_IDS.EFFORT_NOT_FOUND} className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-        <p className="text-muted-foreground">{error || `Effort "${slug}" not found.`}</p>
-        <Button variant="outline" onClick={() => navigate(effortsPath())}>
-          Back to Catalog
-        </Button>
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-pulse h-4 w-32 bg-muted rounded" />
+      </div>
+    );
+  }
+
+  if (error || !effort) {
+    return (
+      <div data-testid={TEST_IDS.EFFORT_NOT_FOUND} className="flex flex-col items-center justify-center gap-6 py-16 px-4 text-center max-w-lg mx-auto">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Effort &ldquo;{slug}&rdquo; not found</h2>
+          <p className="text-sm text-muted-foreground">
+            This movement has not been populated in the effort catalog yet. You can create a new definition page for it or link it as an alias to an existing effort.
+          </p>
+        </div>
+
+        {!showAliasLinking ? (
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              onClick={() => navigate(effortPath(slug!, undefined, { mode: 'create' }))}
+              data-testid={TEST_IDS.EFFORT_NOT_FOUND_CREATE_BTN}
+            >
+              Create Effort Page
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowAliasLinking(true);
+                if (existingEfforts.length > 0 && !selectedTargetSlug) {
+                  setSelectedTargetSlug(existingEfforts[0].slug);
+                }
+              }}
+              data-testid={TEST_IDS.EFFORT_NOT_FOUND_ALIAS_BTN}
+            >
+              Link as Alias
+            </Button>
+            <Button variant="outline" onClick={() => navigate(effortsPath())}>
+              Back to Catalog
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full space-y-4 p-4 border rounded-lg bg-card text-left">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">
+                Select target effort for &ldquo;{slug}&rdquo;:
+              </label>
+              <Select
+                value={selectedTargetSlug}
+                onChange={(e) => setSelectedTargetSlug(e.target.value)}
+                data-testid={TEST_IDS.EFFORT_NOT_FOUND_ALIAS_SELECT}
+              >
+                {existingEfforts.map((e) => (
+                  <option key={e.slug} value={e.slug}>
+                    {e.label} ({e.slug})
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAliasLinking(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleLinkAlias}
+                disabled={!selectedTargetSlug}
+                data-testid={TEST_IDS.EFFORT_NOT_FOUND_ALIAS_CONFIRM}
+              >
+                Confirm Link
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

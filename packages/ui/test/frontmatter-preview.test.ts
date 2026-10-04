@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import {
   sectionField,
   frontmatterPreview,
+  frontmatterSuggestions,
 } from '../src/extensions';
 
 const SAMPLE_NOTE = `---
@@ -19,6 +20,9 @@ Some note body here.
 `;
 
 describe('frontmatterPreview extension', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   it('renders properties box with tag pills, list icons, and add property button', () => {
     const state = EditorState.create({
       doc: SAMPLE_NOTE,
@@ -105,7 +109,7 @@ describe('frontmatterPreview extension', () => {
     container.remove();
   });
 
-  it('allows editing a property value input', () => {
+  it('allows editing a property value input', async () => {
     const state = EditorState.create({
       doc: SAMPLE_NOTE,
       extensions: [sectionField, frontmatterPreview],
@@ -122,6 +126,7 @@ describe('frontmatterPreview extension', () => {
 
     storeInput.value = 'custom_catalog';
     storeInput.dispatchEvent(new Event('change', { bubbles: true }));
+    await Promise.resolve();
 
     expect(view.state.doc.toString()).toContain('store: custom_catalog');
 
@@ -238,7 +243,7 @@ author: Coach
     container.remove();
   });
 
-  it('allows adding tags property via Add tag button when tags property is missing', () => {
+  it('Add tag with missing tags property drafts input without touching the doc until a value commits', async () => {
     const NOTE_NO_TAGS = `---
 title: My Workout
 ---
@@ -257,7 +262,209 @@ title: My Workout
     expect(addTagBtn).not.toBeNull();
     addTagBtn.click();
 
-    expect(view.state.doc.toString()).toContain('tags:');
+    // Clicking must not persist an empty tags property.
+    expect(view.state.doc.toString()).toBe(NOTE_NO_TAGS);
+
+    const draftInput = container.querySelector('input[aria-label="Add tag to tags"]') as HTMLInputElement;
+    expect(draftInput).not.toBeNull();
+    expect(document.activeElement).toBe(draftInput);
+
+    // Blur without a value discards the draft.
+    draftInput.blur();
+    await Promise.resolve();
+    expect(container.querySelector('[data-frontmatter-tag-draft]')).toBeNull();
+    expect(view.state.doc.toString()).toBe(NOTE_NO_TAGS);
+
+    // Escape discards too, even when the suggestion listbox handled the same event.
+    addTagBtn.click();
+    const draftInputEsc = container.querySelector('input[aria-label="Add tag to tags"]') as HTMLInputElement;
+    expect(draftInputEsc).not.toBeNull();
+    draftInputEsc.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(container.querySelector('[data-frontmatter-tag-draft]')).toBeNull();
+    expect(view.state.doc.toString()).toBe(NOTE_NO_TAGS);
+
+    // Committing a value writes it once.
+    addTagBtn.click();
+    const draftInput2 = container.querySelector('input[aria-label="Add tag to tags"]') as HTMLInputElement;
+    draftInput2.value = 'parkour';
+    draftInput2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    const after = view.state.doc.toString();
+    expect(after).toContain('parkour');
+    expect(after).not.toContain('tags: []');
+    expect(after).not.toContain('tags: ""');
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('shows catalog suggestions on focus and commits the chosen type via keyboard', async () => {
+    vi.useFakeTimers();
+    const state = EditorState.create({
+      doc: `---\ntitle: Session\n---\n# Body\n`,
+      extensions: [
+        sectionField,
+        frontmatterPreview,
+        frontmatterSuggestions.of(async () => ({ types: ['equipment', 'movement'], tags: [] })),
+      ],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const addBtn = container.querySelector('button[aria-label="Add property"]') as HTMLButtonElement;
+    addBtn.click();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const keyInput = document.activeElement as HTMLInputElement;
+    expect(keyInput.getAttribute('aria-label')).toBe('Property name property');
+
+    const list = document.getElementById(keyInput.getAttribute('aria-controls')!) as HTMLElement;
+    expect(list.hidden).toBe(false);
+    expect(list.children.length).toBeGreaterThan(0);
+    expect(list.textContent).toContain('equipment');
+
+    keyInput.value = 'eq';
+    keyInput.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(list.textContent).toContain('equipment');
+    expect(list.textContent).not.toContain('movement');
+
+    keyInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    keyInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    const doc = view.state.doc.toString();
+    expect(doc).toContain('equipment');
+    expect(doc).not.toContain('property:');
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('Ctrl+Space reopens tag value suggestions scoped to the property type', async () => {
+    vi.useFakeTimers();
+    const state = EditorState.create({
+      doc: `---\nworkout: hiit\n---\n# Body\n`,
+      extensions: [
+        sectionField,
+        frontmatterPreview,
+        frontmatterSuggestions.of(async () => ({
+          types: ['workout'],
+          tags: [
+            { label: 'hiit', type: 'workout' },
+            { label: 'tempo', type: 'workout' },
+            { label: 'general' },
+          ],
+        })),
+      ],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const valueInput = Array.from(container.querySelectorAll('input')).find(
+      (i) => i.getAttribute('aria-label') === 'Value for workout',
+    ) as HTMLInputElement;
+    expect(valueInput).not.toBeNull();
+
+    valueInput.focus();
+    await vi.advanceTimersByTimeAsync(10);
+    const list = document.getElementById(valueInput.getAttribute('aria-controls')!) as HTMLElement;
+    expect(list.hidden).toBe(false);
+    expect(list.textContent).toContain('tempo');
+    expect(list.textContent).not.toContain('general');
+    expect(list.textContent).not.toContain('hiit');
+
+    valueInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(list.hidden).toBe(true);
+
+    valueInput.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, bubbles: true }));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(list.hidden).toBe(false);
+    expect(list.textContent).toContain('tempo');
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('replacing the doc while a property input is focused yields the exact replacement with no duplicate frontmatter', async () => {
+    const state = EditorState.create({
+      doc: `---\ntitle: Session\n---\n# Body\n`,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const valueInput = Array.from(container.querySelectorAll('input')).find(
+      (i) => i.getAttribute('aria-label') === 'Value for title',
+    ) as HTMLInputElement;
+    expect(valueInput).not.toBeNull();
+    valueInput.focus();
+    valueInput.value = 'Stale draft';
+
+    // Widget teardown while focused must not re-commit the stale input value
+    // via a blur-triggered dispatch (reentrant EditorView.update crash/corruption).
+    const replacement = `---\ntitle: Rewritten\n---\n# Fresh body\n`;
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: replacement } });
+    await Promise.resolve();
+
+    const doc = view.state.doc.toString();
+    expect(doc).toBe(replacement);
+    expect((doc.match(/^---$/gm) ?? []).length).toBe(2);
+    expect(doc).not.toContain('Stale draft');
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('does not duplicate existing tags case-insensitively', () => {
+    const state = EditorState.create({
+      doc: `---\ntags:\n  - parkour\n---\n# Body\n`,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const tagInput = container.querySelector('input[aria-label="Add tag to tags"]') as HTMLInputElement;
+    expect(tagInput).not.toBeNull();
+    tagInput.value = 'PARKOUR';
+    tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    const doc = view.state.doc.toString();
+    expect((doc.match(/parkour/gi) ?? []).length).toBe(1);
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('reveals raw YAML and focuses inside the section via Edit YAML', () => {
+    const state = EditorState.create({
+      doc: SAMPLE_NOTE,
+      extensions: [sectionField, frontmatterPreview],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    expect(container.querySelector('.cm-frontmatter-preview')).not.toBeNull();
+
+    const editBtn = container.querySelector('button[aria-label="Edit YAML"]') as HTMLButtonElement;
+    expect(editBtn).not.toBeNull();
+    editBtn.click();
+
+    expect(view.state.selection.main.anchor).toBeGreaterThan(0);
+    expect(container.querySelector('.cm-frontmatter-preview')).toBeNull();
+    expect(container.textContent).toContain('tags:');
+
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    expect(container.querySelector('.cm-frontmatter-preview')).not.toBeNull();
 
     view.destroy();
     container.remove();
@@ -284,7 +491,18 @@ No frontmatter here.
 
     (addTagBtn as HTMLButtonElement).click();
 
-    expect(view.state.doc.toString()).toMatch(/^---\r?\ntags:/);
+    // Draft only: the note still has no frontmatter until a tag value commits.
+    expect(view.state.doc.toString()).toBe(NOTE_WITHOUT_FM);
+
+    const draftInput = container.querySelector('input[aria-label="Add tag to tags"]') as HTMLInputElement;
+    expect(draftInput).not.toBeNull();
+    draftInput.value = 'strength';
+    draftInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    const after = view.state.doc.toString();
+    expect(after).toMatch(/^---\r?\ntags:/);
+    expect(after).toContain('strength');
+    expect(after).toContain(NOTE_WITHOUT_FM.trim());
 
     view.destroy();
     container.remove();

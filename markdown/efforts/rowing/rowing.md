@@ -9,6 +9,8 @@ aliases:
   - erg
   - ergometer
   - concept2 row
+  - "Long Row"
+  - "Row Calories"
 baseAttributes:
   met: 7.0
   discipline: rowing

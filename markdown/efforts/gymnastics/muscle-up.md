@@ -7,6 +7,9 @@ aliases:
   - muscle up
   - ring muscle-up
   - bar muscle-up
+  - "Bar Muscle Ups"
+  - "Muscle Ups"
+  - "Ring Muscle Ups"
 baseAttributes:
   met: 8.0
   discipline: gymnastics

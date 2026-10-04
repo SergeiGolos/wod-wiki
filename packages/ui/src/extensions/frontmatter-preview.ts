@@ -75,10 +75,11 @@ function attachSuggestions(
       if (option instanceof HTMLElement) option.scrollIntoView?.({ block: "nearest" });
     }
   };
-  const refresh = async () => {
+  // Focus and Ctrl+Space open the full candidate list; typing filters it.
+  const refresh = async (showAll = false) => {
     close();
     const request = ++generation;
-    const query = input.value.trim().toLowerCase();
+    const query = showAll ? "" : input.value.trim().toLowerCase();
     try {
       const catalog = await provider();
       if (request !== generation || !input.isConnected || document.activeElement !== input) return;
@@ -107,13 +108,13 @@ function attachSuggestions(
       if (request === generation) close();
     }
   };
-  input.addEventListener("focus", refresh);
-  input.addEventListener("input", refresh);
+  input.addEventListener("focus", () => void refresh(true));
+  input.addEventListener("input", () => void refresh(false));
   input.addEventListener("blur", close);
   input.addEventListener("keydown", (event) => {
     if (event.ctrlKey && (event.code === "Space" || event.key === " ")) {
       event.preventDefault();
-      void refresh();
+      void refresh(true);
     } else if (event.key === "Escape") {
       event.preventDefault();
       close();
@@ -187,6 +188,77 @@ function updateFrontmatter(
       },
     });
   }
+}
+
+// Imperative, unpersisted tag-entry row for when no tags property exists yet.
+// Only a committed value dispatches to updateFrontmatter; blur/Escape without a value discards it.
+function createTagDraftRow(
+  view: EditorView,
+  root: HTMLElement,
+  key: string,
+  onCommit: (value: string) => void,
+): HTMLElement {
+  const row = document.createElement("div");
+  row.className =
+    "flex items-center min-h-[34px] border-b border-dashed border-border/60 last:border-b-0 group hover:bg-muted/10 transition-colors";
+  row.setAttribute("data-frontmatter-tag-draft", "true");
+
+  const keyCol = document.createElement("div");
+  keyCol.className =
+    "flex items-center gap-2 px-3 py-1.5 w-36 shrink-0 border-r border-dashed border-border/60 text-muted-foreground";
+  keyCol.appendChild(createTagIcon());
+  const keyLabel = document.createElement("span");
+  keyLabel.className = "truncate font-medium text-foreground/90";
+  keyLabel.textContent = key;
+  keyCol.appendChild(keyLabel);
+  row.appendChild(keyCol);
+
+  const valCol = document.createElement("div");
+  valCol.className = "flex items-center flex-wrap gap-1.5 px-3 py-1.5 flex-1 min-w-0";
+  const input = document.createElement("input");
+  input.className =
+    "flex-1 min-w-[70px] bg-transparent text-xs text-foreground outline-none px-1 py-0.5 placeholder:text-muted-foreground/40";
+  input.placeholder = "Add tag…";
+  input.setAttribute("aria-label", `Add tag to ${key}`);
+  valCol.appendChild(input);
+  row.appendChild(valCol);
+
+  let settled = false;
+  const settle = (commit: boolean) => {
+    if (settled) return;
+    settled = true;
+    if (commit) {
+      const val = input.value.trim().replace(/^,|,$/g, "");
+      if (val) onCommit(val);
+    }
+    row.remove();
+    view.requestMeasure();
+  };
+  const commit = () => settle(true);
+  const discard = () => settle(false);
+
+  attachSuggestions(input, view, root, "value", key, [], commit);
+  input.addEventListener("keydown", (e) => {
+    // Escape discards the draft even when attachSuggestions already closed the
+    // listbox and prevented default on the same event.
+    if (e.key === "Escape") {
+      e.preventDefault();
+      discard();
+      return;
+    }
+    if (e.defaultPrevented) return;
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      commit();
+    }
+  });
+  input.addEventListener("blur", () => queueMicrotask(() => {
+    if (!input.isConnected) return;
+    if (input.value.trim()) commit();
+    else discard();
+  }));
+
+  return row;
 }
 
 function createTagIcon(): SVGElement {
@@ -336,7 +408,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
   toDOM(view: EditorView): HTMLElement {
     const root = document.createElement("div");
     widgetCleanup.set(root, []);
-    root.className = "cm-frontmatter-preview my-2 font-sans select-none";
+    root.className = "cm-frontmatter-preview py-2 font-sans select-none";
 
     const heading = document.createElement("div");
     heading.className = "text-xs font-medium text-muted-foreground mb-1.5 px-0.5";
@@ -407,10 +479,14 @@ export class DefaultFrontmatterWidget extends WidgetType {
           updateFrontmatter(view, this.sectionId, newMeta);
         };
 
-        keyInput.addEventListener("change", commitKey);
+        // Native blur fires before removal; check connectivity after CodeMirror finishes updating.
+        const commitKeyIfAttached = () => queueMicrotask(() => {
+          if (keyInput.isConnected) commitKey();
+        });
+        keyInput.addEventListener("change", commitKeyIfAttached);
         keyCol.appendChild(keyInput);
         attachSuggestions(keyInput, view, root, "key", key, entries.map(([name]) => name), commitKey);
-        keyInput.addEventListener("blur", commitKey);
+        keyInput.addEventListener("blur", commitKeyIfAttached);
         keyInput.addEventListener("keydown", (e) => {
           if (e.defaultPrevented) return;
           if (e.key === "Enter") {
@@ -475,7 +551,7 @@ export class DefaultFrontmatterWidget extends WidgetType {
 
           const commitNewTag = () => {
             const val = tagInput.value.trim().replace(/^,|,$/g, "");
-            if (val && !tags.includes(val)) {
+            if (val && !tags.some((tag) => tag.toLowerCase() === val.toLowerCase())) {
               meta[key] = [...tags, val];
               tagInput.value = "";
               pendingFocus.set(view, { kind: "tag", key });
@@ -497,9 +573,9 @@ export class DefaultFrontmatterWidget extends WidgetType {
               updateFrontmatter(view, this.sectionId, meta);
             }
           });
-          tagInput.addEventListener("blur", () => {
-            if (tagInput.value.trim()) commitNewTag();
-          });
+          tagInput.addEventListener("blur", () => queueMicrotask(() => {
+            if (tagInput.isConnected && tagInput.value.trim()) commitNewTag();
+          }));
 
           const focus = pendingFocus.get(view);
           if (focus?.kind === "tag" && focus.key === key) {
@@ -535,10 +611,13 @@ export class DefaultFrontmatterWidget extends WidgetType {
             }
           };
 
-          valInput.addEventListener("change", commitVal);
+          const commitValIfAttached = () => queueMicrotask(() => {
+            if (valInput.isConnected) commitVal();
+          });
+          valInput.addEventListener("change", commitValIfAttached);
           valCol.appendChild(valInput);
           attachSuggestions(valInput, view, root, "value", key, [strVal], commitVal);
-          valInput.addEventListener("blur", commitVal);
+          valInput.addEventListener("blur", commitValIfAttached);
           valInput.addEventListener("keydown", (e) => {
             if (e.defaultPrevented) return;
             if (e.key === "Enter") {
@@ -623,11 +702,43 @@ export class DefaultFrontmatterWidget extends WidgetType {
             input?.focus();
             return;
           }
-          pendingFocus.set(view, { kind: "tag", key: "tags" });
-          const newMeta = { ...meta, tags: [] };
-          updateFrontmatter(view, this.sectionId, newMeta);
+          const existingDraft = root.querySelector<HTMLInputElement>("[data-frontmatter-tag-draft] input");
+          if (existingDraft) {
+            existingDraft.focus();
+            return;
+          }
+          const draftRow = createTagDraftRow(view, root, "tags", (val) => {
+            pendingFocus.set(view, { kind: "tag", key: "tags" });
+            updateFrontmatter(view, this.sectionId, { ...meta, tags: [val] });
+          });
+          box.appendChild(draftRow);
+          draftRow.querySelector("input")?.focus();
+          view.requestMeasure();
         });
         actionsRow.appendChild(addTagBtn);
+      }
+
+      {
+        const editYamlBtn = document.createElement("button");
+        editYamlBtn.type = "button";
+        editYamlBtn.setAttribute("aria-label", "Edit YAML");
+        editYamlBtn.className =
+          "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-1 py-1 cursor-pointer transition-colors select-none";
+        const editYamlLabel = document.createElement("span");
+        editYamlLabel.textContent = "Edit YAML";
+        editYamlBtn.appendChild(editYamlLabel);
+        editYamlBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const { sections: currentSections } = view.state.field(sectionField);
+          const section =
+            currentSections.find((s) => s.id === this.sectionId && s.type === "frontmatter") ||
+            currentSections.find((s) => s.type === "frontmatter");
+          if (!section) return;
+          view.dispatch({ selection: { anchor: section.contentFrom ?? section.from }, scrollIntoView: true });
+          view.focus();
+        });
+        actionsRow.appendChild(editYamlBtn);
       }
 
       root.appendChild(actionsRow);
@@ -653,7 +764,7 @@ class EmptyFrontmatterWidget extends WidgetType {
 
   toDOM(view: EditorView): HTMLElement {
     const root = document.createElement("div");
-    root.className = "cm-frontmatter-preview my-2 font-sans select-none";
+    root.className = "cm-frontmatter-preview py-2 font-sans select-none";
 
     const heading = document.createElement("div");
     heading.className = "text-xs font-medium text-muted-foreground mb-1.5 px-0.5";
@@ -694,8 +805,18 @@ class EmptyFrontmatterWidget extends WidgetType {
     addTagBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      pendingFocus.set(view, { kind: "tag", key: "tags" });
-      updateFrontmatter(view, "new", { tags: [] });
+      const existingDraft = root.querySelector<HTMLInputElement>("[data-frontmatter-tag-draft] input");
+      if (existingDraft) {
+        existingDraft.focus();
+        return;
+      }
+      const draftRow = createTagDraftRow(view, root, "tags", (val) => {
+        pendingFocus.set(view, { kind: "tag", key: "tags" });
+        updateFrontmatter(view, "new", { tags: [val] });
+      });
+      root.appendChild(draftRow);
+      draftRow.querySelector("input")?.focus();
+      view.requestMeasure();
     });
     actionsRow.appendChild(addTagBtn);
 
@@ -712,6 +833,11 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
   for (const section of sections) {
     if (section.type !== "frontmatter") continue;
     hasFrontmatter = true;
+
+    // While the selection intersects the section, reveal the raw YAML so the
+    // source (and its completions) stay editable; the widget returns on exit.
+    const selected = !state.readOnly && state.selection.ranges.some((range) => range.from < section.to && range.to > section.from);
+    if (selected) continue;
 
     const rawContent = state.doc.sliceString(section.from, section.to);
     builder.add(
@@ -744,7 +870,7 @@ export const frontmatterPreviewField = StateField.define<DecorationSet>({
     return buildFrontmatterDecos(state);
   },
   update(deco, tr) {
-    if (tr.docChanged || tr.reconfigured) {
+    if (tr.docChanged || tr.reconfigured || tr.selection) {
       return buildFrontmatterDecos(tr.state);
     }
     return deco;

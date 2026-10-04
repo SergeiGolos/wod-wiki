@@ -6,6 +6,7 @@ aliases:
   - stretch
   - flexibility
   - mobility
+  - "Mobility Session"
 baseAttributes:
   met: 2.3
   discipline: recovery

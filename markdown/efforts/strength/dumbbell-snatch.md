@@ -6,6 +6,7 @@ aliases:
   - db snatch
   - dumbbell snatches
   - single-arm snatch
+  - "DB Snatches"
 baseAttributes:
   met: 8.0
   discipline: strength

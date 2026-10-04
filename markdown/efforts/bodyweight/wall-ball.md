@@ -6,6 +6,7 @@ aliases:
   - wb
   - wallball
   - wall balls
+  - "Wall Ball Shots"
 baseAttributes:
   met: 8.0
   discipline: bodyweight
