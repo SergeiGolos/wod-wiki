@@ -10,6 +10,7 @@
  */
 import type { BlockIndexRow, Note } from '@/types/storage'
 import type { IEffort, RowsRun, RowsQueryResult } from '@bitcobblers/wod-wiki-wql'
+import { catalogOfItem } from '@bitcobblers/wod-wiki-wql'
 import type { EventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-core'
 import { formatDateKey } from '../services/dateUtils'
 import { parseNoteId } from '@/lib/noteIdentity'
@@ -89,6 +90,17 @@ export interface Entry {
    *  Present when the note publishes a page; lists link the editor
    *  (/notes/:noteId) and the page render (/p/:pageId) from the same row. */
   pageId?: string
+  /** Executor-exact `Note.type` — what the WQL `type:` / `page:` / source
+   *  playground-legacy predicates match. Distinct from the presentation
+   *  `kind` (a collection page maps to kind 'session', never a type value). */
+  noteType?: string
+  /** Executor-exact catalog (QueryService.catalogOfItem) — the directory id
+   *  the `catalog:` filter matches; not the presentation sourceCatalog. */
+  catalog?: string
+  /** Original Note.id — Entry.id is the route-clean id (collection entries
+   *  drop the `page:collection:` prefix), while `note:` filters match the
+   *  stored note id. */
+  noteId?: string
 }
 
 function isCollection(sourceId: string | undefined): boolean {
@@ -126,6 +138,18 @@ function feedDate(noteId: string): string | null {
 }
 
 export function toEntry(note: Note): Entry {
+  // Executor-exact metadata (the fields WQL note-plane filters match) rides
+  // on every mapped entry so facet consumers never re-derive presentation
+  // approximations. One wrap — the branch logic below stays untouched.
+  return {
+    ...toEntryBase(note),
+    noteType: note.type,
+    catalog: catalogOfItem(note),
+    noteId: note.id,
+  }
+}
+
+function toEntryBase(note: Note): Entry {
   const id = note.id
   const title = note.title
   const tags = note.tags && note.tags.length > 0 ? note.tags : undefined
@@ -236,7 +260,8 @@ export function noteFromBlock(block: {
     createdAt: block.createdAt,
     type: 'note',
     sourceId: block.sourceId,
-    catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
+    // No `catalog` pre-set: toEntry derives it through the executor's
+    // catalogOfItem (sourceId first), matching what `catalog:` filters hit.
   } as Note
 }
 
@@ -264,6 +289,9 @@ export function blockToEntry(block: BlockIndexRow): Entry {
   return {
     ...base,
     blockContentId: block.blockContentId ?? base.blockContentId,
+    // The block plane's `catalog:` filter matches catalogOfItem(blockRow) —
+    // derived from the row's own sourceId, not the synthesized parent note's.
+    catalog: catalogOfItem(block),
     block: {
       segmentId: block.segmentId,
       dataType: block.dataType,

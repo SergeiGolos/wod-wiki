@@ -32,6 +32,14 @@ bun run test              # packages + playground + storybook + seed suites
 
 Monorepo layout: `packages/{core,lang,wql,engine,ui}` publish to npm as `@bitcobblers/wod-wiki-*`; `apps/playground` is the web app; `apps/storybook` is the component workbench. Vite source-aliasing gives instant HMR from `packages/*/src` into both apps with zero build step during development.
 
+Journal, Collections, Playgrounds, Efforts, and Sessions share an icon ribbon and a filter panel. On mobile, open navigation to use the same ribbon beside the panel. Filter accordions show values supported by the current WQL results; selecting or removing a condition updates `?q=` and refreshes the available filters and result groups. Each selection adds a history entry, so browser Back restores the previous query. Selected conditions remain removable when no results match.
+
+Each filter value has one button that cycles Off, Include, and Exclude. Expanded sections share one scroll container; the section header stays sticky so it can be collapsed while scrolling a long list. Edit `apps/playground/app/nav/panels/conditionsConfig.ts` to configure section labels, ordering, visibility, and expected values. Expected values constrain and label current-result choices; active selections stay visible even when no results match. During query execution, the previous rows remain visible with controls disabled until the new results arrive.
+
+The mobile drawer fills the screen width. Selecting an L1 destination keeps it open for L2 filtering. Filters update immediately; Apply closes the drawer. Full-query shortcuts such as All and Feeds navigate and close it immediately.
+
+Result-identity catalogs are hidden from their own library filters. Supported section headers have a Group checkbox that adds or removes that dimension from the current WQL. Save the query from its toolbar or the Custom navigation item with a label and icon; manage these browser-local shortcuts in Settings > Query Defaults. Unmatched queries select Custom above New shortcut. Equivalent queries select the same shortcut regardless of filter or grouping order.
+
 ---
 
 ## The `wod` block syntax

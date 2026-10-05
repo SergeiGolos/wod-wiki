@@ -101,7 +101,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
         workoutName: item.name,
         category: item.feedId,
         sourceNoteLabel: item.feedName,
-        sourceNotePath: `/feeds/${encodeURIComponent(item.feedId)}`,
+        sourceNotePath: `/feeds/${encodeURIComponent(item.feedId)}/${item.feedDate}/${encodeURIComponent(item.id)}`,
         wodContent: item.content,
         wrapInWod: false,
       });

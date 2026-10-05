@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { render, screen, cleanup, act } from '@testing-library/react'
-import { useEffect } from 'react'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { render, screen, cleanup } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { buildAppNavTree, appNavTree } from '../appNavTree'
 import { ROUTE_PATTERNS } from '../../lib/routes'
@@ -18,103 +17,71 @@ function mockLocation(pathname: string): Location {
   }
 }
 
-describe('appNavTree - Library navigation', () => {
+describe('appNavTree - Flattened listing zones', () => {
   afterEach(() => {
     cleanup()
   })
 
-  it('defines L1 library item with default route /journal, and L2 children ordered Journal, Collections, Feeds, Playgrounds', () => {
+  it('flattens Library into Journal, Collections, Playgrounds L1 rows with no Library row', () => {
     const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')
+    const l1 = tree.filter(item => item.level === 1).map(item => item.id)
 
-    expect(library).toBeDefined()
-    expect(library?.label).toBe('Library')
-    expect(library?.level).toBe(1)
-    expect(library?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
-    expect(library?.children).toBeDefined()
-    expect(library?.children?.length).toBe(4)
-
-    const [journal, collections, feeds, playground] = library!.children!
-
-    expect(journal.id).toBe('library-journal')
-    expect(journal.label).toBe('Journal')
-    expect(journal.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
-
-    expect(collections.id).toBe('library-collections')
-    expect(collections.label).toBe('Collections')
-    expect(collections.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.collections })
-
-    expect(feeds.id).toBe('library-feeds')
-    expect(feeds.label).toBe('Feeds')
-    expect(feeds.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.feeds })
-
-    expect(playground.id).toBe('library-playground')
-    expect(playground.label).toBe('Playgrounds')
-    expect(playground.action).toEqual({
-      type: 'route',
-      to: ROUTE_PATTERNS.playgrounds,
-    })
+    expect(l1).toEqual([
+      'home',
+      'journal',
+      'collections',
+      'playgrounds',
+      'dashboards',
+      'efforts',
+      'sessions',
+      'settings',
+      'buy-me-a-coffee',
+    ])
+    expect(tree.find(item => item.id === 'library')).toBeUndefined()
   })
 
-  it('orders Library directly after Home', () => {
+  it('folds Feeds under Collections and lights Collections for feed routes', () => {
     const tree = buildAppNavTree(() => {})
-    const l1Ids = tree.filter(item => item.level === 1).map(item => item.id)
-    expect(l1Ids.indexOf('home')).toBe(0)
-    expect(l1Ids.indexOf('library')).toBe(1)
-  })
+    const collections = tree.find(item => item.id === 'collections')!
 
-  it('activates library L1 for /library, /journal, /collections, /feeds, /feed, and /playground routes', () => {
-    const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')!
-
-    expect(library.isActive!(mockLocation('/library'))).toBe(true)
-    expect(library.isActive!(mockLocation('/journal'))).toBe(true)
-    expect(library.isActive!(mockLocation('/journal/2026-09-14'))).toBe(true)
-    expect(library.isActive!(mockLocation('/collections'))).toBe(true)
-    expect(library.isActive!(mockLocation('/feeds'))).toBe(true)
-    expect(library.isActive!(mockLocation('/feed'))).toBe(true)
-    expect(library.isActive!(mockLocation('/playground/example'))).toBe(true)
-    expect(library.isActive!(mockLocation('/dashboard'))).toBe(false)
-    expect(library.isActive!(mockLocation('/efforts'))).toBe(false)
-  })
-
-  it('activates appropriate L2 child based on route', () => {
-    const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')!
-    const [journal, collections, feeds, playground] = library.children!
-
-    expect(journal.isActive!(mockLocation('/journal'))).toBe(true)
-    expect(journal.isActive!(mockLocation('/journal/2026-09-14'))).toBe(true)
-    expect(journal.isActive!(mockLocation('/feeds'))).toBe(false)
-
+    // The Feeds row itself renders in the zone's conditions panel (see the
+    // NavSidebar smoke below); the tree-level contract is the activation.
     expect(collections.isActive!(mockLocation('/collections'))).toBe(true)
     expect(collections.isActive!(mockLocation('/c/dan-john'))).toBe(true)
-    expect(collections.isActive!(mockLocation('/feeds'))).toBe(false)
+    expect(collections.isActive!(mockLocation('/feeds'))).toBe(true)
+    expect(collections.isActive!(mockLocation('/feed/routines'))).toBe(true)
+    expect(collections.isActive!(mockLocation('/journal'))).toBe(false)
+    expect(collections.isActive!(mockLocation('/playgrounds'))).toBe(false)
 
-    expect(feeds.isActive!(mockLocation('/feeds'))).toBe(true)
-    expect(feeds.isActive!(mockLocation('/feed'))).toBe(true)
-    expect(feeds.isActive!(mockLocation('/collections'))).toBe(false)
-    expect(feeds.isActive!(mockLocation('/journal'))).toBe(false)
-    const playgroundLoc = { ...mockLocation('/library'), search: `?q=${encodeURIComponent(':note{source:playground}')}` }
-    expect(playground.isActive!(playgroundLoc)).toBe(true)
-    expect(playground.isActive!(mockLocation('/playground/example'))).toBe(true)
-    expect(playground.isActive!(mockLocation('/playgrounds'))).toBe(true)
-    expect(playground.isActive!(mockLocation('/journal'))).toBe(false)
+    const journal = tree.find(item => item.id === 'journal')!
+    const playgrounds = tree.find(item => item.id === 'playgrounds')!
+    expect(journal.isActive!(mockLocation('/feeds'))).toBe(false)
+    expect(playgrounds.isActive!(mockLocation('/feeds'))).toBe(false)
   })
 
-  it('renders L2 menu items in NavSidebar when on /library', () => {
+  it('activates Playgrounds for /playgrounds, /playground notes, and the /library playground scope', () => {
+    const tree = buildAppNavTree(() => {})
+    const playgrounds = tree.find(item => item.id === 'playgrounds')!
+
+    expect(playgrounds.isActive!(mockLocation('/playgrounds'))).toBe(true)
+    expect(playgrounds.isActive!(mockLocation('/playground/example'))).toBe(true)
+    const aliased = { ...mockLocation('/library'), search: `?q=${encodeURIComponent(':note{source:playground}')}` }
+    expect(playgrounds.isActive!(aliased)).toBe(true)
+    expect(playgrounds.isActive!(mockLocation('/journal'))).toBe(false)
+  })
+
+  it('renders the Collections conditions panel rows in NavSidebar on /collections', () => {
     render(
-      <MemoryRouter initialEntries={['/library']}>
+      <MemoryRouter initialEntries={['/collections']}>
         <NavProvider tree={appNavTree}>
           <NavSidebar />
         </NavProvider>
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('All collections').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Playgrounds').length).toBeGreaterThan(0)
+    expect(screen.queryAllByText('Library')).toHaveLength(0)
   })
 })
 
@@ -123,28 +90,15 @@ describe('appNavTree - Efforts navigation', () => {
     cleanup()
   })
 
-  it('defines L1 efforts item with L2 tags for sub filters', () => {
+  it('defines L1 efforts item routed to /efforts with the shared conditions panel', () => {
     const tree = buildAppNavTree(() => {})
     const efforts = tree.find(item => item.id === 'efforts')
 
     expect(efforts).toBeDefined()
     expect(efforts?.label).toBe('Efforts')
     expect(efforts?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.efforts })
-    expect(efforts?.children).toBeDefined()
-    expect(efforts?.children?.length).toBeGreaterThan(1)
-
-    const [allTag, ...discTags] = efforts!.children!
-    expect(allTag.id).toBe('effort-tag-all')
-    expect(allTag.label).toBe('All Efforts')
-    expect(allTag.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.efforts })
-
-    const strengthTag = discTags.find(t => t.id === 'effort-tag-strength')
-    expect(strengthTag).toBeDefined()
-    expect(strengthTag?.label).toBe('Strength')
-    expect(strengthTag?.action).toEqual({
-      type: 'route',
-      to: `${ROUTE_PATTERNS.efforts}?q=:effort{discipline:strength}`,
-    })
+    // Discipline conditions live in the shared current-result panel now.
+    expect(efforts?.panel).toBeDefined()
   })
 
   it('activates efforts L1 for /efforts and /effort/:slug routes', () => {
@@ -155,23 +109,6 @@ describe('appNavTree - Efforts navigation', () => {
     expect(efforts.isActive!(mockLocation('/effort/push-up'))).toBe(true)
     expect(efforts.isActive!(mockLocation('/e/push-up'))).toBe(true)
     expect(efforts.isActive!(mockLocation('/journal'))).toBe(false)
-  })
-
-  it('activates appropriate tag child based on query param', () => {
-    const tree = buildAppNavTree(() => {})
-    const efforts = tree.find(item => item.id === 'efforts')!
-    const [allTag, ...discTags] = efforts.children!
-    const strengthTag = discTags.find(t => t.id === 'effort-tag-strength')!
-
-    expect(allTag.isActive!(mockLocation('/efforts'))).toBe(true)
-    expect(strengthTag.isActive!(mockLocation('/efforts'))).toBe(false)
-
-    const filteredLoc = {
-      ...mockLocation('/efforts'),
-      search: '?q=:effort{discipline:strength}',
-    }
-    expect(allTag.isActive!(filteredLoc)).toBe(false)
-    expect(strengthTag.isActive!(filteredLoc)).toBe(true)
   })
 })
 
@@ -295,78 +232,17 @@ describe('appNavTree - Buy Me a Coffee', () => {
       type: 'external',
       href: 'https://www.buymeacoffee.com/sergeigolos',
     })
-    // Drawer order: the coffee row renders just below Settings.
-    expect(tree.findIndex(item => item.id === 'buy-me-a-coffee')).toBe(
-      tree.findIndex(item => item.id === 'settings') + 1,
-    )
-  })
-
-  it('renders the labeled coffee row in the NavSidebar drawer below Settings', () => {
+    // Sidebar order: the coffee row trails the Settings section.
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <NavProvider tree={appNavTree}>
           <NavSidebar />
         </NavProvider>
       </MemoryRouter>,
     )
-
-    const coffee = screen.getByText('Buy Me a Coffee')
-    expect(coffee).toBeDefined()
-    // Icon + label: the row's clickable item carries the coffee SVG.
-    expect(coffee.closest('[data-slot]')?.querySelector('svg')).not.toBeNull()
+    expect(screen.getAllByText('Settings').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Appearance')[0]).toBeDefined()
+    expect(screen.getAllByText('System')[0]).toBeDefined()
   })
 })
 
-describe('appNavTree - Mobile drawer L1 taps', () => {
-  afterEach(() => {
-    cleanup()
-  })
-
-  function renderMobileDrawer(initialPath: string) {
-    let path = initialPath
-    function PathProbe() {
-      const location = useLocation()
-      useEffect(() => {
-        path = location.pathname
-      })
-      return null
-    }
-    render(
-      <MemoryRouter initialEntries={[initialPath]}>
-        <NavProvider tree={appNavTree}>
-          <PathProbe />
-          <NavSidebar />
-        </NavProvider>
-      </MemoryRouter>,
-    )
-    return () => path
-  }
-
-  it('expands L1 submenu on tap without navigating (Library, Settings)', () => {
-    const path = renderMobileDrawer('/')
-
-    // Library is an L1 node with L2 children: the first tap only expands
-    // the submenu, and the drawer stays open.
-    act(() => {
-      screen.getByText('Library').click()
-    })
-    expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
-    expect(path()).toBe('/')
-
-    // Same for Settings: expand first, pick a subitem on the next tap.
-    act(() => {
-      screen.getByText('Settings').click()
-    })
-    expect(screen.getAllByText('Appearance').length).toBeGreaterThan(0)
-    expect(path()).toBe('/')
-  })
-
-  it('navigates Home directly on tap', () => {
-    const path = renderMobileDrawer('/settings/appearance')
-
-    act(() => {
-      screen.getByText('Home').click()
-    })
-    expect(path()).toBe('/')
-  })
-})

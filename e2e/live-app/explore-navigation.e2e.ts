@@ -33,16 +33,19 @@ test.describe('Explore navigation', () => {
     await expect(page.getByRole('heading', { name: 'Metric Explorer' })).toBeVisible()
   })
 
-  test('loads without a parse error and runs an example from the combo', async ({ page }) => {
+  test('loads without a parse error and runs an example from the L2 panel', async ({ page }) => {
     await page.goto('/analytics/explorer', { waitUntil: 'domcontentloaded' })
 
     // The default draft is valid — no first-visit parse error (#897).
     await expect(page.getByText(/Cannot parse/)).toHaveCount(0)
 
-    // Examples live in the command-bar combo; picking one hydrates and runs.
-    await page.getByTestId('explorer-examples').click()
-    await page.getByTestId('explorer-examples-menu').getByText('Weekly strength volume').click()
+    // Examples live in the dashboards L2 panel; picking one deep-links
+    // analyticsExplorerPath({ q }) and the URL-driven run follows.
+    const navigation = page.getByRole('navigation').first()
+    const example = navigation.getByRole('button', { name: 'Weekly strength volume' })
+    await expect(example).toBeVisible()
+    await example.click()
     await expect(page).toHaveURL(/[?&]q=/)
-    await expect(page.getByTestId('explorer-examples')).toContainText('Weekly strength volume')
+    await expect(example).toContainText('Weekly strength volume')
   })
 })

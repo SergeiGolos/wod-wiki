@@ -25,6 +25,11 @@ import { noteByIdPath, runPath, workoutPath, journalEntryAutoStartPath } from '.
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
+import {
+  NoteContextLinks,
+  noteOwnership,
+  useNoteContextLinks,
+} from './shared/noteContextLinks'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import { ResponsiveActions } from '../nav/ResponsiveActions'
@@ -167,6 +172,16 @@ export function WorkoutEditorPage({
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout })
+  // Contextual links (efforts in script, sibling workouts sharing blocks,
+  // journal copies) — only for real collection items, not journal/syntax ids.
+  const ownership = useMemo(
+    () => (isCollection ? noteOwnership({ id: noteId, type: 'collection' }) : null),
+    [isCollection, noteId],
+  )
+  const contextData = useNoteContextLinks({
+    noteId,
+    stamps: ownership?.stamps ?? [],
+  })
   const editToggle = (
     <Button
       type="button"
@@ -197,20 +212,23 @@ export function WorkoutEditorPage({
         actions={headerActions}
         editor={
           /* Reconfigure read-only state without discarding cursor or undo history. */
-          <NoteEditor
-            value={content}
-            onChange={onChange}
-            onCursorPositionChange={onLineChange}
-            onBlur={onBlur}
-            noteId={noteId}
-            readonly={viewMode === 'read'}
-            enableInlineRuntime={usePopup}
-            commands={commands}
-            onViewCreated={onViewCreated}
-            theme={theme}
-            showLineNumbers={false}
-            onBlocksChange={setScriptBlocks}
-          />
+          <div className="flex flex-col gap-3 px-4 py-6 sm:px-6">
+            <NoteContextLinks data={contextData} up={ownership?.up} />
+            <NoteEditor
+              value={content}
+              onChange={onChange}
+              onCursorPositionChange={onLineChange}
+              onBlur={onBlur}
+              noteId={noteId}
+              readonly={viewMode === 'read'}
+              enableInlineRuntime={usePopup}
+              commands={commands}
+              onViewCreated={onViewCreated}
+              theme={theme}
+              showLineNumbers={false}
+              onBlocksChange={setScriptBlocks}
+            />
+          </div>
         }
       />
 

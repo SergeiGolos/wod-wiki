@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { Edit3, Eye } from 'lucide-react';
+import { Edit3, ExternalLink, Eye } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export interface WidgetFrameProps {
+  /** DOM anchor for the frame (e.g. `widget-<key>`) — L3 indexes scroll here. */
+  id?: string;
   title: string;
   question: string;
   /** Raw WQL for the widget. Hidden by default — only rendered with showQuery. */
@@ -16,6 +18,9 @@ export interface WidgetFrameProps {
    * from editing: present without a toolbar.
    */
   onInspect?: () => void;
+  /** Always-visible affordance: open this widget's resolved query in the
+   * WQL explorer (host navigates). */
+  onOpenInExplorer?: () => void;
   /**
    * Edit-mode action cluster (edit / duplicate / remove / reorder / size),
    * rendered top-right and always visible while present. The host builds it;
@@ -25,9 +30,10 @@ export interface WidgetFrameProps {
   children: ReactNode;
 }
 
-export function WidgetFrame({ title, question, query, span, showQuery = false, onInspect, toolbar, children }: WidgetFrameProps) {
+export function WidgetFrame({ id, title, question, query, span, showQuery = false, onInspect, onOpenInExplorer, toolbar, children }: WidgetFrameProps) {
   return (
     <div
+      id={id}
       className={cn(
         'relative group/frame bg-card border border-border rounded-lg p-4 flex flex-col min-h-0',
         span,
@@ -38,16 +44,31 @@ export function WidgetFrame({ title, question, query, span, showQuery = false, o
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
           {question && <p className="mt-1 text-xs text-muted-foreground">{question}</p>}
         </div>
-        {onInspect && (
-          <button
-            type="button"
-            onClick={onInspect}
-            title="Inspect widget query"
-            aria-label={`Inspect query for ${title || 'widget'}`}
-            className="inline-flex shrink-0 items-center justify-center p-1 max-lg:min-h-11 max-lg:min-w-11 rounded bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
+        {(onInspect || onOpenInExplorer) && (
+          <div className="flex shrink-0 items-center gap-1">
+            {onInspect && (
+              <button
+                type="button"
+                onClick={onInspect}
+                title="Inspect widget query"
+                aria-label={`Inspect query for ${title || 'widget'}`}
+                className="inline-flex items-center justify-center p-1 max-lg:min-h-11 max-lg:min-w-11 rounded bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onOpenInExplorer && (
+              <button
+                type="button"
+                onClick={onOpenInExplorer}
+                title="Open in explorer"
+                aria-label={`Open ${title || 'widget'} in explorer`}
+                className="inline-flex items-center justify-center p-1 max-lg:min-h-11 max-lg:min-w-11 rounded bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
       {toolbar && <div className="mb-3">{toolbar}</div>}

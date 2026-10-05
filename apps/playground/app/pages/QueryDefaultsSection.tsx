@@ -16,7 +16,7 @@
  */
 import { useMemo, useState } from 'react'
 import { resolveQueryDraft, SOURCE_OPTIONS, TARGET_OPTIONS } from '@bitcobblers/wod-wiki-ui'
-import { RotateCcw, X } from 'lucide-react'
+import { Pencil, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/atoms/primitives/button'
 import { Switch } from '@/components/atoms/primitives/switch'
 import {
@@ -27,6 +27,13 @@ import {
   PALETTE_ROUTE_ID,
   type RouteWqlConfig,
 } from '../lib/routeWqlConfig'
+import {
+  SHORTCUT_ICONS,
+  useRouteShortcuts,
+  writeRouteShortcuts,
+  type WqlShortcut,
+} from '../lib/routeWqlShortcuts'
+import { SaveWqlShortcutDialog } from '../components/organisms/wql/SaveWqlShortcutDialog'
 import {
   JOURNAL_STREAM_PROFILE,
   COLLECTIONS_STREAM_PROFILE,
@@ -43,16 +50,18 @@ interface ConfigurableSurface {
   id: string
   label: string
   profile?: StreamProfile
+  /** Real library nav group — hosts the saved-shortcuts editor. */
+  shortcuts?: boolean
 }
 
 const CONFIGURABLE_SURFACES: ConfigurableSurface[] = [
   { id: LIBRARY_STREAM_PROFILE.route, label: 'Library', profile: LIBRARY_STREAM_PROFILE },
-  { id: JOURNAL_STREAM_PROFILE.route, label: 'Journal', profile: JOURNAL_STREAM_PROFILE },
-  { id: COLLECTIONS_STREAM_PROFILE.route, label: 'Collections', profile: COLLECTIONS_STREAM_PROFILE },
+  { id: JOURNAL_STREAM_PROFILE.route, label: 'Journal', profile: JOURNAL_STREAM_PROFILE, shortcuts: true },
+  { id: COLLECTIONS_STREAM_PROFILE.route, label: 'Collections', profile: COLLECTIONS_STREAM_PROFILE, shortcuts: true },
   { id: FEEDS_STREAM_PROFILE.route, label: 'Feeds', profile: FEEDS_STREAM_PROFILE },
-  { id: EFFORTS_STREAM_PROFILE.route, label: 'Efforts', profile: EFFORTS_STREAM_PROFILE },
-  { id: SESSIONS_STREAM_PROFILE.route, label: 'Sessions', profile: SESSIONS_STREAM_PROFILE },
-  { id: PLAYGROUNDS_STREAM_PROFILE.route, label: 'Playgrounds', profile: PLAYGROUNDS_STREAM_PROFILE },
+  { id: EFFORTS_STREAM_PROFILE.route, label: 'Efforts', profile: EFFORTS_STREAM_PROFILE, shortcuts: true },
+  { id: SESSIONS_STREAM_PROFILE.route, label: 'Sessions', profile: SESSIONS_STREAM_PROFILE, shortcuts: true },
+  { id: PLAYGROUNDS_STREAM_PROFILE.route, label: 'Playgrounds', profile: PLAYGROUNDS_STREAM_PROFILE, shortcuts: true },
   { id: PALETTE_ROUTE_ID, label: '⌘K Command Palette' },
 ]
 
@@ -292,6 +301,8 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
       </div>
       )}
 
+      {surface.shortcuts && <RouteShortcutsEditor surface={surface} />}
+
       <div className="flex items-center justify-between gap-2">
         <Button
           size="sm"
@@ -308,6 +319,96 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
           </Button>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Settings editor for one library group's shortcuts: the built-in links
+ * (landing, route action) plus the user's saved full-WQL shortcuts.
+ * Built-in route actions edit label/icon only (the target is part of the
+ * nav tree; no delete). Deleting any other link removes it from the panel,
+ * while the plain landing falls back to the tree's default. Writes are
+ * read-back-verified; a dropped write keeps the list as-is with an error
+ * instead of a false success, and successful writes reach the nav panels
+ * live (no reload).
+ */
+function RouteShortcutsEditor({ surface }: { surface: ConfigurableSurface }) {
+  const shortcuts = useRouteShortcuts(surface.id)
+  const [editor, setEditor] = useState<{ editing: WqlShortcut | null } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const remove = (shortcut: WqlShortcut) => {
+    setError(null)
+    if (!writeRouteShortcuts(surface.id, shortcuts.filter(s => s.id !== shortcut.id))) {
+      setError('Delete failed — browser storage is unavailable. Nothing was lost; the link remains.')
+    }
+  }
+
+  return (
+    <div className="space-y-2" data-testid={`query-defaults-shortcuts-${surface.id}`}>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-semibold text-muted-foreground">Saved shortcuts (navigation links)</label>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setEditor({ editing: null })}
+          data-testid={`query-defaults-shortcut-new-${surface.id}`}
+        >
+          <Plus className="size-3.5" />
+          <span>New shortcut</span>
+        </Button>
+      </div>
+      {shortcuts.map(s => {
+        const Icon = SHORTCUT_ICONS[s.icon]!
+        const description = s.to ? `Opens ${s.to}` : s.wql || 'Landing (no query)'
+        return (
+          <div
+            key={s.id}
+            className="flex items-center gap-2 rounded-md border border-border/50 px-2 py-1.5"
+            data-testid={`query-defaults-shortcut-${surface.id}:${s.id}`}
+          >
+            <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0 max-w-40 truncate text-xs font-medium">{s.label}</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground">{description}</span>
+            <button
+              type="button"
+              aria-label={`Edit ${s.label}`}
+              data-testid={`query-defaults-shortcut-edit-${surface.id}:${s.id}`}
+              onClick={() => setEditor({ editing: s })}
+              className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="size-3" />
+            </button>
+            {!s.to && (
+              <button
+                type="button"
+                aria-label={`Delete ${s.label}`}
+                data-testid={`query-defaults-shortcut-delete-${surface.id}:${s.id}`}
+                onClick={() => remove(s)}
+                className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            )}
+          </div>
+        )
+      })}
+      {error && (
+        <p role="alert" className="text-xs text-destructive" data-testid={`query-defaults-shortcut-error-${surface.id}`}>
+          {error}
+        </p>
+      )}
+      {editor && (
+        <SaveWqlShortcutDialog
+          open
+          onOpenChange={open => {
+            if (!open) setEditor(null)
+          }}
+          route={surface.id}
+          editing={editor.editing}
+        />
+      )}
     </div>
   )
 }

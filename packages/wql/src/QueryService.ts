@@ -78,8 +78,10 @@ export type {
 
 /** Extract the catalog directory id from a Note or BlockIndexRow.
  *  Uses explicit `catalog` when present; falls back to parsing `sourceId`
- *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`. */
-function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; catalog?: string }): string | undefined {
+ *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`.
+ *  Exported so host mappers (Entry derivation) carry the exact field the
+ *  `catalog:` filter matches — presentation catalogs must not diverge. */
+export function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; catalog?: string }): string | undefined {
   if (item.catalog) return item.catalog;
   const raw = item.sourceId ? item.sourceId.replace(/^(collection|feed):/, '') : (item.noteId || item.id || '');
   if (!raw) return undefined;
@@ -93,8 +95,10 @@ function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; 
  *  exact id. `playground` matches the playground intake's sourceId convention
  *  and, on the note plane, legacy rows typed 'playground' (playground pages
  *  saved before the sourceId convention existed — their sourceId is absent).
- *  `all` spans exactly the WQL source domain (feeds excised at the vocabulary). */
-function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; type?: string }, kind: string): boolean {
+ *  `all` spans exactly the WQL source domain (feeds excised at the vocabulary).
+ *  Exported so host mappers classify result rows with the exact predicate the
+ *  `source:` filter applies. */
+export function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; type?: string }, kind: string): boolean {
   const sourceId = item.sourceId;
   if (kind === 'all') return WQL_SOURCE_VALUES.some((k) => sourceMatches(item, k));
   if (kind === 'journal') {

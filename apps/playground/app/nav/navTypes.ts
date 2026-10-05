@@ -113,6 +113,8 @@ export interface NavItem extends Omit<INavActivation, 'icon'> {
   href?: string
   /** Dynamic L2 panel (e.g. dashboards, efforts) rendered instead of static children. */
   panel?: React.ComponentType<NavPanelProps>
+  /** Drawer shows the fixed bottom Apply (dismiss) footer while this L1 is active. */
+  applyFooter?: boolean
   to?: string
   disabled?: boolean
   hidden?: boolean

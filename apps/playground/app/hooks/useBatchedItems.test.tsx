@@ -36,8 +36,9 @@ afterEach(() => {
   globalThis.IntersectionObserver = realIO
 })
 
-function Harness({ xs, batch }: { xs: number[]; batch: number }) {
-  const { visible, hasMore, sentinelRef, total } = useBatchedItems(xs, batch)
+function Harness({ xs, batch, expose }: { xs: number[]; batch: number; expose?: (hooks: { growTo: (n: number) => void }) => void }) {
+  const { visible, hasMore, sentinelRef, total, growTo } = useBatchedItems(xs, batch)
+  expose?.({ growTo })
   return (
     <div>
       <output data-testid="visible">{visible.join(',')}</output>
@@ -96,5 +97,22 @@ describe('useBatchedItems', () => {
     render(<Harness xs={items(2)} batch={3} />)
     expect(hasMore()).toBe(false)
     expect(MockIntersectionObserver.instances).toHaveLength(0)
+  })
+
+  it('growTo materializes through a target index without waiting for the sentinel', () => {
+    setupIO()
+    let hooks: { growTo: (n: number) => void } | undefined
+    render(<Harness xs={items(10)} batch={3} expose={h => { hooks = h }} />)
+    expect(visible()).toBe('0,1,2')
+
+    // Jump-to-group: materialize items 0..6 in one step; shrinking is ignored.
+    act(() => hooks!.growTo(7))
+    expect(visible()).toBe('0,1,2,3,4,5,6')
+    act(() => hooks!.growTo(2))
+    expect(visible()).toBe('0,1,2,3,4,5,6')
+    // Beyond the set clamps.
+    act(() => hooks!.growTo(99))
+    expect(visible()).toBe('0,1,2,3,4,5,6,7,8,9')
+    expect(hasMore()).toBe(false)
   })
 })

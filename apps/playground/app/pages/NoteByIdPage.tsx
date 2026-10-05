@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { v7 as uuidv7 } from 'uuid'
 import { CalendarDays, Copy } from 'lucide-react'
 import { Button } from '@/components/atoms/primitives/button'
 import { JournalPageShell } from '@/panels/page-shells'
@@ -7,15 +8,26 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { ResponsiveActions } from '../nav/ResponsiveActions'
 import { useEditorSave } from '../hooks/useEditorSave'
+import { useNoteL1Zone } from '../nav/NavContext'
 import { notePersistence } from '@/services/persistence'
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
+import { storageService } from '@/services/storage'
 import { usePageSourcesReady } from '@/hooks/usePageSourcesReady'
 import { refreshPageSources } from '@/services/queryService'
-import { journalDatePath, noteByIdPath, pagePath } from '../lib/routes'
+import { journalDatePath, noteByIdPath, pagePath, runPath } from '../lib/routes'
 import { NotePlacementDialog, type NotePlacementMode } from '../components/organisms/journal/NotePlacementDialog'
 import type { HistoryEntry } from '@/types/history'
+import type { Session } from '@/types/storage'
 import { playgroundRecorder } from '@/services/resultRecorder'
+import { pendingRuntimes } from '../runtimeStore'
 import type { ScriptBlock } from '@/components/Editor/types'
+import { useNotePageNav } from './shared/useNotePageNav'
+import {
+  NoteContextLinks,
+  noteOwnership,
+  provenanceLink,
+  useNoteContextLinks,
+} from './shared/noteContextLinks'
 const contentProvider = new IndexedDBContentProvider()
 
 export interface NoteByIdPageProps {
@@ -92,6 +104,55 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
       cancelled = true
     }
   }, [sourceId])
+
+  // ── Source-aware navigation: owning list ("Up"), L1 zone, sourceNote stamps
+  const ownership = useMemo(
+    () => (entry ? noteOwnership(entry) : { zone: null, up: null, stamps: [] }),
+    [entry],
+  )
+  useNoteL1Zone(ownership.zone)
+
+  // ── Outline (L3) + Run + result badges, wired like the other note pages
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
+  const [results, setResults] = useState<Session[]>([])
+  const noteKey = entry?.id
+  useEffect(() => {
+    setResults([])
+    setScriptBlocks([])
+    if (!noteKey) return
+    let cancelled = false
+    storageService.getResultsForNote(noteKey).then((rows) => {
+      if (!cancelled) setResults(rows)
+    }).catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [noteKey])
+
+  const handleStartWorkout = useCallback(
+    (block: ScriptBlock) => {
+      if (!entry) return
+      const runtimeId = uuidv7()
+      pendingRuntimes.set(runtimeId, {
+        block,
+        noteId: entry.id,
+        returnTo: noteByIdPath(entry.id),
+      })
+      navigate(runPath(runtimeId))
+    },
+    [entry, navigate],
+  )
+
+  useNotePageNav({
+    content: entry?.rawContent ?? '',
+    scriptBlocks,
+    onStartWorkout: handleStartWorkout,
+    results,
+  })
+
+  const contextLinks = useNoteContextLinks(
+    entry ? { noteId: entry.id, stamps: ownership.stamps } : { noteId: '', stamps: [] },
+  )
 
   const save = useCallback(
     (value: string) =>
@@ -183,6 +244,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
           actions={pageActions}
           editor={
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
+              <NoteContextLinks data={contextLinks} up={ownership.up} />
               {(entry.journalDate || entry.slug || entry.sourceId) && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   {entry.journalDate && (
@@ -203,7 +265,16 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
                           {sourceEntry.title || sourceEntry.id}
                         </Link>
                       ) : (
-                        entry.sourceId
+                        (() => {
+                          const stamped = provenanceLink(entry.sourceId!)
+                          return stamped ? (
+                            <Link to={stamped.to} className="underline-offset-2 hover:underline">
+                              {stamped.title}
+                            </Link>
+                          ) : (
+                            entry.sourceId
+                          )
+                        })()
                       )}
                     </span>
                   )}
@@ -219,6 +290,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
                   theme={theme}
                   showLineNumbers={false}
                   onCompleteWorkout={handleCompleteWorkout}
+                  onBlocksChange={setScriptBlocks}
                 />
               ) : (
                 <div className="flex items-center justify-center text-zinc-400 text-sm py-8">Loading…</div>

@@ -1,21 +1,34 @@
 /**
- * DashboardsNavPanel — L2 context panel for the /dashboard namespace.
+ * DashboardsNavPanel — L2 context panel for the dashboards zone.
  *
- * Renders the merged dashboard list: the Explorer (/dashboard) plus every
- * addressable dashboard from useDashboardCatalog — vault-created (editable)
- * first, then the unread prebuilt seeds. A "+ New dashboard" action creates
- * a blank dashboard note and navigates to it. This is the dynamic L2 the
- * static nav tree can't express (vault dashboards are runtime data).
+ * /dashboards: the Explorer row plus the EXAMPLE_QUERIES catalog (promoted
+ * from the in-page combo) — each row deep-links analyticsExplorerPath({ q });
+ * the active row matches the URL ?q= semantically (canonical serialization),
+ * so a link whose text differs from the catalog string still highlights.
+ * /dashboard/:slug | /d/:slug: the merged dashboard list (vault first, then
+ * prebuilt seeds) with the active row highlighted, plus New dashboard.
  */
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { parseQuery, serialize } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 import type { NavPanelProps } from '../navTypes';
 import { useDashboardCatalog } from '../../hooks/useDashboards';
 import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter } from '@/lib/frontmatter';
-import { dashboardViewPath } from '../../lib/routes';
+import { analyticsExplorerPath, dashboardPath, dashboardViewPath } from '../../lib/routes';
+import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
+
+/** Semantic WQL comparison: parseable strings match through the serializer's
+ * fixed point (empty `{}` braces drop), anything else falls back to raw. */
+function sameWql(a: string | null, b: string): boolean {
+  if (!a) return false;
+  if (a === b) return true;
+  const pa = parseQuery(a);
+  const pb = parseQuery(b);
+  return !pa.error && !pb.error && serialize(pa) === serialize(pb);
+}
 
 export function DashboardsNavPanel(_props: NavPanelProps) {
   const location = useLocation();
@@ -35,46 +48,66 @@ export function DashboardsNavPanel(_props: NavPanelProps) {
     }
   };
 
-  const explorerActive = location.pathname === '/dashboard';
+  const onExplorer = location.pathname === '/dashboards';
+  const activeQ = onExplorer ? new URLSearchParams(location.search).get('q') : null;
 
   return (
     <div className="flex flex-col gap-1 px-2 py-3" data-testid="dashboards-nav-panel">
       <NavRow
         label="Explorer"
-        active={explorerActive}
-        onClick={() => navigate('/dashboard')}
+        active={onExplorer}
+        onClick={() => navigate(dashboardPath())}
       />
 
-      <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3">
-        Dashboards
-      </div>
-
-      {loading ? (
-        <div className="px-3 py-2 text-xs text-muted-foreground/60">Loading…</div>
-      ) : items.length === 0 ? (
-        <div className="px-3 py-2 text-xs text-muted-foreground/60">No dashboards yet.</div>
+      {onExplorer ? (
+        <>
+          <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3">
+            Examples
+          </div>
+          {EXAMPLE_QUERIES.map((ex) => (
+            <NavRow
+              key={ex.query}
+              label={ex.label}
+              title={ex.question}
+              active={sameWql(activeQ, ex.query)}
+              onClick={() => navigate(analyticsExplorerPath({ q: ex.query }))}
+            />
+          ))}
+        </>
       ) : (
-        items.map((d) => (
-          <NavRow
-            key={d.slug}
-            label={d.title}
-            badge={d.editable ? undefined : 'prebuilt'}
-            active={location.pathname === `/dashboard/${d.slug}` || location.pathname === `/d/${d.slug}`}
-            onClick={() => navigate(dashboardViewPath(d.slug))}
-          />
-        ))
-      )}
+        <>
+          <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3">
+            Dashboards
+          </div>
 
-      <button
-        type="button"
-        onClick={handleNew}
-        disabled={creating}
-        data-testid="dashboards-nav-new"
-        className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
-      >
-        <Plus className="size-3.5" />
-        New dashboard
-      </button>
+          {loading ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground/60">Loading…</div>
+          ) : items.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground/60">No dashboards yet.</div>
+          ) : (
+            items.map((d) => (
+              <NavRow
+                key={d.slug}
+                label={d.title}
+                badge={d.editable ? undefined : 'prebuilt'}
+                active={location.pathname === `/dashboard/${d.slug}` || location.pathname === `/d/${d.slug}`}
+                onClick={() => navigate(dashboardViewPath(d.slug))}
+              />
+            ))
+          )}
+
+          <button
+            type="button"
+            onClick={handleNew}
+            disabled={creating}
+            data-testid="dashboards-nav-new"
+            className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <Plus className="size-3.5" />
+            New dashboard
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -84,16 +117,19 @@ function NavRow({
   active,
   onClick,
   badge,
+  title,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
   badge?: string;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={cn(
         'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
         active

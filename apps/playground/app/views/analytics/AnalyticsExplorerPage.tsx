@@ -22,11 +22,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, serialize, isAggregateQuery, isFindQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
-import { RowsTable } from '@bitcobblers/wod-wiki-ui';
+import { parseQuery, serialize, isAggregateQuery, isFindQuery, type QueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 import { StickyPageHeader, StickyGroupHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
-import { groupEntriesByDate } from '../../lib/entryGrouping';
+import { groupEntriesByDimension } from '../../lib/entryGrouping';
 import { formatDateHeader } from '../../lib/dateFormat';
 import { LibraryRow } from '../library/LibraryRow';
 import { QueryToDashboardDialog } from './QueryToDashboardDialog';
@@ -55,11 +54,9 @@ import { readRouteWqlConfig } from '../../lib/routeWqlConfig';
 import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
-import {
-  useExplorerQueryState,
-  DEFAULT_EXPLORER_QUERY,
-} from '../../hooks/useExplorerQueryState';
-import { ExplorerCommandBar } from './ExplorerCommandBar';
+import { useExplorerQueryState } from '../../hooks/useExplorerQueryState';
+import { useNav } from '../../nav/NavContext';
+import type { NavItemL3 } from '../../nav/navTypes';
 import { ExplorerOptionsMenu } from './ExplorerOptionsMenu';
 import { SampleDataPrompt } from './SampleDataPrompt';
 import { cn } from '@/lib/utils';
@@ -83,20 +80,22 @@ function sourceFilterLabel(filters: TagFilter[]): string | null {
 }
 
 /** The date-grouped records stream — shared by the find-result view and the
- * calculation's records section so both render exactly like the Library. */
-function GroupedEntryList({ entries, stickyOffset }: { entries: Entry[]; stickyOffset: number }) {
+ * calculation's records section. Group wrappers carry the shared stream-group
+ * DOM ids (`date-group-<key>`) so the L3 rail can scroll to them; `idPrefix`
+ * keeps the records disclosure's ids distinct while both lists are mounted. */
+function GroupedEntryList({ entries, stickyOffset, idPrefix = '' }: { entries: Entry[]; stickyOffset: number; idPrefix?: string }) {
   return (
     <div className="-mx-4">
-      {groupEntriesByDate(entries).map(([date, group]) => (
-        <div key={date} className="flex flex-col">
+      {groupEntriesByDimension(entries, 'date').map(group => (
+        <div key={group.id} id={`${idPrefix}${group.id}`} className="flex flex-col">
           <StickyGroupHeader
             top={stickyOffset}
             icon={<CalendarIcon className="size-3 shrink-0 text-muted-foreground" />}
-            label={date === '(undated)' ? 'Undated' : formatDateHeader(date)}
-            meta={<span data-testid="library-group-count" className="font-bold tabular-nums">{group.length}</span>}
+            label={group.label}
+            meta={<span data-testid="library-group-count" className="font-bold tabular-nums">{group.entries.length}</span>}
           />
           <div className="flex flex-col gap-0 pb-1">
-            {group.map(entry => (
+            {group.entries.map(entry => (
               <LibraryRow
                 key={entry.block ? `${entry.id}#${entry.block.segmentId}` : entry.id}
                 entry={entry}
@@ -144,7 +143,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     [submitted, preferredUnit],
   );
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
-  const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>(undefined);
   const [entries, setEntries] = useState<Entry[] | undefined>(undefined);
   const [records, setRecords] = useState<Entry[] | undefined>(undefined);
   const [efforts, setEfforts] = useState<IEffort[] | undefined>(undefined);
@@ -228,7 +226,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
 
     if (!submitted) {
       setResult(undefined);
-      setRowsResult(undefined);
       setEntries(undefined);
       setEfforts(undefined);
       setLoading(false);
@@ -241,7 +238,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     if (isFindQuery(parsed)) {
       // Content query — the shared WQL → Entry[] pipeline (same rows as the
       // Library, #833); effort targets come from the engine's effort plane.
-      setRowsResult(undefined);
       setResult(undefined);
       if (parsed.target === 'effort') {
         queryService.runFind(parsed)
@@ -256,7 +252,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
       }
     } else {
       // Analytics query — resolves directly against the unified event store.
-      setRowsResult(undefined);
       setEntries(undefined);
       setEfforts(undefined);
       const now = Date.now();
@@ -281,28 +276,29 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     submit(next);
   };
 
-  const [pickedExample, setPickedExample] = useState<string | null>(null);
-
-  /** Example chip: hydrate the composer from the query and run it. */
-  const runExample = (wql: string) => {
-    setPickedExample(wql);
-    setDraft(parseQuery(wql).error ? DEFAULT_EXPLORER_QUERY : wql);
-    submit(wql);
-  };
-
-  // The combo claims an example only while the draft is still that example's
-  // own composed form — any manual edit resets it to "Examples…". Compare
-  // against the composed draft, not the raw catalog string: clause
-  // round-tripping normalizes the WQL (empty `{}` braces drop), and some
-  // examples (`note:` filters) don't restore through the clause model at all.
-  const activeExample = useMemo(() => {
-    if (!pickedExample) return undefined;
-    const composedParsed = parseQuery(pickedExample);
-    const composedDraft = composedParsed.error ? pickedExample : serialize(composedParsed);
-    return sameQuery(draft, composedDraft)
-      ? EXAMPLE_QUERIES.find((e) => e.query === pickedExample)
-      : undefined;
-  }, [pickedExample, draft]);
+  // L3 group index: the find result's date groups, using the same shared
+  // stream-group ids the DOM carries (GroupedEntryList anchors). Cleared when
+  // the result leaves or the page unmounts. Aggregate results have no groups
+  // and publish an empty index.
+  const { setL3Items } = useNav();
+  const findGroups = useMemo(
+    () => (entries !== undefined && entries.length > 0 ? groupEntriesByDimension(entries, 'date') : []),
+    [entries],
+  );
+  useEffect(() => {
+    if (findGroups.length === 0) {
+      setL3Items([]);
+      return;
+    }
+    const groupLinks: NavItemL3[] = findGroups.map((g) => ({
+      id: g.id,
+      label: g.label,
+      level: 3,
+      action: { type: 'scroll', sectionId: g.id },
+    }));
+    setL3Items(groupLinks);
+    return () => setL3Items([]);
+  }, [findGroups, setL3Items]);
 
   const exampleQuestion = EXAMPLE_QUERIES.find((e) => e.query === submitted)?.question ?? 'custom query';
 
@@ -357,7 +353,9 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
       />
 
       <div className="flex flex-col min-h-0 p-4">
-        <ExplorerCommandBar active={activeExample} onRunExample={runExample}>
+        {/* Examples live in the dashboards L2 panel — the bar is just the
+            composer (Run in its custom slot). */}
+        <div className="min-w-[280px]">
           <WqlComposer
             query={draft}
             onQueryChange={setDraft}
@@ -380,7 +378,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               </button>
             }
           />
-        </ExplorerCommandBar>
+        </div>
 
         {/* Meta line: quiet draft-validity indicator + the metric/filter
             vocabulary chips that replaced the sidebar (issue #897). */}
@@ -561,7 +559,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
                   {records.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No records match this calculation.</div>
                   ) : (
-                    <GroupedEntryList entries={records} stickyOffset={stickyOffset} />
+                    <GroupedEntryList entries={records} stickyOffset={stickyOffset} idPrefix="records-" />
                   )}
                 </div>
               )}

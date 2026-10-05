@@ -18,12 +18,17 @@ import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMe
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
 import { isItemActive } from './NavSidebar'
+import { useCloseNavigationDrawer } from './NavigationDrawerContext'
 import type { NavItem, NavActionDeps } from './navTypes'
 
 export function AppRail({ onSearch, onCreate }: { onSearch: () => void; onCreate?: () => void }) {
   const { tree, navState, dispatch } = useNav()
   const navigate = useNavigate()
   const location = useLocation()
+  // Mobile drawer: settings is an external flow — dismiss explicitly (no-op on
+  // desktop, where the seam defaults to nothing). Create/search close earlier
+  // in the drawer's wrappers; L1 destinations intentionally keep it open.
+  const closeDrawer = useCloseNavigationDrawer()
 
   const deps: NavActionDeps = {
     navigate: (to, opts) => navigate(to, { replace: opts?.replace }),
@@ -120,7 +125,10 @@ export function AppRail({ onSearch, onCreate }: { onSearch: () => void; onCreate
 
       <button
         type="button"
-        onClick={() => navigate('/settings/appearance')}
+        onClick={() => {
+          closeDrawer()
+          navigate('/settings/appearance')
+        }}
         title="Settings"
         aria-label="Settings"
         aria-current={isSettingsActive ? 'page' : undefined}

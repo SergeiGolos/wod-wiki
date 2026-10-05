@@ -31,6 +31,36 @@ sum:totalVolume{}
 \`\`\`
 `;
 
+// Every heading shape the outline must survive: a titled heading, two
+// consecutive standalone headings, and a trailing heading after the last
+// widget block.
+const HEADING_RAW = `---
+dashboard: true
+title: Outline Board
+slug: outline-board
+---
+
+# Outline Board
+
+## First
+What's first?
+
+\`\`\`query:value
+sum:totalVolume{}
+\`\`\`
+
+## Standalone A
+## Standalone B
+## Widget Two
+Question two?
+
+\`\`\`query:value
+sum:tis{}
+\`\`\`
+
+## Trailing
+`;
+
 // The store behind the mocked journalNotes — mutated directly to simulate
 // a concurrent writer (another tab, another surface).
 let storedRaw = DASH_RAW;
@@ -124,6 +154,8 @@ mock.module('../../hooks/useDashboards', () => ({
 }));
 
 import { DashboardViewPage } from './DashboardViewPage';
+import { NavContext, initialNavState } from '../../nav/NavContext';
+import type { NavItemL3 } from '../../nav/navTypes';
 
 afterEach(cleanup);
 
@@ -177,5 +209,46 @@ describe('DashboardViewPage stale-refresh transition', () => {
     // Sanity: the composer is the open dialog, and the banner is inside it.
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByTestId('widget-composer-error')).toBeDefined();
+  });
+});
+
+describe('DashboardViewPage L3 outline', () => {
+  it('publishes real anchors for consecutive and trailing headings without lossy remapping', async () => {
+    storedRaw = HEADING_RAW;
+    const captured: NavItemL3[][] = [];
+    render(
+      <MemoryRouter initialEntries={['/dashboard/outline-board']} initialIndex={0}>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: [],
+            setL3Items: (items: NavItemL3[]) => captured.push(items),
+            secondarySpec: undefined,
+            setSecondarySpec: () => {},
+            scrollToSection: () => {},
+            registerScrollFn: () => {},
+          }}
+        >
+          <Routes>
+            <Route path="/dashboard/:slug" element={<DashboardViewPage />} />
+          </Routes>
+        </NavContext.Provider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText('Standalone A')).toBeDefined());
+    await waitFor(() => {
+      const ids = captured.at(-1)?.map((item) => item.id) ?? [];
+      // Document order: sticky title, titled widget, both consecutive
+      // standalone headings (each its own anchor), second widget, trailing.
+      expect(ids).toEqual(['dashboard-title', 'widget-w0', 'note-h4', 'note-h5', 'widget-w1', 'note-h9']);
+    });
+
+    // Every heading entry targets a rendered anchor — no fake targets.
+    for (const id of ['dashboard-title', 'note-h4', 'note-h5', 'note-h9']) {
+      expect(globalThis.document.getElementById(id)).not.toBeNull();
+    }
   });
 });

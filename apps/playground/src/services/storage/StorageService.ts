@@ -272,6 +272,41 @@ export class StorageService implements NotePersistenceStorage {
   async getAllFromIndex(storeName: 'block_efforts' | 'tags' | 'note_tags', index: string, key: IDBValidKey): Promise<any[]> {
     return this.storage.readonly(storeName).getAllFromIndex(index, key);
   }
+  /** Batch note→tag-label resolution (labels carry their tag type): one
+   *  note_tags scan + one tags scan — the exact pair the note plane's
+   *  `tags:` / typed-tag filters resolve through, without per-note reads. */
+  async getNoteTagLabelsBatch(): Promise<Map<string, Array<{ label: string; type?: string }>>> {
+    const [links, tags] = await Promise.all([
+      this.storage.readonly('note_tags').getAll(),
+      this.storage.readonly('tags').getAll(),
+    ]);
+    const tagById = new Map(tags.map((t) => [t.id, t]));
+    const byNote = new Map<string, Array<{ label: string; type?: string }>>();
+    for (const link of links) {
+      const tag = tagById.get(link.tagId);
+      if (!tag) continue;
+      const rows = byNote.get(link.noteId);
+      if (rows) rows.push({ label: tag.label, type: tag.type });
+      else byNote.set(link.noteId, [{ label: tag.label, type: tag.type }]);
+    }
+    return byNote;
+  }
+  /** Batch note→effort-slug resolution: one block_efforts scan — the exact
+   *  by-effort index the executors' `effort:` filters resolve through
+   *  (note containment and block containment both key on noteId). */
+  async getEffortSlugsByNoteBatch(): Promise<Map<string, string[]>> {
+    const rows = await this.storage.readonly('block_efforts').getAll();
+    const byNote = new Map<string, string[]>();
+    for (const row of rows) {
+      const slugs = byNote.get(row.noteId);
+      if (slugs) {
+        if (!slugs.includes(row.effortSlug)) slugs.push(row.effortSlug);
+      } else {
+        byNote.set(row.noteId, [row.effortSlug]);
+      }
+    }
+    return byNote;
+  }
   async getTagByLabel(label: string): Promise<Tag | undefined> {
     const matches = await this.storage.readonly('tags').getAllFromIndex('by-label', label);
     return matches[0];

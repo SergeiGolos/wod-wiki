@@ -36,8 +36,49 @@ export interface UseNotePageNavOptions {
 }
 
 /**
+ * Attach result badges and the Run callback to a page index. `log` links stay
+ * display-only (#891/#894): scroll target + badges, no Run affordance.
+ * Exported so multi-editor pages (journal date) can wire per-note outlines.
+ */
+export function wirePageIndexLinks(
+  base: PageNavLink[],
+  scriptBlocks: ScriptBlock[],
+  onStartWorkout: (block: ScriptBlock) => void,
+  results?: Session[],
+): PageNavLink[] {
+  return base.map(link => {
+    if (link.type !== 'time' && link.type !== 'log') return link
+    const lineNum = parseInt(link.id.replace(`${link.type}-line-`, ''), 10)
+    const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
+    let badge: { hasResult?: boolean; resultCount?: number } = {}
+    if (results && block) {
+      const { current } = groupResultsByVersion(results, block.id, block.contentId)
+      badge = {
+        hasResult: current.length > 0,
+        resultCount: current.length,
+      }
+    }
+
+    // Log links are display-only (#891/#894): badges yes, Run affordance no.
+    if (link.type === 'log') return { ...link, ...badge }
+
+    return {
+      ...link,
+      ...badge,
+      onRun: () => {
+        // Re-resolve at click time in case `scriptBlocks` changed.
+        // Falls back to `scriptBlocks[0]` to preserve prior behavior of all
+        // parser has produced a precise match still runs *something*.
+        const resolvedBlock =
+          block || scriptBlocks.find(b => b.startLine + 1 === lineNum) || scriptBlocks[0]
+        if (resolvedBlock) onStartWorkout(resolvedBlock)
+      },
+    }
+  })
+}
+
+/**
  * Build the page index, wire each `time` link's `onRun`, and publish to L3 nav.
- * `log` links stay display-only (#891/#894): scroll target, no Run/Log button.
  * Returns the resolved `PageNavLink[]` so the page can pass it to its shell.
  */
 export function useNotePageNav({
@@ -46,38 +87,10 @@ export function useNotePageNav({
   onStartWorkout,
   results,
 }: UseNotePageNavOptions): PageNavLink[] {
-  const index = useMemo((): PageNavLink[] => {
-    const base = extractPageIndex(content)
-    return base.map(link => {
-      if (link.type !== 'time' && link.type !== 'log') return link
-      const lineNum = parseInt(link.id.replace(`${link.type}-line-`, ''), 10)
-      const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
-      let badge: { hasResult?: boolean; resultCount?: number } = {}
-      if (results && block) {
-        const { current } = groupResultsByVersion(results, block.id, block.contentId)
-        badge = {
-          hasResult: current.length > 0,
-          resultCount: current.length,
-        }
-      }
-
-      // Log links are display-only (#891/#894): badges yes, Run affordance no.
-      if (link.type === 'log') return { ...link, ...badge }
-
-      return {
-        ...link,
-        ...badge,
-        onRun: () => {
-          // Re-resolve at click time in case `scriptBlocks` changed.
-          // Falls back to `scriptBlocks[0]` to preserve prior behavior of all
-          // parser has produced a precise match still runs *something*.
-          const resolvedBlock =
-            block || scriptBlocks.find(b => b.startLine + 1 === lineNum) || scriptBlocks[0]
-          if (resolvedBlock) onStartWorkout(resolvedBlock)
-        },
-      }
-    })
-  }, [content, scriptBlocks, onStartWorkout, results])
+  const index = useMemo(
+    () => wirePageIndexLinks(extractPageIndex(content), scriptBlocks, onStartWorkout, results),
+    [content, scriptBlocks, onStartWorkout, results],
+  )
 
   const { setL3Items } = useNav()
   useEffect(() => {

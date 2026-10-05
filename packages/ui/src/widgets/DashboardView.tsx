@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Copy, Trash2 } from 'lucide-react';
 import { isFindQuery, isPipelineQuery, parseQuery, type QueryResult, type AnyParsedQuery, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget, SharedQueryDocumentRunner, type QueryDocumentRunnerHost, type DocumentOutput } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
@@ -6,6 +6,7 @@ import { WidgetFrame, WidgetToolButton, WidgetEditButton } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';
 import { toChartResult } from './chartData';
 import { DashboardTokenControls } from './DashboardTokenControls';
+import { cn } from '../utils/cn';
 
 /** A widget's grid placement — column span 1..4, or a forced full row. */
 export interface WidgetSpanOption {
@@ -13,9 +14,22 @@ export interface WidgetSpanOption {
   spanFull?: boolean;
 }
 
+/** A note heading rendered as a full-width grid row between widgets, with its
+ * own DOM anchor (L3 scroll target). Order within `headings` is preserved. */
+export interface DashboardHeadingAnchor {
+  id: string;
+  /** Markdown heading level (2+; level 1 renders as the page title surface). */
+  level: number;
+  text: string;
+  /** Insert before this widget index; `widgets.length` = after the last. */
+  beforeWidget: number;
+}
+
 export interface DashboardViewProps {
   /** Parsed dashboard note (buildDashboardDocument). */
   document: DashboardDocument;
+  /** Note headings to render between the widgets (document order). */
+  headings?: DashboardHeadingAnchor[];
   /** Injected QueryExecutor for executing WQL queries. Zero singleton coupling. */
   executor?: QueryExecutor;
   /** Optional rollup fact warmer callback. */
@@ -34,6 +48,8 @@ export interface DashboardViewProps {
   onEditWidget?: (widget: DashboardWidget) => void;
   /** Read-only query inspection (prebuilt seeds, teaching surfaces). */
   onInspectWidget?: (widget: DashboardWidget) => void;
+  /** Open the widget's token-resolved query in the WQL explorer (host navigates). */
+  onOpenInExplorer?: (widget: DashboardWidget, query: string) => void;
   onDuplicateWidget?: (widget: DashboardWidget) => void;
   onRemoveWidget?: (widget: DashboardWidget) => void;
   onMoveWidget?: (widget: DashboardWidget, delta: -1 | 1) => void;
@@ -162,6 +178,7 @@ function sizeIsActive(widget: DashboardWidget, span: WidgetSpanOption): boolean 
  */
 export function DashboardView({
   document,
+  headings,
   executor,
   onEnsureRollupFacts,
   tokenValues,
@@ -169,6 +186,7 @@ export function DashboardView({
   editMode = false,
   onEditWidget,
   onInspectWidget,
+  onOpenInExplorer,
   onDuplicateWidget,
   onRemoveWidget,
   onMoveWidget,
@@ -306,14 +324,27 @@ export function DashboardView({
         {resolved.map(({ widget, query, attributes }, index) => {
           const run = runs[widget.key];
           const canArrange = editMode && (onEditWidget || onDuplicateWidget || onRemoveWidget || onMoveWidget || onResizeWidget);
+          const before = (headings ?? []).filter((h) => h.beforeWidget === index);
           return (
-            <WidgetFrame
+            <Fragment key={widget.key}>
+              {before.map((h) => (
+                <div
+                  key={h.id}
+                  id={h.id}
+                  className={cn('col-span-full font-semibold text-foreground', h.level <= 2 ? 'text-base mt-2' : 'text-sm')}
+                >
+                  {h.text}
+                </div>
+              ))}
+              <WidgetFrame
               key={widget.key}
+              id={`widget-${widget.key}`}
               title={widget.title ?? ''}
               question={widget.question ?? ''}
               query={query}
               span={spanClass(widget)}
               onInspect={onInspectWidget ? () => onInspectWidget(widget) : undefined}
+              onOpenInExplorer={onOpenInExplorer ? () => onOpenInExplorer(widget, query) : undefined}
               toolbar={
                 canArrange ? (
                   <div className="flex flex-wrap items-center gap-1.5" data-testid={`widget-toolbar-${widget.key}`}>
@@ -387,8 +418,18 @@ export function DashboardView({
                 />
               )}
             </WidgetFrame>
+            </Fragment>
           );
         })}
+        {(headings ?? []).filter((h) => h.beforeWidget >= resolved.length).map((h) => (
+          <div
+            key={h.id}
+            id={h.id}
+            className={cn('col-span-full font-semibold text-foreground', h.level <= 2 ? 'text-base mt-2' : 'text-sm')}
+          >
+            {h.text}
+          </div>
+        ))}
       </div>
     </div>
   );

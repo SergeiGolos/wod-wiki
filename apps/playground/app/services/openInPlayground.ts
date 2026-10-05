@@ -15,24 +15,27 @@ import { encodeZip } from './encodeZip'
 import { buildPlaygroundLoadUrl } from '../lib/routes'
 import { toast } from '@/hooks/use-toast'
 
-/** Build the /load?zip= URL for a time/log block. */
-async function buildZipUrl(block: ScriptBlock): Promise<string> {
+/** Build the /load?zip= URL for a time/log block. `src` (the current page
+ *  path) rides along so the spawned playground note carries provenance. */
+async function buildZipUrl(block: ScriptBlock, src?: string): Promise<string> {
   const dialect = block.dialect || 'time'
   const fenceTag = block.sport ? `${dialect}:${block.sport}` : dialect
   const markdown = `\`\`\`${fenceTag}\n${block.content.trimEnd()}\n\`\`\`\n`
   const encoded = await encodeZip(markdown)
-  return `${window.location.origin}${buildPlaygroundLoadUrl({ zip: encoded })}`
+  const base = `${window.location.origin}${buildPlaygroundLoadUrl({ zip: encoded })}`
+  return src ? `${base}&src=${encodeURIComponent(src)}` : base
 }
 
 /**
  * Navigate directly to a new playground page pre-loaded with the time/log block's
  * content. Uses the same /load?zip= mechanism as WhiteboardPlaygroundButton.
+ * The current page path becomes the spawned note's provenance stamp.
  */
 export async function openBlockInPlayground(
   block: ScriptBlock,
   navigate: NavigateFunction,
 ): Promise<void> {
-  const url = await buildZipUrl(block)
+  const url = await buildZipUrl(block, window.location.pathname)
   // Extract just the path+query so we navigate within the SPA router
   const { pathname, search } = new URL(url)
   navigate(`${pathname}${search}`)

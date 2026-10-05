@@ -58,6 +58,8 @@ export {
   type ClauseType,
   type ClauseMeta,
   type QueryClause,
+  CLAUSE_META,
+  getClauseMeta,
   SOURCE_OPTIONS,
   KIND_OPTIONS,
   TARGET_OPTIONS,

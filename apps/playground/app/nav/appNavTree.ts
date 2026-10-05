@@ -5,12 +5,15 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Library, Dashboards
- *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
- *   L2 of Library:     Journal, Collections, Feeds, Playground, Efforts, Results
- *   L2 of Dashboards:  Explorer (/dashboard) + the prebuilt dashboard seeds
- *                      (/dashboard/:slug); vault-created dashboards need a
- *                      dynamic panel to join this list (follow-up).
+ *   L1: Home, Journal, Collections, Playgrounds, Dashboard, Efforts, Sessions,
+ *       Settings (Feeds folds into Collections — feed routes light Collections)
+ *   L2 of Home:        the consolidated Guide chapters (markdown/canvas/guide/**;
+ *                      the old syntax/behaviors/analytics pillars are folded in)
+ *   L2 of the five stream routes (Journal/Collections/Playgrounds/Efforts/
+ *                      Sessions): the shared ConditionsNavPanel — current-result
+ *                      `{}` condition accordion plus grouping presets over the
+ *                      CURRENT query; Feeds rides under Collections
+ *   L2 of Dashboards:  dynamic panel (vault/runtime data)
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  *
  * The canvas-guide children derive from the seeded canvas routes passed by
@@ -19,16 +22,17 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
+import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 import { scopeOfQuery } from '../lib/wqlEdits'
+import { JOURNAL_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
+import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
-import { SessionsNavPanel } from './panels/SessionsNavPanel'
+import { createConditionsNavPanel } from './panels/ConditionsNavPanel'
 import type { CanvasRoute } from '../canvas/canvasRoutes'
-import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
-import { EFFORT_DISCIPLINES } from '@bitcobblers/wod-wiki-lang'
+
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMeACoffee'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
@@ -76,89 +80,105 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   ]
 }
 
-// ─── L2 children for Library ──────────────────────────────────────────────────
+// ─── Listing zones (flattened Library) ────────────────────────────────────────
 
-/** Canonical playground listing — the dedicated /playgrounds stream route
- *  (the library ?q= deep link remains a valid alias via the library profile). */
-export const PLAYGROUND_LIBRARY_WQL = ':note{source:playground} by {source} last 4w'
-export const PLAYGROUND_LIBRARY_HREF = ROUTE_PATTERNS.playgrounds
-
-function isLibraryPlaygroundActive(loc: Location): boolean {
-  if (loc.pathname === '/playground' || loc.pathname.startsWith('/playground/')) return true
-  if (loc.pathname === ROUTE_PATTERNS.playgrounds) return true
-  if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) {
-    return false
-  }
-  return scopeOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
+/**
+ * Journal / Collections / Playgrounds are top-level L1 rows — the old Library
+ * wrapper is gone and Feeds folds into Collections (feed routes light the
+ * Collections zone). Each zone's L2 is the shared ConditionsNavPanel; there
+ * are no static preset children to keep in sync.
+ */
+interface ListingZoneSpec {
+  id: string
+  label: string
+  landingLabel: string
+  icon: NavItem['icon']
+  route: string
+  profile: StreamProfile
+  /** Extra panel rows appended after the presets (e.g. Feeds). */
+  extraChildren?: NavItem[]
+  /** Whole zone route family (L1 activation). */
+  familyActive: (loc: Location) => boolean
+  /** The legacy `/library` alias lights this zone for its `?q=` scope. */
+  aliasActive?: (loc: Location) => boolean
 }
 
-const libraryChildren: NavItem[] = [
-  {
-    id: 'library-journal',
-    label: 'Journal',
-    level: 2,
-    icon: Calendar,
-    action: { type: 'route', to: ROUTE_PATTERNS.journal },
-    isActive: (loc: Location) =>
-      loc.pathname === '/journal' ||
-      loc.pathname.startsWith('/journal/'),
-  },
-  {
-    id: 'library-collections',
-    label: 'Collections',
-    level: 2,
-    icon: Folder,
-    action: { type: 'route', to: ROUTE_PATTERNS.collections },
-    isActive: (loc: Location) =>
-      loc.pathname === '/collections' ||
-      loc.pathname.startsWith('/collections/') ||
-      loc.pathname.startsWith('/c/'),
-  },
-  {
-    id: 'library-feeds',
-    label: 'Feeds',
-    level: 2,
-    icon: Rss,
-    action: { type: 'route', to: ROUTE_PATTERNS.feeds },
-    isActive: (loc: Location) =>
-      loc.pathname === '/feeds' ||
-      loc.pathname.startsWith('/feeds/') ||
-      loc.pathname === '/feed' ||
-      loc.pathname.startsWith('/feed/'),
-  },
-  {
-    id: 'library-playground',
-    label: 'Playgrounds',
-    level: 2,
-    icon: FlaskConical,
-    action: { type: 'route', to: PLAYGROUND_LIBRARY_HREF },
-    isActive: isLibraryPlaygroundActive,
-  },
-]
+/** The `/library` alias route resolves to the zone its `?q=` scope names;
+ *  unscooped library landings stay in Collections (the library default is the
+ *  collection listing). */
+function libraryScope(loc: Location): string | null {
+  if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return null
+  return scopeOfQuery(new URLSearchParams(loc.search).get('q') ?? '')
+}
 
-const effortTagChildren: NavItem[] = [
+const startsWithAny = (pathname: string, ...prefixes: string[]): boolean =>
+  prefixes.some(p => pathname === p || pathname.startsWith(`${p}/`))
+
+function listingZone(spec: ListingZoneSpec): NavItem {
+  return {
+    id: spec.id,
+    label: spec.label,
+    level: 1,
+    icon: spec.icon,
+    action: { type: 'route', to: spec.route },
+    isActive: (loc: Location) => spec.familyActive(loc) || (spec.aliasActive?.(loc) ?? false),
+    applyFooter: true,
+    panel: createConditionsNavPanel({
+      landingLabel: spec.landingLabel,
+      icon: spec.icon,
+      route: spec.route,
+      profile: spec.profile,
+      extraChildren: spec.extraChildren,
+      familyActive: spec.familyActive,
+    }),
+  }
+}
+
+const feedsChild: NavItem = {
+  id: 'collections-feeds',
+  label: 'Feeds',
+  level: 2,
+  icon: Rss,
+  action: { type: 'route', to: ROUTE_PATTERNS.feeds },
+  isActive: (loc: Location) => startsWithAny(loc.pathname, '/feeds', '/feed'),
+}
+
+const listingZones: ListingZoneSpec[] = [
   {
-    id: 'effort-tag-all',
-    label: 'All Efforts',
-    level: 2,
-    icon: Tag,
-    action: { type: 'route', to: ROUTE_PATTERNS.efforts },
-    isActive: (loc: Location) =>
-      isEffortsPath(loc.pathname) && !loc.search.includes('discipline'),
+    id: 'journal',
+    label: 'Journal',
+    landingLabel: 'All entries',
+    icon: Calendar,
+    route: ROUTE_PATTERNS.journal,
+    profile: JOURNAL_STREAM_PROFILE,
+    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/journal'),
+    aliasActive: (loc: Location) => libraryScope(loc) === 'journal',
   },
-  ...EFFORT_DISCIPLINES.map(disc => ({
-    id: `effort-tag-${disc}`,
-    label: disc.charAt(0).toUpperCase() + disc.slice(1),
-    level: 2,
-    icon: Tag,
-    action: {
-      type: 'route' as const,
-      to: `${ROUTE_PATTERNS.efforts}?q=:effort{discipline:${disc}}`,
+  {
+    id: 'collections',
+    label: 'Collections',
+    landingLabel: 'All collections',
+    icon: Folder,
+    route: ROUTE_PATTERNS.collections,
+    profile: COLLECTIONS_STREAM_PROFILE,
+    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed'),
+    aliasActive: (loc: Location) => {
+      if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return false
+      const scope = libraryScope(loc)
+      return scope !== 'journal' && scope !== 'playground'
     },
-    isActive: (loc: Location) =>
-      isEffortsPath(loc.pathname) &&
-      (loc.search.includes(`discipline:${disc}`) || loc.search.includes(`discipline=${disc}`)),
-  })),
+    extraChildren: [feedsChild],
+  },
+  {
+    id: 'playgrounds',
+    label: 'Playgrounds',
+    landingLabel: 'All playgrounds',
+    icon: FlaskConical,
+    route: ROUTE_PATTERNS.playgrounds,
+    profile: PLAYGROUNDS_STREAM_PROFILE,
+    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/playgrounds', '/playground'),
+    aliasActive: (loc: Location) => libraryScope(loc) === 'playground',
+  },
 ]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
 
@@ -188,34 +208,15 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       children: homeChildren,
     },
 
-    {
-      id: 'library',
-      label: 'Library',
-      level: 1,
-      icon: BookOpen,
-      action: { type: 'route', to: ROUTE_PATTERNS.journal },
-      isActive: (loc: Location) =>
-        loc.pathname === ROUTE_PATTERNS.library ||
-        loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
-        loc.pathname === '/journal' ||
-        loc.pathname.startsWith('/journal/') ||
-        loc.pathname === '/playground' ||
-        loc.pathname.startsWith('/playground/') ||
-        loc.pathname === '/playgrounds' ||
-        loc.pathname.startsWith('/collections') ||
-        loc.pathname.startsWith('/c/') ||
-        loc.pathname.startsWith('/feeds') ||
-        loc.pathname.startsWith('/feed'),
-      children: libraryChildren,
-    },
+    ...listingZones.map(listingZone),
 
     {
       id: 'dashboards',
       label: 'Dashboard',
       level: 1,
       icon: ChartBarIcon,
-      action: { type: 'route', to: '/dashboard' },
-      isActive: (loc: Location) => loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/'),
+      action: { type: 'route', to: ROUTE_PATTERNS.dashboards },
+      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.dashboards || loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/') || loc.pathname.startsWith('/d/'),
       // The L2 list (Explorer + vault-created + prebuilts, plus a New
       // dashboard action) is dynamic — vault dashboards are runtime data —
       // so it lives in the panel, not static children.
@@ -229,7 +230,14 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       icon: Dumbbell,
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => isEffortsPath(loc.pathname),
-      children: effortTagChildren,
+      applyFooter: true,
+      panel: createConditionsNavPanel({
+        landingLabel: 'All Efforts',
+        icon: Dumbbell,
+        route: ROUTE_PATTERNS.efforts,
+        profile: EFFORTS_STREAM_PROFILE,
+        familyActive: (loc: Location) => isEffortsPath(loc.pathname),
+      }),
     },
 
     {
@@ -242,7 +250,17 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
         loc.pathname.startsWith('/sessions') ||
         loc.pathname.startsWith('/session/') ||
         loc.pathname.startsWith('/results'),
-      panel: SessionsNavPanel,
+      applyFooter: true,
+      panel: createConditionsNavPanel({
+        landingLabel: 'All Sessions',
+        icon: ClipboardList,
+        route: ROUTE_PATTERNS.sessions,
+        profile: SESSIONS_STREAM_PROFILE,
+        familyActive: (loc: Location) =>
+          loc.pathname.startsWith('/sessions') ||
+          loc.pathname.startsWith('/session/') ||
+          loc.pathname.startsWith('/results'),
+      }),
     },
     {
       id: 'settings',
@@ -288,9 +306,8 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
         },
       ],
     },
-    // Support link — external action (new tab); rendered in the mobile drawer
-    // below Settings (icon + label) and as a rail icon button on desktop
-    // (AppRail excludes it from the L1 loop).
+    // Support link — external action (new tab); rendered as the trailing icon
+    // button on the L1 rail (AppRail excludes it from the L1 loop).
     {
       id: 'buy-me-a-coffee',
       label: 'Buy Me a Coffee',

@@ -86,13 +86,25 @@ function slugifyReuseKey(reuseKey: string): string {
   );
 }
 
+/** Creation options for a fresh playground page. */
+export interface CreatePlaygroundPageOptions {
+  /**
+   * Provenance: the app path the page was spawned from (e.g. `/c/girls/fran`
+   * via "Open in Playground"). Stored as the note's sourceId so the
+   * provenance chip and journal-copy backlinks resolve; classification is
+   * unaffected (`type: 'playground'` keeps the note in the
+   * `source:playground` domain). Omitted ≡ the bare intake marker.
+   */
+  sourcePath?: string;
+}
+
 export interface PlaygroundIntake {
   /**
    * Create a fresh playground page and return its route name (the `<name>`
    * segment of `/playground/<name>`). Signature unchanged since the original
    * page-store version — callers navigate with the returned name.
    */
-  createPage(content: string): Promise<string>;
+  createPage(content: string, opts?: CreatePlaygroundPageOptions): Promise<string>;
   /** Create or update a playground entry; see EnsurePlaygroundEntryOptions. */
   ensureEntry(content: string, opts?: EnsurePlaygroundEntryOptions): Promise<PlaygroundEntry>;
   /**
@@ -116,7 +128,7 @@ export function createPlaygroundIntake({
   pages,
   now = Date.now,
 }: PlaygroundIntakeDependencies): PlaygroundIntake {
-  async function writeEntry(routeId: string, title: string, content: string): Promise<string> {
+  async function writeEntry(routeId: string, title: string, content: string, sourcePath?: string): Promise<string> {
     const entry = await persistence.createNote({
       id: uuidv7(),
       title,
@@ -124,7 +136,7 @@ export function createPlaygroundIntake({
       targetDate: now(),
       type: 'playground',
       slug: routeId,
-      sourceId: PLAYGROUND_SOURCE_ID,
+      sourceId: sourcePath ?? PLAYGROUND_SOURCE_ID,
     });
     return entry.id;
   }
@@ -141,7 +153,7 @@ export function createPlaygroundIntake({
   }
 
   return {
-    async createPage(content) {
+    async createPage(content, opts) {
       const name = formatPlaygroundTimestampId(now());
       const routeId = pageId('playground', name);
       // Same-millisecond recreations upsert the just-created page instead of
@@ -151,7 +163,7 @@ export function createPlaygroundIntake({
         await updateEntry(existing.id, existing.slug ?? routeId, existing.name || name, content);
         return name;
       }
-      await writeEntry(routeId, name, content);
+      await writeEntry(routeId, name, content, opts?.sourcePath);
       return name;
     },
 
@@ -231,8 +243,8 @@ export const playgroundIntake = createPlaygroundIntake({
 });
 
 /** Create a fresh playground page; returns the route name (see intake.createPage). */
-export function createPlaygroundPage(content: string): Promise<string> {
-  return playgroundIntake.createPage(content);
+export function createPlaygroundPage(content: string, opts?: CreatePlaygroundPageOptions): Promise<string> {
+  return playgroundIntake.createPage(content, opts);
 }
 
 /** Create or update a playground entry (see intake.ensureEntry). */

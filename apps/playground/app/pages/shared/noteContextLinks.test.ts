@@ -1,0 +1,197 @@
+/**
+ * Focused behavior test — source-aware note navigation core.
+ *
+ * Covers the nontrivial parts of the inventory interlinking:
+ *   - extractPageIndex query/widget fences (outline beyond headings/time/log)
+ *     and their L3 scroll targets
+ *   - noteOwnership: source → zone / owning-list "Up" / sourceNote stamps
+ *   - backlinks (journal copies by stamped sourceId, incl. #fragment variants)
+ *   - related workouts via shared block content ids
+ *   - stored-note routing: bare/UUID ids open /notes/:id, never the `/`
+ *     parseNoteId catch-all
+ */
+import { describe, expect, it } from 'bun:test'
+import type { BlockEffort, BlockIndexRow, Note } from '@/types/storage'
+import { extractPageIndex, mapIndexToL3 } from './pageUtils'
+import {
+  backlinkNotes,
+  effortUsageLinks,
+  noteLinkPath,
+  noteOwnership,
+  provenanceLink,
+  relatedBlockLinks,
+} from './noteContextLinks'
+
+describe('extractPageIndex — query and widget fences', () => {
+  const content = [
+    '# Note',
+    '',
+    '```query:bars',
+    'title: Weekly Volume',
+    'query: sum:totalVolume{}',
+    '```',
+    '',
+    '```widget:attention',
+    '{"headline":"Seed"}',
+    '```',
+    '',
+    '```query',
+    'query: find:effort{}',
+    '```',
+  ].join('\n')
+
+  it('emits typed outline entries with line-anchored scroll ids', () => {
+    const links = extractPageIndex(content)
+    const query = links.find(l => l.type === 'query')
+    const widget = links.find(l => l.type === 'widget')
+    expect(query).toMatchObject({ id: 'query-line-3', label: 'Weekly Volume' })
+    expect(widget).toMatchObject({ id: 'widget-line-8', label: 'attention' })
+    // Second, untitled query falls back to the ordinal.
+    expect(links.filter(l => l.type === 'query')).toHaveLength(2)
+    expect(links[links.length - 1]).toMatchObject({ id: 'query-line-12', label: 'Query 2' })
+  })
+
+  it('maps query/widget entries to scroll actions (no Run — time only)', () => {
+    const l3 = mapIndexToL3(extractPageIndex(content))
+    const widget = l3.find(i => i.id === 'widget-line-8')
+    expect(widget?.action).toEqual({ type: 'scroll', sectionId: 'widget-line-8' })
+    expect(widget?.secondaryAction).toBeUndefined()
+  })
+})
+
+describe('noteLinkPath — stored-note routing', () => {
+  it('routes bare/UUID ids to the canonical editor, not the parse catch-all', () => {
+    expect(noteLinkPath('018f3c2a-9b7c-7d4e-8f1a-2b3c4d5e6f70')).toBe(
+      '/notes/018f3c2a-9b7c-7d4e-8f1a-2b3c4d5e6f70',
+    )
+  })
+
+  it('keeps family routes for composite ids', () => {
+    expect(noteLinkPath('crossfit-girls/fran')).toBe('/c/crossfit-girls/fran')
+    expect(noteLinkPath('effort/grace')).toBe('/e/grace')
+  })
+})
+
+describe('noteOwnership — source-aware zone / up / stamps', () => {
+  it('journal entry: journal zone, date page up, id stamp', () => {
+    const own = noteOwnership({ id: '018f3c2a-9b7c-7d4e-8f1a-2b3c4d5e6f70', type: 'journal', journalDate: '2026-01-12' })
+    expect(own.zone).toBe('journal')
+    expect(own.up).toMatchObject({ title: 'Journal', to: '/journal/2026-01-12/' })
+    expect(own.stamps).toEqual(['018f3c2a-9b7c-7d4e-8f1a-2b3c4d5e6f70'])
+  })
+
+  it('collection workout: collections zone, collection root up, /c/ stamp', () => {
+    const own = noteOwnership({ id: 'crossfit-girls/fran', type: 'collection' })
+    expect(own.zone).toBe('collections')
+    expect(own.up).toMatchObject({ title: 'crossfit-girls', to: '/c/crossfit-girls' })
+    expect(own.stamps).toEqual(['/c/crossfit-girls/fran'])
+  })
+
+  it('effort shadow note: efforts zone, catalog up, /e/ stamp', () => {
+    const own = noteOwnership({ id: 'effort/grace', type: 'collection' })
+    expect(own.zone).toBe('efforts')
+    expect(own.up).toMatchObject({ title: 'Efforts', to: '/e/grace' })
+    expect(own.stamps).toEqual(['/e/grace'])
+  })
+
+  it('playground note: playgrounds zone, list up, /playground/ stamp', () => {
+    const own = noteOwnership({ id: '018f3c2a-0000-7000-8000-000000000001', type: 'playground' })
+    expect(own.zone).toBe('playgrounds')
+    expect(own.up).toMatchObject({ title: 'Playgrounds', to: '/playgrounds' })
+    expect(own.stamps).toEqual(['/playground/018f3c2a-0000-7000-8000-000000000001'])
+  })
+
+  it('feed item: collections zone, feed listing up, item-level stamp', () => {
+    const own = noteOwnership({ id: 'feeds/dan-john/2026-01-12/day-01', type: 'collection' })
+    expect(own.zone).toBe('collections')
+    expect(own.up).toMatchObject({ title: 'dan-john', to: '/feeds/dan-john' })
+    expect(own.stamps).toEqual(['/feeds/dan-john/2026-01-12/day-01'])
+  })
+
+  it('unknown bare id: no zone, no up', () => {
+    const own = noteOwnership({ id: 'loose-note', type: 'note' })
+    expect(own.zone).toBeNull()
+    expect(own.up).toBeNull()
+  })
+})
+
+describe('backlinkNotes — journal copies by sourceNote stamp', () => {
+  const notes = [
+    { id: '018f-copy-1', title: 'Fran copy', sourceId: '/c/crossfit-girls/fran', createdAt: 3 },
+    { id: '018f-copy-2', title: 'Fran copy anchored', sourceId: '/c/crossfit-girls/fran#seg-1', createdAt: 4 },
+    { id: '018f-other', title: 'Other', sourceId: '/c/other/wod', createdAt: 9 },
+    { id: '018f-self', title: 'Itself', sourceId: '/c/crossfit-girls/fran', createdAt: 5 },
+  ] as Note[]
+
+  it('matches exact and #fragment stamps, excludes self, newest first, canonical routes', () => {
+    const links = backlinkNotes(notes, ['/c/crossfit-girls/fran'], '018f-self')
+    expect(links.map(l => l.id)).toEqual(['018f-copy-2', '018f-copy-1'])
+    expect(links[0].to).toBe('/notes/018f-copy-2')
+    expect(links[1].to).toBe('/notes/018f-copy-1')
+  })
+
+  it('returns nothing without stamps', () => {
+    expect(backlinkNotes(notes, [])).toEqual([])
+  })
+})
+
+describe('relatedBlockLinks — same block ideas', () => {
+  const rows = [
+    { noteId: 'crossfit-girls/fran', dataType: 'wod', blockContentId: 'hash-fran', noteTitle: 'Fran' },
+    { noteId: '018f-uuid-1', dataType: 'wod', blockContentId: 'hash-fran', noteTitle: 'My Fran' },
+    { noteId: '018f-uuid-1', dataType: 'wod', blockContentId: 'hash-own-only', noteTitle: 'My Fran' },
+    { noteId: '018f-uuid-2', dataType: 'wod', blockContentId: 'hash-own-only', noteTitle: 'Unrelated copy' },
+    // Shares the contentId but is metadata, not a workout — never a link.
+    { noteId: '018f-uuid-2', dataType: 'frontmatter', blockContentId: 'hash-fran', noteTitle: 'Unrelated copy' },
+  ] as BlockIndexRow[]
+
+  it('joins notes sharing a wod content id, excludes self and non-wod rows', () => {
+    const links = relatedBlockLinks(rows, 'crossfit-girls/fran')
+    expect(links).toEqual([
+      { id: '018f-uuid-1', title: 'My Fran', to: '/notes/018f-uuid-1' },
+    ])
+  })
+
+  it('honours the cap', () => {
+    const many: BlockIndexRow[] = Array.from({ length: 12 }, (_, i) => ({
+      id: `r${i}`, noteId: `018f-note-${i}`, dataType: 'wod', blockContentId: 'hash-fran', noteTitle: `N${i}`,
+    })) as BlockIndexRow[]
+    expect(relatedBlockLinks([...rows, ...many], 'crossfit-girls/fran', 8)).toHaveLength(8)
+  })
+})
+
+describe('effortUsageLinks — notes whose scripts use an effort', () => {
+  const rows = [
+    { noteId: '018f-uuid-1', effortSlug: 'grace' },
+    { noteId: '018f-uuid-1', effortSlug: 'grace' },
+    { noteId: 'effort/grace', effortSlug: 'grace' },
+    { noteId: 'crossfit-girls/grace', effortSlug: 'grace' },
+  ] as unknown as BlockEffort[]
+
+  it('de-dupes per note and excludes the effort page itself', () => {
+    const links = effortUsageLinks(rows, 'effort/grace')
+    expect(links.map(l => l.id)).toEqual(['018f-uuid-1', 'crossfit-girls/grace'])
+    expect(links[0].to).toBe('/notes/018f-uuid-1')
+    expect(links[1].to).toBe('/c/crossfit-girls/grace')
+  })
+})
+
+describe('provenanceLink — stamped sourceId resolution', () => {
+  it('links app paths directly, stripping block fragments', () => {
+    expect(provenanceLink('/c/crossfit-girls/fran#seg-1')).toEqual({
+      id: '/c/crossfit-girls/fran',
+      title: 'fran',
+      to: '/c/crossfit-girls/fran',
+    })
+  })
+
+  it('leaves bare ids to the caller (content-provider resolution)', () => {
+    expect(provenanceLink('018f-uuid-9')).toBeNull()
+  })
+
+  it('survives malformed percent-encoding in stored stamps', () => {
+    const link = provenanceLink('/c/girls/%E0%A4%A')
+    expect(link?.to).toBe('/c/girls/%E0%A4%A')
+    expect(typeof link?.title).toBe('string')
+  })
+})
