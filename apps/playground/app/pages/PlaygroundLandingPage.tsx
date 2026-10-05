@@ -95,7 +95,7 @@ export function PlaygroundLandingPage() {
         title: simpleRounds?.title ?? 'Simple Rounds',
         description: simpleRounds?.subtitle ?? 'Rounds repeated for time or reps.',
         example: simpleRounds?.workout ?? '3 rounds\n  10 Air Squats',
-        docsPath: simpleRounds?.docsPath ?? '/guide/syntax/structure?h=simple-rounds',
+        docsPath: simpleRounds?.docsPath ?? '/guide/structure?h=rounds',
       },
       {
         category: 'Timing',
@@ -103,7 +103,7 @@ export function PlaygroundLandingPage() {
         title: timersAndRest?.title ?? 'Timers And Rest',
         description: timersAndRest?.subtitle ?? 'Timed windows with rest periods.',
         example: timersAndRest?.workout ?? '10:00\n  5 Burpees\n  rest 1:00',
-        docsPath: timersAndRest?.docsPath ?? '/guide/syntax/protocols?h=timers-and-rest',
+        docsPath: timersAndRest?.docsPath ?? '/guide/protocols?h=required-rest',
       },
       {
         category: 'Structure',
@@ -111,7 +111,7 @@ export function PlaygroundLandingPage() {
         title: 'Rep Schemes',
         description: repSchemes?.subtitle ?? 'Rep counts per movement.',
         example: repSchemes?.workout ?? '21-15-9\n  Thrusters',
-        docsPath: repSchemes?.docsPath ?? '/guide/syntax/structure?h=rep-schemes',
+        docsPath: repSchemes?.docsPath ?? '/guide/structure?h=rep-schemes',
       },
     ]
   }, [guideReference])

@@ -23,8 +23,6 @@ export const ROUTE_PATTERNS = {
   journalNote: '/journal/:date/:uuid',
   noteById: '/notes/:noteId',
   plan: '/plan',
-  guideGettingStarted: '/guide/getting-started',
-  guideSyntax: '/guide/syntax',
   aiFirst: '/ai-first',
   feeds: '/feeds',
   feed: '/feed',
@@ -310,29 +308,29 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: () => '/',
   },
-  // /chapters/basics  →  /p/syntax/basics
+  // /chapters/basics  →  /guide/start (First Workout absorbed the basics chapter)
   {
     match: (p) => {
       if (p !== '/chapters/basics') return false;
       return {};
     },
-    to: () => '/p/syntax/basics',
+    to: () => '/guide/start',
   },
-  // /chapters/sequences  →  /p/syntax (split content; no single canonical page)
+  // /chapters/sequences  →  /guide/start (split content consolidated there)
   {
     match: (p) => {
       if (p !== '/chapters/sequences') return false;
       return {};
     },
-    to: () => '/p/syntax',
+    to: () => '/guide/start',
   },
-  // /chapters/protocols  →  /p/syntax/protocols
+  // /chapters/protocols  →  /guide/protocols
   {
     match: (p) => {
       if (p !== '/chapters/protocols') return false;
       return {};
     },
-    to: () => '/p/syntax/protocols',
+    to: () => '/guide/protocols',
   },
   // /challenge  →  / (retired: quick-start challenge chain now lives on home)
   {
@@ -341,15 +339,6 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
       return {};
     },
     to: () => '/',
-  },
-  // /syntax/*  →  /p/syntax/* (pages carry the slug, not the namespace)
-  {
-    match: (p) => {
-      const m = p.match(/^\/syntax(\/.+)?$/);
-      if (!m) return false;
-      return { rest: m[1] ?? '' };
-    },
-    to: ({ rest }) => `/p/syntax${rest}`,
   },
   // /note/:category/:name  →  /c/:category/:name (legacy workout alias)
   {

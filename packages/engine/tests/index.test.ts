@@ -9,7 +9,7 @@ describe('@bitcobblers/wod-wiki-engine', () => {
     const script = parseScript('21 pullups');
     expect(script.statements.length).toBe(1);
 
-    const query = parseQuery('find:note');
+    const query = parseQuery(':note');
     expect(isFindQuery(query) && query.target).toBe('note');
   });
 

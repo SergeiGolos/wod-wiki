@@ -16,8 +16,9 @@ export interface ViewSettingsDialogProps {
   onGroupByChange?: (groupBy: string) => void
   activeGroupBy?: string
   /** WQL grouping dimensions while the query owns grouping (work item 7):
-   *  the fallback arrangement is disabled and shown unselected until the
-   *  query grouping is removed or changed through the shared editor. */
+   *  disclosed by the "Grouping comes from the query" notice. Picking a
+   *  dimension writes through to the query's `by {…}`, so options stay
+   *  enabled. */
   queryGrouping?: string[] | null
   /** Opens the shared query editor from the "Controlled by query" notice. */
   onEditQuery?: () => void
@@ -116,8 +117,8 @@ export function ViewSettingsDialog({
               className="flex items-center justify-between gap-2 mb-2 rounded-md border border-primary/30 bg-primary/[0.04] px-3 py-2"
             >
               <span className="text-xs text-foreground">
-                Controlled by query — grouped by{' '}
-                <span className="font-mono">{queryGrouping!.join(', ')}</span>
+                Grouping comes from the query (<span className="font-mono">{`by {${queryGrouping!.join(', ')}}`}</span>)
+                — picking a dimension updates the query.
               </span>
               {onEditQuery && (
                 <Button variant="outline" size="sm" onClick={onEditQuery} data-testid="view-settings-edit-query">
@@ -129,23 +130,19 @@ export function ViewSettingsDialog({
           <div className="flex flex-wrap gap-1.5 p-1 bg-muted/40 rounded-lg border border-border/60">
             {groupOptions.map(opt => {
               const currentGroup = (activeGroupBy || settings.groupBy || (level === 'effort' ? 'discipline' : 'date')).toLowerCase()
-              // While the query owns grouping no fallback option may appear
-              // selected — clearing the query grouping reveals the saved one.
-              const isSelected = !queryControlsGrouping && currentGroup === opt.id
+              const isSelected = currentGroup === opt.id
               return (
                 <button
                   key={opt.id}
                   type="button"
                   aria-pressed={isSelected}
-                  disabled={queryControlsGrouping}
-                  title={queryControlsGrouping ? 'Grouping is set by the query — edit the query to change it' : undefined}
                   onClick={() => onGroupByChange?.(opt.id)}
                   data-testid={`view-settings-group-${opt.id}`}
                   className={`min-h-11 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
                     isSelected
                       ? 'bg-card text-foreground shadow-sm border border-border/80 font-bold'
                       : 'text-muted-foreground hover:text-foreground'
-                  } disabled:opacity-50 disabled:pointer-events-none`}
+                  }`}
                 >
                   {opt.label}
                 </button>

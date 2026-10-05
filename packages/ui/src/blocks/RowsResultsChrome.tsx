@@ -136,7 +136,7 @@ export function RowsResultsChrome({
       return;
     }
     let cancelled = false;
-    const wideQuery = parseQuery(`find:session{block:${blockContentId}}`);
+    const wideQuery = parseQuery(`:session{block:${blockContentId}}`);
     if (!isFindQuery(wideQuery)) return;
 
     void (executor.runFind ? executor.runFind(wideQuery as ParsedFindQuery) : (executor as any).runRows(wideQuery))

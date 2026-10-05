@@ -20,6 +20,7 @@ export type GallerySection =
   | 'value'
   | 'timeseries'
   | 'bar'
+  | 'donut'
   | 'toplist'
   | 'stacked-bar'
   | 'goal-rings'
@@ -55,6 +56,7 @@ export const SECTION_ORDER: GallerySection[] = [
   'value',
   'timeseries',
   'bar',
+  'donut',
   'toplist',
   'stacked-bar',
   'goal-rings',
@@ -83,6 +85,10 @@ export const SECTION_META: Record<GallerySection, { title: string; blurb: string
     title: 'Bar',
     blurb: 'Single-bucket group-bys by tag dimension.',
   },
+  donut: {
+    title: 'Donut',
+    blurb: 'Share of a whole across a dimension.',
+  },
   toplist: {
     title: 'Top List',
     blurb: 'Rankings — grade groups and the 18-session note dimension, limit 6.',
@@ -106,12 +112,12 @@ export const SECTION_META: Record<GallerySection, { title: string; blurb: string
   rows: {
     title: 'Rows & Find',
     blurb:
-      'The non-aggregate query families. rows:{scope} returns raw output-statement runs (RowsTable) — the drill-down behind the aggregates; find:{target} does content discovery over notes, the derived block index, and the bundled effort registry.',
+      'The non-aggregate query families. rows:{scope} returns raw output-statement runs (RowsTable) — the drill-down behind the aggregates; :{target} does content discovery over notes, the derived block index, and the bundled effort registry.',
   },
   find: {
     title: 'Find',
     blurb:
-      'Content discovery: find:note over journal notes, find:block over the derived block index (rawContent = note title), find:effort over the bundled effort registry.',
+      'Content discovery: :note over journal notes, :block over the derived block index (rawContent = note title), :effort over the bundled effort registry.',
   },
   edge: {
     title: 'Edge States',
@@ -146,6 +152,10 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   { section: 'bar', widgetType: 'bar', title: 'Volume by effort', question: 'Which move?', journal: 'crossfit', query: 'sum:totalVolume{} by {effort}' },
   { section: 'bar', widgetType: 'bar', title: 'Distance by discipline', question: 'Where do the miles go?', journal: 'endurance', query: 'sum:distance{} by {discipline}' },
 
+  // ── Donut ─────────────────────────────────────────────────────────────
+  { section: 'donut', widgetType: 'donut', title: 'Volume by effort', question: 'Which move dominates the whole?', journal: 'crossfit', query: 'sum:totalVolume{} by {effort}' },
+  { section: 'donut', widgetType: 'donut', title: 'Load by intensity', question: 'How polarized is the share?', journal: 'climb', query: 'sum:tis{} by {intensity}' },
+
   // ── Top List ──────────────────────────────────────────────────────────
   { section: 'toplist', widgetType: 'toplist', title: 'Sends by grade', question: 'Which grade sends most?', journal: 'climb', query: 'count:calc.sends{} by {grade}' },
   { section: 'toplist', widgetType: 'toplist', title: 'Volume by session', question: 'Which session was biggest?', journal: 'crossfit', query: 'sum:totalVolume{} by {note}' },
@@ -165,22 +175,22 @@ export const GALLERY_CARDS: GalleryCardDef[] = [
   { section: 'table', widgetType: 'table', title: 'Weekly tonnage', question: 'The trend, as rows', journal: 'crossfit', query: 'sum:totalVolume{} by {week}' },
 
   // ── Rows — raw statement runs through the real RowsTable ──────────────
-  { section: 'rows', widgetType: 'rows', title: 'Fran session statements', question: 'The summary facts behind Fran\'s first bar in Weekly tonnage', journal: 'crossfit', query: 'find:session{result:res-fran-w0}' },
-  { section: 'rows', widgetType: 'rows', title: 'Segment plane — Fran round 5', question: 'Only segment-grain statements, via the plane:segment filter', journal: 'crossfit', query: 'find:session{result:res-fran-w5, plane:segment}' },
-  { section: 'rows', widgetType: 'rows', title: 'Boulder session statements', question: 'The send rows feeding Sends by grade', journal: 'climb', query: 'find:session{result:res-boulder-w4}' },
-  { section: 'rows', widgetType: 'rows', title: 'Wellness day statements', question: 'A user-authored wellness note, note-scoped', journal: 'wellness', query: 'find:session{note:note-well-2026-06-03}' },
+  { section: 'rows', widgetType: 'rows', title: 'Fran session statements', question: 'The summary facts behind Fran\'s first bar in Weekly tonnage', journal: 'crossfit', query: ':session{result:res-fran-w0}' },
+  { section: 'rows', widgetType: 'rows', title: 'Segment plane — Fran round 5', question: 'Only segment-grain statements, via the plane:segment filter', journal: 'crossfit', query: ':session{result:res-fran-w5, plane:segment}' },
+  { section: 'rows', widgetType: 'rows', title: 'Boulder session statements', question: 'The send rows feeding Sends by grade', journal: 'climb', query: ':session{result:res-boulder-w4}' },
+  { section: 'rows', widgetType: 'rows', title: 'Wellness day statements', question: 'A user-authored wellness note, note-scoped', journal: 'wellness', query: ':session{note:note-well-2026-06-03}' },
 
   // ── Find — content discovery over the content plane ───────────────────
-  { section: 'find', widgetType: 'find', title: 'Notes by tag', question: 'Which notes are benchmarks?', journal: 'crossfit', query: 'find:note{tags:benchmark}' },
-  { section: 'find', widgetType: 'find', title: 'Blocks by text', question: 'Where does Fran live?', journal: 'crossfit', query: 'find:block{text:fran}' },
-  { section: 'find', widgetType: 'find', title: 'Efforts by intensity', question: 'Which efforts are high tier?', journal: 'crossfit', query: 'find:effort{intensity:high}' },
+  { section: 'find', widgetType: 'find', title: 'Notes by tag', question: 'Which notes are benchmarks?', journal: 'crossfit', query: ':note{tags:benchmark}' },
+  { section: 'find', widgetType: 'find', title: 'Blocks by text', question: 'Where does Fran live?', journal: 'crossfit', query: ':block{text:fran}' },
+  { section: 'find', widgetType: 'find', title: 'Efforts by intensity', question: 'Which efforts are high tier?', journal: 'crossfit', query: ':effort{intensity:high}' },
 
   // ── Edge States — empty, error, and loading states live ───────────────
   { section: 'edge', widgetType: 'value', title: 'Empty aggregate', question: 'No data for filter — WqlEmptyState renders live with stages telemetry', journal: 'crossfit', query: 'sum:totalVolume{effort:nonexistent}' },
   { section: 'edge', widgetType: 'auto', title: 'Malformed query (auto)', question: 'Syntax error (all engine validation is parse-time) — useChartShape error branch renders live', journal: 'crossfit', query: 'sum:totalVolume by', expectError: true },
   { section: 'edge', widgetType: 'value', title: 'In-flight query (loading)', question: 'Async query in flight — natural suspense via WqlEmptyState', journal: 'crossfit', query: 'sum:totalVolume{}', simulateLoading: true },
-  { section: 'edge', widgetType: 'rows', title: 'Empty rows plane', question: 'No workout runs match the filter — RowsTable empty state', journal: 'crossfit', query: 'find:session{result:nonexistent}' },
-  { section: 'edge', widgetType: 'find', title: 'Empty find plane', question: 'No content matches the filter — FindResultList empty state', journal: 'crossfit', query: 'find:note{tags:nonexistent}' },
+  { section: 'edge', widgetType: 'rows', title: 'Empty rows plane', question: 'No workout runs match the filter — RowsTable empty state', journal: 'crossfit', query: ':session{result:nonexistent}' },
+  { section: 'edge', widgetType: 'find', title: 'Empty find plane', question: 'No content matches the filter — FindResultList empty state', journal: 'crossfit', query: ':note{tags:nonexistent}' },
 ];
 
 

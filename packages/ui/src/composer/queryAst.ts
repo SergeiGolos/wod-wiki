@@ -1,4 +1,4 @@
-import { parseQuery, serialize, type AnyParsedQuery, type TagFilter } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, serialize, isFindQuery, isPipelineQuery, WQL_NOTE_DEFAULT_SOURCES, type ParsedAggregateQuery, type ParsedFindQuery, type AnyParsedQuery, type TagFilter } from '@bitcobblers/wod-wiki-wql';
 import { composerRegistry } from './ComposerRegistry';
 import { CLAUSE_META, getClauseMeta, allowedFilterTypesForTarget, type QueryClause } from './queryClauses';
 import { getSuggestionBinding } from './suggestionSources';
@@ -48,7 +48,7 @@ function clause(type: string, value: string, extra?: Partial<QueryClause>): Quer
   return { id: `c-${type}`, type, ...getClauseMeta(type), value, ...extra };
 }
 
-function windowText(ast: AnyParsedQuery): string {
+function windowText(ast: ParsedFindQuery | ParsedAggregateQuery): string {
   const window = ast.window;
   if (!window) return 'all';
   return window.kind === 'relative' ? `last ${window.size}${window.unit}`
@@ -56,7 +56,9 @@ function windowText(ast: AnyParsedQuery): string {
 }
 
 export function astToPills(ast: AnyParsedQuery): QueryClause[] | null {
-  if (ast.error || !isLosslessQuery(ast)) return null;
+  // Pipelines keep their raw text editable in the composer; structured pills
+  // cannot represent stage order without flattening it away.
+  if (isPipelineQuery(ast) || ast.error || !isLosslessQuery(ast)) return null;
   if (ast.filters.some((filter) => filter.values.some((value) => value.value.includes('|') || (!value.wildcard && value.value.endsWith('*'))))) return null;
   const pills = [clause('kind', ast.family)];
   if (ast.family === 'find') pills.push(clause('target', ast.target));
@@ -88,7 +90,11 @@ export function wqlToPills(wql: string): QueryClause[] | null {
 }
 
 function filterText(filter: TagFilter): string {
-  return serialize({ family: 'find', raw: '', target: 'note', filters: [filter] }).replace(/^find:note\{/, '').replace(/\}$/, '');
+  // Canonical heads vary with the filter (`:journal{`, `:collection{`, …);
+  // strip whatever head the serializer chose. The serializer quotes values
+  // containing whitespace, which the grammar requires. sourceScope mirrors
+  // the generic :note default so serialize never appends a scope suffix.
+  return serialize({ family: 'find', raw: '', target: 'note', sourceScope: [...WQL_NOTE_DEFAULT_SOURCES], filters: [filter] }).replace(/^[^{]*\{/, '').replace(/\}$/, '');
 }
 
 function parsedFilter(type: string, value: string, negate: boolean): TagFilter | undefined {
@@ -96,8 +102,8 @@ function parsedFilter(type: string, value: string, negate: boolean): TagFilter |
   if (custom) {
     const typed = custom.parseValue ? custom.parseValue(value) : value;
     if (typed === undefined || custom.validate?.(typed)) return undefined;
-    const parsed = parseQuery(`find:note{${custom.wqlGenerator(typed)}}`);
-    return parsed.error ? undefined : parsed.filters[0];
+    const parsed = parseQuery(`:note{${custom.wqlGenerator(typed)}}`);
+    return parsed.error || !isFindQuery(parsed) ? undefined : parsed.filters[0];
   }
   const key = TYPE_KEY[type] ?? type;
   const values = value.split('|').map((part) => {
@@ -105,14 +111,15 @@ function parsedFilter(type: string, value: string, negate: boolean): TagFilter |
     return { value: wildcard ? part.slice(0, -1) : part, wildcard };
   });
   const filter = { key, negate, values };
-  const parsed = parseQuery(`find:note{${filterText(filter)}}`);
-  return !parsed.error && parsed.filters.length === 1 && JSON.stringify(semantic(parsed.filters[0])) === JSON.stringify(semantic(filter)) ? parsed.filters[0] : undefined;
+  const parsed = parseQuery(`:note{${filterText(filter)}}`);
+  return !parsed.error && isFindQuery(parsed) && parsed.filters.length === 1 && JSON.stringify(semantic(parsed.filters[0])) === JSON.stringify(semantic(filter)) ? parsed.filters[0] : undefined;
 }
 
 export function editQueryClause(query: string, edited: QueryClause, value: string | null): QueryDraft {
   const current = snapshot(query);
   if (!current.valid) return current;
   const ast = current.ast;
+  if (isPipelineQuery(ast)) return snapshot(query, 'Pipelines are edited as WQL text — structured pills cannot change a stage without flattening it.');
   if (!isLosslessQuery(ast)) return snapshot(query, 'This query requires Edit WQL to preserve every clause.');
   const clean = value?.trim() ?? '';
   if (edited.type === 'kind' || edited.type === 'target') return pivotQuery(query, edited.type, clean).draft;
@@ -129,8 +136,8 @@ export function editQueryClause(query: string, edited: QueryClause, value: strin
   }
   if (edited.type === 'time') {
     if (!clean || clean === 'all') return emit({ ...ast, window: undefined });
-    const parsed = parseQuery(`find:note ${/^(last|from)\b/.test(clean) ? clean : `last ${clean}`}`);
-    if (parsed.error || !parsed.window) return snapshot(query, parsed.error ?? 'Invalid time window');
+    const parsed = parseQuery(`:note ${/^(last|from)\b/.test(clean) ? clean : `last ${clean}`}`);
+    if (parsed.error || !isFindQuery(parsed) || !parsed.window) return snapshot(query, parsed.error ?? 'Invalid time window');
     return emit({ ...ast, window: parsed.window });
   }
   if (edited.type === 'groupby') return emit({ ...ast, groupBy: [...new Set(clean.split('|').filter(Boolean))] });
@@ -158,6 +165,7 @@ export function pivotQuery(query: string, type: 'kind' | 'target', value: string
   const current = snapshot(query);
   const ast = current.ast;
   if (!current.valid) return { draft: current, removed: [] };
+  if (isPipelineQuery(ast)) return { draft: snapshot(query, 'Pipelines are pivoted as WQL text — stage order cannot survive a structured pivot.'), removed: [] };
   const family = type === 'kind' ? value : 'find';
   const target = type === 'target' ? value : ast.family === 'find' ? ast.target : 'note';
   const allowed = allowedFilterTypesForTarget(target, family === 'aggregate' ? 'aggregate' : 'find');
@@ -192,18 +200,21 @@ export function resolveQueryDraft(query: string, pendingText = ''): QueryDraft {
   if (!pendingText.trim()) return snapshot(query);
   const text = pendingText.trim();
   const complete = parseQuery(pendingText);
-  if (!complete.error || /^(find|sum|avg|min|max|count|last|first|p\d+):/.test(text) || /^[\w-]+:[^{]*\{/.test(text)) return snapshot(pendingText);
+  if (!complete.error || /^(find|sum|avg|min|max|count|last|first|p\d+):/.test(text) || /^[\w-]+:[^{]*\{/.test(text) || /^[:@|]/.test(text)) return snapshot(pendingText);
   const base = snapshot(query);
   if (!base.valid) return snapshot(pendingText);
+  // Pipeline + free-text edit: no structured merge — pending text rides as
+  // the whole draft so the raw pipeline stays editable and unflattened.
+  if (isPipelineQuery(base.ast)) return snapshot(pendingText);
   if (!isLosslessQuery(base.ast)) return snapshot(query, 'Use Edit WQL for this query.');
   if (/^(last|from)\b/.test(text)) {
-    const window = parseQuery(`find:note ${text}`);
-    if (window.error || !window.window) return snapshot(pendingText, window.error ?? 'Invalid time window');
+    const window = parseQuery(`:note ${text}`);
+    if (window.error || !isFindQuery(window) || !window.window) return snapshot(pendingText, window.error ?? 'Invalid time window');
     return emit({ ...base.ast, window: window.window });
   }
   if (/^!?[\w-]+:/.test(text)) {
-    const parsed = parseQuery(`find:note{${text}}`);
-    if (parsed.error || !parsed.filters.length) return snapshot(pendingText, parsed.error ?? 'Invalid filter');
+    const parsed = parseQuery(`:note{${text}}`);
+    if (parsed.error || !isFindQuery(parsed) || !parsed.filters.length) return snapshot(pendingText, parsed.error ?? 'Invalid filter');
     const filters = [...base.ast.filters];
     for (const filter of parsed.filters) {
       const index = filters.findIndex((existing) => existing.key === filter.key);

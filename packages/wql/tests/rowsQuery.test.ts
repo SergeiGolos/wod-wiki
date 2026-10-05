@@ -51,67 +51,83 @@ function findQuery(raw: string): ParsedFindQuery {
 }
 
 describe('rows: retirement and replacement hints (#1044)', () => {
-  it('rows:all{result:r} fails to parse with a message pointing to find:session{result:r}', () => {
+  it('rows:all{result:r} fails to parse pointing at :session', () => {
     const p = parseQuery('rows:all{result:r1}');
-    expect(p.error).toContain('rows:all{…} is retired — use find:session{result:r1} instead.');
+    expect(p.error).toContain('retired');
+    expect(p.error).toContain('session{result:r1}');
   });
 
-  it('rows:segment without scope points to find:segment', () => {
+  it('rows:segment without scope points at :segment', () => {
     const p = parseQuery('rows:segment{effort:snatch}');
-    expect(p.error).toContain('rows:segment{…} is retired — use find:segment{effort:snatch} instead.');
+    expect(p.error).toContain('retired');
+    expect(p.error).toContain('segment{effort:snatch}');
   });
 
-  it('rows:segment with scope points to find:session with plane:segment', () => {
+  it('rows:segment with scope points at :session with plane:segment', () => {
     const p = parseQuery('rows:segment{result:r1}');
-    expect(p.error).toContain('rows:segment{…} is retired — use find:session{result:r1, plane:segment} instead.');
+    expect(p.error).toContain('retired');
+    expect(p.error).toContain('plane:segment');
   });
 
-  it('rows:load with scope points to find:session with plane:load', () => {
+  it('rows:load with scope points at :session with plane:load', () => {
     const p = parseQuery('rows:load{result:r1}');
-    expect(p.error).toContain('rows:load{…} is retired — use find:session{result:r1, plane:load} instead.');
+    expect(p.error).toContain('retired');
+    expect(p.error).toContain('plane:load');
   });
 
-  it('bare rows: points to replacements', () => {
+  it('bare rows: points at the replacement heads', () => {
     const p = parseQuery('rows:');
-    expect(p.error).toContain('The "rows:" query family is retired — use find:session, find:segment, or find:event instead.');
+    expect(p.error).toContain('retired');
+    expect(p.error).toContain('session');
+    expect(p.error).toContain('segment');
   });
 });
 
-describe('QueryService.runFind for find:session (#1041/#1042)', () => {
+describe('QueryService.runFind for :session (#1041/#1042)', () => {
   it('result scope returns the single session with all statement types', async () => {
-    const res = await makeService().runFind(findQuery('find:session{result:rA}'));
+    const res = await makeService().runFind(findQuery(':session{result:rA}'));
     expect(res.runs).toBeDefined();
     expect(res.runs!.map((r) => r.resultId)).toEqual(['rA']);
     expect(res.runs![0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment', 'milestone']);
   });
 
   it('block scope unions all versions, newest first', async () => {
-    const res = await makeService().runFind(findQuery('find:session{block:bc-1}'));
+    const res = await makeService().runFind(findQuery(':session{block:bc-1}'));
     expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('note scope returns every run in the note', async () => {
-    const res = await makeService().runFind(findQuery('find:session{note:n1}'));
+    const res = await makeService().runFind(findQuery(':session{note:n1}'));
     expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('scopes OR within a key and union across keys, deduped by result id', async () => {
-    const res = await makeService().runFind(findQuery('find:session{result:rA|rC, block:bc-1}'));
+    const res = await makeService().runFind(findQuery(':session{result:rA|rC, block:bc-1}'));
     expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB', 'rC']);
   });
 
   it('plane filter narrows statements, not runs', async () => {
-    const res = await makeService().runFind(findQuery('find:session{result:rA, plane:segment}'));
+    const res = await makeService().runFind(findQuery(':session{result:rA, plane:segment}'));
     expect(res.runs![0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment']);
   });
 
   it('drops runs whose narrowing leaves no statements', async () => {
-    const res = await makeService().runFind(findQuery('find:session{block:bc-1, plane:nonexistent}'));
+    const res = await makeService().runFind(findQuery(':session{block:bc-1, plane:nonexistent}'));
     expect(res.runs).toEqual([]);
   });
 
   it('last window filters by canonical workout time', async () => {
-    const res = await makeService().runFind(findQuery('find:session{block:bc-1} last 6d'), { anchorNow: day0 });
+    const res = await makeService().runFind(findQuery(':session{block:bc-1} last 6d'), { anchorNow: day0 });
     expect(res.runs!.map((r) => r.resultId)).toEqual(['rA']);
+  });
+
+  it('overlapping result/note scopes fetch every row once — no doubling', async () => {
+    // Scopes UNION across keys: note n1 owns rA AND rB, so the run set is
+    // rA + rB; rA's rows arrive via BOTH fetches and must appear once each.
+    const res = await makeService().runFind(findQuery(':session{result:rA, note:n1}'));
+    expect(res.runs!.map((r) => r.resultId)).toEqual(['rA', 'rB']);
+    const events = res.runs!.flatMap((r) => r.events);
+    expect(events).toHaveLength(6);
+    expect(new Set(events.map((e) => e.id)).size).toBe(6);
   });
 });

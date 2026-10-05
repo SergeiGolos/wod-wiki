@@ -38,8 +38,10 @@ export {
   QueryDocumentRunner as SharedQueryDocumentRunner,
   substituteTokens as substituteTokensRaw,
   consumesRollupFacts,
+  PageSourceRegistry,
   type QueryDocumentRunnerHost,
   type SharedRunnerOptions,
+  type PageSourceEntry,
 } from './queryDocumentRunner';
 
 // 7. Derivation & Static projections

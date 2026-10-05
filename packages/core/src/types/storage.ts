@@ -281,6 +281,10 @@ export interface EventRecord {
   metrics: StoredOutputStatement['metrics'];
   timeSpan?: { started: number; ended?: number };
   sourceBlockKey?: string;
+  sourceStatementId?: number;
+  line?: number;
+  text?: string;
+  dialect?: string;
   stackLevel?: number;
   completionReason?: string;
   segmentId?: string;

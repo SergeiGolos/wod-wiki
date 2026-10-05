@@ -194,7 +194,7 @@ describe('wod CLI runner', () => {
 
       let stdout = '';
       const code = await cliMain(
-        ['query', 'find:session{result:stdin-result-1}', '--stdin-log', '--format', 'json'],
+        ['query', ':session{result:stdin-result-1}', '--stdin-log', '--format', 'json'],
         {
           stdout: (t) => { stdout += t; },
           readStdinFn: async () => JSON.stringify(sampleLog),
@@ -205,6 +205,43 @@ describe('wod CLI runner', () => {
       const ir = JSON.parse(stdout);
       expect(ir.kind).toBe('rows-result');
       expect(ir.data.runs.length).toBe(1);
+    });
+
+    it('evaluates a colon pipeline through the QueryService path (exit code 0)', async () => {
+      const sampleLog = {
+        results: {
+          startTime: 1783357200000,
+          endTime: 1783357260000,
+          duration: 60000,
+          completed: true,
+        },
+        statements: [
+          {
+            id: 1,
+            outputType: 'segment',
+            timeSpan: { started: 1783357200000, ended: 1783357260000 },
+            metrics: [{ type: 'round', value: 1 }],
+            sourceBlockKey: 'test-block',
+            stackLevel: 1,
+          },
+        ],
+      };
+
+      let stdout = '';
+      const code = await cliMain(
+        ['query', ':session{result:stdin-result-1} | :count{metric:round} | :value{}', '--stdin-log', '--format', 'json'],
+        {
+          stdout: (t) => { stdout += t; },
+          readStdinFn: async () => JSON.stringify(sampleLog),
+        },
+      );
+
+      expect(code).toBe(0);
+      const ir = JSON.parse(stdout);
+      expect(ir.kind).toBe('pipeline-result');
+      // One segment statement carries round:1 — the count over it is 1.
+      expect(ir.data.parsed.family).toBe('pipeline');
+      expect(ir.data.series[0].points[0].value).toBe(1);
     });
 
     it('returns exit code 1 when no dataset is provided', async () => {

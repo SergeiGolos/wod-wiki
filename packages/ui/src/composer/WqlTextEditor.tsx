@@ -10,7 +10,7 @@ import {
 } from '@codemirror/autocomplete';
 import { syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { linter, type Diagnostic } from '@codemirror/lint';
-import { parseQuery, supportsWqlFilterKey, wqlCompletionSource, wqlHighlightStyle, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isPipelineQuery, supportsWqlFilterKey, wqlCompletionSource, wqlHighlightStyle, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
 import { loadSuggestions } from './suggestionSources';
 
 const completionIcons = {
@@ -65,6 +65,8 @@ export function wqlLint(view: EditorView): Diagnostic[] {
       return { from: Math.min(span.from, to - 1), to, severity: 'error' as const, message: ast.error! };
     });
   }
+  // Pipeline stages own their filters; top-level capability warnings don't apply.
+  if (isPipelineQuery(ast)) return [];
   const filters: { from: number; to: number; text: string }[] = [];
   syntaxTree(view.state).iterate({
     enter: node => {
@@ -151,7 +153,7 @@ export function wqlEditorKeymap(onSubmit: () => void, onEscape: () => boolean): 
   ];
 }
 
-export function WqlTextEditor({ value, onChange, onSubmit, onEscape, placeholder, autoFocus = false }: {
+export function WqlTextEditor({ value, onChange, onSubmit, onEscape, placeholder, autoFocus = false, dense = false }: {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
@@ -159,6 +161,9 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, placeholder
   /** Shown while the draft is empty. */
   placeholder?: string;
   autoFocus?: boolean;
+  /** Compact single-line height (~36px) for inline toolbars (the stream
+   *  sticky header); the default is the roomy 48px form height. */
+  dense?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | undefined>(undefined);
@@ -236,7 +241,7 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, placeholder
           EditorView.theme({
             '&': { width: '100%', fontSize: '14px', backgroundColor: 'transparent' },
             '&.cm-focused': { outline: 'none' },
-            '.cm-content': { fontFamily: 'var(--font-mono, ui-monospace, monospace)', padding: '12px 0', minHeight: '48px' },
+            '.cm-content': { fontFamily: 'var(--font-mono, ui-monospace, monospace)', padding: dense ? '8px 0' : '12px 0', minHeight: dense ? '34px' : '48px' },
             '.cm-line': { padding: '0 12px' },
             '.cm-scroller': { overflow: 'auto' },
             '.cm-placeholder': { color: 'hsl(var(--muted-foreground))' },
@@ -269,7 +274,7 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, placeholder
     view.current = editor;
     if (autoFocus) editor.focus();
     return () => { editor.destroy(); view.current = undefined; };
-  }, [autoFocus, placeholder]);
+  }, [autoFocus, placeholder, dense]);
 
   useEffect(() => {
     const editor = view.current;

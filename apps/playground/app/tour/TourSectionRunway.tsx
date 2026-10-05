@@ -8,7 +8,8 @@
  * so each tagline level gets a real scroll-past header and a focused stage
  * group. Heavy screens mount lazily on first section entry and stay alive
  * after, matching the old single-driver `entered` contract; the write
- * section's editor stays mounted from load exactly as before.
+ * section's editor stays mounted from load exactly as before (the hero view
+ * above it is a separate HomeTour-level display of the same shared doc).
  */
 import {
   forwardRef,
@@ -35,8 +36,7 @@ import { TourRing, useRingRef } from './TourRing'
 import { TourTvCard } from './TourTvCard'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
-import { TourMetricsScreen } from './screens/TourMetricsScreen'
+import { TourSessionAnalytics } from './screens/TourSessionAnalytics'
 import { TourCaptions, type TourCaption } from './TourCaptions'
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
@@ -55,11 +55,23 @@ export interface TourSectionTimerWiring {
   sessionKey: number
   block: ScriptBlock | null
   autoStart: boolean
-  externalPause: boolean
+  /** Host-driven finalize stop (metrics arrival / reset chaining). */
+  externalStop?: boolean
   onClose: () => void
   onComplete: (blockId: string, results: Sessions) => void
   onRuntimeReady: (runtime: IScriptRuntime) => void
+  /** First idle→running transition of the current pane's execution. */
+  onRunStarted?: () => void
   onReset: () => void
+}
+
+/** Session WQL/dashboard wiring for a section's stage pane (TourSessionAnalytics). */
+export interface TourSectionSessionWiring {
+  noteId: string | null
+  queryKey: string
+  boardSlug: string
+  /** Pin the pane to one stage (e.g. the metrics section's live table). */
+  fixedStage?: string
 }
 
 export interface TourSectionRunwayProps {
@@ -68,20 +80,20 @@ export interface TourSectionRunwayProps {
   /** Track height, e.g. '420vh'. */
   heightVh: string
   /** Static half-viewport header scrolled past before the sticky window. */
-  header: ReactNode
+  header?: ReactNode
   stages: ScrollStage[]
   /** Caption subset matching `stages` order. */
   captions: TourCaption[]
-  /** True while the fullscreen playground owns the viewport — freezes the driver. */
-  frozen: boolean
-  /** Which non-timer presentation fills the window: WQL showcase or metrics explainer. */
-  screenKind?: 'showcase' | 'metrics'
   /** Discrete active-stage notifications (quest marking, pause derivation). */
   onActiveStageChange?: (stageId: string) => void
   /** Persistent viewport signal (scroll-out pause derivation for the host). */
   onViewportChange?: (inView: boolean) => void
   /** Choose-your-own-adventure combobox (write section only). */
   onChoice?: (wod: string) => void
+  /** Caption command buttons (Try it / query presets / board picks). */
+  onCommand?: (captionId: string, key: string) => void
+  /** Session WQL/dashboard pane (explore section). Omitted → static showcase. */
+  session?: TourSectionSessionWiring
   editor?: TourSectionEditorWiring
   timer?: TourSectionTimerWiring
   /** Ambient runtime feeding the cast TV card (run section). */
@@ -128,11 +140,11 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
       header,
       stages,
       captions,
-      frozen,
-      screenKind = 'showcase',
       onActiveStageChange,
       onViewportChange,
       onChoice,
+      onCommand,
+      session,
       editor,
       timer,
       tvRuntime,
@@ -156,7 +168,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
 
-    const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, frozen, stages)
+    const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, false, stages)
     const inView = useInView(runwayRef)
     useEffect(() => {
       onViewportChange?.(inView)
@@ -170,7 +182,14 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
 
     const activeScreen: TourScreen =
       (slice.stage?.screen as TourScreen | undefined) ?? 'editor'
-    // Lazy-mount heavy screens once their section first enters; keep alive.
+    // Heavy panes mount once their section first enters; keep alive. The
+    // runtime-carrying timer pane additionally mounts only after its stage
+    // was ACTIVELY visited — skipping straight past the run stages (e.g.
+    // jump-to-metrics) never creates a runtime.
+    const [timerEngaged, setTimerEngaged] = useState(false)
+    useEffect(() => {
+      if (activeScreen === 'timer') setTimerEngaged(true)
+    }, [activeScreen])
     const showScreens = everReached
 
     // Notify once per stage change — never per render. Parent handlers are
@@ -236,7 +255,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
             {/* stage bar */}
             <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
               <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                {frozen ? 'Playground mode' : slice.stage.label}
+                {slice.stage.label}
               </div>
               <div className="flex items-center gap-1.5">
                 {stages.map((seg, i) => {
@@ -260,14 +279,14 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
               </div>
             </div>
 
-            {/* stage main */}
-            <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-0 pb-0 lg:px-12 lg:pb-5">
-              {/* canvas */}
-              <div
-                className={`relative min-w-0 shrink ${activeScreen === 'analytics' || activeScreen === 'metrics' ? 'h-[min(720px,calc(100vh-180px))] w-[min(1040px,calc(100vw-400px))]' : 'aspect-[1200/720] w-[min(920px,calc(100vw-440px))]'}`}
-              >
-                <div ref={canvasInnerRingRef} className="absolute inset-0 transition-[width,height] duration-300">
-                  <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
+            {/* stage main — the pane fills the sticky viewport; the caption
+                rail stays a readable 320–400px column. Content smaller than
+                the pane centers inside it (screens own their fit). */}
+            <div className="flex min-h-0 w-full flex-1 items-stretch gap-[clamp(20px,2.5vw,44px)] px-5 pb-5 lg:px-10">
+              {/* stage pane */}
+              <div className="relative h-full min-w-0 flex-1">
+                <div ref={canvasInnerRingRef} className="absolute inset-0">
+                  <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
                     <div className="relative h-full">
                       {editor && (
                         <Screen visible={activeScreen === 'editor'}>
@@ -282,7 +301,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                           />
                         </Screen>
                       )}
-                      {showScreens && timer && (
+                      {showScreens && timer && timerEngaged && (
                         <Screen visible={activeScreen === 'timer'}>
                           <TourTimerScreen
                             key={timer.sessionKey}
@@ -291,21 +310,23 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                             onClose={timer.onClose}
                             onComplete={timer.onComplete}
                             onRuntimeReady={timer.onRuntimeReady}
+                            onRunStarted={timer.onRunStarted}
                             onReset={timer.onReset}
-                            externalPause={timer.externalPause}
+                            externalStop={timer.externalStop}
                           />
                         </Screen>
                       )}
                       {/* Sections that carry an editor never host these panes;
                           mounting them hidden re-runs their fit measurement
                           against a zero-size box forever. */}
-                      {showScreens && !timer && !editor && (
+                      {showScreens && !timer && !editor && session && (
                         <Screen visible={activeScreen === 'analytics' || activeScreen === 'metrics'}>
-                          {screenKind === 'metrics' ? (
-                            <TourMetricsScreen activeStageId={slice.stage.id} />
-                          ) : (
-                            <TourAnalyticsShowcaseScreen activeStageId={slice.stage.id} />
-                          )}
+                          <TourSessionAnalytics
+                            activeStageId={session.fixedStage ?? slice.stage.id}
+                            noteId={session.noteId}
+                            queryKey={session.queryKey}
+                            boardSlug={session.boardSlug}
+                          />
                         </Screen>
                       )}
                       {toastLabel != null && (
@@ -324,7 +345,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
 
                   <TourRing
                     target={
-                      frozen || !slice.ring?.key
+                      !slice.ring?.key
                         ? null
                         : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }
                     }
@@ -334,8 +355,17 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                 </div>
               </div>
 
-              {/* captions */}
-              <TourCaptions activeIndex={slice.index} captions={captions} onChoice={onChoice} />
+              {/* caption rail */}
+              <div className="flex w-[clamp(320px,24vw,400px)] flex-none min-h-[280px] flex-col">
+                <div className="relative min-h-[280px] flex-1">
+                  <TourCaptions
+                    activeIndex={slice.index}
+                    captions={captions}
+                    onChoice={onChoice}
+                    onCommand={onCommand}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>

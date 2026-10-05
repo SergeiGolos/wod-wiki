@@ -196,8 +196,9 @@ sum:totalVolume{}
     const live = [...latestById.values()].filter(s => !s.isHistory);
 
     // Live rows are exactly the sections of the final content — no pile-up.
+    // (Row ids are an implementation detail — never pinned in assertions.)
     const finalSections = parseDocumentSections(typed + '\n');
-    expect(new Set(live.map(s => s.id))).toEqual(new Set(finalSections.map(s => s.id)));
+    expect(live).toHaveLength(finalSections.length);
     expect(live.find(s => s.rawContent.trim())?.rawContent.trim()).toBe(typed);
     // Every superseded snapshot is history, not a live duplicate.
     const liveIds = new Set(live.map(s => s.id));

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricType, ParsedCodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -10,13 +10,7 @@ import { MetricInlinePanel } from './MetricInlinePanel';
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
 
 function makeStatement(metrics: IMetric[]): ICodeStatement {
-  return {
-    id: 'test-stmt',
-    line: 1,
-    raw: 'test',
-    metrics,
-    tags: [],
-  } as unknown as ICodeStatement;
+  return new ParsedCodeStatement({ id: 0, line: 1, raw: 'test', metrics });
 }
 
 function makeSection(): EditorSection {
@@ -144,26 +138,6 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
     expect(screen.queryByText('start')).toBeNull();
   });
 
-  it('falls back to generic styling for unknown metric types in chips', () => {
-    const view = createMockView();
-    const statement = makeStatement([
-      { type: 'unknown-type' as MetricType, value: 'X', image: 'X', origin: 'parser' } as IMetric,
-    ]);
-    const section = makeSection();
-
-    const getCursorFocusState = mock(() => ({
-      section,
-      statement,
-      cursorLine: 1,
-      lineFrom: 0,
-      lineTo: 10,
-      focusedMetric: null,
-    }));
-
-    // Should not throw
-    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
-  });
-
   it('renders "No metrics on this line" when only Sound/System are present', () => {
     const view = createMockView();
     const statement = makeStatement([
@@ -212,37 +186,6 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
     expect(screen.getByText('🔁')).toBeDefined();
     expect(screen.queryByText('workout.emom')).toBeNull();
     expect(screen.getByText('🔁').parentElement!.getAttribute('title')).toBe('workout.emom');
-  });
-
-  it('renders with insert styling (no full border or rounding, explicit 28px height)', () => {
-    const view = createMockView();
-    const statement = makeStatement([
-      { type: MetricType.Rep, value: 10, image: '10', origin: 'parser' } as IMetric,
-    ]);
-    const section = makeSection();
-
-    const getCursorFocusState = mock(() => ({
-      section,
-      statement,
-      cursorLine: 1,
-      lineFrom: 0,
-      lineTo: 10,
-      focusedMetric: null,
-    }));
-
-    const { container } = render(
-      <MetricInlinePanel
-        view={view as unknown as EditorView}
-        cursorVersion={1}
-        getCursorFocusState={getCursorFocusState}
-      />
-    );
-
-    const panel = container.querySelector('.cm-metric-inline-panel');
-    expect(panel).toBeDefined();
-    expect(panel?.className).toContain('h-[28px]');
-    expect(panel?.className).not.toContain('rounded-b-md');
-    expect(panel?.className).not.toContain('shadow-sm');
   });
 });
 

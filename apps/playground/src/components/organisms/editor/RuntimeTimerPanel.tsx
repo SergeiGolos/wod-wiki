@@ -13,9 +13,9 @@
  * section boundaries when running (see OverlayTrack.tsx).
  *
  * Gutter line highlighting:
- *   Each stack snapshot's top block has `sourceIds` = statement.meta.line
- *   (1-based within the content block, per lezer-mapper.ts).
- *   Document line = block.startLine + 1 + sourceId.
+ *   Each stack snapshot's top block carries `sourceIds` = Statement IDs.
+ *   Lines are resolved through runtime.script.getId(id) (meta.line, 1-based
+ *   within the content block); Document line = block.startLine + 1 + meta.line.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -39,6 +39,7 @@ import { dispatchGutterHighlights } from '@bitcobblers/wod-wiki-ui/extensions';
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { buildSessions, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
+import { sourceIdsToContentLines } from "@/components/organisms/editor/gutterHighlights";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
 // PROTOTYPE — throwaway import; delete with proto-timer/
@@ -76,6 +77,14 @@ export interface RuntimeTimerPanelProps {
    * the run's data.
    */
   externalPause?: boolean;
+  /**
+   * Host-driven stop (home tour metrics arrival / reset chaining): while
+   * true and the execution is still live (running or paused), the panel
+   * stops it, dispatches `workout:stop`, and reports the partial results
+   * via onComplete — WITHOUT calling onClose. Idempotent per execution:
+   * once completed, further flips are no-ops.
+   */
+  externalStop?: boolean;
 }
 
 
@@ -119,20 +128,21 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {/* ── Body: stacked on mobile, side-by-side on desktop ── */}
+      {/* ── Body: stacked on mobile, side-by-side on desktop. Mobile puts the
+          clock + controls FIRST so a bounded host never clips them. ── */}
       <div className={`min-h-0 flex-1 overflow-hidden flex ${isMobile ? "flex-col" : "flex-row"}`}>
-        {/* Visual State — top on mobile, left on desktop */}
+        {/* Visual State — below the clock on mobile, left on desktop */}
         <div className={`overflow-hidden bg-secondary/10 ${
           isMobile
-            ? "flex-1 min-h-0 border-b border-border pt-14"
+            ? "order-2 min-h-0 border-t border-border"
             : "min-w-0 w-1/3 border-r border-border"
         }`}>
           <VisualStatePanel />
         </div>
 
-        {/* Timer — bottom on mobile, right on desktop */}
+        {/* Timer + controls — top on mobile, right on desktop */}
         <div className={`flex flex-col justify-center overflow-hidden bg-background ${
-          isMobile ? "shrink-0" : "w-2/3"
+          isMobile ? "order-1 min-h-0 flex-1" : "w-2/3"
         }`}>
           <TimerDisplay
             elapsedMs={execution.elapsedTime}
@@ -180,6 +190,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   onRuntimeReady,
   onRunStarted,
   externalPause,
+  externalStop,
 }) => {
   const [runtimeBlock] = useState(() => prepareRuntimeBlock(block));
   const [preRunScript] = useState(() => ({ statements: runtimeBlock.statements }));
@@ -195,8 +206,8 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [nothingToRun, setNothingToRun] = useState(false);
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
-  // statement sourceId = 1-based line within content
-  // document line = (block.startLine + 1) + sourceId
+  // statement source line = meta.line, 1-based within the fence content
+  // document line = (block.startLine + 1) + meta.line
   const gutterBase = block.startLine + 1;
   const { overrides, setOverride } = useUserOverrides(true);
   const { collectionItems } = useCollectionMetrics([], overrides, preRunScript);
@@ -224,9 +235,14 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
           dispatchGutterHighlights(view, []);
           return;
         }
-        const topBlock = snapshot.blocks[snapshot.blocks.length - 1];
+        // StackSnapshot.blocks is top-first: blocks[0] is the current block.
+        const topBlock = snapshot.blocks[0];
         if (topBlock?.sourceIds?.length) {
-          const docLines = topBlock.sourceIds.map((id) => gutterBase + id);
+          // sourceIds are Statement IDs, not lines — resolve each to its
+          // statement's content-relative source line, deduped (parent and
+          // child statements can share one source line).
+          const docLines = sourceIdsToContentLines(rt.script, topBlock.sourceIds)
+            .map((line) => gutterBase + line);
           dispatchGutterHighlights(view, docLines);
         } else {
           dispatchGutterHighlights(view, []);
@@ -264,7 +280,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   // useWorkbenchSessionLifecycle on this surface to do it — /run creates its
   // runtime locally here, so the label would otherwise never reflect pause.
   // (#701)
+  // Idle is the store's default — skipping the sync while idle avoids a
+  // render→effect loop when the panel mounts hidden before its first start
+  // (unstable idle elapsedTime would re-fire this effect every render).
   useEffect(() => {
+    if (execution.status === 'idle') return;
     getActiveWorkbenchSessionStore().getState().setExecution(execution);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [execution.status, execution.elapsedTime, execution.stepCount, execution.startTime]);
@@ -298,6 +318,19 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [externalPause, execution.status, execution.pause]);
+
+  // Host-driven stop: same path as the Stop button (stop → workout:stop →
+  // partial results via onComplete) but WITHOUT onClose — the host keeps the
+  // panel mounted (metrics arrival, reset chaining). Only a live execution
+  // (running/paused) stops; idle has nothing to finalize and completed has
+  // already reported.
+  useEffect(() => {
+    if (!externalStop || (execution.status !== 'running' && execution.status !== 'paused')) return;
+    execution.stop();
+    runtime?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
+    handleComplete(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
+  }, [externalStop, execution.status, execution.stop]);
 
   const handleComplete = useCallback((completed: boolean) => {
     if (!runtime) return;

@@ -24,13 +24,17 @@ Now, why am I writing all of this? Well, I feel very strongly about parkour. I t
 
 Thanks to everyone who continues to come to the site and come to our classes. We literally couldn’t do this without you.
 
-Run 1/4 mile | row 250m | bike 2 miles.
+```time
+Run 1/4 mile | row 250m | bike 2 miles
 
-3 rounds of:
-- 25m quadrupedal movement
-- 10 push-ups
-- 10 pull-ups | jumping pull-ups
-- 10 repetitions of a movement you “suck at” (if that movement is already in the warm up, perform 15 reps instead; otherwise perform 10 reps or an appropriate progression)
+(3)
+  25m Quadrupedal Movement
+  10 Push Ups
+  10 Pull Ups | Jumping Pull Ups
+  10 Movement You Suck At
+```
+
+if that movement is already in the warm up, perform 15 reps instead; otherwise perform 10 reps or an appropriate progression
 
 ## WOD
 

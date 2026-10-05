@@ -19,16 +19,20 @@
  * Fully inverted dependencies: zero IndexedDB/storage module-level imports.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow, EventRecord } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, EventRecord, Page, PageNote } from '@bitcobblers/wod-wiki-core';
 import { normalizeFieldComponent } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,
+  isPipelineQuery,
   findTargetAdvisories,
   type Aggregator,
   type ComparisonOp,
   type ParsedAggregateQuery,
   type ParsedFindQuery,
+  type ParsedPipelineQuery,
+  type PipelineSink,
+  type AnyParsedQuery,
   type QueryWindow,
   type ParsedRowsQuery,
   type FindPredicate,
@@ -37,7 +41,7 @@ import {
   type SeriesPoint,
   type TagFilter,
 } from './wql';
-import { WQL_TYPED_TAG_KEYS, type WqlTypedTagKey } from './vocabulary';
+import { WQL_SOURCE_VALUES, WQL_TYPED_TAG_KEYS, type WqlTypedTagKey } from './vocabulary';
 import { convertViaCatalog, resolveOutputUnit } from './units';
 import { projectEventToFacts } from './derivation';
 import { dedupeById, selectContributions, type CoverageReport } from './selection';
@@ -84,14 +88,15 @@ function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; 
 }
 
 /** Match a single row against one source filter value. The `journal` kind matches
- *  rows with no sourceId prefix; the `collection` / `feed` / `guide` kinds match
+ *  rows with no sourceId prefix; the `collection` / `guide` kinds match
  *  rows whose sourceId starts with the kind. A `kind:id` literal matches the
  *  exact id. `playground` matches the playground intake's sourceId convention
  *  and, on the note plane, legacy rows typed 'playground' (playground pages
- *  saved before the sourceId convention existed — their sourceId is absent). */
+ *  saved before the sourceId convention existed — their sourceId is absent).
+ *  `all` spans exactly the WQL source domain (feeds excised at the vocabulary). */
 function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; type?: string }, kind: string): boolean {
   const sourceId = item.sourceId;
-  if (kind === 'all') return true;
+  if (kind === 'all') return WQL_SOURCE_VALUES.some((k) => sourceMatches(item, k));
   if (kind === 'journal') {
     if (
       item.type === 'playground' ||
@@ -109,9 +114,6 @@ function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; 
   }
   if (kind === 'page' || kind === 'pages') {
     return !!sourceId && (sourceId === 'page' || sourceId.startsWith('page:') || sourceId.startsWith('guides:'));
-  }
-  if (kind === 'feed' || kind === 'feeds') {
-    return !!sourceId && sourceId.startsWith('feed:');
   }
   if (kind === 'guide' || kind === 'guides') {
     return !!sourceId && sourceId.startsWith('guides:');
@@ -162,6 +164,26 @@ function sessionCompletedAt(rows: EventRecord[]): number {
   return rows[0]?.timestamp ?? 0;
 }
 
+/** C1 + ticket 12 range resolution for aggregate execution: the query's own
+ *  window WINS over the host range options — the host range is the default
+ *  when the query has none. Resolution against the one captured context;
+ *  membership half-open. */
+function resolveAggregateRange(
+  parsed: ParsedAggregateQuery,
+  options: QueryOptions,
+  ctx: ExecutionContext,
+): ResolvedRange | undefined {
+  if (parsed.window) return resolveWindowRange(parsed.window, ctx);
+  if (options.rangeStart !== undefined || options.rangeEnd !== undefined) {
+    return {
+      start: options.rangeStart ?? 0,
+      end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
+      endExclusive: false,
+    };
+  }
+  return undefined;
+}
+
 const defaultEventStore: EventStore = {
   getEventsByTimeRange: async () => [],
   getEventsByResult: async () => [],
@@ -191,13 +213,52 @@ export interface FindQueryResult {
   parsed: ParsedFindQuery;
   notes: Note[];
   blocks: BlockIndexRow[];
-  /** Registry rows for find:effort queries. */
+  /** Registry rows for :effort queries. */
   efforts?: IEffort[];
-  /** Session run cards for find:session queries (#1041). */
+  /** Session run cards for :session queries (#1041). */
   runs?: RowsRun[];
-  /** Tabular output for find:segment and find:event queries (#1042). */
+  /** Tabular output for :segment and :event queries (#1042). */
   table?: TabularResult;
+  /** Raw event rows behind the result — session run statements and table
+   *  observations. Pipeline stages aggregate these in memory (no re-read). */
+  events?: EventRecord[];
+  /** Highest container per note id: the parent Page when the canonical
+   *  page_notes junction links one, else the standalone Note. Present only
+   *  when a pageStore is injected and notes were matched. */
+  containers?: Record<string, NoteContainer>;
   stages: { selected: number; matched: number };
+}
+
+/** Highest-container link for a matched note (parent Page wins). `slug` and
+ *  `date` route app URLs (/p/:slug, /journal/:date). Core Page has no type —
+ *  the parent is never classified by the note's kind. */
+export type NoteContainer =
+  | { kind: 'page'; id: string; slug?: string; date?: string }
+  | { kind: 'note'; id: string };
+
+/** Options for runPipeline: query options plus host-populated datasets.
+ *  `pageSources` wins over an injected `datasetStore`; both are synchronous
+ *  in-memory lookups — dataset stages never roundtrip the database. */
+export interface PipelineOptions extends QueryOptions {
+  /** Host-populated datasets keyed by name (names include `@`). */
+  pageSources?: ReadonlyMap<string, { events: EventRecord[]; notes: Note[] }>;
+}
+
+/** Result of one pipeline run: the final stage's data under its existing
+ *  result type, plus the chart sink marker for the renderer. */
+export interface PipelineResult {
+  parsed: ParsedPipelineQuery;
+  series?: Series[];
+  table?: TabularResult;
+  notes?: Note[];
+  blocks?: BlockIndexRow[];
+  efforts?: IEffort[];
+  runs?: RowsRun[];
+  /** Highest container per note id (see FindQueryResult.containers). */
+  containers?: Record<string, NoteContainer>;
+  unit?: string;
+  chart?: PipelineSink;
+  error?: string;
 }
 
 export interface QueryOptions {
@@ -474,12 +535,117 @@ function compareOp(value: number, op: ComparisonOp, threshold: number): boolean 
   }
 }
 
+/** Reduce an already-aggregated pipeline stage with the next transform —
+ *  functions act on the PRECEDING numeric result, never re-query facts.
+ *  Supported authored modifiers on a carried stage: `last <n>d|w` /
+ *  `from…to…` windows (filter the carried points by ts) and `in <unit>`
+ *  (convert BEFORE arithmetic, ticket 13 — values and observation points
+ *  stay aligned for last/delta). Filters, group-bys, rollups, and content
+ *  joins have no fact dimensions to resolve on carried values — they error
+ *  explicitly instead of being silently ignored. `metric:` must match the
+ *  preceding stage's metric (rep≡reps) — a mismatch mislabels the result. */
+function reduceCarriedResult(qr: QueryResult, transform: ParsedAggregateQuery, options: QueryOptions, ctx: ExecutionContext): QueryResult {
+  const zero = { selected: 0, buckets: 0, aggregated: 0, groups: 0 } as const;
+  const unsupported = [
+    transform.join && 'where <content> join',
+    transform.filters.length > 0 && 'tag filters',
+    transform.groupBy.length > 0 && 'by {…} grouping',
+    transform.rollup && '.rollup(…)',
+  ].filter(Boolean) as string[];
+  if (unsupported.length > 0) {
+    return {
+      parsed: transform, series: [], stages: { ...zero }, matched: [],
+      error: `:${transform.agg}{…} on a carried stage cannot apply ${unsupported.join(', ')} — carried values carry no fact dimensions; author them in the source stage.`,
+    };
+  }
+  // An errored stage poisons everything downstream — stop before reducing.
+  if (qr.error) return qr;
+
+  const range = resolveAggregateRange(transform, options, ctx);
+  const values: number[] = [];
+  const points: AnalyticsDataPoint[] = [];
+  let lastTs = 0;
+  for (const s of qr.series) {
+    for (const p of s.points) {
+      if (p.missing) continue;
+      if (range && !inRange(p.ts, range)) continue;
+      values.push(p.value);
+      points.push({ timestamp: p.ts, value: p.value, noteId: '', resultId: '' } as AnalyticsDataPoint);
+      if (p.ts > lastTs) lastTs = p.ts;
+    }
+  }
+
+  // Carried values are the previous stage's metric — a different metric:
+  // mislabels the reduction. Empty metric inherits the carried provenance
+  // (rep/reps aliases compare equal).
+  const sameMetric = (a: string, b: string) =>
+    a === b || (a === 'rep' && b === 'reps') || (a === 'reps' && b === 'rep');
+  if (transform.metric && !(qr.parsed.metric && sameMetric(transform.metric, qr.parsed.metric))) {
+    return {
+      parsed: transform, series: [], stages: { ...zero }, matched: [],
+      error: `:${transform.agg}{metric:${transform.metric}} on a carried stage reduces the preceding "${qr.parsed.metric || 'metricless'}" values — metric:${transform.metric} does not exist on them.`,
+    };
+  }
+
+  // `in <unit>` on a carried stage converts the carried values (all one
+  // unit) before the reduction; unitless or count stages cannot convert.
+  let unit = transform.agg === 'count' ? 'count' : qr.unit;
+  if (transform.displayUnit) {
+    if (!unit || unit === 'count') {
+      return {
+        parsed: transform, series: [], stages: { ...zero }, matched: [],
+        error: `Cannot apply in ${transform.displayUnit} — the preceding stage carries no convertible unit.`,
+      };
+    }
+    try {
+      for (let i = 0; i < values.length; i++) {
+        const converted = convertViaCatalog(values[i]!, unit, transform.displayUnit);
+        values[i] = converted;
+        // Keep the observation pair aligned — last/delta read point.value.
+        points[i] = { ...points[i]!, value: converted };
+      }
+      unit = transform.displayUnit;
+    } catch (e) {
+      return {
+        parsed: transform, series: [], stages: { ...zero }, matched: [],
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+
+  const reduced = aggregate(values, transform.agg, points);
+  if (reduced.state === 'error') {
+    return {
+      parsed: transform, series: [], stages: { ...zero }, matched: [],
+      error: reduced.message,
+    };
+  }
+  return {
+    parsed: transform,
+    series: [{
+      key: transform.agg,
+      label: transform.agg,
+      points: [{ ts: lastTs || ctx.instant, value: reduced.value, ...(reduced.state === 'absent' ? { missing: true } : {}) }],
+      unit,
+    }],
+    stages: { selected: values.length, buckets: 1, aggregated: 1, groups: 1 },
+    matched: [],
+    ...(unit ? { unit } : {}),
+  };
+}
 export class QueryService {
   private readonly store: EventStore;
   private readonly noteStore: NoteQueryStore;
   private readonly blockStore: BlockQueryStore;
   private readonly effortStore: EffortQueryStore;
   private readonly staticNoteStore?: NoteQueryStore;
+  private readonly pageStore?: {
+    getNotePages(noteId: string): Promise<PageNote[]>;
+    getPage(pageId: string): Promise<Page | undefined>;
+  };
+  private readonly datasetStore?: {
+    getDataset(name: string): { events: EventRecord[]; notes: Note[] } | undefined;
+  };
 
   // Optional storage seam properties for block_efforts and typed tag resolution.
   // Injected by the app adapter (`services/queryService.ts`); tests can supply fakes.
@@ -507,7 +673,9 @@ export class QueryService {
         'noteStore' in storesOrEventStore ||
         'blockStore' in storesOrEventStore ||
         'effortStore' in storesOrEventStore ||
-        'staticNoteStore' in storesOrEventStore)
+        'staticNoteStore' in storesOrEventStore ||
+        'pageStore' in storesOrEventStore ||
+        'datasetStore' in storesOrEventStore)
     ) {
       const stores = storesOrEventStore as QueryServiceStores;
       this.store = stores.eventStore ?? defaultEventStore;
@@ -515,6 +683,8 @@ export class QueryService {
       this.blockStore = stores.blockStore ?? defaultBlockStore;
       this.effortStore = stores.effortStore ?? defaultEffortStore;
       this.staticNoteStore = stores.staticNoteStore;
+      this.pageStore = stores.pageStore;
+      this.datasetStore = stores.datasetStore;
       if (stores.blockEffortsStore) this.blockEffortsStore = stores.blockEffortsStore;
       if (stores.tagsStore) this.tagsStore = stores.tagsStore;
       if (stores.noteTagsStore) this.noteTagsStore = stores.noteTagsStore;
@@ -535,12 +705,7 @@ export class QueryService {
 
   async runQuery(raw: string, options: QueryOptions = {}): Promise<QueryResult> {
     const parsed = parseQuery(raw);
-    if (isFindQuery(parsed)) {
-      return {
-        parsed: { family: 'aggregate', raw, agg: 'count', metric: parsed.target, filters: [], groupBy: [] },
-        series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
-      };
-    }
+    if (isPipelineQuery(parsed)) return this.pipelineResultToQueryResult(await this.runPipelineParsed(parsed, options));
     return this.run(parsed, options);
   }
 
@@ -550,9 +715,9 @@ export class QueryService {
    * so a programmatic ParsedRowsQuery still resolves.
    */
   async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number; context?: ExecutionContext } = {}): Promise<RowsQueryResult> {
-    // Hand-built rows AST → find noun: `all`/missing → find:session; a result
-    // plane (segment/load/…) narrows via plane: on find:session; rows:segment
-    // without a scope is the cross-workout table (find:segment).
+    // Hand-built rows AST → find noun: `all`/missing → :session; a result
+    // plane (segment/load/…) narrows via plane: on :session; rows:segment
+    // without a scope is the cross-workout table (:segment).
     const scope = parsed.filters.some((f) => ['result', 'block', 'note'].includes(f.key));
     const plane = parsed.outputType ?? (parsed.target !== 'all' ? parsed.target : undefined);
     let target: string;
@@ -579,7 +744,7 @@ export class QueryService {
   }
 
   /**
-   * Execute a find:session query (#1041/#1042) — grouped run cards per completed session.
+   * Execute a :session query (#1041/#1042) — grouped run cards per completed session.
    */
   async runFindSession(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     const ctx = runContext(options);
@@ -590,8 +755,11 @@ export class QueryService {
     const noteIds = scopeValues('note');
 
     const byResult = new Map<string, EventRecord[]>();
+    const collected = new Set<string>();
     const collect = (rows: EventRecord[]) => {
       for (const row of rows) {
+        if (collected.has(row.id)) continue;
+        collected.add(row.id);
         const bucket = byResult.get(row.resultId);
         if (bucket) bucket.push(row);
         else byResult.set(row.resultId, [row]);
@@ -639,6 +807,9 @@ export class QueryService {
         };
       })
       .filter((run) => run.events.length > 0);
+    // Pagination is presentation: the pipeline's event set stays the FULL
+    // plane-narrowed selection, only the run cards are clipped.
+    const runsFull = runs;
     const pipes = parsed.pipes;
     if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
       const offset = pipes.offset ?? 0;
@@ -650,12 +821,13 @@ export class QueryService {
       notes: [],
       blocks: [],
       runs,
+      events: runsFull.flatMap((run) => run.events),
       stages: { selected: groups.length, matched: runs.length },
     };
   }
 
   /**
-   * Execute a find:segment or find:event query (#1042/#1048) — flat cross-workout table.
+   * Execute a :segment or :event query (#1042/#1048) — flat cross-workout table.
    */
   async runFindTable(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     const ctx = runContext(options);
@@ -668,9 +840,24 @@ export class QueryService {
     let eventRows: EventRecord[] = [];
     if (resultIds.length + blockIds.length + noteIds.length === 0) {
       const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : (options.range ? options.range : undefined);
-      eventRows = range
-        ? await this.store.getEventsByTimeRange(range.start, range.end)
-        : await this.store.scanAll();
+      if (range) {
+        eventRows = await this.store.getEventsByTimeRange(range.start, range.end);
+        // Mirror run(): the fetch-hint timestamp alone misses rows whose
+        // CIVIL metric date is in range — union by-metric-date candidates;
+        // the anchorTs membership filter below keeps it exact.
+        if (this.store.getEventsByMetricDates) {
+          const civilDates = civilDatesCoveredByRange(range.start, range.end, ctx.timeZone);
+          if (civilDates.length > 0 && civilDates.length <= 400) {
+            const byDate = await this.store.getEventsByMetricDates(civilDates);
+            if (byDate.length > 0) {
+              const seen = new Set(eventRows.map((r) => r.id));
+              eventRows = [...eventRows, ...byDate.filter((r) => !seen.has(r.id))];
+            }
+          }
+        }
+      } else {
+        eventRows = await this.store.scanAll();
+      }
     } else {
       const seen = new Set<string>();
       const collect = (rows: EventRecord[]) => {
@@ -696,16 +883,8 @@ export class QueryService {
       eligibleRecords.push(row);
     }
 
-    const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
-    const tagFilters = parsed.filters.filter((f) => !['result', 'block', 'note', 'plane'].includes(f.key));
-    const eligible = eligibleRecords.filter((row) => {
-      if (tagFilters.length === 0) return true;
-      const facts = projectEventToFacts(row);
-      if (facts.length === 0) return false;
-      return facts.some((fact) => matchesFilters(fact, tagFilters, noteTags));
-    });
-
-    const totalCount = eligible.length;
+    // Selection anchors: a recorded civil date anchors at local noon (the
+    // same convention as day bucketing), an instant row at its timestamp.
     const civilDateCache = new Map<number, string>();
     const dateOf = (row: EventRecord): string => {
       const temporal = row.metricTemporal?.[0];
@@ -716,6 +895,27 @@ export class QueryService {
       civilDateCache.set(row.timestamp, computed);
       return computed;
     };
+    const anchorTs = (row: EventRecord): number => {
+      const temporal = row.metricTemporal?.[0];
+      if (temporal?.temporalKind === 'civil-date' && temporal.civilDate) return zonedNoon(temporal.civilDate, ctx.timeZone);
+      return row.timestamp;
+    };
+
+    const noteTags: ReadonlyMap<string, readonly string[]> = new Map();
+    const tagFilters = parsed.filters.filter((f) => !['result', 'block', 'note', 'plane'].includes(f.key));
+    // C1 + ticket 12: the fetch bound is only a cutoff — scoped and windowed
+    // queries alike filter membership by the row's own temporal anchor.
+    const timeScoped = !!(parsed.window || options.range);
+    const eligible = eligibleRecords
+      .filter((row) => !timeScoped || effectiveTimeWindow(anchorTs(row), parsed.window, options.range, ctx))
+      .filter((row) => {
+        if (tagFilters.length === 0) return true;
+        const facts = projectEventToFacts(row);
+        if (facts.length === 0) return false;
+        return facts.some((fact) => matchesFilters(fact, tagFilters, noteTags));
+      });
+
+    const totalCount = eligible.length;
 
     const unitByMetric = new Map<string, string>();
     const numericMetrics = new Set<string>();
@@ -816,6 +1016,7 @@ export class QueryService {
       notes: [],
       blocks: [],
       runs: [],
+      events: eligible,
       table: {
         columns,
         rows: page,
@@ -829,7 +1030,7 @@ export class QueryService {
   }
 
   /**
-   * Execute a content-discovery query (find:note). Naive in-memory filtering
+   * Execute a content-discovery query (:note). Naive in-memory filtering
    * per the tracer-bullet scope (#797): load all notes, then apply tag/text/
    * time filters.
    */
@@ -863,6 +1064,19 @@ export class QueryService {
       notes = notes.concat(await this.staticNoteStore.getAllNotes());
     }
     notes = applySourceFilter(notes, parsed.filters);
+    // :note scope (parse-authored sourceScope) — an AND-restriction applied
+    // whenever present, INCLUDING alongside an authored source: filter, so a
+    // conflicting scope/head pair intersects to empty rather than letting
+    // the explicit filter win alone (`in all` suppresses the default at
+    // parse time by omitting sourceScope).
+    if (parsed.target === 'note' && parsed.sourceScope?.length) {
+      const scope = parsed.sourceScope;
+      notes = notes.filter((n) => scope.some((k) => sourceMatches(n, k)));
+    }
+    // WQL boundary: candidates come from the WQL source domain (feeds
+    // excised at the vocabulary); sourceless rows predate the sourceId
+    // convention and stay reachable — no legacy-marker classification here.
+    notes = notes.filter((n) => !n.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(n, k)));
     const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
     const hasCollectionSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'collection' || v.value === 'collections'));
     const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
@@ -986,17 +1200,49 @@ export class QueryService {
       notes = pipes.limit !== undefined ? notes.slice(offset, offset + pipes.limit) : notes.slice(offset);
     }
 
-    return { parsed, notes, blocks: [], stages: { selected: selectedCount, matched: notes.length } };
+    return {
+      parsed,
+      notes,
+      blocks: [],
+      ...(notes.length && this.pageStore ? { containers: await this.containersForNotes(notes) } : {}),
+      stages: { selected: selectedCount, matched: notes.length },
+    };
+  }
+
+  /** Highest container per note id: the parent Page from the canonical
+   *  page_notes junction (first link by position) wins; a note with no page
+   *  link stays a standalone Note container. */
+  private async containersForNotes(notes: Note[]): Promise<Record<string, NoteContainer>> {
+    const containers: Record<string, NoteContainer> = {};
+    const pageCache = new Map<string, Page | undefined>();
+    for (const note of notes) {
+      const links = await this.pageStore!.getNotePages(note.id);
+      let page: Page | undefined;
+      if (links.length > 0) {
+        const [first] = [...links].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        if (!pageCache.has(first!.pageId)) {
+          pageCache.set(first!.pageId, await this.pageStore!.getPage(first!.pageId));
+        }
+        page = pageCache.get(first!.pageId);
+      }
+      containers[note.id] = page
+        ? { kind: 'page', id: page.id, ...(page.slug ? { slug: page.slug } : {}), ...(page.date ? { date: page.date } : {}) }
+        : { kind: 'note', id: note.id };
+    }
+    return containers;
   }
 
   /**
-   * Execute a find:block query against the derived block_index store.
+   * Execute a :block query against the derived block_index store.
    */
   async runFindBlock(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     let blocks: BlockIndexRow[] = [];
     // One store: the seed importer materializes corpus rows next to user rows.
     blocks = blocks.concat(await this.blockStore.getAllBlocks());
     blocks = applySourceFilter(blocks, parsed.filters);
+    // WQL boundary (same as notes): the four allowed kinds plus sourceless
+    // legacy rows — feeds excised at the vocabulary never enter results.
+    blocks = blocks.filter((b) => !b.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(b, k)));
     const selectedCount = blocks.length;
     const ctx = runContext(options);
     // Text filter — substring on rawContent
@@ -1096,7 +1342,7 @@ export class QueryService {
   }
 
   /**
-   * Execute a find:effort query against the effort registry.
+   * Execute a :effort query against the effort registry.
    */
   async runFindEffort(parsed: ParsedFindQuery): Promise<FindQueryResult> {
     const all = await this.effortStore.getAllEfforts();
@@ -1154,7 +1400,20 @@ export class QueryService {
     return { parsed, notes: [], blocks: [], efforts, stages: { selected: selectedCount, matched: efforts.length } };
   }
 
-  async run(parsed: ParsedAggregateQuery, options: QueryOptions = {}): Promise<QueryResult> {
+  async run(parsed: AnyParsedQuery, options: QueryOptions = {}): Promise<QueryResult> {
+    // Explicit family handling — no unchecked cast past the guards.
+    if (isPipelineQuery(parsed)) {
+      throw new Error('Pipeline queries do not aggregate directly — execute them with runPipeline().');
+    }
+    if (isFindQuery(parsed)) {
+      // Content queries never aggregate; retired rows: text surfaces here as
+      // a parse-errored find AST and returns the telemetry-zero result.
+      return {
+        parsed: { family: 'aggregate', raw: parsed.raw, agg: 'count', metric: parsed.target, filters: [], groupBy: [] },
+        series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
+        ...(parsed.error ? { error: parsed.error } : {}),
+      };
+    }
     const empty: QueryResult = {
       parsed,
       series: [],
@@ -1175,15 +1434,7 @@ export class QueryService {
     // range options — the host range is the default when the query has none.
     // Resolution uses the one captured execution context (half-open bounds).
     const ctx = runContext(options);
-    const range: ResolvedRange | undefined = parsed.window
-      ? resolveWindowRange(parsed.window, ctx)
-      : options.rangeStart !== undefined || options.rangeEnd !== undefined
-        ? {
-            start: options.rangeStart ?? 0,
-            end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
-            endExclusive: false,
-          }
-        : undefined;
+    const range = resolveAggregateRange(parsed, options, ctx);
     // The store fetch bound is an upper cutoff, not the membership test —
     // pass the resolved end through unchanged (MAX_SAFE_INTEGER for the
     // unbounded side).
@@ -1204,7 +1455,186 @@ export class QueryService {
         }
       }
     }
+    return this.aggregateEventRows(parsed, eventRows, options, range);
+  }
+
+  /**
+   * In-memory aggregation over ALREADY-FETCHED event rows — the pipeline
+   * dataset/transform path. Identical metric projection, selection,
+   * bucketing, unit, and aggregation stages as `run`; no store reads (a
+   * content join on carried data is REJECTED by runAggregateEvents — it
+   * would abandon the carried population).
+   */
+  async runAggregateEvents(query: ParsedAggregateQuery, events: readonly EventRecord[], options: QueryOptions = {}): Promise<QueryResult> {
+    const empty: QueryResult = {
+      parsed: query,
+      series: [],
+      stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
+      matched: [],
+    };
+    if (query.error) return empty;
+    // A content join resolves its scope from the STORE — that would abandon
+    // the carried population. Author the join on the pipeline's source stage
+    // instead.
+    if (query.join) {
+      return {
+        ...empty,
+        error: 'where <content> joins re-read the store and cannot run on carried pipeline data — author the join in the source stage.',
+      };
+    }
+    const ctx = runContext(options);
+    const range = resolveAggregateRange(query, options, ctx);
+    return this.aggregateEventRows(query, events, options, range);
+  }
+
+  /** Public pipeline executor — parse the text, then run. */
+  async runPipeline(queryText: string, options: PipelineOptions = {}): Promise<PipelineResult> {
+    return this.runPipelineParsed(parseQuery(queryText), options);
+  }
+
+  /** Execute an already-parsed pipeline: resolve the source once, then flow
+   *  the carried value left to right through the transforms — each function
+   *  reduces the PRECEDING stage, never an independent re-query. Dataset
+   *  stages look up `pageSources` (then an injected datasetStore)
+   *  synchronously; no database roundtrip. */
+  async runPipelineParsed(parsed: AnyParsedQuery, options: PipelineOptions = {}): Promise<PipelineResult> {
+    if (!isPipelineQuery(parsed)) {
+      const error = parsed.error ?? `Not a pipeline: "${parsed.raw}". Pipelines look like :source{filters} | :sum{metric:x} | :table.`;
+      return { parsed: { family: 'pipeline', raw: parsed.raw, source: { kind: 'dataset', name: '' }, transforms: [], error }, error };
+    }
+    const fail = (error: string): PipelineResult => ({ parsed, error });
+    if (parsed.error) return fail(parsed.error);
+
+    let content: FindQueryResult | undefined;
+    let carried: QueryResult | undefined;
+    let sourceEvents: EventRecord[] | undefined;
+    let datasetNotes: Note[] = [];
+
+    if (parsed.source.kind === 'dataset') {
+      const name = parsed.source.name;
+      const dataset = options.pageSources?.get(name) ?? this.datasetStore?.getDataset(name);
+      if (!dataset) return fail(`Unknown dataset "${name}" — the host must register it before the query runs.`);
+      sourceEvents = dataset.events;
+      datasetNotes = dataset.notes;
+    } else if (isFindQuery(parsed.source.query)) {
+      const q = parsed.source.query;
+      content = await this.runFind(q, {
+        context: options.context,
+        ...((options.rangeStart !== undefined || options.rangeEnd !== undefined)
+          ? { range: { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER, endExclusive: false } }
+          : {}),
+      });
+      if (q.error) return fail(q.error);
+    } else {
+      carried = await this.run(parsed.source.query, options);
+      if (parsed.source.query.error) return fail(parsed.source.query.error);
+    }
+
+    if (parsed.transforms.length === 0) {
+      // Source-only pipeline (optionally with a chart sink) — the stage
+      // result surfaces as-is, no event resolution.
+      if (content) {
+        return {
+          parsed,
+          ...(content.notes.length ? { notes: content.notes } : {}),
+          ...(content.blocks.length ? { blocks: content.blocks } : {}),
+          ...(content.efforts?.length ? { efforts: content.efforts } : {}),
+          ...(content.runs?.length ? { runs: content.runs } : {}),
+          ...(content.table ? { table: content.table } : {}),
+          ...(content.containers ? { containers: content.containers } : {}),
+          ...(parsed.sink ? { chart: parsed.sink } : {}),
+        };
+      }
+      if (parsed.source.kind === 'dataset') {
+        // Dataset alone — its notes are the surface; telemetry flows only
+        // through transforms.
+        return { parsed, notes: datasetNotes, ...(parsed.sink ? { chart: parsed.sink } : {}) };
+      }
+      return {
+        parsed,
+        ...(carried
+          ? { series: carried.series, ...(carried.unit ? { unit: carried.unit } : {}), ...(carried.error ? { error: carried.error } : {}) }
+          : {}),
+        ...(parsed.sink ? { chart: parsed.sink } : {}),
+      };
+    }
+
+    if (!carried) {
+      if (!sourceEvents && content) sourceEvents = await this.sourceEventsFromFind(content);
+      carried = await this.runAggregateEvents(parsed.transforms[0]!, sourceEvents ?? [], options);
+      for (const transform of parsed.transforms.slice(1)) {
+        if (carried.error) break; // an errored stage stops the pipeline
+        carried = reduceCarriedResult(carried, transform, options, runContext(options));
+      }
+    } else {
+      for (const transform of parsed.transforms) {
+        if (carried.error) break; // an errored stage stops the pipeline
+        carried = reduceCarriedResult(carried, transform, options, runContext(options));
+      }
+    }
+    return {
+      parsed,
+      series: carried.series,
+      ...(carried.unit ? { unit: carried.unit } : {}),
+      ...(carried.error ? { error: carried.error } : {}),
+      ...(parsed.sink ? { chart: parsed.sink } : {}),
+    };
+  }
+
+  /** Events behind a content source — resolved ONLY when a transform needs
+   *  them: session/table sources already carry their rows; note sources read
+   *  the per-note index; block sources read the content index. */
+  private async sourceEventsFromFind(content: FindQueryResult): Promise<EventRecord[]> {
+    if (content.events) return content.events;
+    const rows: EventRecord[] = [];
+    for (const note of content.notes) rows.push(...await this.store.getEventsForNote(note.id));
+    for (const block of content.blocks) {
+      if (block.dataType === 'wod' && block.blockContentId) rows.push(...await this.store.getEventsByContent(block.blockContentId));
+    }
+    return rows;
+  }
+
+  /** QueryExecutor adapter: a pipeline run's final stage rendered as the
+   *  aggregate QueryResult shape chart consumers already read. */
+  private pipelineResultToQueryResult(pr: PipelineResult): QueryResult {
+    const parsed: ParsedAggregateQuery = { family: 'aggregate', raw: pr.parsed.raw, agg: 'count', metric: '', filters: [], groupBy: [] };
+    if (pr.series) {
+      const aggregated = pr.series.reduce((n, s) => n + s.points.length, 0);
+      return {
+        parsed,
+        series: pr.series,
+        stages: { selected: 0, buckets: pr.series[0]?.points.length ?? 0, aggregated, groups: pr.series.length },
+        matched: [],
+        ...(pr.unit ? { unit: pr.unit } : {}),
+        ...(pr.error ? { error: pr.error } : {}),
+      };
+    }
+    return {
+      parsed, series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
+      ...(pr.error ? { error: pr.error } : {}),
+    };
+  }
+
+  /** Stages 2–4 over raw event rows: project → metric filter → range filter
+   *  → tag filters → coverage selection → BUCKET/GROUP/AGGREGATE. */
+  private async aggregateEventRows(
+    parsed: ParsedAggregateQuery,
+    eventRows: readonly EventRecord[],
+    options: QueryOptions,
+    range: ResolvedRange | undefined,
+  ): Promise<QueryResult> {
+    const ctx = runContext(options);
+    if (!parsed.metric && parsed.agg !== 'count') {
+      return {
+        parsed,
+        series: [],
+        stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
+        matched: [],
+        error: `Aggregate "${parsed.agg}" requires a metric — use ${parsed.agg}{metric:<key>}`,
+      };
+    }
     const matchesMetric = (metricKey: string | undefined, queryMetric: string) =>
+      !queryMetric ||
       metricKey === queryMetric ||
       (queryMetric === 'rep' && metricKey === 'reps') ||
       (queryMetric === 'reps' && metricKey === 'rep');
@@ -1446,15 +1876,7 @@ export class QueryService {
     // Ticket 12 precedence + context: query window wins; host range is the
     // default; membership half-open against the captured context.
     const ctx = runContext(options);
-    const joinRange: ResolvedRange | undefined = parsed.window
-      ? resolveWindowRange(parsed.window, ctx)
-      : options.rangeStart !== undefined || options.rangeEnd !== undefined
-        ? {
-            start: options.rangeStart ?? 0,
-            end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER,
-            endExclusive: false,
-          }
-        : undefined;
+    const joinRange = resolveAggregateRange(parsed, options, ctx);
     if (joinRange) {
       facts = facts.filter(f => inRange(f.timestamp, joinRange));
     }
@@ -1468,8 +1890,8 @@ export class QueryService {
   }
 
   /** Direction 1 — keep only content owning a wod block whose raw-log metric
-   *  aggregate satisfies the predicate. `notes` for find:note, `blocks` for
-   *  find:block. */
+   *  aggregate satisfies the predicate. `notes` for :note, `blocks` for
+   *  :block. */
   private async applyMetricJoin(
     parsed: ParsedFindQuery,
     notes: Note[],
@@ -1485,9 +1907,9 @@ export class QueryService {
 
     const passing = await this.contentIdsSatisfying(candidateIds, join);
 
-    // find:block — only wod blocks whose content id passes (prose has no metric).
+    // :block — only wod blocks whose content id passes (prose has no metric).
     blocks = blocks.filter(b => b.dataType === 'wod' && !!b.blockContentId && passing.has(b.blockContentId!));
-    // find:note — keep notes owning ≥1 passing wod block.
+    // :note — keep notes owning ≥1 passing wod block.
     notes = notes.filter(n => {
       const cids = noteToContent.get(n.id);
       return !!cids && [...cids].some(id => passing.has(id));

@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "bun ../../scripts/generate-seed.ts && vite",
     "build": "bun ../../scripts/generate-seed.ts && vite build && bun ../../scripts/generate-static-shells.ts",
+    "build:api": "bun ../../scripts/generate-seed.ts && VITE_STORAGE=api vite build",
     "preview": "vite preview",
     "test": "bun tests/run-isolated.ts ./src ./app --preload ./tests/unit-setup.ts",
     "test:markdown": "bun test tests/wods/all-wods.test.ts tests/canvas/syntax-source-markdown.test.ts --preload ./tests/setup.ts",
@@ -17,10 +18,14 @@
     "clean": "rm -rf dist",
     "typecheck": "echo '[skip] Playground compiles via Vite/esbuild without a tsc gate; strict tsc adoption tracked as follow-up'"
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@bitcobblers/wod-wiki-core": "^0.11.0",
     "@bitcobblers/wod-wiki-engine": "^0.11.0",
     "@bitcobblers/wod-wiki-lang": "^0.11.0",
+    "@bitcobblers/wod-wiki-storage": "^0.11.0",
     "@bitcobblers/wod-wiki-ui": "^0.11.0",
     "@bitcobblers/wod-wiki-wql": "^0.11.0"
   }

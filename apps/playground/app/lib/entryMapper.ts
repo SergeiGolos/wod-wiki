@@ -16,7 +16,7 @@ import { parseNoteId } from '@/lib/noteIdentity'
 
 export type EntryKind = 'note' | 'session' | 'post' | 'result' | 'segment' | 'effort' | 'event'
 
-/** Block-level payload on an Entry produced from a find:block hit (#855):
+/** Block-level payload on an Entry produced from a :block hit (#855):
  *  the card shows the parent note's identity plus the block's own type and
  *  a content preview, so count and presentation describe the same entity. */
 export interface EntryBlock {
@@ -81,7 +81,7 @@ export interface Entry {
    *  parses this content, so it is carried verbatim. */
   wodBlock?: { blockContentId: string; content: string }
   blockContentId?: string
-  /** Set when the Entry represents one block (find:block), not a whole note. */
+  /** Set when the Entry represents one block (:block), not a whole note. */
   block?: EntryBlock
   execution?: EntryExecutionData
   effort?: EntryEffortData
@@ -255,7 +255,7 @@ export function blockPreview(rawContent: string): string[] {
 }
 
 /**
- * Map one find:block hit to an Entry (#855). The Entry keeps the PARENT
+ * Map one :block hit to an Entry (#855). The Entry keeps the PARENT
  * note's identity (id, kind, catalog, date — Open/Add-to-today act on the
  * parent) and carries the block's own type/preview/anchor on `entry.block`.
  */

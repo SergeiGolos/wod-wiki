@@ -206,7 +206,7 @@ describe('ViewSettingsDialog component', () => {
     expect(week.getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('shows "Controlled by query", disables fallback buttons, and selects none while the query owns grouping', () => {
+  it('discloses query grouping, keeps the query dim selected, and stays clickable (pick writes through)', () => {
     const handleGroupByChange = mock()
     render(
       <ViewSettingsDialog
@@ -215,8 +215,8 @@ describe('ViewSettingsDialog component', () => {
         route="/efforts"
         level="effort"
         settings={{ ...defaultSettings, groupBy: 'week' }}
-        activeGroupBy="effort"
-        queryGrouping={['effort', 'discipline']}
+        activeGroupBy="discipline"
+        queryGrouping={['discipline', 'tag']}
         onLayoutChange={mock()}
         onGroupByChange={handleGroupByChange}
         onToggleField={mock()}
@@ -224,16 +224,17 @@ describe('ViewSettingsDialog component', () => {
       />,
     )
 
-    expect(screen.getByTestId('view-settings-query-grouped').textContent).toContain('effort, discipline')
-    // The saved fallback (week) must not appear selected while WQL overrides it.
+    expect(screen.getByTestId('view-settings-query-grouped').textContent).toContain('by {discipline, tag}')
+    // The query's dimension is the active arrangement…
+    expect((screen.getByTestId('view-settings-group-discipline') as HTMLButtonElement).getAttribute('aria-pressed')).toBe('true')
+    // …the saved fallback is not…
     expect((screen.getByTestId('view-settings-group-week') as HTMLButtonElement).getAttribute('aria-pressed')).toBe('false')
-
+    // …and a pick is emitted (the host writes it into the query's by {}).
     for (const id of ['date', 'week', 'month', 'year', 'discipline', 'tag', 'source']) {
-      expect((screen.getByTestId(`view-settings-group-${id}`) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByTestId(`view-settings-group-${id}`) as HTMLButtonElement).disabled).toBe(false)
     }
-
     fireEvent.click(screen.getByTestId('view-settings-group-week'))
-    expect(handleGroupByChange).not.toHaveBeenCalled()
+    expect(handleGroupByChange).toHaveBeenCalledWith('week')
   })
 
   it('calls onEditQuery from the Controlled-by-query notice', () => {
@@ -256,48 +257,6 @@ describe('ViewSettingsDialog component', () => {
 
     fireEvent.click(screen.getByTestId('view-settings-edit-query'))
     expect(handleEditQuery).toHaveBeenCalledTimes(1)
-  })
-
-  it('re-enables fallback grouping when the query grouping is removed', () => {
-    const handleGroupByChange = mock()
-    const { rerender } = render(
-      <ViewSettingsDialog
-        open={true}
-        onOpenChange={mock()}
-        route="/efforts"
-        level="effort"
-        settings={defaultSettings}
-        activeGroupBy="effort"
-        queryGrouping={['effort']}
-        onLayoutChange={mock()}
-        onGroupByChange={handleGroupByChange}
-        onToggleField={mock()}
-        onReset={mock()}
-      />,
-    )
-    expect((screen.getByTestId('view-settings-group-discipline') as HTMLButtonElement).disabled).toBe(true)
-
-    // Clearing the query grouping reveals the saved fallback again.
-    rerender(
-      <ViewSettingsDialog
-        open={true}
-        onOpenChange={mock()}
-        route="/efforts"
-        level="effort"
-        settings={defaultSettings}
-        activeGroupBy="discipline"
-        queryGrouping={null}
-        onLayoutChange={mock()}
-        onGroupByChange={handleGroupByChange}
-        onToggleField={mock()}
-        onReset={mock()}
-      />,
-    )
-    const discipline = screen.getByTestId('view-settings-group-discipline') as HTMLButtonElement
-    expect(discipline.disabled).toBe(false)
-    expect(discipline.getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(discipline)
-    expect(handleGroupByChange).toHaveBeenCalledWith('discipline')
   })
 
   it('calls onOpenChange(false) when close button is clicked', () => {

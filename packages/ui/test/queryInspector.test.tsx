@@ -5,7 +5,7 @@ import { WqlQueryInspectorModal } from '../src/blocks/WqlQueryInspectorModal';
 afterEach(cleanup);
 
 it('a rejected block write keeps the edited draft open and leaves persisted source intact', async () => {
-  const original = 'find:segment{effort:snatch} by {effort} in lb | limit 5';
+  const original = ':segment{effort:snatch} by {effort} in lb | limit 5';
   let persisted = original;
   const close = vi.fn();
   const save = vi.fn(async (query: string) => {
@@ -22,5 +22,5 @@ it('a rejected block write keeps the edited draft open and leaves persisted sour
   expect(screen.getByTestId('wql-inspector-draft').textContent).toBe(draft);
   fireEvent.click(screen.getByTestId('wql-inspector-apply'));
   await waitFor(() => expect(close).toHaveBeenCalledOnce());
-  expect(persisted).toBe('find:segment{effort:snatch} by {effort} in lb last 2w | limit 5');
+  expect(persisted).toBe(':segment{effort:snatch} by {effort} in lb last 2w | limit 5');
 });

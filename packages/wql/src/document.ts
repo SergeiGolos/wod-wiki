@@ -128,7 +128,10 @@ export function parseDocument(text: string): ParsedDocument {
                 .replace(/\(normalize\s+[^)]+\)/, '')
                 .trim();
 
-            const looksLikeQuery = /^(sum|avg|min|max|count|last|delta|rows|find)\b/.test(expression);
+            // Colon heads (`:journal{…}`, `:sum{…}`), dataset references
+            // (`@today | …`), and pipe stages route to the query parser;
+            // legacy `sum:`/`find:` heads keep their diagnostics.
+            const looksLikeQuery = /^(sum|avg|min|max|count|last|delta|find|rows)\b|^[:@|]/.test(expression);
 
             if (looksLikeQuery) {
                 const parsed = parseQuery(expression);

@@ -11,15 +11,18 @@
  *  - `slug`: `playground/<name>` — the route id `/playground/:id` resolves
  *    (getEntry falls back to by-slug lookup), so old composite-id links keep
  *    working and new entries are UUID-keyed.
- *  - `sourceId: 'playground'` — the `find:note{source:playground}` library
+ *  - `sourceId: 'playground'` — the `:note{source:playground}` library
  *    scope (sourceMatches: exact `playground` id).
  *  - `type: 'playground'`, no journalDate until the user promotes the entry
  *    to a journal date (`movePlaygroundToJournal`).
  *
  * Surfaces that run the same active playground repeatedly (home hero/runway,
- * syntax canvas routes) pass a `reuseKey`: the entry is created once and
- * updated in place on later runs — never a fresh Note per Run — so the
- * library doesn't fill with duplicate experiment entries.
+ * syntax canvas routes) used to pass a `reuseKey`: one Note per surface,
+ * updated in place on later runs. Since the shared run lifecycle
+ * (usePlaygroundRun) that policy applies only to non-run content shares
+ * (`/load?z=`, ZIP) — every explicit Run/Reset now mints a FRESH immutable
+ * snapshot note via `snapshotEntry` (named `<page> <section> <timestamp>`),
+ * so each run's results join their own note forever.
  */
 import { v7 as uuidv7 } from 'uuid';
 
@@ -48,6 +51,14 @@ export interface EnsurePlaygroundEntryOptions {
   reuseKey?: string;
   /** Display title for a newly created reused entry (kept stable on update). */
   title?: string;
+}
+
+/** Naming inputs for a fresh immutable run/reset snapshot note. */
+export interface SnapshotEntryOptions {
+  /** Page title, e.g. 'Home' or 'Syntax Basics' — always part of the name. */
+  pageTitle: string;
+  /** Optional section title, e.g. 'Hero' or 'Chapter timers'. */
+  sectionTitle?: string;
 }
 
 /** Route-id pages view the intake needs (playgroundContent satisfies this). */
@@ -84,6 +95,13 @@ export interface PlaygroundIntake {
   createPage(content: string): Promise<string>;
   /** Create or update a playground entry; see EnsurePlaygroundEntryOptions. */
   ensureEntry(content: string, opts?: EnsurePlaygroundEntryOptions): Promise<PlaygroundEntry>;
+  /**
+   * Mint a FRESH immutable snapshot note named `<page> <section> <timestamp>`
+   * (slug `playground/<page>-<section>-<timestamp>`). One snapshot per
+   * run/reset — snapshots are never updated in place afterwards, so each
+   * run's results join their own note forever.
+   */
+  snapshotEntry(content: string, opts: SnapshotEntryOptions): Promise<PlaygroundEntry>;
   /**
    * Promote a playground entry onto a journal date — the SAME Note (UUID,
    * segments, results, attachments all preserved; nothing is copied, so no
@@ -170,13 +188,30 @@ export function createPlaygroundIntake({
       return { noteId, routeId };
     },
 
+    async snapshotEntry(content, opts) {
+      const stamp = formatPlaygroundTimestampId(now());
+      const base = [slugifyReuseKey(opts.pageTitle), opts.sectionTitle ? slugifyReuseKey(opts.sectionTitle) : null, stamp]
+        .filter(Boolean)
+        .join('-');
+      // Same-millisecond snapshots of the same page+section must never share
+      // a slug: snapshots are immutable, so a numeric suffix disambiguates
+      // instead of upserting (createPage's same-ms behavior).
+      let routeId = pageId('playground', base);
+      for (let n = 2; await pages.getPage(routeId); n += 1) {
+        routeId = pageId('playground', `${base}-${n}`);
+      }
+      const title = [opts.pageTitle, opts.sectionTitle, stamp].filter(Boolean).join(' ');
+      const noteId = await writeEntry(routeId, title, content);
+      return { noteId, routeId };
+    },
+
     moveToJournal(noteId, journalDate) {
       return persistence.mutateNote({ id: noteId }, {
         metadata: {
           journalDate,
           type: 'journal',
           // null clears the source bucket AND the route slug: the promoted
-          // note leaves the playground scope (`find:note{source:playground}`)
+          // note leaves the playground scope (`:note{source:playground}`)
           // and stops answering /playground/<name>, so a later same-key
           // ensure can never update the journal note in the playground's
           // place. UUID, segments, results, and attachments are untouched —

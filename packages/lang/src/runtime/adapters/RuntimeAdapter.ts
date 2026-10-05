@@ -32,7 +32,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         blocks: stackBlocks,
         activeIndex: activeIndex >= 0 ? activeIndex : 0,
         depth: stackBlocks.length,
-        rootBlockKey: stackBlocks.length > 0 ? stackBlocks[0].key : undefined
+        rootBlockKey: stackBlocks.at(-1)?.key
       },
       memory: {
         entries: memoryEntries,
@@ -59,7 +59,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
 
     return blocks.map((block, index) => {
       const blockType = this.mapBlockType(block);
-      const isActive = index === blocks.length - 1; // Top of stack is active
+      const isActive = index === 0;
       const status = this.determineBlockStatus(isActive);
 
       // Extract metrics from source statements if available
@@ -87,7 +87,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         metrics,
         metricGroups,
         sourceIds: block.sourceIds,
-        lineNumber: block.sourceIds.length > 0 ? block.sourceIds[0] : undefined,
+        lineNumber: block.sourceIds.length > 0 ? runtime.script.getId(block.sourceIds[0])?.line : undefined,
         metadata: {
           mountTime: undefined,
           executionTime: undefined,
@@ -123,9 +123,8 @@ export class RuntimeAdapter implements IRuntimeAdapter {
     const ownerLabelMap = new Map<string, string>();
     runtime.stack.blocks.forEach(block => {
       const key = block.key.toString();
-      if (block.sourceIds && block.sourceIds.length > 0) {
-        ownerLineMap.set(key, block.sourceIds[0]);
-      }
+      const line = block.sourceIds.length > 0 ? runtime.script.getId(block.sourceIds[0])?.line : undefined;
+      if (line !== undefined) ownerLineMap.set(key, line);
       ownerLabelMap.set(key, block.label);
     });
 
@@ -286,8 +285,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   }
 
   private findParentKey(blocks: readonly IRuntimeBlock[], currentIndex: number): string | undefined {
-    if (currentIndex === 0) return undefined;
-    return blocks[currentIndex - 1].key.toString();
+    return blocks[currentIndex + 1]?.key.toString();
   }
 
   private findChildrenKeys(_blocks: readonly IRuntimeBlock[], _parentKey: string): string[] {

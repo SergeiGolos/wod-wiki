@@ -13,8 +13,8 @@ reality, and insight are all expressed as Metrics, differentiated by **Origin** 
 _Avoid_: fragment (legacy), measurement, datapoint.
 
 **Statement**:
-One structural node of a parsed workout (`CodeStatement`). A `wod` (or `whiteboard` aliased) block parses into a
-tree of Statements; each owns a metric collection.
+A structural unit of a parsed workout with its own identity and metric collection.
+Statements form a tree; one source line can describe both a rounds parent and an exercise child.
 _Avoid_: node, line, fragment.
 
 **Origin**:
@@ -406,9 +406,14 @@ _Avoid_: content item, library row, search result.
 
 **Playground Entry**:
 A user-owned **Note** for trying or running a workout outside the Journal, discoverable in the **Library** through `source:playground`.
-Running a home or syntax example first creates a Playground Entry; opening an encoded shared workout imports one without automatically running it.
+Every explicit Run (and Reset) creates a FRESH immutable snapshot entry named `<page> <section> <timestamp>` — created before execution, never updated in place — so each run's results join their own note forever; encoded shared workouts still import one without automatically running it.
 Moving it to a Journal date preserves its **UUID**, **Block Content Id** references, attachments, and recorded results rather than cloning and deleting it.
 _Avoid_: temporary workout, demo result, scratch copy (implies disposable data).
+
+**Homepage Run Flow**:
+The home page's walkthrough: the run document is ONE shared doc state shown in TWO desktop displays — a normal-flow hero view (tagline heading + live editor + Run/Share at first paint, scrolled out completely before the write track pins) and the write section's sticky editor pane, which follows the same tagline-header + sticky-runway pattern as the other tagged sections (Write it in Markdown / Run it as a Timer / Own the Metrics / Explore your analytics); on mobile the hero is normal flow above the editor, which pins at the nav offset on scroll. Stages are INLINE — editor → timer → session table → dashboard — with no fullscreen overlay on any form factor.
+A run identity comes from `usePlaygroundRun`: dwelling at the timer stages auto-starts ONCE per identity (backward scroll never re-runs, blowing past never starts a hidden run); the Stop button, metrics-stage arrival, or scrolling out of the run stages finalizes the partial exactly once against the run's note; the metrics section then answers from that note (a `note:<id>`-scoped WQL table defaulting to elapsed per effort, an independent sample dataset, and a top-floating revert-to-session) and the explore section loads real seeded boards through the production dashboard renderer.
+_Avoid_: demo mode (the autostarted run is a real persisted run), ambient runtime (pre-inline term), fullscreen playground (removed surface), pinned hero rail (the hero is its own scrolling view; the caption rail never carries it).
 
 **Entry Feed**:
 The rich-preview presentation of a **Library** query, alongside Cards and Rows, with actions to open or run an **Entry** without embedding a live editor in every preview.

@@ -27,6 +27,10 @@ export type ParsedWqlWindowSuffix =
 export interface ParsedWqlSuffixes {
   /** Outer cross-store join clause text (`where ...`). */
   where?: string;
+  /** Stored source binding target (`=> @sourceName`). */
+  storedAs?: string;
+  /** Source dataset reference for downstream query (`@source | ...` or `in @source`). */
+  sourceRef?: string;
   /** Display unit directive (`in kg`). */
   displayUnit?: string;
   /** Rollup period (`.rollup(2w)` — 1-unit forms are rejected in parseQuery). */
@@ -66,12 +70,15 @@ export function splitAtWhere(text: string): { primary: string; where?: string } 
   return { primary: text.trim() };
 }
 
+// ponytail: regex suffix/prefix peel for => @source and @source | ...; upgrade to Lezer AST node when source pipelines support sub-expression branches.
+const STORED_AS_RE = /\s*=>\s*@?([a-zA-Z0-9_-]+)\s*$/;
+const SOURCE_PREFIX_RE = /^@([a-zA-Z0-9_-]+)\s*(?:\||=>)\s*/;
+const IN_SOURCE_RE = /\s+(?:in|from)\s+@([a-zA-Z0-9_-]+)\s*$/i;
 const DISPLAY_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/;
 const ROLLUP_RE = /\.rollup\((\d+)?([a-zA-Z]*)\)\s*$/;
 const BY_RE = /\s+by\s+\{([^}]*)\}\s*$/;
 const LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i;
 const FROM_TO_RE = /\s+from\s+(\d{4}-\d{2}-\d{2})(?:\s+to\s+(\d{4}-\d{2}-\d{2}))?\s*$/i;
-
 /**
  * Extract suffixes from a raw WQL query string.
  * Strips outer join (`where`), display unit (`in kg`), rollup (`.rollup(Nw)`),
@@ -82,6 +89,8 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   const { primary, where } = splitAtWhere(raw);
   let text = primary.trim();
 
+  let storedAs: string | undefined;
+  let sourceRef: string | undefined;
   let displayUnit: string | undefined;
   let rollup: ParsedWqlRollupSuffix | undefined;
   let groupBy: string[] | undefined;
@@ -89,6 +98,12 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   let legacyScope: string | undefined;
   const conflicts: string[] = [];
 
+  // Prefix pipeline source binding: `@olyLifts | ...` or `@olyLifts => ...`
+  const prefixMatch = text.match(SOURCE_PREFIX_RE);
+  if (prefixMatch) {
+    sourceRef = '@' + prefixMatch[1];
+    text = text.slice(prefixMatch[0].length).trim();
+  }
   const isFind = text.startsWith('find:');
   const isRows = /^rows(?=[:{]|\s|$)/.test(text);
 
@@ -113,6 +128,13 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
       );
     }
   };
+
+  // Suffix stored-source binding: `... => @olyLifts`
+  const storeMatches = stripRepeated(STORED_AS_RE);
+  conflictFrom('=>', storeMatches);
+  if (storeMatches.length) {
+    storedAs = '@' + storeMatches[storeMatches.length - 1][1];
+  }
 
   // Window (C1) — one clause per query, every family. `from/to` strips
   // first (it is the rightmost window form when both appear), then `last`;
@@ -176,9 +198,15 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
       .map((d) => d.trim())
       .filter(Boolean);
   }
+  const inSourceMatches = stripRepeated(IN_SOURCE_RE);
+  if (inSourceMatches.length) {
+    sourceRef = '@' + inSourceMatches[inSourceMatches.length - 1][1];
+  }
 
   return {
     where,
+    storedAs,
+    sourceRef,
     displayUnit,
     rollup,
     groupBy,

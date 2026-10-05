@@ -15,7 +15,10 @@
  * to parse has no well-defined structure to re-emit, and echoing the input
  * keeps the function total.
  *
- * Round-trip equality holds for text-surface-representable ASTs. Three value
+ * Round-trip equality holds for text-surface-representable ASTs. Single
+ * aggregate queries serialize in the retained legacy `sum:metric{…}` form;
+ * find queries serialize with colon source heads (find: is retired) and
+ * pipelines as `source | :fn{…} | :chart{…}`. Three value
  * shapes the grammar cannot express (or parses away) sit outside that
  * contract — documented here rather than silently corrupted:
  *   - a `"` inside a filter value: the quoted token has no escape form;
@@ -25,14 +28,86 @@
  *     comparison regex's plain-decimal domain.
  */
 
-import type { AnyParsedQuery, MetricPredicate, ParsedAggregateQuery, ParsedFindQuery, QueryWindow, TagFilter } from './wql';
+import { WQL_NOTE_DEFAULT_SOURCES } from './vocabulary';
+import type { AnyParsedQuery, MetricPredicate, ParsedAggregateQuery, ParsedFindQuery, PipelineSource, ParsedPipelineQuery, QueryWindow, TagFilter } from './wql';
 
-/** Quote a filter value unless it fits the grammar's bare forms — a `Word`
- * (`[a-zA-Z0-9_-]+`) or a catalog-id `Word:Word`. Quoted phrases
- * (`"[^"]*"`) carry multi-word text; the grammar has no escape, so values
- * containing `"` are outside the text surface entirely. */
+/** `:note{…}` / `:session{…}` — always the target head with the filters in
+ *  their authored order. A source: filter is never collapsed into a
+ *  scope-alias head: the collapse can reorder/broaden (a :journal head on a
+ *  session query) and it breaks composer's filterText editing, which maps
+ *  serialized filter clauses back to AST positions. */
+function serializeFindHead(f: ParsedFindQuery, extra: TagFilter[] = []): string {
+  const filters = [...f.filters, ...extra];
+  return `:${f.target}${filters.length ? `{${serializeFilters(filters)}}` : ''}`;
+}
+
+/** Scope handling for the generic note head: `in all` exactly when the AST
+ *  carries no scope at all (authored `:note in all`) — a bare `:note`
+ *  would reparse to the journal|collections|playground default and silently
+ *  narrow away guides. The default scope serializes as nothing; a manual
+ *  non-canonical subset serializes as explicit source: filters (same
+ *  execution semantics — the scope field itself has no text surface). */
+function serializeScopeInfo(f: ParsedFindQuery): { clause: string; scopeFilters: TagFilter[] } {
+  if (f.target !== 'note' || f.filters.some((t) => t.key === 'source')) return { clause: '', scopeFilters: [] };
+  if (f.sourceScope === undefined) return { clause: 'in all', scopeFilters: [] };
+  if (f.sourceScope.length === WQL_NOTE_DEFAULT_SOURCES.length
+      && f.sourceScope.every((s) => WQL_NOTE_DEFAULT_SOURCES.some((d) => d === s))) return { clause: '', scopeFilters: [] };
+  return {
+    clause: '',
+    scopeFilters: [{ key: 'source', negate: false, values: f.sourceScope.map((v) => ({ value: v, wildcard: false })) }],
+  };
+}
+
+/** Find query text without presentation pipes — a pipeline source stage
+ *  (pipes between stages are separators, so a source stage has none). */
+function serializeFindStage(f: ParsedFindQuery): string {
+  const scope = serializeScopeInfo(f);
+  const parts = [serializeFindHead(f, scope.scopeFilters)];
+  if (f.groupBy?.length) parts.push(`by {${f.groupBy.join(', ')}}`);
+  if (f.displayUnit) parts.push(`in ${f.displayUnit}`);
+  parts.push(scope.clause);
+  parts.push(serializeWindow(f.window));
+  if (f.join) parts.push(`where ${serializeMetricHalf(f.join)}`);
+  return parts.filter(Boolean).join(' ');
+}
+
+/** `:sum{metric:tis, <filters>} [by {..}] [.rollup(..)] [in u] [window] [where …]`
+ *  — the colon function form; the metric re-enters the filters. */
+function serializeFunctionStage(a: ParsedAggregateQuery): string {
+  const filters = a.metric
+    ? [{ key: 'metric', negate: false, values: [{ value: a.metric, wildcard: false }] }, ...a.filters]
+    : a.filters;
+  let text = `:${a.agg}{${serializeFilters(filters)}}`;
+  if (a.groupBy.length) text += ` by {${a.groupBy.join(', ')}}`;
+  if (a.rollup) text += `.rollup(${a.rollup.size}${a.rollup.unit})`;
+  if (a.displayUnit) text += ` in ${a.displayUnit}`;
+  const win = serializeWindow(a.window);
+  if (win) text += ` ${win}`;
+  if (a.join) text += ` where ${serializeFindHalf(a.join.target, a.join.filters, a.join.last)}`;
+  return text;
+}
+
+function serializePipelineStage(source: PipelineSource): string {
+  return source.kind === 'dataset'
+    ? source.name
+    : source.query.family === 'find' ? serializeFindStage(source.query) : serializeFunctionStage(source.query);
+}
+
+/** Serialize a pipeline: `source | :fn{…} | :chart{…}`. */
+function serializePipeline(p: ParsedPipelineQuery): string {
+  const parts = [serializePipelineStage(p.source), ...p.transforms.map(serializeFunctionStage)];
+  if (p.sink) {
+    parts.push(`:${p.sink.head}${p.sink.filters.length ? `{${serializeFilters(p.sink.filters)}}` : ''}`);
+  }
+  return parts.join(' | ');
+}
+
+/** Quote a filter value unless it fits the grammar's bare forms — a dotted
+ *  `Word` chain (`calc.acwr`) or a catalog-id `Word:Word` chain. Quoted
+ *  phrases (`"[^"]*"`) carry multi-word text; the grammar has no escape, so
+ *  values containing `"` are outside the text surface entirely. */
 function serializeValue(value: string): string {
-  if (/^[a-zA-Z0-9_-]+(:[a-zA-Z0-9_-]+)?$/.test(value)) return value;
+  if (/^[a-zA-Z0-9_-]+((:|\.)[a-zA-Z0-9_-]+)*$/.test(value)) return value;
   return `"${value}"`;
 }
 
@@ -69,12 +144,6 @@ function serializeMetricHalf(j: MetricPredicate): string {
   return `${serializeAggHead(j.agg, j.metric, j.filters)} ${j.operator} ${j.threshold}`;
 }
 
-/** `find:target{filters}` — content heads carry braces only when filters
- * exist (`find:note` is the idiomatic bare form). */
-function serializeFindHead(f: ParsedFindQuery): string {
-  return serializeFindHalf(f.target, f.filters);
-}
-
 
 /** Window clause (C1): `last 8w` or `from 2026-01-01 [to 2026-03-31]`.
  * Returns '' when the AST has no window. */
@@ -100,10 +169,12 @@ export function serialize(parsed: AnyParsedQuery): string {
   }
   if (parsed.family === 'find') {
     // Suffix order mirrors the parser's end-anchored extraction (wqlSuffix):
-    // head, by, in-unit, window, where-join — pipes trail after `|`.
-    const parts = [serializeFindHead(parsed)];
+    // head, by, in-unit, in-all scope, window, where-join — pipes trail after `|`.
+    const scope = serializeScopeInfo(parsed);
+    const parts = [serializeFindHead(parsed, scope.scopeFilters)];
     if (parsed.groupBy?.length) parts.push(`by {${parsed.groupBy.join(', ')}}`);
     if (parsed.displayUnit) parts.push(`in ${parsed.displayUnit}`);
+    parts.push(scope.clause);
     parts.push(serializeWindow(parsed.window));
     if (parsed.join) parts.push(`where ${serializeMetricHalf(parsed.join)}`);
     let text = parts.filter(Boolean).join(' ');
@@ -125,6 +196,9 @@ export function serialize(parsed: AnyParsedQuery): string {
       }
     }
     return text;
+  }
+  if (parsed.family === 'pipeline') {
+    return serializePipeline(parsed);
   }
   const unhandled = parsed as { raw?: string };
   return unhandled.raw ?? '';

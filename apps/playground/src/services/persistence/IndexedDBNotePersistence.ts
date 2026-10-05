@@ -2,7 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import { storageService } from '@/services/storage';
+import { resolveLatestSegment, storageService } from '@/services/storage';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment, EventRecord, Note, Session } from '@/types/storage';
 
@@ -191,13 +191,12 @@ export class IndexedDBNotePersistence implements INotePersistence {
       // Resolve AFTER updateEntry so a same-mutation content edit is reflected
       // in the segment version stamped on event rows.
       const segmentId = mutation.workoutResult?.segmentId;
-      const segmentVersion = segmentId
-        ? (await this.storage.getLatestSegmentVersion(segmentId))?.version
-        : undefined;
+      const resolvedSegment = await resolveLatestSegment(this.storage, note.id, segmentId);
+      const segmentVersion = resolvedSegment?.version;
       const identity = {
         noteId: note.id,
         resultId,
-        segmentId,
+        segmentId: resolvedSegment?.id ?? segmentId,
         segmentVersion,
         blockContentId: mutation.workoutResult?.blockContentId,
         origin: mutation.workoutResult?.origin,
@@ -274,11 +273,11 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
     // Engine context comes from the stored segment (replay deep-dive Gap A):
     // pinned incarnation first, latest as fallback for rows recorded before
-    // segmentVersion was stamped.
+    // segmentVersion was stamped. Ids resolve through the note-scoped
+    // ownership-aware resolver — a colliding legacy row of another note
+    // never joins (SEGMENT_NOT_FOUND instead).
     const segment = result.segmentId
-      ? (result.segmentVersion != null && this.storage.getSegment
-          ? await this.storage.getSegment(result.segmentId, result.segmentVersion)
-          : undefined) ?? await this.storage.getLatestSegmentVersion(result.segmentId)
+      ? await resolveLatestSegment(this.storage, result.noteId, result.segmentId, result.segmentVersion ?? undefined)
       : undefined;
     const scriptBlock = segment?.data as ScriptBlock | null | undefined;
     if (!scriptBlock) {

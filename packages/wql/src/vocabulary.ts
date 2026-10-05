@@ -105,9 +105,45 @@ export type WqlGrain = (typeof WQL_GRAINS)[number];
 export const WQL_FIND_TARGETS = ['note', 'block', 'effort', 'session', 'segment', 'event'] as const;
 export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 
-/** Canonical source filter values: exactly the 5 allowed storage locations. */
-export const WQL_SOURCE_VALUES = ['journal', 'collections', 'feeds', 'guides', 'playground'] as const;
+/** Canonical source filter values: exactly the 4 allowed storage locations
+ *  (feeds excised — feed URIs are no longer a WQL source). */
+export const WQL_SOURCE_VALUES = ['journal', 'collections', 'guides', 'playground'] as const;
 export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
+
+/** Colon source heads — the unprefixed `:<head>` names. Find targets map
+ *  1:1 to the content planes; journal/collection(s)/playground are
+ *  source-scoped note heads (they parse to target 'note' plus an injected
+ *  `source:` filter). */
+export const WQL_SOURCE_HEADS = [
+  'note', 'block', 'effort', 'session', 'segment', 'event',
+  'journal', 'collection', 'collections', 'playground',
+] as const;
+export type WqlSourceHead = (typeof WQL_SOURCE_HEADS)[number];
+
+/** Storage scope a source-scoped note head binds (undefined = plain target). */
+export const WQL_SOURCE_HEAD_SCOPES: Readonly<Record<string, WqlSourceValue>> = {
+  journal: 'journal',
+  collection: 'collections',
+  collections: 'collections',
+  playground: 'playground',
+};
+
+/** Generic `:note` default scope — applied only when no explicit `source:`
+ *  filter was authored (guides are outside the default domain). */
+export const WQL_NOTE_DEFAULT_SOURCES: readonly WqlSourceValue[] = ['journal', 'collections', 'playground'];
+
+/** Colon function heads — the unprefixed `:<fn>{metric:…}` aggregate stage. */
+export const WQL_FUNCTION_HEADS = WQL_AGGREGATORS;
+export type WqlFunctionHead = WqlAggregator;
+
+/** Colon chart heads — terminal pipeline sinks (`:timeseries`, `:bar`, …). */
+export const WQL_CHART_HEADS = ['timeseries', 'bar', 'table', 'donut', 'toplist', 'value'] as const;
+export type WqlChartHead = (typeof WQL_CHART_HEADS)[number];
+
+/** Standard datasets the host registers per page/run before children
+ *  evaluate (`@session` active session, `@today` civil-day telemetry+notes). */
+export const WQL_STANDARD_DATASETS = ['@session', '@today'] as const;
+export type WqlStandardDataset = (typeof WQL_STANDARD_DATASETS)[number];
 
 
 /** Result planes — `rows:<plane>` narrows raw output-statement rows by the

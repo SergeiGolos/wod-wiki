@@ -213,12 +213,13 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
   // Don't render if cursor is outside a WOD section
   if (!pos || !focus?.section) return null;
 
-  const statement = focus.statement;
-  const visibleMetrics = statement?.metrics.filter(
+  const lineStatements = focus.allStatements?.filter(s => s.meta?.line === focus.cursorLine - focus.section.startLine)
+    ?? (focus.statement ? [focus.statement] : []);
+  const visibleMetrics = lineStatements.flatMap(s => s.metrics.toArray()).filter(
     (m) => m.type !== MetricType.Sound && m.type !== MetricType.System
       // Hints are data-only unless authored with an icon; iconed hints render as icon + hover text.
       && !(m.type === MetricType.Hint && !m.icon)
-  ) ?? [];
+  );
   // Same presentation tokens the effort widget's badges use (tooltip content).
   const tokens = presentThemedGroup(visibleMetrics, 'runtime-badge');
 

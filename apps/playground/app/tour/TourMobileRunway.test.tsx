@@ -1,11 +1,13 @@
 /**
- * TourMobileRunway.test.tsx — mobile sticky-editor scroll runway contracts
- * (wayfinder map #911): pinned window parity with the syntax guides, card-
- * driven stage detection, and the imperative stage-scroll api.
+ * TourMobileRunway.test.tsx — mobile per-chapter sticky-runway contracts:
+ * the hero is its own normal-flow view (editor at first paint), every
+ * chapter set owns a bounded sticky window pinned inside its own section
+ * (CSS section ownership), card-driven stage detection, lazy keep-alive
+ * pane mounting, and the imperative stage-scroll api.
  */
 
-import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
-import { render, screen, cleanup, act } from '@testing-library/react'
+import { beforeEach, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
+import { render, screen, cleanup, act, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { TourMobileRunwayProps } from './TourMobileRunway'
@@ -50,7 +52,6 @@ mock.module('@/components/organisms/review/ReviewGrid', () => ({
 mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
   CastButtonRpc: () => null,
 }))
-
 
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
 
@@ -109,8 +110,9 @@ class MockIntersectionObserver {
 const realIO = globalThis.IntersectionObserver
 const installIO = () => {
   MockIntersectionObserver.instances = []
-  ;(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver =
-    MockIntersectionObserver
+  // Swap in the controllable observer for the duration of a test.
+  const ioHost = globalThis as unknown as { IntersectionObserver: unknown }
+  ioHost.IntersectionObserver = MockIntersectionObserver
 }
 // The tour card driver's rootMargin — pinned exactly, because sibling
 // observers (e.g. the analytics runway's enter-view IO) share the -30%
@@ -118,8 +120,11 @@ const installIO = () => {
 const readingZoneTop = () => Math.round(window.innerHeight / 2 + MOBILE_STICKY_TOP / 2)
 const cardObserver = () =>
   MockIntersectionObserver.instances.find((o) => o.rootMargin.startsWith(`-${readingZoneTop()}px`))
-const reachedObserver = () =>
-  MockIntersectionObserver.instances.find((o) => o.rootMargin.startsWith(`-${MOBILE_STICKY_TOP + 1}px`))
+// One arrival observer per chapter track — identified by its observed el.
+const trackEl = (id: 'write' | 'run' | 'own' | 'explore') =>
+  screen.getByTestId(`tour-mobile-runway-track-${id}`)
+const trackObserver = (id: 'write' | 'run' | 'own' | 'explore') =>
+  MockIntersectionObserver.instances.find((o) => o.observed.includes(trackEl(id)))
 
 // ── Test data ───────────────────────────────────────────────────────────────
 
@@ -135,19 +140,12 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onBlocksChange: () => {},
     onRun: () => {},
     onShare: () => {},
-    runwayDoc: 'AMRAP 10\n  10 Pull-ups\n',
-    onRunwayDocChange: () => {},
-    onRunwayBlocksChange: () => {},
-    onRunwayRun: () => {},
-    onRunwayShare: () => {},
     onChoice: () => {},
-    entered: { editor: true, timer: false, analytics: false, metrics: false },
     onStageChange: () => {},
     timer: {
       sessionKey: 0,
       block: null,
       autoStart: false,
-      externalPause: false,
       onClose: () => {},
       onComplete: () => {},
       onRuntimeReady: () => {},
@@ -172,6 +170,13 @@ async function renderRunway(props: Partial<TourMobileRunwayProps> = {}) {
   return { result, props: full }
 }
 
+/** Latch a chapter track as reached (its window may mount its pane). */
+async function reach(id: 'write' | 'run' | 'own' | 'explore') {
+  await act(async () => {
+    trackObserver(id)!.trigger([{ target: trackEl(id), isIntersecting: true }])
+  })
+}
+
 /** Stub a card's viewport position (resolveVisibleStage reads live rects). */
 function placeCard(stageId: string, top: number, height = 200) {
   const el = screen.getByTestId(`tour-mobile-card-${stageId}`)
@@ -186,53 +191,51 @@ const readingZoneCenter = () => {
   return top + (window.innerHeight - top) / 2
 }
 
+/** Drive the reading zone onto a stage's card (after its track is reached). */
+async function arriveAt(stageId: string) {
+  const zoneCenter = readingZoneCenter()
+  const card = placeCard(stageId, zoneCenter - 100)
+  await act(async () => {
+    cardObserver()!.trigger([{ target: card, isIntersecting: true }])
+  })
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('TourMobileRunway', () => {
-  let scrollSpy: ReturnType<typeof mock>
+  let scrollSpy: Mock<() => void>
 
   beforeEach(() => {
     installIO()
     scrollSpy = mock(() => {})
-    ;(Element.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = scrollSpy
+    // jsdom lacks scrollIntoView; the api under test only needs the call.
+    const scrollTarget = Element.prototype as unknown as { scrollIntoView: unknown }
+    scrollTarget.scrollIntoView = scrollSpy
   })
 
   afterEach(() => {
     cleanup()
-    ;(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realIO
+    // Restore the real IntersectionObserver between tests.
+    const ioHost = globalThis as unknown as { IntersectionObserver: unknown }
+    ioHost.IntersectionObserver = realIO
   })
 
-  it('renders the pinned editor window and all six caption cards', async () => {
+  it('gives the hero its own normal-flow view with the editor at first paint', async () => {
     await renderRunway()
 
-    // The pinned window holds the live runway editor; the hero editor also
-    // mounts at the top of the page, plus the shared chapter picker editor below.
-    const window_ = screen.getByTestId('tour-mobile-runway-window')
-    expect(window_.textContent).toContain('WOD Editor & Autocomplete')
-    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(3)
-
-    for (const stageId of [
-      'editor-blank',
-      'editor-metrics',
-      'editor-run',
-      'timer-wallclock',
-      'timer-next',
-      'timer-cast',
-    ]) {
-      expect(screen.getByTestId(`tour-mobile-card-${stageId}`)).toBeTruthy()
-    }
+    const hero = screen.getByTestId('tour-hero')
+    expect(hero.className).not.toContain('sticky')
+    // First paint: the hero hosts the shared document before any track ran.
+    const heroEditor = hero.querySelector('[data-testid="mock-note-editor"]') as HTMLTextAreaElement
+    expect(heroEditor).toBeTruthy()
+    expect(heroEditor.value).toBe('AMRAP 10\n  10 Pull-ups\n')
+    // The write window's pane is lazy — nothing pinned until its track runs.
+    expect(
+      screen.getByTestId('tour-mobile-runway-window-write').querySelector('[data-testid="mock-note-editor"]'),
+    ).toBeNull()
   })
 
-  it('pins the window with the syntax-guides mobile geometry', async () => {
-    await renderRunway()
-
-    const window_ = screen.getByTestId('tour-mobile-runway-window')
-    expect(window_.className).toContain('sticky')
-    expect(window_.style.top).toBe(`${MOBILE_STICKY_TOP}px`)
-    expect(window_.style.height).toBe(`calc(50vh - ${MOBILE_STICKY_TOP / 2}px)`)
-  })
-
-  it('reports no stage before the runway is reached', async () => {
+  it('reports no stage before any chapter track is reached', async () => {
     const stages: TourStage[] = []
     await renderRunway({ onStageChange: (s) => stages.push(s) })
 
@@ -248,62 +251,59 @@ describe('TourMobileRunway', () => {
     const stages: TourStage[] = []
     await renderRunway({ onStageChange: (s) => stages.push(s) })
 
-    const zoneCenter = readingZoneCenter()
-    await act(async () => {
-      reachedObserver()!.trigger([
-        { target: screen.getByTestId('tour-mobile-runway-track'), isIntersecting: true },
-      ])
-    })
-
-    const timerCard = placeCard('timer-wallclock', zoneCenter - 100)
-    await act(async () => {
-      cardObserver()!.trigger([{ target: timerCard, isIntersecting: true }])
-    })
+    await reach('write')
+    await arriveAt('timer-wallclock')
 
     expect(stages.length).toBe(1)
     expect(stages[0].id).toBe('timer-wallclock')
     expect(stages[0].screen).toBe('timer')
   })
 
-  it('swaps the pinned window to the timer screen on the timer stage', async () => {
+  it('mounts the clock only in the run window after its stage is visited', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 
-    const zoneCenter = readingZoneCenter()
+    await reach('write')
+    await reach('run')
+    // Reaching the track alone never creates a hidden runtime…
+    expect(screen.queryByTestId('mock-timer-panel')).toBeNull()
 
-    await act(async () => {
-      reachedObserver()!.trigger([
-        { target: screen.getByTestId('tour-mobile-runway-track'), isIntersecting: true },
-      ])
-      const timerCard = placeCard('timer-wallclock', zoneCenter - 100)
-      cardObserver()!.trigger([{ target: timerCard, isIntersecting: true }])
-    })
-
-    expect(screen.getByTestId('mock-timer-panel')).toBeTruthy()
-    expect(screen.getByTestId('tour-mobile-runway-window').textContent).toContain('Clock')
+    // …the clock stage must be actively visited.
+    await arriveAt('timer-wallclock')
+    const runWindow = screen.getByTestId('tour-mobile-runway-window-run')
+    // Structure, not styling: the run chapter's section owns its window.
+    expect(runWindow.closest('section')?.id).toBe('tour-section-run')
+    expect(runWindow.querySelector('[data-testid="mock-timer-panel"]')).toBeTruthy()
   })
 
-  it('keeps the editor mounted across stage swaps so edits survive', async () => {
+  it('keeps every editor display mounted across the chapter boundary so edits survive', async () => {
+    const onDocChange = mock(() => {})
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false, metrics: false },
+      onDocChange,
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 
-    const zoneCenter = readingZoneCenter()
+    await reach('write')
+    await arriveAt('timer-wallclock')
 
-    await act(async () => {
-      reachedObserver()!.trigger([
-        { target: screen.getByTestId('tour-mobile-runway-track'), isIntersecting: true },
-      ])
-      const timerCard = placeCard('timer-wallclock', zoneCenter - 100)
-      cardObserver()!.trigger([{ target: timerCard, isIntersecting: true }])
+    // Hero display + write-window display + chapter-picker editor — the
+    // scroll into the run chapter unmounted none of them.
+    const hero = screen.getByTestId('tour-hero')
+    expect(hero.querySelector('[data-testid="mock-note-editor"]')).toBeTruthy()
+    const writeWindow = screen.getByTestId('tour-mobile-runway-window-write')
+    const writeEditor = writeWindow.querySelector(
+      '[data-testid="mock-note-editor"]',
+    ) as HTMLTextAreaElement
+    expect(writeEditor).toBeTruthy()
+    expect(writeEditor.value).toBe('AMRAP 10\n  10 Pull-ups\n')
+    expect(screen.getAllByTestId('mock-note-editor').length).toBe(3)
+
+    // Same controlled document: an edit in the hero reaches the page state.
+    fireEvent.change(hero.querySelector('[data-testid="mock-note-editor"]')!, {
+      target: { value: 'AMRAP 12\n' },
     })
-
-    // The runway editor stays in the DOM (cross-faded out, not unmounted);
-    // the hero editor at the top is also still mounted.
-    expect(screen.getAllByTestId('mock-note-editor').length).toBeGreaterThanOrEqual(2)
+    expect(onDocChange).toHaveBeenCalledWith('AMRAP 12\n')
   })
 
   it('exposes scrollToStage which scrolls the stage card into view', async () => {

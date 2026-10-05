@@ -1,58 +1,85 @@
 /**
- * INTEGRATION STATUS (wayfinder): intentionally unwired — no production
- * consumer yet. Wiring is the open item of wayfinder ticket 19 (surface cutover: Explorer, dashboards, previews); do not
- * delete these exports (they are the tested deliverable awaiting cutover).
  * QueryDocumentRunner — the ONE execution path for query documents
  * (wayfinder datadog-analytics ticket 19, per the shared query execution
- * contract). Explorer, dashboard route, embedded note queries, and CodeMirror
- * previews all evaluate through this runner; no surface runs queries itself.
+ * contract). Dashboard surfaces and embedded note query documents evaluate
+ * through this runner via a host adapter; no surface runs queries itself.
  *
  * Per document run:
  *   1. token substitution (`$name` → active parameter values, raw text);
  *   2. parse as a QueryDocument (degenerate single query = legacy body);
- *   3. AST rollup inspection — `calc.*`-class targets trigger the host's
- *      rollup-ensure ONCE per run (never string matching over query text);
+ *   3. AST rollup inspection — `calc.*`-class targets (including pipeline
+ *      transform stages) trigger the host's rollup-ensure ONCE per run
+ *      (never string matching over query text);
  *   4. one captured execution context threads every window resolution;
  *   5. family dispatch: aggregate → aggregate run, find → runFind,
- *      rows → runRows (cross-workout → TabularResult, scoped → RowsQueryResult).
+ *      rows → runRows, pipeline → runPipeline.
  *
  * Zero browser dependencies — stores, catalog, and evaluator are injected.
+ * Hosts that lack a family capability surface a diagnostic on the output —
+ * never a silent empty result.
  */
 
-import { QueryDocumentRunner as FormulaAwareRunner, type DocumentResult, type DocumentOutput, type FormulaEvaluator } from './documentRunner';
+import type { EventRecord, Note, BlockIndexRow } from '@bitcobblers/wod-wiki-core';
+import { QueryDocumentRunner as FormulaAwareRunner, type DocumentResult, type DocumentOutput, type FormulaEvaluator, type FamilyRunPayload, appendSuffixes } from './documentRunner';
 import { parseDocument, serializeDocument } from './document';
 import { captureContext, type ExecutionContext } from './calendar';
 import type { DocumentAssignment } from './document';
-import type { ParsedAggregateQuery } from './wql';
+import type { AnyParsedQuery, QueryWindow } from './wql';
+import type { RowsRun, TabularResult, NoteContainer } from './QueryService';
 
 export interface RollupTarget {
     /** The calc target key, e.g. `calc.acwr`. */
     key: string;
 }
 
+/** Host-populated page source dataset: named standard sources (`@session`,
+ *  `@today`, user names include `@`) resolved in memory before queries run. */
+export interface PageSourceEntry {
+    events: EventRecord[];
+    notes: Note[];
+}
+
+/**
+ * PageSourceRegistry — the host's named page-source store (ticket 5).
+ * Constructed/populated ONCE per page load / run context, BEFORE child
+ * queries evaluate. Dataset pipeline stages (`@today | :sum{…}`) read it
+ * synchronously through `QueryServiceStores.datasetStore` — no database
+ * roundtrip downstream.
+ */
+export class PageSourceRegistry extends Map<string, PageSourceEntry> {
+    /** QueryService datasetStore seam alias — names include the `@`. */
+    getDataset(name: string): PageSourceEntry | undefined {
+        return this.get(name);
+    }
+}
+
 export interface QueryDocumentRunnerHost {
     runAggregate(queryText: string, overrides: {
         groupBy?: string[];
-        window?: import('./wql').QueryWindow;
+        window?: QueryWindow;
         context?: ExecutionContext;
     }): Promise<{
         series?: DocumentOutput['series'];
         unit?: string;
         error?: string;
     }>;
-    runRows?(queryText: string, context?: ExecutionContext): Promise<{
-        kind: 'rows';
-        table?: import('./QueryService').TabularResult;
-        runs?: unknown[];
-        error?: string;
-    }>;
     runFind?(queryText: string, context?: ExecutionContext): Promise<{
         kind: 'find';
-        notes?: unknown[];
-        blocks?: unknown[];
+        notes?: Note[];
+        blocks?: BlockIndexRow[];
         efforts?: unknown[];
+        containers?: Record<string, NoteContainer>;
+        runs?: RowsRun[];
+        table?: TabularResult;
+        unit?: string;
         error?: string;
     }>;
+    /** Pipeline execution (`:source | :fn | :chart`, `@dataset | …`) — the
+     *  host's QueryService.runPipeline. */
+    runPipeline?(queryText: string, context?: ExecutionContext): Promise<FamilyRunPayload>;
+    /** Injected formula evaluator override (engine/app composition adapts
+     *  lang's calc evaluator); the built-in pointwise evaluator otherwise. */
+    formulaEvaluator?: FormulaEvaluator;
     /** Host rollup driver: recompute-on-open for `calc.*` facts. Must skip
      *  already-up-to-date prerequisites (no ensure→refresh loop). */
     rollupEnsure?: () => Promise<void>;
@@ -100,16 +127,17 @@ export class QueryDocumentRunner {
         const substituted = substituteTokens(text, captured.tokens ?? {});
 
         // 3. AST rollup inspection on the substituted text: a calc.* target
-        // in the parsed head triggers the host ensure exactly once.
+        // in the parsed head — including pipeline transform stages — triggers
+        // the host ensure exactly once.
         const parsed = parseDocument(substituted);
-        if (parsed.doc.assignments.some(
-            (a: DocumentAssignment) => a.parsed?.family === 'aggregate' && consumesRollupFacts(a.parsed),
-        )) {
+        if (parsed.doc.assignments.some((a: DocumentAssignment) => consumesRollupFacts(a.parsed))) {
             await this.host.rollupEnsure?.();
         }
 
         // 4+5. Document evaluation — the formula-aware runner (ticket 17)
-        // drives semantics; its hooks bind THIS run's snapshot.
+        // drives semantics; its hooks bind THIS run's snapshot. Missing host
+        // capabilities surface the diagnostic on the output — never a silent
+        // empty result.
         const formulaRunner = new FormulaAwareRunner(async (queryText, overrides) => {
             if (overrides.window) {
                 queryText = appendSuffixes(queryText, overrides.window, overrides.groupBy);
@@ -118,26 +146,18 @@ export class QueryDocumentRunner {
         }, {
             // The injected evaluator (ticket 17 seam) wins; the host may also
             // carry one; otherwise the built-in evaluates.
-            formulaEvaluator: captured.formulaEvaluator ?? (this.host as { formulaEvaluator?: FormulaEvaluator }).formulaEvaluator,
-            runRows: (queryText) => (this.host.runRows?.(queryText, captured.context) ?? Promise.resolve({})) as Promise<{ table?: unknown; runs?: unknown[]; error?: string }>,
-            runFind: (queryText) => (this.host.runFind?.(queryText, captured.context) ?? Promise.resolve({})) as Promise<{ notes?: unknown[]; blocks?: unknown[]; error?: string }>,
+            formulaEvaluator: captured.formulaEvaluator ?? this.host.formulaEvaluator,
+            runFind: async (queryText) => {
+                const res = await this.host.runFind?.(queryText, captured.context);
+                return res ?? { error: 'find queries are not supported by this host' };
+            },
+            runPipeline: async (queryText) => {
+                const res = await this.host.runPipeline?.(queryText, captured.context);
+                return res ?? { error: 'pipeline queries are not supported by this host' };
+            },
         });
         return formulaRunner.run(substituted);
     }
-}
-
-/** Append defaults window/groupBy as textual suffixes when merging down. */
-function appendSuffixes(queryText: string, window: import('./wql').QueryWindow, groupBy?: string[]): string {
-    let text = queryText;
-    if (groupBy && groupBy.length > 0 && !/by\s*\{/.test(text)) {
-        text += ` by {${groupBy.join(', ')}}`;
-    }
-    if (window.kind === 'relative' && !/\blast\b/.test(text)) {
-        text += ` last ${window.size}${window.unit}`;
-    } else if (window.kind === 'range' && !/\bfrom\b/.test(text)) {
-        text += ` from ${window.start}${window.end ? ` to ${window.end}` : ''}`;
-    }
-    return text;
 }
 
 /** Substitute `$name` tokens with active parameter values (raw text). */
@@ -150,11 +170,19 @@ export function substituteTokens(text: string, tokens: Record<string, string>): 
 
 /**
  * AST rollup inspection (replaces `.includes('calc.')` string sniffing):
- * true when the parsed aggregate head's metric is a calc target whose
- * derivation depends on workload rollup facts.
+ * true when the parsed head's metric — a pipeline's source aggregate metric
+ * or any transform stage's — is a calc target whose derivation depends on
+ * workload rollup facts.
  */
-export function consumesRollupFacts(parsed: ParsedAggregateQuery): boolean {
-    return ROLLUP_TARGETS.includes(parsed.metric);
+export function consumesRollupFacts(parsed: AnyParsedQuery | undefined): boolean {
+    if (!parsed) return false;
+    if (parsed.family === 'aggregate') return ROLLUP_TARGETS.includes(parsed.metric);
+    if (parsed.family === 'pipeline') {
+        if (parsed.source.kind === 'query' && parsed.source.query.family === 'aggregate'
+            && ROLLUP_TARGETS.includes(parsed.source.query.metric)) return true;
+        return parsed.transforms.some((t) => ROLLUP_TARGETS.includes(t.metric));
+    }
+    return false;
 }
 
 /** Re-export for surface parity with the ticket-17 module. */

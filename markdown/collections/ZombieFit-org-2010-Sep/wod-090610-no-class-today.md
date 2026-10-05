@@ -12,9 +12,9 @@ format: intervals
 
 Happy Labor Day! Sorry for the late posting. There will be NO class today as the gym is closed for the holiday.
 
-Run 1/4 mile | row 250m | bike 2 miles.
-
 ```time
+Run 1/4 mile | row 250m | bike 2 miles
+
 (3)
   10 Air Squats
   10 Push Ups

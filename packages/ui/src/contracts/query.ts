@@ -1,10 +1,13 @@
-import type { QueryResult, FindQueryResult, RowsQueryResult, RowsRun, ParsedAggregateQuery, ParsedFindQuery, ParsedRowsQuery, QueryOptions, FindOptions } from '@bitcobblers/wod-wiki-wql';
+import type { QueryResult, FindQueryResult, RowsQueryResult, RowsRun, ParsedAggregateQuery, ParsedFindQuery, ParsedRowsQuery, ParsedPipelineQuery, PipelineResult, QueryOptions, FindOptions } from '@bitcobblers/wod-wiki-wql';
 
 export interface QueryExecutor {
   runQuery(query: string, options?: QueryOptions): Promise<QueryResult>;
   runFind(parsed: ParsedFindQuery, options?: FindOptions): Promise<FindQueryResult>;
   runRows(parsed: ParsedRowsQuery, options?: { anchorNow?: number }): Promise<RowsQueryResult>;
   run?(parsed: ParsedAggregateQuery, options?: QueryOptions): Promise<QueryResult>;
+  /** Pipeline queries (`:source | :fn | :chart`, `@dataset | …`) — the
+   *  QueryService.runPipeline seam; the sink rides `PipelineResult.chart`. */
+  runPipeline?(query: string, options?: QueryOptions): Promise<PipelineResult>;
 }
 
 export type {
@@ -17,4 +20,6 @@ export type {
   ParsedAggregateQuery,
   ParsedFindQuery,
   ParsedRowsQuery,
+  ParsedPipelineQuery,
+  PipelineResult,
 };

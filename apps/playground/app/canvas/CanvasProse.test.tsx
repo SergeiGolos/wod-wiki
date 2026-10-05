@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { CanvasProse } from './CanvasProse';
+
+// Population is an IndexedDB-backed integration concern — this structural
+// test only needs the gate open.
+mock.module('@/hooks/usePageSourcesReady', () => ({
+  usePageSourcesReady: () => true,
+}));
 
 describe('CanvasProse query block embedding', () => {
   it('renders a query block inside a query-block-view container instead of a raw pre/code', () => {
@@ -10,7 +16,7 @@ describe('CanvasProse query block embedding', () => {
       'Here are matching workouts:',
       '',
       '```query',
-      'find:note{tags:benchmark}',
+      ':note{tags:benchmark}',
       '```',
     ].join('\n');
     render(<CanvasProse prose={markdown} />);

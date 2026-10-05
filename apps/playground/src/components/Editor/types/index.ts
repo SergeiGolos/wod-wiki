@@ -54,6 +54,10 @@ export interface StoredOutputStatement {
   readonly stackLevel: number;
   readonly parent?: number;
   readonly sourceStatementId?: number;
+  /** Content-relative source line of the originating statement. */
+  readonly line?: number;
+  readonly text?: string;
+  readonly dialect?: string;
   readonly completionReason?: string;
 }
 
@@ -74,6 +78,9 @@ export function toStoredOutputStatement(output: IOutputStatement): StoredOutputS
     stackLevel: output.stackLevel,
     parent: output.parent,
     sourceStatementId: output.sourceStatementId,
+    line: output.line,
+    text: output.text,
+    dialect: output.dialect,
     completionReason: output.completionReason,
   };
 }

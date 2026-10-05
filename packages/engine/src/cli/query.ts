@@ -16,9 +16,11 @@ import {
   QueryService,
   parseQuery,
   isFindQuery,
+  isPipelineQuery,
   type QueryResult,
   type RowsQueryResult,
   type FindQueryResult,
+  type PipelineResult,
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,
@@ -30,7 +32,7 @@ import type { AnalyticsDataPoint, Note, BlockIndexRow, Session, EventRecord, Sto
 import type { WorkoutResults } from '@bitcobblers/wod-wiki-core';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { bundledEfforts } from '@bitcobblers/wod-wiki-lang';
-import { createIRFile, isIRFile, type WodWikiIRFile, type ExecutionLog, type CorpusIRData } from '../ir';
+import { createIRFile, isIRFile, type IrKind, type WodWikiIRFile, type ExecutionLog, type CorpusIRData } from '../ir';
 export class WqlSyntaxError extends Error {
   constructor(
     public readonly query: string,
@@ -259,7 +261,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
 export async function runQueryCli(
   wqlString: string,
   options: QueryCliOptions = {},
-): Promise<WodWikiIRFile<QueryResult | RowsQueryResult | FindQueryResult>> {
+): Promise<WodWikiIRFile<QueryResult | RowsQueryResult | FindQueryResult | PipelineResult>> {
   const parsed = parseQuery(wqlString);
   if (parsed.error) {
     throw new WqlSyntaxError(wqlString, parsed.error);
@@ -273,10 +275,17 @@ export async function runQueryCli(
     stores.effortStore,
   );
 
+  if (isPipelineQuery(parsed)) {
+    const result = await service.runPipeline(wqlString, {
+      preferredUnit: options.preferredUnit,
+    });
+    return createIRFile('pipeline-result', result, { source: options.sourceLabel ?? 'cli:wod query' });
+  }
+
   if (isFindQuery(parsed)) {
     const result = await service.runFind(parsed);
-    const kind = parsed.target === 'session' ? 'rows-result' : 'find-result';
-    return createIRFile(kind as any, result as any, { source: options.sourceLabel ?? 'cli:wod query' });
+    const kind: IrKind = parsed.target === 'session' ? 'rows-result' : 'find-result';
+    return createIRFile(kind, result, { source: options.sourceLabel ?? 'cli:wod query' });
   }
 
   const result = await service.runQuery(wqlString, {

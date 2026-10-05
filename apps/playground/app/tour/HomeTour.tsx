@@ -1,5 +1,5 @@
 /**
- * HomeTour.tsx — the redesigned home page: hero + jump section + four tagged
+ * HomeTour.tsx — the home page: hero + jump section + four tagged
  * walkthrough sections (Write it in Markdown / Run it as a Timer / Own the
  * Metrics / Explore your analytics) + the Learn-the-Language chapter picker.
  *
@@ -7,12 +7,22 @@
  * its own scroll progress over a partition of the canonical ```scroll spec;
  * the metrics explainer section is code-declared (it has no markdown source).
  *
+ * One shared editor document: the desktop hero view and the write-section
+ * sticky pane are two displays of the same doc + block list (edits in either
+ * place are edits to the run document; neither resets at the boundary).
+ * Runs are INLINE — no fullscreen overlay on
+ * any form factor: dwelling at the run stages auto-starts a fresh playground
+ * run (usePlaygroundRun mints a persisted note per identity, once per
+ * identity — backward scroll never re-runs), the Stop button / metrics
+ * arrival / scroll-out finalize the partial exactly once, and the explore
+ * section answers from the run's note (note-scoped WQL table + real seeded
+ * dashboards).
+ *
  * Preserved contracts:
  *  - Arrival (#882): /load?z= shared script replaces welcome-1.md in the hero.
  *  - quick-start quests (qs-arrive / qs-edit / qs-run) plus scroll quests
  *    fired as each tour stage scrolls into view
  *  - ChallengeHeaderBadge on '/' (mounted by App.tsx) — home quests only
- *  - Runs from the hero demo go fullscreen on every form factor
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -25,12 +35,9 @@ import {
   type HomeSharedScript,
 } from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { playgroundRecorder } from '@/services/resultRecorder'
 import { NextEvent } from '@bitcobblers/wod-wiki-engine'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScriptBlock, Sessions } from '@/components/Editor/types'
-import type { Segment } from '@bitcobblers/wod-wiki-engine'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter, ScrollSpec, ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
@@ -38,9 +45,12 @@ import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { usePlaygroundRun } from '../hooks/usePlaygroundRun'
 import { RingTargetsProvider } from './TourRing'
-import { TOUR_ACCENTS, type TourScreen, type TourStageId } from './tourConstants'
-import { TourHero } from './TourHero'
+import { TOUR_ACCENTS, SCREEN_TITLES, type TourStageId } from './tourConstants'
+import { TourHeroHeading } from './TourHero'
+import { MacOSChrome } from '../components/atoms/MacOSChrome'
+import { TourEditorScreen } from './screens/TourEditorScreen'
 import {
   buildAdventureScript,
   TOUR_CAPTIONS,
@@ -57,9 +67,12 @@ import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
-import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
-import { TourTimerScreen } from './screens/TourTimerScreen'
-import { ensurePlaygroundEntry, type PlaygroundEntry } from '../services/createPlaygroundPage'
+import {
+  BOARD_SLUGS,
+  DEFAULT_BOARD_SLUG,
+  DEFAULT_TABLE_QUERY_KEY,
+  TABLE_QUERIES,
+} from './screens/TourSessionAnalytics'
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -283,43 +296,27 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const telemetry = useTelemetry()
   const track = telemetry?.track
 
-  // ── Editor documents ──
+  // ── Editor document ──
   // Arrival contract (#882): the initial load content is the shared script
   // stored by /load?z= when present, else welcome-1.md (home intro page).
   //
-  // Two independent editor contexts:
-  //  - HERO: self-contained — its own doc, blocks, and runtime session. It is
-  //    never touched by the scroll drivers; pressing Run opens the fullscreen
-  //    playground without scrolling the page.
-  //  - RUNWAY: the ambient scroll-demo window in the write section — shares
-  //    its doc/blocks with the Timer section's ambient run and the TV card.
+  // ONE editor document: the desktop hero view and the write-section sticky
+  // pane are two displays of the same doc state. Edits in either place are
+  // edits to the run document.
   const welcomeScript = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
   const [sharedScript, setSharedScript] = useState<HomeSharedScript | null>(() => loadHomeShared())
   const initialContent = sharedScript?.content ?? welcomeScript
   const sharedBy = sharedScript ? sharedScript.by?.trim() || 'anonymous' : undefined
 
-  // Hero context
-  const [heroDoc, setHeroDoc] = useState(initialContent)
-  const heroDocRef = useRef(heroDoc)
-  heroDocRef.current = heroDoc
-  const heroBlocksRef = useRef<ScriptBlock[]>([])
-  const heroEditedRecordedRef = useRef(false)
+  const [doc, setDoc] = useState(initialContent)
+  const docRef = useRef(doc)
+  docRef.current = doc
+  const blocksRef = useRef<ScriptBlock[]>([])
+  const editedRecordedRef = useRef(false)
 
-  // Runway (scroll demo) context — `selectedScript` is the scrub reset target
-  // (adventure picks); `runwayDoc` is the live window text.
-  const [selectedScript, setSelectedScript] = useState(initialContent)
-  const [runwayDoc, setRunwayDoc] = useState(initialContent)
-  const runwayDocRef = useRef(runwayDoc)
-  runwayDocRef.current = runwayDoc
-  const runwayBlocksRef = useRef<ScriptBlock[]>([])
-  const runwayEditedRecordedRef = useRef(false)
-
-  // Runway runtime — owned by the run section's Timer stage; feeds the TV card.
-  // Never the playground runtime.
+  // Runway runtime — set by the run section's inline timer pane; feeds the TV
+  // card and lets the host pop the auto-start gate.
   const [tourRuntime, setTourRuntime] = useState<IScriptRuntime | null>(null)
-
-  // ── Playground mode ──
-  const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
 
   // ── Mobile runway stage (card-visibility driven; inert on desktop) ──
   const [mobileStage, setMobileStage] = useState<ScrollStage | null>(null)
@@ -337,9 +334,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     // Own is code-declared only; markdown never contributes metrics-* stages,
     // but stay defensive about the partition boundary.
     own: OWN_METRICS_STAGES,
-    explore: renormalize(
-      canonicalStages.filter((s) => s.screen === 'analytics' && !s.id.startsWith('metrics-')),
-    ),
+    // Explore is dashboard-primary: a brief vocabulary beat, then the real
+    // seeded boards (the session table lives in Own-the-Metrics).
+    explore: [
+      { id: 'wql-idea', range: [0.0, 0.3] as [number, number], screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'The WQL vocabulary', caption: 'The whole language fits on one strip.', ring: { key: 'analytics.vocab', tag: 'WQL elements' } },
+      { id: 'wql-dashboard', range: [0.3, 1.0] as [number, number], screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Seeded dashboards', caption: 'Real boards, range, units, inspect.', ring: { key: 'analytics.dashboard', tag: 'Dashboard' } },
+    ],
   }), [canonicalStages])
   const sectionCaptions = useMemo<Record<SectionId, TourCaption[]>>(() => ({
     write: captionsForStages(sectionStages.write),
@@ -352,24 +352,25 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const runApiRef = useRef<TourSectionRunwayApi | null>(null)
   const ownApiRef = useRef<TourSectionRunwayApi | null>(null)
   const exploreApiRef = useRef<TourSectionRunwayApi | null>(null)
-  const sectionApis: Record<SectionId, React.MutableRefObject<TourSectionRunwayApi | null>> = {
-    write: writeApiRef,
-    run: runApiRef,
-    own: ownApiRef,
-    explore: exploreApiRef,
-  }
+  const sectionApis: Record<SectionId, React.MutableRefObject<TourSectionRunwayApi | null>> = useMemo(
+    () => ({
+      write: writeApiRef,
+      run: runApiRef,
+      own: ownApiRef,
+      explore: exploreApiRef,
+    }),
+    [],
+  )
 
   const [runInView, setRunInView] = useState(true)
   const handleRunViewport = useCallback((inView: boolean) => setRunInView(inView), [])
   const [activeStages, setActiveStages] = useState<Partial<Record<SectionId, string>>>({})
   const activeStagesRef = useRef(activeStages)
   activeStagesRef.current = activeStages
-  const interactiveRef = useRef(interactive)
-  interactiveRef.current = interactive
   const handleActiveStage = useCallback(
     (section: SectionId) => (stageId: string) => {
       setActiveStages((prev) => (prev[section] === stageId ? prev : { ...prev, [section]: stageId }))
-      if (!interactiveRef.current) markStageViewedRef.current?.(stageId as TourStageId)
+      markStageViewedRef.current?.(stageId as TourStageId)
     },
     [],
   )
@@ -386,57 +387,187 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     [handleActiveStage],
   )
 
-  // ── Lazy screen mounting (fullscreen overlay panes) ──
-  const [entered, setEntered] = useState<Record<TourScreen, boolean>>({
-    editor: true,
-    timer: false,
-    analytics: false,
-    metrics: false,
-  })
-  const timerAutoStartRef = useRef(false)
-
-  useEffect(() => {
-    setEntered((prev) => (prev[pane] ? prev : { ...prev, [pane]: true }))
-    if (pane === 'timer') timerAutoStartRef.current = true
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interactive])
-
-  useEffect(() => {
-    if (!isMobile || !mobileStage) return
-    setEntered((prev) => (prev[mobileStage.screen as 'editor' | 'timer' | 'analytics'] ? prev : { ...prev, [mobileStage.screen as 'editor' | 'timer' | 'analytics']: true }))
-    if (mobileStage.screen === 'timer') timerAutoStartRef.current = true
-  }, [isMobile, mobileStage])
-
-  // ── Session results (playground completion) + scroll-mode analytics ──
-  const [session, setSession] = useState<{ segments: Segment[]; results: Sessions } | null>(null)
-  const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | 'empty' | null>(null)
-  // Which editor context started the current playground run, and the block
-  // it runs — captured at Run click so the fullscreen overlay is bound to the
-  // editor the visitor pressed Run in.
-  const playgroundBlockRef = useRef<ScriptBlock | null>(null)
-  // The persisted playground entry the current run is bound to — created (or
-  // updated in place) BEFORE the runtime starts; completion records results
-  // against this Note UUID. No journal note is created on completion.
-  const playgroundEntryRef = useRef<PlaygroundEntry | null>(null)
+  // ── Session results (inline playground run) ──
+  const [session, setSession] = useState<Sessions | null>(null)
   // Scroll-stage ids arrive as plain strings from the markdown spec; the
   // quest hook keys on the constants union.
   const markStageViewedRef = useRef<(id: TourStageId) => void>(() => {})
-  const pane: 'editor' | 'timer' | 'analytics' =
-    interactive === 'analytics' ? 'analytics' : interactive === 'timer' ? 'timer' : 'editor'
 
-  // ── Session key for resetting playground timer between sessions ──
+  // ── Playground run identity (usePlaygroundRun — fresh note per run) ──
+  const { run, start, finalize, reset, end } = usePlaygroundRun()
+  const runRef = useRef(run)
+  runRef.current = run
+  // Whether the current run's execution ever left idle (panel onRunStarted)
+  // and whether its results are already recorded — both gate which stop
+  // path a host request can take.
+  const runStartedRef = useRef(false)
+  const finalizedRef = useRef(false)
+  // A failed finalize keeps the outputs here; every subsequent host action
+  // retries the save before proceeding (hook preserves pending until then).
+  const unsavedRef = useRef<Sessions | null>(null)
+
+  // Host-driven finalize stop: flipping this halts the live panel execution
+  // and reports partial results (externalStop on RuntimeTimerPanel).
+  const [externalStop, setExternalStop] = useState(false)
+  const externalStopRef = useRef(false)
+  const pendingActionRef = useRef<
+    | { kind: 'apply-doc'; doc: string }
+    | { kind: 'restart'; doc: string; block: ScriptBlock; sectionTitle: string }
+    | { kind: 'restart-unstarted'; doc: string; block: ScriptBlock; sectionTitle: string }
+    | { kind: 'reset' }
+    | null
+  >(null)
+
+  // ── Explore stage state: caption-driven WQL query + dashboard board ──
+  const [tableQueryKey, setTableQueryKey] = useState(DEFAULT_TABLE_QUERY_KEY)
+  const [boardSlug, setBoardSlug] = useState<string>(DEFAULT_BOARD_SLUG)
+
+  // ── Session key for remounting the inline timer pane between runs ──
   const [timerSessionKey, setTimerSessionKey] = useState(0)
+  // Auto-start is consumed by the fresh pane mount of a new run identity.
+  const [autoStart, setAutoStart] = useState(false)
 
-  const startNewSession = useCallback(() => {
-    setTimerSessionKey((k) => k + 1)
-    timerStartedAtRef.current = Date.now()
+  const clearSession = useCallback(() => {
     setSession(null)
-    setLogState(null)
     setTourRuntime(null)
-    // NOTE: playgroundBlockRef is deliberately kept — startNewSession also
-    // fires from the in-timer-stage effect right after a Run click, and the
-    // fullscreen overlay still needs the block it was launched with.
   }, [])
+
+  const scrollTimerStage = useCallback(() => {
+    if (mobileRunwayApiRef.current) {
+      mobileRunwayApiRef.current.scrollToStage('timer-wallclock')
+      return
+    }
+    runApiRef.current?.scrollToStage('timer-wallclock')
+  }, [])
+
+  // ── Run lifecycle (inline — no fullscreen) ──
+  // Identity intent: choice / reset / explicit Run mint a NEW run identity
+  // (fresh persisted note). Mere stage re-entry never re-runs — "once per
+  // identity, backward no rerun". `runSeed` is the intent counter;
+  // startedSeedRef records which intent doStart consumed.
+  const [runSeed, setRunSeed] = useState(0)
+  const runSeedRef = useRef(runSeed)
+  runSeedRef.current = runSeed
+  const startedSeedRef = useRef(0)
+  // Marks a visitor-initiated run (quest qs-tour-timer); autostarted
+  // entrances never validate it.
+  const [demoRunning, setDemoRunning] = useState(false)
+
+  const doStart = useCallback(async (docText: string, block: ScriptBlock | null, sectionTitle: string): Promise<boolean> => {
+    if (!block) return false
+    try {
+      await start(docText, block, { pageTitle: 'Home', sectionTitle })
+    } catch (err) {
+      console.error('[HomeTour] failed to persist playground run note:', err)
+      toast({
+        title: 'Could not start workout',
+        description: 'The playground entry could not be saved.',
+        variant: 'destructive',
+      })
+      return false
+    }
+    startedSeedRef.current = runSeedRef.current
+    finalizedRef.current = false
+    runStartedRef.current = false
+    unsavedRef.current = null
+    setTimerSessionKey((k) => k + 1)
+    setAutoStart(true)
+    setSession(null)
+    return true
+  }, [start])
+
+  // Fresh unstarted snapshot note (reset contract) — the previous partial is
+  // expected to be finalized BEFORE doReset runs (requestStop chain).
+  const doReset = useCallback(async (): Promise<boolean> => {
+    try {
+      await reset(docRef.current, { pageTitle: 'Home', sectionTitle: 'Run' })
+    } catch (err) {
+      console.error('[HomeTour] failed to reset playground run:', err)
+      toast({
+        title: 'Could not reset',
+        description: 'The previous session is kept — nothing was lost.',
+        variant: 'destructive',
+      })
+      return false
+    }
+    finalizedRef.current = false
+    runStartedRef.current = false
+    unsavedRef.current = null
+    setTimerSessionKey((k) => k + 1)
+    setAutoStart(false)
+    setSession(null)
+    setTourRuntime(null)
+    return true
+  }, [reset])
+
+  // Runs the action parked by requestStop once the partial is recorded.
+  const performPending = useCallback(async () => {
+    externalStopRef.current = false
+    setExternalStop(false)
+    // Retry a previously failed save first — the hook refuses every other
+    // operation while results are pending, so this is the recovery path.
+    if (unsavedRef.current) {
+      try {
+        await finalize(unsavedRef.current, false)
+        unsavedRef.current = null
+      } catch (err) {
+        console.error('[HomeTour] retry save failed:', err)
+        toast({
+          title: 'Session still not saved',
+          description: 'The run is kept — try again.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+    const action = pendingActionRef.current
+    pendingActionRef.current = null
+    if (!action) return
+    switch (action.kind) {
+      case 'apply-doc':
+        // Adventure picks, hero re-arrival and clear-shared all restore a
+        // clean editor over a settled run.
+        editedRecordedRef.current = false
+        setDoc(action.doc)
+        clearSession()
+        setTimerSessionKey((k) => k + 1)
+        setAutoStart(false)
+        break
+      case 'restart': {
+        const ok = await doStart(action.doc, action.block, action.sectionTitle)
+        if (ok) scrollTimerStage()
+        break
+      }
+      case 'restart-unstarted':
+        // Discard the never-started snapshot (end() — no note churn) and
+        // mint the running note.
+        await end()
+        {
+          const ok = await doStart(action.doc, action.block, action.sectionTitle)
+          if (ok) scrollTimerStage()
+        }
+        break
+      case 'reset':
+        await doReset()
+        break
+    }
+  }, [doStart, doReset, clearSession, scrollTimerStage, end, finalize])
+
+  // Finalize entry point for host-driven stops. When the run was never
+  // started, is already recorded, or has an unsaved pending write (the
+  // execution can no longer report), the pending action runs immediately —
+  // performPending retries the save first.
+  const requestStop = useCallback((pending: typeof pendingActionRef.current) => {
+    if (pendingActionRef.current) return // a stop is already in flight
+    if (!runRef.current || finalizedRef.current || !runStartedRef.current || unsavedRef.current) {
+      pendingActionRef.current = pending
+      void performPending()
+      return
+    }
+    pendingActionRef.current = pending
+    externalStopRef.current = true
+    setExternalStop(true)
+  }, [performPending])
 
   // ── Hero-reset contract (#882): re-entering the hero viewport resets the
   // editor to the initial load content, discarding edits and session state.
@@ -444,13 +575,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const heroRef = useRef<HTMLDivElement | null>(null)
   const heroVisibleRef = useRef(true) // the hero mounts at the top of the page
   const resetHeroToArrival = useCallback(() => {
-    heroEditedRecordedRef.current = false
-    setHeroDoc(initialContent)
-    runwayEditedRecordedRef.current = false
-    setSelectedScript(initialContent)
-    setRunwayDoc(initialContent)
-    startNewSession()
-  }, [initialContent, startNewSession])
+    setRunSeed((s) => s + 1)
+    requestStop({ kind: 'apply-doc', doc: initialContent })
+  }, [initialContent, requestStop])
 
   useEffect(() => {
     const el = heroRef.current
@@ -469,201 +596,138 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const handleClearShared = useCallback(() => {
     clearHomeShared()
     setSharedScript(null)
-    heroEditedRecordedRef.current = false
-    setHeroDoc(welcomeScript)
-    runwayEditedRecordedRef.current = false
-    setSelectedScript(welcomeScript)
-    setRunwayDoc(welcomeScript)
-    startNewSession()
-  }, [welcomeScript, startNewSession])
+    setRunSeed((s) => s + 1)
+    requestStop({ kind: 'apply-doc', doc: welcomeScript })
+  }, [welcomeScript, requestStop])
 
-  // Entering the run section's timer stages restarts the ambient session —
-  // mirrors the old single-driver inTimerStage contract. Leaving the section's
-  // viewport (next header covering the sticky window) releases it.
+  // ── Timer-stage presence ──
+  // Desktop: the run section's sticky window with a timer-* stage active.
+  // Mobile: a timer-* caption card owning the reading zone.
   const runStageId = activeStages.run
-  const inTimerStage =
-    (interactive === null && runInView && runStageId != null && runStageId.startsWith('timer-')) ||
-    interactive === 'timer' ||
+  const stageInTimer =
+    (!isMobile && runInView && runStageId != null && runStageId.startsWith('timer-')) ||
     (isMobile && mobileStage?.screen === 'timer')
+
+  // Automatic entrance: dwelling at the timer stages starts the run ONCE per
+  // identity. Blowing past (fast scroll) clears the dwell — no hidden run;
+  // backward re-entry with a settled identity never re-runs.
+  useEffect(() => {
+    if (!stageInTimer) return
+    if (runRef.current && !finalizedRef.current) return // identity in progress
+    if (runRef.current && runSeed === startedSeedRef.current) return // settled; backward re-entry
+    const t = window.setTimeout(() => {
+      if (runRef.current && !finalizedRef.current) return
+      if (runRef.current && runSeed === startedSeedRef.current) return
+      void doStart(docRef.current, blocksRef.current[0], 'Run')
+    }, 400)
+    return () => window.clearTimeout(t)
+  }, [stageInTimer, runSeed, run, doStart])
+
   const [everInTimer, setEverInTimer] = useState(false)
   useEffect(() => {
-    if (inTimerStage) {
-      setEverInTimer(true)
-      // Ambient gate-pop: arriving at the run section's timer stages arms
-      // auto-start so the Ready-to-Start gate advances on its own.
-      timerAutoStartRef.current = true
-    }
-  }, [inTimerStage])
-  const prevInTimerStageRef = useRef(inTimerStage)
-  useEffect(() => {
-    if (inTimerStage && !prevInTimerStageRef.current) {
-      startNewSession()
-    }
-    prevInTimerStageRef.current = inTimerStage
-  }, [inTimerStage, startNewSession])
+    if (stageInTimer) setEverInTimer(true)
+  }, [stageInTimer])
 
-  // Scroll-out stop: leaving the run section halts the ambient runtime WITHOUT
-  // resetting it — later sections keep the run's data.
-  const scrollOutPause = interactive === null && everInTimer && !runInView
-
-  // Typeahead scrub: the write section's editor window snaps back to the
-  // selected script whenever the visitor hasn't diverged from it.
+  // Scroll-out save: leaving the run stages after they were visited halts the
+  // live execution and records the partial exactly once (Stop-scroll save).
+  const prevStageInTimerRef = useRef(stageInTimer)
   useEffect(() => {
-    return writeApiRef.current?.subscribe(() => {
-      if (runwayEditedRecordedRef.current || interactiveRef.current !== null) return
-      if (runwayDocRef.current !== selectedScript) {
-        setRunwayDoc(selectedScript)
+    if (everInTimer && !stageInTimer && prevStageInTimerRef.current) {
+      if (runRef.current && runStartedRef.current && !finalizedRef.current) {
+        requestStop(null)
       }
-    })
-  }, [selectedScript])
+    }
+    prevStageInTimerRef.current = stageInTimer
+  }, [stageInTimer, everInTimer, requestStop])
 
-  const analyticsSegments = session?.segments ?? []
-  const analyticsTitle =
-    logState === 'logging'
-      ? 'Playground · logging…'
-      : logState === 'failed'
-        ? 'Session Review · not saved to playground'
-        : 'Playground · logged from timer'
-
-  // Session start marker for ambient resets (the TV card reads the live
-  // runtime, so no separate elapsed ticker is needed).
-  const timerStartedAtRef = useRef<number | null>(null)
-
+  // ── Quest + challenge hooks ──
   useQuickStartAutoComplete({
     pageRoute: '/',
     quests,
     initialSource: initialContent,
-    currentSource: heroDoc,
+    currentSource: doc,
   })
-  useCompletionChallenge({ pageRoute: '/', quests, completedResults: session?.results ?? null })
+  useCompletionChallenge({ pageRoute: '/', quests, completedResults: session })
 
   const markStageViewed = useTourScrollQuests('/', quests)
   markStageViewedRef.current = markStageViewed
 
-  // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
-  // ambient scroll demo intentionally auto-runs, and must never validate the
-  // quest (production builds fired the runtime callback on load).
-  const [demoRunning, setDemoRunning] = useState(false)
+  // The qs-tour-timer interaction quest validates on a *visitor-initiated*
+  // run (demoRunning set at the click). The stage-entrance autostart is the
+  // guided demo and must never validate the quest.
   // Per-chapter scoping (#919): the global run-started hook handles only the
   // home-tour's own run quest (qs-tour-timer). Each chapter's `<chapter>-run`
   // lead quest is completed by the chapter picker's Run.
   useRunStartedChallenge({ pageRoute: '/', quests, running: demoRunning })
 
-  // ── Hero interactions (self-contained editor context) ──
-  const handleHeroDocChange = useCallback(
+  // ── Editor interactions (one shared document: hero + write pane) ──
+  const handleDocChange = useCallback(
     (next: string) => {
-      setHeroDoc(next)
-      if (next !== initialContent && !heroEditedRecordedRef.current) {
-        heroEditedRecordedRef.current = true
+      setDoc(next)
+      if (next !== initialContent && !editedRecordedRef.current) {
+        editedRecordedRef.current = true
         track?.(HOME_EVENTS.demoEdited)
       }
     },
     [initialContent, track],
   )
 
-  // ── Runway interactions (ambient scroll-demo window) ──
-  const handleRunwayDocChange = useCallback(
-    (next: string) => {
-      setRunwayDoc(next)
-      if (next !== selectedScript && !runwayEditedRecordedRef.current) {
-        runwayEditedRecordedRef.current = true
-        track?.(HOME_EVENTS.demoEdited)
-      }
-    },
-    [selectedScript, track],
-  )
+  const handleBlocksChange = useCallback((blocks: ScriptBlock[]) => {
+    blocksRef.current = blocks
+  }, [])
 
-  // Choose-your-own-adventure: a caption workout pick replaces the runway
-  // demo script, resets the ambient session, and re-runs the typewriter. The
-  // hero editor keeps its own content.
+  // Choose-your-own-adventure: a caption workout pick replaces the shared
+  // script; any live run is saved first (apply-doc chains after finalize),
+  // then the dwell re-runs the new script as a fresh identity.
   const handleWorkoutChoice = useCallback(
     (wod: string) => {
-      const next = buildAdventureScript(wod)
-      runwayEditedRecordedRef.current = false
-      setSelectedScript(next)
-      startNewSession()
-      setRunwayDoc(next)
       track?.(HOME_EVENTS.demoEdited)
+      setRunSeed((s) => s + 1)
+      requestStop({ kind: 'apply-doc', doc: buildAdventureScript(wod) })
     },
-    [startNewSession, track],
+    [requestStop, track],
   )
 
-  // Run opens the fullscreen playground bound to the editor context the Run
-  // button lives in. The playground entry is persisted (or updated in place)
-  // BEFORE the runtime starts — no execution until the save succeeds — and
-  // completion records results against its Note UUID. It never scrolls the
-  // page — the overlay is fixed.
-  const startRun = useCallback(
-    async (source: 'hero' | 'runway') => {
-      const block =
-        source === 'hero' ? heroBlocksRef.current[0] : runwayBlocksRef.current[0]
+  // Explicit Run (hero / write-pane Run command / Try-it): persist a fresh
+  // playground note, then glide onto the timer stage where the inline pane
+  // auto-starts. A live unrecorded run is saved first.
+  const beginRun = useCallback(
+    (sectionTitle: string, doc: string, block: ScriptBlock | null, demo: boolean) => {
       if (!block) return
-      try {
-        playgroundEntryRef.current = await ensurePlaygroundEntry(
-          source === 'hero' ? heroDocRef.current : runwayDocRef.current,
-          { reuseKey: 'home', title: 'Home playground' },
-        )
-      } catch (err) {
-        console.error('[HomeTour] failed to persist playground entry:', err)
-        toast({
-          title: 'Could not start workout',
-          description: 'The playground entry could not be saved.',
-          variant: 'destructive',
-        })
+      track?.(HOME_EVENTS.demoRun)
+      if (demo) setDemoRunning(true)
+      setRunSeed((s) => s + 1)
+      if (runRef.current && runStartedRef.current && !finalizedRef.current) {
+        pendingActionRef.current = { kind: 'restart', doc, block, sectionTitle }
+        setExternalStop(true)
         return
       }
-      startNewSession()
-      playgroundBlockRef.current = block
-      setLogState(null)
-      setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
-      timerAutoStartRef.current = true
-      setInteractive('timer')
-      setDemoRunning(true)
-    },
-    [startNewSession],
-  )
-
-  // Chapter example run — scoped per chapter (#919): opens the playground
-  // bound to the chapter's own block WITHOUT firing the global run-started
-  // hook (setDemoRunning), so it completes only this chapter's lead quest.
-  // Each chapter gets its own persisted entry (stable per chapter id), so a
-  // chapter's runs update one Note instead of filling the library.
-  const startChapterRun = useCallback(
-    async (chapterId: string, block: ScriptBlock | null, doc: string) => {
-      if (!block) return
-      try {
-        playgroundEntryRef.current = await ensurePlaygroundEntry(doc, {
-          reuseKey: `chapter-${chapterId}`,
-          title: `Chapter ${chapterId}`,
-        })
-      } catch (err) {
-        console.error('[HomeTour] failed to persist chapter playground entry:', err)
-        toast({
-          title: 'Could not start workout',
-          description: 'The playground entry could not be saved.',
-          variant: 'destructive',
-        })
+      if (runRef.current && !finalizedRef.current) {
+        pendingActionRef.current = { kind: 'restart-unstarted', doc, block, sectionTitle }
+        void performPending()
         return
       }
-      startNewSession()
-      playgroundBlockRef.current = block
-      setLogState(null)
-      setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
-      timerAutoStartRef.current = true
-      setInteractive('timer')
+      void doStart(doc, block, sectionTitle).then((ok) => {
+        if (ok) scrollTimerStage()
+      })
     },
-    [startNewSession],
+    [doStart, performPending, scrollTimerStage, track],
   )
 
-  const handleHeroRun = useCallback(() => {
-    track?.(HOME_EVENTS.demoRun)
-    void startRun('hero')
-  }, [startRun, track])
+  const handleRun = useCallback(() => {
+    beginRun('Run', docRef.current, blocksRef.current[0], true)
+  }, [beginRun])
 
-  const handleRunwayRun = useCallback(() => {
-    track?.(HOME_EVENTS.demoRun)
-    void startRun('runway')
-  }, [startRun, track])
+  // Chapter example run — scoped per chapter (#919): runs inline WITHOUT
+  // firing the global run-started quest; the chapter's own lead quest is
+  // completed by the picker. Each run mints a fresh note named for it.
+  const handleChapterRun = useCallback(
+    (chapterId: string, block: ScriptBlock | null, chapterDoc: string) => {
+      track?.(HOME_EVENTS.chapterExampleRun, { chapter: chapterId })
+      beginRun(`Chapter ${chapterId}`, chapterDoc, block, false)
+    },
+    [beginRun, track],
+  )
 
   const shareDoc = useCallback(
     async (content: string) => {
@@ -696,124 +760,119 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     [track],
   )
 
-  const handleHeroShare = useCallback(() => {
-    void shareDoc(heroDocRef.current)
+  const handleShare = useCallback(() => {
+    void shareDoc(docRef.current)
   }, [shareDoc])
 
-  const handleRunwayShare = useCallback(() => {
-    void shareDoc(runwayDocRef.current)
-  }, [shareDoc])
-
-  // Chapter picker run/share (#926): use the chapter's own example doc.
-  const handleChapterRun = useCallback(
-    (chapterId: string, block: ScriptBlock | null, doc: string) => {
-      track?.(HOME_EVENTS.chapterExampleRun, { chapter: chapterId })
-      void startChapterRun(chapterId, block, doc)
-    },
-    [startChapterRun, track],
-  )
+  // Chapter picker share (#926): use the chapter's own example doc.
   const handleChapterShare = useCallback((doc: string) => void shareDoc(doc), [shareDoc])
 
-  const handleHeroBlocksChange = useCallback((blocks: ScriptBlock[]) => {
-    heroBlocksRef.current = blocks
-  }, [])
-
-  const handleRunwayBlocksChange = useCallback((blocks: ScriptBlock[]) => {
-    runwayBlocksRef.current = blocks
-  }, [])
-
-  const exitPlayground = useCallback(() => {
-    setInteractive(null)
-    // Re-sync every section driver against the restored scroll position.
-    requestAnimationFrame(() => {
-      for (const section of SECTION_ORDER) sectionApis[section].current?.resync?.()
-    })
-  }, [sectionApis])
-
+  // Stop click / metrics arrival / scroll-out: the panel reports partial or
+  // completed results; finalize records them against the run's note exactly
+  // once, then any parked action (reset/restart/doc swap) executes.
   const handleTimerComplete = useCallback(
     (_blockId: string, results: Sessions) => {
-      const wasPlaygroundRun = interactiveRef.current === 'timer'
-      const { segments } = getAnalyticsFromLogs(results.logs ?? [], results.startTime)
-      setSession({ segments, results })
-      setEntered((prev) => (prev.analytics ? prev : { ...prev, analytics: true }))
-      setInteractive((mode) => (mode === 'timer' ? 'analytics' : mode))
-
-      if (!wasPlaygroundRun) {
-        // Scroll-mode completion: finishing the ambient run slides the visitor
-        // onward to the Own-the-Metrics explainer — the bridge between the
-        // run they just finished and querying it in Explore your analytics.
-        if (results.completed) {
-          ownApiRef.current?.scrollToStage('metrics-e')
-        }
+      if (!externalStopRef.current) {
+        // A panel-originated completion (Stop button or natural finish) slides
+        // the visitor onward to the metrics section — the bridge from the run
+        // they just saved to querying it. Host-driven stops (metrics arrival,
+        // scroll-out) never pull the visitor back.
+        if (mobileRunwayApiRef.current) mobileRunwayApiRef.current.scrollToStage('metrics-e')
+        else ownApiRef.current?.scrollToStage('metrics-e')
+      }
+      setSession(results)
+      if ((results.logs ?? []).length === 0) {
+        finalizedRef.current = true
+        void performPending()
         return
       }
-      if (segments.length === 0) {
-        setLogState('empty')
-        return
-      }
-      const runBlock = playgroundBlockRef.current
-      const entry = playgroundEntryRef.current
-      if (!runBlock || !entry) return
-      setLogState('logging')
-      void (async () => {
-        // Results join the persisted playground entry — no journal note is
-        // created on completion; promotion to the journal is the visitor's
-        // choice (library / playground page Move to journal).
-        await playgroundRecorder.record({
-          runBlock,
-          blockId: runBlock.id,
-          noteId: entry.noteId,
-          resultId: crypto.randomUUID(),
-          data: results,
-          createdAt: results.endTime ?? Date.now(),
-          origin: 'playground',
+      finalizedRef.current = true
+      void finalize(results, results.completed)
+        .then(() => {
+          unsavedRef.current = null
         })
-        setLogState('logged')
-      })().catch((err) => {
-        console.error('[HomeTour] failed to log session to playground:', err)
-        setLogState('failed')
-      })
+        .then(() => performPending())
+        .catch((err) => {
+          console.error('[HomeTour] failed to log session to playground:', err)
+          finalizedRef.current = false
+          // The execution is already halted — it cannot report again. Park
+          // the outputs; the next host action retries the save.
+          runStartedRef.current = false
+          unsavedRef.current = results
+          externalStopRef.current = false
+          setExternalStop(false)
+          pendingActionRef.current = null
+          toast({
+            title: 'Session not saved',
+            description: 'The run could not be recorded. Nothing was lost — your next action retries the save.',
+            variant: 'destructive',
+          })
+        })
     },
-    [],
+    [finalize, performPending],
   )
 
+  // The pane's ✕ returns to the write stage; a live run is saved by the
+  // scroll-out rule when the run section's viewport releases.
   const handleTimerClose = useCallback(() => {
-    if (interactive) {
-      exitPlayground()
-      return
-    }
     if (mobileRunwayApiRef.current) {
       mobileRunwayApiRef.current.scrollToStage('editor-blank')
       return
     }
     writeApiRef.current?.scrollToStage('editor-blank')
-  }, [interactive, exitPlayground])
-
-  // Header Reset: restart the timer run on demand — a fresh session key
-  // remounts the panel and the auto-start replays from the gate.
-  const handleTimerReset = useCallback(() => {
-    startNewSession()
-  }, [startNewSession])
-
-  // Runway runtime — set only by the run section's Timer stage. The ambient
-  // demo auto-starts execution, but the root WaitingToStart gate keeps the
-  // label at 'Ready to Start' while the clock ticks; advance past the gate so
-  // the demo actually runs.
-  const handleRuntimeReady = useCallback((runtime: IScriptRuntime) => {
-    setTourRuntime(runtime)
-    if (interactiveRef.current === null) {
-      // Defer one microtask so the auto-start effect in RuntimeTimerPanel has
-      // begun execution before the gate is popped.
-      queueMicrotask(() => {
-        runtime.handle(new NextEvent(undefined, runtime.nowProvider))
-      })
-    }
   }, [])
 
-  // Playground runtime — deliberately NOT stored: the fullscreen session is
-  // independent of the ambient demo, and the WaitingToStart gate stays for
-  // the visitor to press Start.
-  const handlePlaygroundRuntimeReady = useCallback((_runtime: IScriptRuntime) => {}, [])
+  // Header Reset: save the live partial, then a fresh unstarted snapshot —
+  // the dwell (still inside the timer stages) immediately re-runs it.
+  const handleTimerReset = useCallback(() => {
+    setRunSeed((s) => s + 1)
+    requestStop({ kind: 'reset' })
+  }, [requestStop])
+
+  // Inline runtime — stored for the TV card. Every tour run auto-starts, so
+  // the WaitingToStart gate is popped as soon as the runtime exists (deferred
+  // one microtask so the panel's auto-start effect has begun execution).
+  const handleRuntimeReady = useCallback((runtime: IScriptRuntime) => {
+    setTourRuntime(runtime)
+    queueMicrotask(() => {
+      runtime.handle(new NextEvent(undefined, runtime.nowProvider))
+    })
+  }, [])
+
+  // First idle→running transition of the current pane's execution.
+  const handleRunStarted = useCallback(() => {
+    runStartedRef.current = true
+  }, [])
+
+  // Caption command buttons: query presets, board picks, Try-it.
+  const handleCaptionCommand = useCallback(
+    (captionId: string, key: string) => {
+      if (TABLE_QUERIES[key]) {
+        setTableQueryKey(key)
+        return
+      }
+      if ((BOARD_SLUGS as readonly string[]).includes(key)) {
+        setBoardSlug(key)
+        return
+      }
+      if (key === 'try') {
+        beginRun('Run', docRef.current, blocksRef.current[0], true)
+      }
+    },
+    [beginRun],
+  )
+
+  // Explore section wiring: the WQL table is scoped to the current run's
+  // note; without a run it answers from the live journal or the independent
+  // sample dataset.
+  const sessionWiring = useMemo(
+    () => ({
+      noteId: run?.noteId ?? null,
+      queryKey: tableQueryKey,
+      boardSlug,
+    }),
+    [run?.noteId, tableQueryKey, boardSlug],
+  )
 
   // Quest navigation: route the stage id to whichever section owns it.
   const handleHomeQuestClick = useCallback(
@@ -834,46 +893,20 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     [sectionStages, sectionApis],
   )
 
-  const playgroundOverlay = (
-    <div data-testid="tour-playground-overlay" className="fixed inset-0 z-50 flex flex-col bg-background">
-      <div className="relative min-h-0 flex-1">
-        {interactive === 'timer' && entered.timer && (
-          <TourTimerScreen
-            key={timerSessionKey}
-            block={playgroundBlockRef.current}
-            autoStart={timerAutoStartRef.current}
-            onClose={handleTimerClose}
-            onComplete={handleTimerComplete}
-            onRuntimeReady={handlePlaygroundRuntimeReady}
-            onReset={handleTimerReset}
-          />
-        )}
-        {interactive === 'analytics' && entered.analytics && (
-          <TourAnalyticsScreen
-            segments={analyticsSegments}
-            title={analyticsTitle}
-          />
-        )}
-      </div>
-      <div className="flex justify-center py-4">
-        <button
-          type="button"
-          onClick={exitPlayground}
-          className="rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
-        >
-          {interactive === 'timer'
-            ? 'timer running · STOP to log it · tap here to exit'
-            : logState === 'failed'
-              ? 'session not saved · tap here to return'
-              : logState === 'logging'
-                ? 'logging session… · tap here to return'
-                : logState === 'empty'
-                  ? 'Nothing to log — the session never started · tap here to return'
-                  : 'session logged · tap here to return'}
-        </button>
-      </div>
-    </div>
-  )
+  // Inline timer pane wiring — one shape for desktop runway, mobile runway,
+  // and the reduced-motion stack. Fresh mount per run identity (sessionKey),
+  // auto-start on mount, host-driven finalize stop.
+  const timerWiring = {
+    sessionKey: timerSessionKey,
+    block: run?.block ?? blocksRef.current[0] ?? null,
+    autoStart,
+    externalStop,
+    onClose: handleTimerClose,
+    onComplete: handleTimerComplete,
+    onRuntimeReady: handleRuntimeReady,
+    onRunStarted: handleRunStarted,
+    onReset: handleTimerReset,
+  }
 
   // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
   if (prefersReducedMotion) {
@@ -886,18 +919,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           chapters={chapters}
           questLabels={questLabels}
           onHomeQuestClick={handleHomeQuestClick}
-          doc={heroDoc}
-          onDocChange={handleHeroDocChange}
-          onBlocksChange={handleHeroBlocksChange}
-          onRun={handleHeroRun}
-          onShare={handleHeroShare}
+          doc={doc}
+          onDocChange={handleDocChange}
+          onBlocksChange={handleBlocksChange}
+          onRun={handleRun}
+          onShare={handleShare}
           onChoice={handleWorkoutChoice}
+          onCommand={handleCaptionCommand}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
+          timer={timerWiring}
         />
-
-        {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
-        {interactive && playgroundOverlay}
       </div>
     )
   }
@@ -915,65 +947,101 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           onChapterRun={handleChapterRun}
           onChapterShare={handleChapterShare}
           onHomeQuestClick={handleHomeQuestClick}
-          doc={heroDoc}
-          onDocChange={handleHeroDocChange}
-          onBlocksChange={handleHeroBlocksChange}
-          onRun={handleHeroRun}
-          onShare={handleHeroShare}
-          runwayDoc={runwayDoc}
-          onRunwayDocChange={handleRunwayDocChange}
-          onRunwayBlocksChange={handleRunwayBlocksChange}
-          onRunwayRun={handleRunwayRun}
-          onRunwayShare={handleRunwayShare}
+          doc={doc}
+          onDocChange={handleDocChange}
+          onBlocksChange={handleBlocksChange}
+          onRun={handleRun}
+          onShare={handleShare}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
           onChoice={handleWorkoutChoice}
-          entered={entered}
+          onCommand={handleCaptionCommand}
+          session={sessionWiring}
           onStageChange={handleMobileStageChange}
-          timer={{
-            sessionKey: timerSessionKey,
-            block: runwayBlocksRef.current[0] ?? null,
-            autoStart: timerAutoStartRef.current,
-            externalPause: scrollOutPause,
-            onClose: handleTimerClose,
-            onComplete: handleTimerComplete,
-            onRuntimeReady: handleRuntimeReady,
-            onReset: handleTimerReset,
-          }}
+          timer={timerWiring}
           heroRef={heroRef}
           apiRef={mobileRunwayApiRef}
         />
-
-        {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
-        {interactive && playgroundOverlay}
       </div>
     )
   }
 
-  // ── Desktop: hero → jump section → four tagged sections → chapters ──
-  const frozen = interactive !== null
+  // ── Desktop: a normal-flow hero view (heading + THE editor at first
+  // paint — it scrolls out completely before the write track pins), then the
+  // write section in the standard tagline-header + sticky-runway pattern,
+  // then run / own / explore sections → chapters ──
   return (
     <div data-testid="home-tour">
-      <div ref={heroRef}>
-        <TourHero
-          theme={theme}
-          doc={heroDoc}
-          onDocChange={handleHeroDocChange}
-          onBlocksChange={handleHeroBlocksChange}
-          onRun={handleHeroRun}
-          onShare={handleHeroShare}
-          sharedBy={sharedBy}
-          onResetShared={handleClearShared}
-        />
-      </div>
+      {/* Arrival sentinel (#882): a 1px mark at the very top of the page —
+          re-entering it from below resets the shared document. */}
+      <div ref={heroRef} aria-hidden className="h-px" />
 
+      <section
+        id="tour-hero"
+        data-testid="tour-hero"
+        className="relative flex min-h-[calc(100vh-104px)] flex-col items-center justify-center gap-5 px-5 pt-10 pb-16 text-center lg:px-10"
+      >
+        <div className="w-full">
+          <TourHeroHeading />
+        </div>
+        <div className="flex w-full max-w-3xl items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          <span>{sharedBy ? `shared by: ${sharedBy}` : 'welcome-1.md'}</span>
+          {sharedBy && (
+            <button
+              type="button"
+              onClick={handleClearShared}
+              title="Reset"
+              className="rounded-md border border-border px-2 py-1 text-[10px] transition-colors hover:bg-accent"
+              data-testid="tour-hero-reset-shared"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRun}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            data-testid="tour-hero-run"
+          >
+            Run
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
+            data-testid="tour-hero-share"
+          >
+            Copy share link
+          </button>
+        </div>
+        {/* The write section's sticky pane below is a second display of this
+            same shared document — no ring targets here, those belong to the
+            runway window. */}
+        <div className="h-[62vh] min-h-[420px] w-full max-w-[1200px]">
+          <MacOSChrome title={SCREEN_TITLES.editor} className="h-full">
+            <TourEditorScreen
+              doc={doc}
+              theme={theme}
+              onDocChange={handleDocChange}
+              onBlocksChange={handleBlocksChange}
+              onRun={handleRun}
+              onShare={handleShare}
+            />
+          </MacOSChrome>
+        </div>
+      </section>
+
+      {/* Jump exits sit between the editor window and the first tagline —
+          the hero (and its scroll cue) are fully scrolled out by the time the
+          write track pins. */}
       <TourJumpSection />
 
       <TourSectionRunway
         ref={writeApiRef}
         id="write"
-        heightVh="420vh"
-        frozen={frozen}
+        heightVh="300vh"
         header={
           <TaglineHeader
             index="01"
@@ -987,22 +1055,22 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         stages={sectionStages.write}
         captions={sectionCaptions.write}
         onChoice={handleWorkoutChoice}
+        onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.write}
         editor={{
-          doc: runwayDoc,
+          doc,
           theme,
-          onDocChange: handleRunwayDocChange,
-          onBlocksChange: handleRunwayBlocksChange,
-          onRun: handleRunwayRun,
-          onShare: handleRunwayShare,
+          onDocChange: handleDocChange,
+          onBlocksChange: handleBlocksChange,
+          onRun: handleRun,
+          onShare: handleShare,
         }}
       />
 
       <TourSectionRunway
         ref={runApiRef}
         id="run"
-        heightVh="420vh"
-        frozen={frozen}
+        heightVh="300vh"
         header={
           <TaglineHeader
             index="02"
@@ -1015,18 +1083,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         }
         stages={sectionStages.run}
         captions={sectionCaptions.run}
+        onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.run}
         onViewportChange={handleRunViewport}
-        timer={{
-          sessionKey: timerSessionKey,
-          block: runwayBlocksRef.current[0] ?? null,
-          autoStart: timerAutoStartRef.current,
-          externalPause: scrollOutPause,
-          onClose: handleTimerClose,
-          onComplete: handleTimerComplete,
-          onRuntimeReady: handleRuntimeReady,
-          onReset: handleTimerReset,
-        }}
+        timer={timerWiring}
         tvRuntime={tourRuntime}
         tvStageId="timer-cast"
       />
@@ -1034,9 +1094,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       <TourSectionRunway
         ref={ownApiRef}
         id="own"
-        heightVh="360vh"
-        frozen={frozen}
-        screenKind="metrics"
+        heightVh="260vh"
         header={
           <TaglineHeader
             index="03"
@@ -1049,14 +1107,15 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         }
         stages={sectionStages.own}
         captions={sectionCaptions.own}
+        onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.own}
+        session={{ ...sessionWiring, fixedStage: 'wql-table' }}
       />
 
       <TourSectionRunway
         ref={exploreApiRef}
         id="explore"
-        heightVh="560vh"
-        frozen={frozen}
+        heightVh="320vh"
         header={
           <TaglineHeader
             index="04"
@@ -1069,10 +1128,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         }
         stages={sectionStages.explore}
         captions={sectionCaptions.explore}
+        onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.explore}
+        session={sessionWiring}
         toastLabel={
           session
-            ? `Stopped at ${fmtClock(session.results.duration)} — saving results to playground…`
+            ? `Stopped at ${fmtClock(session.duration)} — saving results to playground…`
             : null
         }
       />
@@ -1089,8 +1150,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         onRun={handleChapterRun}
         onShare={handleChapterShare}
       />
-
-      {interactive && playgroundOverlay}
     </div>
   )
 }

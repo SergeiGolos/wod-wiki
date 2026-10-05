@@ -9,7 +9,7 @@ describe('aggregate filter-key policy', () => {
   });
 
   it('rejects content-plane keys on the metric half of a cross-store join', () => {
-    const r = parseQuery('find:note{tags:pr} last 8w where sum:totalVolume{text:x} > 5');
+    const r = parseQuery(':note{tags:pr} last 8w where sum:totalVolume{text:x} > 5');
     expect(r.error).toContain('Content filter key(s) "text"');
   });
 
@@ -23,15 +23,15 @@ describe('aggregate filter-key policy', () => {
   });
 });
 
-describe('find:effort advisories', () => {
+describe(':effort advisories', () => {
   it('advises that the window is ignored — the registry has no time dimension', () => {
-    const r = parseQuery('find:effort{text:hangboard} last 4w');
+    const r = parseQuery(':effort{text:hangboard} last 4w');
     expect(r.error).toBeUndefined();
     expect(r.advisories?.join(' ')).toContain('ignores the window');
   });
 
   it('advises that unsupported filter keys are ignored', () => {
-    const r = parseQuery('find:effort{text:hangboard,source:journal,tags:climbing}');
+    const r = parseQuery(':effort{text:hangboard,source:journal,tags:climbing}');
     expect(r.error).toBeUndefined();
     const advisories = r.advisories?.join(' ') ?? '';
     expect(advisories).toContain("'source:'");
@@ -39,7 +39,7 @@ describe('find:effort advisories', () => {
   });
 
   it('stays silent for fully supported effort queries', () => {
-    const r = parseQuery('find:effort{text:hangboard}');
+    const r = parseQuery(':effort{text:hangboard}');
     expect(r.error).toBeUndefined();
     expect(r.advisories).toBeUndefined();
   });

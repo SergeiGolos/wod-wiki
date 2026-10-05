@@ -44,7 +44,7 @@ function parserValidValue(type: string, value: string): boolean {
   if (type === 'time') {
     if (v.toLowerCase() === 'all') return true;
     if (!/^last\s+\d+[dw]$/i.test(v)) return false;
-    const probe = parseQuery(`find:note ${v}`);
+    const probe = parseQuery(`:note ${v}`);
     return !probe.error && probe.family === 'find' && probe.window?.kind === 'relative';
   }
   if (type === 'rollup') {

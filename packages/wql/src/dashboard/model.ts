@@ -23,6 +23,7 @@ export const DASHBOARD_WIDGET_TYPES = [
   'value',
   'timeseries',
   'bar',
+  'donut',
   'toplist',
   'stacked-bar',
   'goal-rings',

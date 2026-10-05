@@ -46,11 +46,11 @@ import {
 describe('@bitcobblers/wod-wiki-wql public surface', () => {
   it('exports grammar, AST parser, and type guards', () => {
     expect(wqlParser).toBeDefined();
-    const findAst = parseQuery('find:note{tags:pr} in journal last 8w');
+    const findAst = parseQuery(':note{tags:pr} in journal last 8w');
     expect(isFindQuery(findAst)).toBe(true);
     expect((findAst as ParsedFindQuery).target).toBe('note');
 
-    const sessionAst = parseQuery('find:session{block:bc-1}');
+    const sessionAst = parseQuery(':session{block:bc-1}');
     expect(isFindQuery(sessionAst)).toBe(true);
     expect((sessionAst as ParsedFindQuery).target).toBe('session');
 

@@ -31,8 +31,8 @@ describe('quoted value insertion', () => {
       return finalDoc;
     };
 
-    expect(await runApply('find:note{text:')).toBe('find:note{text:"300 air squats"');
+    expect(await runApply(':note{text:')).toBe(':note{text:"300 air squats"');
     // Already inside quotes: the raw value goes in, no double-quoting/truncation.
-    expect(await runApply('find:note{text:"')).toBe('find:note{text:"300 air squats');
+    expect(await runApply(':note{text:"')).toBe(':note{text:"300 air squats');
   });
 });

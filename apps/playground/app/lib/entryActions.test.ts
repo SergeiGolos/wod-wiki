@@ -107,7 +107,7 @@ describe('entryCollectionFeedHref', () => {
       sourceCatalog: 'crossfit-girls',
       sourceItem: '',
     })
-    expect(entryCollectionFeedHref(entry)).toBe('/feeds?q=find%3Anote%7Bsource%3Acollections%2Ccatalog%3Acrossfit-girls%7D')
+    expect(entryCollectionFeedHref(entry)).toBe('/feeds?q=%3Anote%7Bsource%3Acollections%2Ccatalog%3Acrossfit-girls%7D')
   })
 
   it('returns null for regular workouts', () => {

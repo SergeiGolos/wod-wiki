@@ -9,6 +9,7 @@ export const whiteboardScriptLanguage = LRLanguage.define({
         Identifier: t.variableName,
         String: t.string,
         Number: t.number,
+        "schemeNumber schemeSpaced": t.number,
         Timer: t.keyword,
         collectibleTimer: t.keyword,
         textComment: t.lineComment,

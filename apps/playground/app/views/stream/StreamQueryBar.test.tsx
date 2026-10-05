@@ -7,9 +7,9 @@
  *    the composer's one searchable picker.
  * 2. Typing resolves synchronously through onQueryChange: valid filter
  *    fragments emit the resolved query, invalid text emits its exact draft.
- * 3. ⌘K (and the compact mobile row) open the command palette in WQL mode
- *    seeded with the current query; Apply writes the composed WQL back
- *    through onQueryChange.
+ * 3. The compact mobile row opens the command palette in WQL mode seeded
+ *    with the current query; Apply writes the composed WQL back through
+ *    onQueryChange.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
@@ -25,11 +25,11 @@ function Bar(props: Partial<Parameters<typeof StreamQueryBar>[0]> = {}) {
   return (
     <MemoryRouter>
       <StreamQueryBar
-        query='find:note{source:journal,text:"deadlift"} last 2w'
+        query=':note{source:journal,text:"deadlift"} last 2w'
         onQueryChange={(w) => {
           lastQuery = w
         }}
-        scopeOptions={['journal', 'collections', 'feeds']}
+        scopeOptions={['journal', 'collections']}
         execute={noopExecute}
         {...props}
       />
@@ -67,17 +67,8 @@ describe('StreamQueryBar', () => {
   it('emits invalid text unchanged — no parse attempt, no default pills', () => {
     render(<Bar />)
     const input = screen.getByPlaceholderText('Filter or search…')
-    fireEvent.change(input, { target: { value: 'find:note{oops' } })
-    expect(lastQuery).toBe('find:note{oops')
-  })
-
-  it('opens the command palette WQL mode with the current query via ⌘K', () => {
-    render(<Bar />)
-    fireEvent.click(screen.getByTitle('Edit query (⌘K)'))
-    const state = usePaletteStore.getState()
-    expect(state.isOpen).toBe(true)
-    expect(state.request?.wql?.initialQuery).toBe('find:note{source:journal,text:"deadlift"} last 2w')
-    expect(state.request?.wql?.onApply).toBeDefined()
+    fireEvent.change(input, { target: { value: ':note{oops' } })
+    expect(lastQuery).toBe(':note{oops')
   })
 
   it('does not open the command palette on a plain bar click', () => {
@@ -89,19 +80,14 @@ describe('StreamQueryBar', () => {
   it('compact variant summarizes the query and opens the palette on tap', () => {
     render(<Bar compact />)
     expect(screen.getByTestId('stream-query-summary').textContent).toBe(
-      'find:note{source:journal,text:"deadlift"} last 2w',
+      ':note{source:journal,text:"deadlift"} last 2w',
     )
     fireEvent.click(screen.getByTestId('stream-query-bar'))
     expect(usePaletteStore.getState().isOpen).toBe(true)
   })
 
-  it('exposes an accessible Edit query control', () => {
-    render(<Bar />)
-    expect(screen.getByRole('button', { name: 'Edit query' })).toBeDefined()
-  })
-
   it('compact dock summarizes the route default when the draft is empty', () => {
-    render(<Bar compact query="" defaultQuery="find:note{source:journal} last 2w" />)
-    expect(screen.getByTestId('stream-query-summary').textContent).toBe('find:note{source:journal} last 2w')
+    render(<Bar compact query="" defaultQuery=":note{source:journal} last 2w" />)
+    expect(screen.getByTestId('stream-query-summary').textContent).toBe(':note{source:journal} last 2w')
   })
 })

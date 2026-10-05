@@ -21,7 +21,7 @@ function DateRangeEditor({ value, onChange, onClose }: CustomSlotEditorProps<Dat
   // The shape check only guards which message to show, not acceptance.
   const shaped = ISO_DATE.test(start) && ISO_DATE.test(end);
   const parseError = shaped
-    ? parseQuery(`find:note from ${start} to ${end}`).error
+    ? parseQuery(`:note from ${start} to ${end}`).error
     : undefined;
   const orderError = shaped && start > end ? 'Date range end must not precede its start' : undefined;
   const error = parseError ?? orderError;

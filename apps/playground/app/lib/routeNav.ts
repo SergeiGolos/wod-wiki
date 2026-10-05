@@ -21,17 +21,6 @@ export interface RouteNavDeps {
   selectWorkout: (item: SelectWorkoutItem) => void
 }
 
-export const SYNTAX_LINKS = [
-  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'anatomy', label: 'Statement Anatomy', type: 'heading' as const },
-  { id: 'timers', label: 'Timers & Direction', type: 'heading' as const },
-  { id: 'metrics', label: 'Measuring Effort', type: 'heading' as const },
-  { id: 'groups', label: 'Groups & Repeaters', type: 'heading' as const },
-  { id: 'protocols', label: 'Protocols', type: 'heading' as const },
-  { id: 'supplemental', label: 'Supplemental', type: 'heading' as const },
-  { id: 'document', label: 'Document', type: 'heading' as const },
-]
-
 interface JournalItemPayload {
   targetDate?: string | number
   updatedAt?: string | number
@@ -134,10 +123,7 @@ export function deriveNav(pathname: string, deps: RouteNavDeps): PageNavLink[] {
     return links
   }
 
-  // 2. Docs pages
-  if (pathname === '/guide/syntax') return SYNTAX_LINKS
-
-  // 3. Journal list page — top-10 distinct session dates
+  // 2. Journal list page — top-10 distinct session dates
   if (pathname === '/journal') {
     const dates = new Set<string>()
     recentResults.forEach(r => {

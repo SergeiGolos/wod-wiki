@@ -95,9 +95,13 @@ export function createJournalNotes({
     },
 
     moveToDate(noteId, journalDate) {
+      // Validate the route date shape first — a malformed or impossible date
+      // must not reach the store (throws).
+      const targetDate = dateTimestamp(journalDate);
       return persistence.mutateNote({ id: noteId }, {
         metadata: {
           journalDate,
+          targetDate,
         },
       });
     },

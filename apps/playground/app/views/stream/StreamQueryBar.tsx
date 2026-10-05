@@ -5,9 +5,10 @@
  * Desktop: the shared WqlComposer in compact mode IS the bar — kind, target
  * and Where-stored scope chips with one searchable picker; favorites
  * (`scopeOptions`) prioritize choices without ever defining validity. There
- * is no header-local parser, draft text or separate scope dropdown. ⌘K opens
- * the same query in the palette dialog; Apply writes the composed WQL back
- * through `onQueryChange` (URL `?q=` follows).
+ * is no header-local parser, draft text or separate scope dropdown. The full
+ * query dialog stays reachable through the View menu and the global
+ * ⌘K palette; Apply writes the composed WQL back through `onQueryChange`
+ * (URL `?q=` follows).
  *
  * `compact` (mobile) renders the summary row that portals into the app
  * navbar: tapping opens the shared palette dialog (view settings lives in
@@ -15,7 +16,7 @@
  */
 
 import { useCallback } from 'react'
-import { ChevronUp, Command, Search } from 'lucide-react'
+import { ChevronUp, Search } from 'lucide-react'
 import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
@@ -100,32 +101,19 @@ export function StreamQueryBar({
       className={cn('flex min-w-0 flex-1 items-center gap-1 text-xs', className)}
     >
       {/* Shared composer — same parsing, catalog and searchable picker as the
-          dialog; the header has no separate draft text or scope menu. The
-          route default guides via the composer's example line. */}
+          dialog; the header has no separate draft text or scope menu. No
+          defaultQuery here: the route default would render the composer's
+          "Example WQL" line in the sticky header. The mobile compact summary
+          below still uses it when the draft is empty. */}
       <WqlComposer
         query={query}
         onQueryChange={onQueryChange}
         compact
         showDiagnostics={false}
         preferredChoices={scopeOptions}
-        defaultQuery={defaultQuery}
         placeholder="Filter or search…"
         className="min-w-0 flex-1"
       />
-
-      <button
-        type="button"
-        aria-label="Edit query"
-        title="Edit query (⌘K)"
-        onClick={(e) => {
-          e.stopPropagation()
-          openEditor()
-        }}
-        className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      >
-        <Command className="size-3" aria-hidden="true" />
-        K
-      </button>
     </div>
   )
 }

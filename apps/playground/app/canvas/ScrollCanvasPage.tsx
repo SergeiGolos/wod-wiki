@@ -17,7 +17,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryState } from 'nuqs'
-import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
+import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
@@ -29,7 +29,8 @@ import {
   type ParsedCanvasPage,
   type CanvasSection,
 } from './parseCanvasMarkdown'
-import { resolveSource } from './canvasUtils'
+import { resolveSource, STICKY_NAV_HEIGHT } from './canvasUtils'
+import { useStickyBoundaryOffset } from '@/panels/page-shells'
 import { useScrollQuests } from './useScrollQuests'
 import { RunwayAdapter } from './RunwayAdapter'
 
@@ -67,10 +68,11 @@ export function ScrollCanvasPage({
   // ── Quests: scroll milestones + validation challenges share the ledger ──
   const markStageViewed = useScrollQuests(page.route, page.quests, stages)
 
-  const canvasNoteId = `canvas:scroll:${page.route}`
   const getBlock = useCallback(() => blocksRef.current[0] ?? null, [])
   const getContent = useCallback(() => doc, [doc])
-  const runtime = useCanvasRuntime({ canvasNoteId, getBlock, getContent, title: page.frontmatter.title })
+  const runtime = useCanvasRuntime({ getBlock, getContent, title: page.frontmatter.title })
+  const { startRun } = runtime
+  const stickyViewportOffset = useStickyBoundaryOffset(STICKY_NAV_HEIGHT)
 
   const challenge = useSyntaxChallenge({
     pageRoute: page.route,
@@ -97,11 +99,11 @@ export function ScrollCanvasPage({
       setPanelState: (state: 'note' | 'track' | 'review') => {
         if (state === 'track') {
           const block = getBlock()
-          if (block) runtime.startRun(block)
+          if (block) startRun(block)
         }
       },
     }),
-    [navigate, setHeadingParam, wodFiles, getBlock, runtime.startRun],
+    [navigate, setHeadingParam, wodFiles, getBlock, startRun],
   )
 
   const handleExampleSelect = useCallback(
@@ -124,9 +126,9 @@ export function ScrollCanvasPage({
   // doc + compiled block; launch the fullscreen timer with it.
   const handleRun = useCallback(
     (content: string, block: ScriptBlock | null) => {
-      if (block) void runtime.startRun(block, content)
+      if (block) void startRun(block, content)
     },
-    [runtime.startRun],
+    [startRun],
   )
 
   const noteTitle = `${page.route.split('/').pop() ?? 'note'}.md`
@@ -153,12 +155,17 @@ export function ScrollCanvasPage({
   return (
     <div className="flex flex-col min-h-screen bg-background" data-testid="scroll-canvas-page">
       {runtime.fullscreen?.kind === 'timer' && (
-        <FullscreenTimer
-          block={runtime.fullscreen.block}
-          onClose={runtime.closeRun}
-          autoStart
-          onCompleteWorkout={(_blockId, results) => { void runtime.handleWorkoutComplete(results) }}
-        />
+        <div className="sticky z-30 border-b border-border bg-background" style={{ top: stickyViewportOffset }}>
+          <div className="mx-auto h-[max(320px,min(75vh,640px))] max-w-5xl px-4 py-2">
+            <RuntimeTimerPanel
+              block={runtime.fullscreen.block}
+              onClose={runtime.closeRun}
+              autoStart
+              externalStop={runtime.resetRequested}
+              onComplete={(_blockId, results) => { void runtime.handleWorkoutComplete(results) }}
+            />
+          </div>
+        </div>
       )}
 
       <RunwayAdapter

@@ -7,7 +7,7 @@ import '../../../tests/helpers/repair-react-router-dom';
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { parseQuery, type FindQueryResult, type ParsedAggregateQuery, type ParsedFindQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, isFindQuery, type FindQueryResult, type ParsedAggregateQuery, type ParsedFindQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 function resultOf(raw: string): QueryResult {
   return {
@@ -224,16 +224,16 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('Save seeds the composer with the exact current draft — no reconstruction', async () => {
-    renderPage('find:note{tags:pr,source:journal}');
+    renderPage(':note{tags:pr,source:journal}');
     await waitFor(() => expect(screen.getByTestId('save-query')).toBeDefined());
 
     fireEvent.click(screen.getByTestId('save-query'));
 
     // Dataset: the find query is the subset (data source).
-    expect(screen.getByTestId('widget-composer-subset').textContent).toContain('find:note{tags:pr,source:journal}');
+    expect(screen.getByTestId('widget-composer-subset').textContent).toContain(':note{tags:pr,source:journal}');
     // The calculation composer seeds the EXACT draft (never a sum:{}
     // reconstruction) — the live preview is what gets persisted.
-    await waitFor(() => expect(screen.getByTestId('widget-composer-wql').textContent).toContain('find:note{tags:pr,source:journal}'));
+    await waitFor(() => expect(screen.getByTestId('widget-composer-wql').textContent).toContain(':note{tags:pr,source:journal}'));
     // The seeded find is itself a valid table widget — Apply is ready.
     expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).toBeNull();
     // Destination defaults to creating a new dashboard.
@@ -243,15 +243,15 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('Save persists the exact composed WQL as a widget on a new dashboard', async () => {
-    renderPage('find:note{tags:pr,source:journal}');
+    renderPage(':note{tags:pr,source:journal}');
     fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
 
     // Commit a full valid calculation through the composer, replacing the
     // exact find seed.
     const dialog = await waitFor(() => screen.getByRole('dialog'));
-    fireEvent.change(await composerEditor(dialog), { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
+    fireEvent.change(await composerEditor(dialog), { target: { value: 'sum:totalVolume{} where :note{tags:pr,source:journal}' } });
     await waitFor(() =>
-      expect(screen.getByTestId('widget-composer-wql').textContent).toContain('sum:totalVolume{} where find:note{tags:pr,source:journal}'),
+      expect(screen.getByTestId('widget-composer-wql').textContent).toContain('sum:totalVolume{} where :note{tags:pr,source:journal}'),
     );
 
     fireEvent.change(screen.getByTestId('widget-composer-title'), { target: { value: 'PR Volume' } });
@@ -265,16 +265,16 @@ describe('AnalyticsExplorerPage', () => {
     // The locked widget section: heading + question-less fence, exact WQL.
     expect(raw).toContain('## PR Volume');
     expect(raw).toContain('```query');
-    expect(raw).toContain('sum:totalVolume{} where find:note{tags:pr,source:journal}');
+    expect(raw).toContain('sum:totalVolume{} where :note{tags:pr,source:journal}');
   });
 
   it('Save keeps the draft open with a visible error when persistence fails', async () => {
     updateImpl = async () => { throw new Error('quota exceeded'); };
-    renderPage('find:note{tags:pr,source:journal}');
+    renderPage(':note{tags:pr,source:journal}');
     fireEvent.click(await waitFor(() => screen.getByTestId('save-query')));
 
     const dialog = await waitFor(() => screen.getByRole('dialog'));
-    fireEvent.change(await composerEditor(dialog), { target: { value: 'sum:totalVolume{} where find:note{tags:pr,source:journal}' } });
+    fireEvent.change(await composerEditor(dialog), { target: { value: 'sum:totalVolume{} where :note{tags:pr,source:journal}' } });
     await waitFor(() => expect(screen.getByTestId('widget-composer-apply').getAttribute('disabled')).toBeNull());
 
     fireEvent.click(screen.getByTestId('widget-composer-apply'));
@@ -300,7 +300,17 @@ describe('AnalyticsExplorerPage', () => {
     // …and the derived records query sits behind the Records disclosure.
     expect(screen.queryByTestId('records-wql')).toBeNull();
     fireEvent.click(await waitFor(() => screen.getByTestId('records-toggle')));
-    await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} last 16w'));
+    // Semantic, not spelling: the derived records query is a find over the
+    // chart's tags filter with a 16-week window (serialization may append
+    // an explicit scope clause).
+    await waitFor(() => {
+      const parsed = parseQuery(screen.getByTestId('records-wql').textContent ?? '');
+      expect(isFindQuery(parsed)).toBe(true);
+      if (isFindQuery(parsed)) {
+        expect(parsed.filters.some((f) => f.key === 'tags' && f.values.some((v) => v.value === 'pr'))).toBe(true);
+        expect(parsed.window).toEqual({ kind: 'relative', size: 16, unit: 'w' });
+      }
+    });
     await waitFor(() => expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5'));
   });
 
@@ -407,7 +417,7 @@ describe('AnalyticsExplorerPage', () => {
     renderPage('');
 
     await clickExample('Find PR notes');
-    await waitFor(() => expect(runFindCalls).toContain('find:note{tags:pr,source:journal}'));
+    await waitFor(() => expect(runFindCalls).toContain(':note{tags:pr,source:journal}'));
     await waitFor(() => expect(screen.queryByText('No notes found.')).not.toBeNull());
   });
 

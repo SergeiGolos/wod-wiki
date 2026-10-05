@@ -7,7 +7,7 @@
  * (notes / blocks / efforts) is unchanged by workout-data unification.
  */
 
-import type { BlockIndexRow, Note, EventRecord } from '@bitcobblers/wod-wiki-core';
+import type { BlockIndexRow, Note, EventRecord, Page, PageNote } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Store surface for the unified event table — every workout-data read the
@@ -41,7 +41,7 @@ export interface EventStore {
 }
 
 
-/** Store surface for content queries (`find:note`). */
+/** Store surface for content queries (`:note`). */
 export interface NoteQueryStore {
   getAllNotes(): Promise<Note[]>;
   getNoteIdsForTag(label: string): Promise<Set<string>>;
@@ -50,12 +50,12 @@ export interface NoteQueryStore {
   getNoteTagLabels(noteId: string): Promise<string[]>;
 }
 
-/** Store surface for block-index queries (`find:block`). */
+/** Store surface for block-index queries (`:block`). */
 export interface BlockQueryStore {
   getAllBlocks(): Promise<BlockIndexRow[]>;
 }
 
-/** Pure effort model interface for `find:effort` queries. */
+/** Pure effort model interface for `:effort` queries. */
 export interface IEffort {
   id: string;
   slug: string;
@@ -90,4 +90,16 @@ export interface QueryServiceStores {
   tagsStore?: { getAllFromIndex(index: string, key: string): Promise<any[]> };
   /** Serves note-tag junction rows (`note_tags` store). */
   noteTagsStore?: { getAllFromIndex(index: string, key: string): Promise<any[]> };
+  /** Canonical page_notes junction reads for container resolution — a
+   *  note's parent Page wins over a standalone Note container. */
+  pageStore?: {
+    getNotePages(noteId: string): Promise<PageNote[]>;
+    getPage(pageId: string): Promise<Page | undefined>;
+  };
+  /** Synchronous named datasets (`@session`, `@today`, user-stored sources)
+   *  populated by the host before queries run — pipeline dataset stages
+   *  never touch the database. */
+  datasetStore?: {
+    getDataset(name: string): { events: EventRecord[]; notes: Note[] } | undefined;
+  };
 }

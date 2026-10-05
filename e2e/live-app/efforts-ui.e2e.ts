@@ -65,13 +65,13 @@ test.describe('Efforts Catalog Page', () => {
     await page.waitForTimeout(800);
 
     await expect(page.getByTestId('stream-query-bar')).toBeVisible();
-    await expect(page.getByTestId('add-filter-button')).toBeVisible();
+    await expect(page.getByTestId('stream-view-settings-trigger')).toBeVisible();
   });
 
   test('filtering by custom shows empty state initially', async ({ page }) => {
     const efforts = new EffortsPage(page);
     await efforts.gotoCatalog();
-    await efforts.applyQuery('find:effort{origin:user}');
+    await efforts.applyQuery(':effort{origin:user}');
     await expect(page.getByTestId('stream-empty-state')).toBeVisible();
     await expect(page.getByText(/No efforts match/i)).toBeVisible();
   });
@@ -79,7 +79,7 @@ test.describe('Efforts Catalog Page', () => {
   test('filtering by bundled shows efforts', async ({ page }) => {
     const efforts = new EffortsPage(page);
     await efforts.gotoCatalog();
-    await efforts.applyQuery('find:effort{origin:bundled}');
+    await efforts.applyQuery(':effort{origin:bundled}');
     await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
   });
 

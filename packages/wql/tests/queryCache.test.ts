@@ -14,16 +14,23 @@ describe('ticket 20 — structural cache keys', () => {
   it('find presentation edits cannot reuse results from another suffix', () => {
     const context = { generation: 1 };
     const queries = [
-      'find:segment{effort:snatch}',
-      'find:segment{effort:snatch} by {effort}',
-      'find:segment{effort:snatch} in lb',
-      'find:segment{effort:snatch} | select effort',
-      'find:segment{effort:snatch} | order by effort desc',
-      'find:segment{effort:snatch} | limit 5',
-      'find:segment{effort:snatch} | offset 2',
+      ':segment{effort:snatch}',
+      ':segment{effort:snatch} by {effort}',
+      ':segment{effort:snatch} in lb',
+      ':segment{effort:snatch} | select effort',
+      ':segment{effort:snatch} | order by effort desc',
+      ':segment{effort:snatch} | limit 5',
+      ':segment{effort:snatch} | offset 2',
     ];
     const keys = queries.map((query) => computeCacheKey(parseQuery(query), context));
     expect(new Set(keys).size).toBe(queries.length);
+    // Pipelines key on source, transforms, and sink alike.
+    expect(computeCacheKey(parseQuery(':segment{} | :sum{metric:tis} | :bar'), context))
+      .not.toBe(computeCacheKey(parseQuery(':segment{} | :sum{metric:tis} | :table'), context));
+    expect(computeCacheKey(parseQuery('@today | :sum{metric:tis}'), context))
+      .not.toBe(computeCacheKey(parseQuery('@session | :sum{metric:tis}'), context));
+    expect(computeCacheKey(parseQuery(':journal{} | :sum{metric:tis}'), context))
+      .not.toBe(computeCacheKey(parseQuery(':note{} | :sum{metric:tis}'), context));
   });
 
   it('every context dimension participates: range, timezone, instant, generation, units', () => {

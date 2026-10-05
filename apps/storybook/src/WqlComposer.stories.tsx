@@ -83,7 +83,7 @@ export const Default: Story = {
 };
 
 const ControlledHarness: React.FC = () => {
-  const [wql, setWql] = useState('find:note last 2w');
+  const [wql, setWql] = useState(':note last 2w');
   const [validation, setValidation] = useState<WqlValidationState>({ valid: true });
   const [ast, setAst] = useState<AnyParsedQuery | null>(null);
 
@@ -232,7 +232,7 @@ export const AnalyticsComposition: Story = {
 // of the host. Captions name the host file; the composer props are the point.
 
 /** Canonical Where-stored scopes (WQL_SOURCE_VALUES); "all" is no scope
- *  filter at all — the bare `find:note` head. */
+ *  filter at all — the bare `:note` head. */
 const LIBRARY_SCOPES = ['journal', 'collections', 'feeds'] as const;
 type LibraryScope = (typeof LIBRARY_SCOPES)[number] | 'all';
 
@@ -245,14 +245,14 @@ type LibraryScope = (typeof LIBRARY_SCOPES)[number] | 'all';
  * locations (never plural-noun targets).
  */
 const LibraryHarness: React.FC = () => {
-  const [wql, setWql] = useState('find:note last 2w');
+  const [wql, setWql] = useState(':note last 2w');
   const [scope, setScope] = useState<LibraryScope>('all');
 
   const pickScope = (next: LibraryScope) => {
     setScope(next);
     const window = wql.match(/last \S+/)?.[0] ?? '';
     const filters = next === 'all' ? '' : `{source:${next}}`;
-    setWql(`find:note${filters}${window ? ` ${window}` : ''}`);
+    setWql(`:note${window ? ` ${window}` : ''}`);
   };
 
   return (
@@ -296,11 +296,11 @@ export const HostLibraryPage: Story = {
 /**
  * HostEffortsCatalog — apps/playground/app/views/stream/QueriableStreamView.tsx
  * (`/efforts`): same shape as the library but on the effort plane —
- * `find:effort{…}`, with text/discipline/intensity/origin filters
+ * `:effort{…}`, with text/discipline/intensity/origin filters
  * applied engine-side (QueryService.runFindEffort vocabulary).
  */
 const EffortsHarness: React.FC = () => {
-  const [wql, setWql] = useState('find:effort');
+  const [wql, setWql] = useState(':effort');
 
   return (
     <div className="max-w-3xl space-y-2">
@@ -537,7 +537,7 @@ const PaletteHarness: React.FC = () => {
       <div className="rounded-lg border border-zinc-200 px-3 py-2 shadow-sm dark:border-zinc-700">
         <WqlComposer
           key={seq}
-          initialQuery="find:note last 2w"
+          initialQuery=":note last 2w"
           onQueryChange={setWql}
           execute={liveExecute}
         />
@@ -582,7 +582,7 @@ const InspectorModalHarness: React.FC = () => {
       <WqlQueryInspectorModal
         isOpen={open}
         onClose={() => setOpen(false)}
-        initialQuery="find:note last 12w"
+        initialQuery=":note last 12w"
         onApply={(q) => {
           setApplied(q);
           setOpen(false);

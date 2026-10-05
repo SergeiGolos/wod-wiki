@@ -19,6 +19,7 @@ storageService.getNote = async (id: string) => notes.find((n) => n.id === id);
 storageService.getAllNotes = async () => notes;
 storageService.getTagsForNote = async () => [];
 storageService.getPage = async () => undefined;
+storageService.getNotePages = async () => [];
 storageService.getAllSegments = async () => [];
 storageService.getResultsForNote = async () => [];
 storageService.saveNote = async (note: Note) => note.id;

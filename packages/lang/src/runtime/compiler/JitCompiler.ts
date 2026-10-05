@@ -43,7 +43,7 @@ export class JitCompiler implements IJitCompiler {
         // explicit child metrics (index 0) take precedence when origins
         // are equal (defaults), but higher-precedence origins
         // (compiler/execution) will still resort to the top in the UI.
-        effectiveNodes = nodes.map(node => {
+        effectiveNodes = effectiveNodes.map(node => {
             // Preserve the prototype chain (to keep methods like getFragment)
             const clone = Object.create(Object.getPrototypeOf(node));
             Object.assign(clone, node);

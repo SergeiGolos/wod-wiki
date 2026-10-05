@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { QueryDocumentRunner } from '../src/queryDocumentRunner';
+import { parseQuery } from '../src/wql';
 
 describe('ticket 19 — QueryDocumentRunner', () => {
   const runner = new QueryDocumentRunner({
@@ -8,12 +9,14 @@ describe('ticket 19 — QueryDocumentRunner', () => {
       unit: undefined,
       queryText,
     }),
-    runRows: async () => ({
+    runFind: async () => ({
+      kind: 'find' as const,
       parsed: {} as never,
-      runs: [],
-      table: { columns: [{ name: 'date', type: 'date' }], rows: [{ date: '2026-09-07' }], totalCount: 1 },
+      notes: [],
+      blocks: [],
+      stages: { selected: 0, matched: 0 },
+      table: { columns: [{ name: 'date', type: 'date' as const }], rows: [{ date: '2026-09-07' }], totalCount: 1 },
     }),
-    runFind: async () => ({ parsed: {} as never, notes: [], blocks: [], stages: { selected: 0, matched: 0 }, table: { columns: [{ name: 'date', type: 'date' }], rows: [{ date: '2026-09-07' }], totalCount: 1 } }),
     rollupEnsure: async () => { rollupEnsures += 1; },
   });
   let rollupEnsures = 0;
@@ -27,13 +30,13 @@ describe('ticket 19 — QueryDocumentRunner', () => {
   });
 
   it('table queries dispatch to runFind and surface the TabularResult', async () => {
-    const result = await runner.run('find:segment{discipline:running} | limit 5');
+    const result = await runner.run(':segment{discipline:running} | limit 5');
     expect(result.outputs[0]!.kind).toBe('find');
     expect(result.outputs[0]!.table?.totalCount).toBe(1);
   });
 
   it('find queries dispatch to runFind', async () => {
-    const result = await runner.run('find:note{tags:crossfit}');
+    const result = await runner.run(':note{tags:crossfit}');
     expect(result.outputs[0]!.kind).toBe('find');
   });
 
@@ -73,5 +76,54 @@ describe('ticket 19 — QueryDocumentRunner', () => {
       expect(c?.instant).toBe(1_234_567_890);
       expect(c?.timeZone).toBe('Asia/Tokyo');
     }
+  });
+
+  it('document default windows bound find and pipeline dispatches', async () => {
+    const seen: string[] = [];
+    const probe = new QueryDocumentRunner({
+      runFind: async (q) => {
+        seen.push(q);
+        return { kind: 'find' as const, parsed: {} as never, notes: [], blocks: [] };
+      },
+      runPipeline: async (q) => {
+        seen.push(q);
+        return { parsed: { family: 'pipeline' as const, raw: q } };
+      },
+    });
+    await probe.run('defaults last 4w\na = :note\nb = @session | :sum{metric:tis}\nshow a, b');
+    expect(seen).toHaveLength(2);
+    for (const text of seen) {
+      const parsed = parseQuery(text);
+      // The block default bounds every family: find queries carry the window
+      // at top level; pipelines carry it on the transform stage.
+      const window = parsed.family === 'pipeline'
+        ? parsed.transforms[parsed.transforms.length - 1]?.window
+        : parsed.window;
+      expect(window).toEqual({ kind: 'relative', size: 4, unit: 'w' });
+    }
+  });
+
+  it('overlapping document runs keep captured contexts isolated', async () => {
+    const seen: Array<{ q: string; instant?: number }> = [];
+    let releaseFirst!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const probe = new QueryDocumentRunner({
+      runAggregate: async (queryText, opts) => {
+        seen.push({ q: queryText, instant: opts.context?.instant });
+        if (queryText.includes('tis')) await gate;
+        return { series: [{ key: 'k', label: 'k', points: [{ ts: 1, value: 1 }] }] };
+      },
+    });
+    const first = probe.run('sum:tis{}', { context: { instant: 111, timeZone: 'UTC' } });
+    const second = probe.run('sum:distance{}', { context: { instant: 222, timeZone: 'Asia/Tokyo' } });
+    await Promise.resolve();
+    releaseFirst();
+    await Promise.all([first, second]);
+    const tisRun = seen.find((s) => s.q.includes('tis'))!;
+    const distanceRun = seen.find((s) => s.q.includes('distance'))!;
+    expect(tisRun.instant).toBe(111);
+    expect(distanceRun.instant).toBe(222);
   });
 });

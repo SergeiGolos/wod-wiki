@@ -24,11 +24,16 @@ const playgroundNoteId = '01990e80-0000-7000-8000-000000000001'
 
 mock.module('../services/createPlaygroundPage', () => ({
   ensurePlaygroundEntry: async () => ({ noteId: playgroundNoteId, routeId: 'playground/canvas-home' }),
+  // Runs mint a fresh snapshot per run via usePlaygroundRun — same note shape.
+  playgroundIntake: {
+    snapshotEntry: async () => ({ noteId: playgroundNoteId, routeId: 'playground/canvas-home' }),
+  },
 }))
 const sampleSessions = {
   completed: true,
   startTime: 1_700_000_000_000,
   endTime: 1_700_000_030_000,
+  duration: 30_000,
   logs: [{ id: 'log-1' }],
 }
 
@@ -144,9 +149,9 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
   },
 }))
 
-mock.module('@/components/organisms/review/FullscreenTimer', () => ({
-  FullscreenTimer: (props: { onCompleteWorkout: (blockId: string, results: typeof sampleSessions) => void }) => (
-    <button data-testid="complete-fullscreen" onClick={() => props.onCompleteWorkout('block-1', sampleSessions)}>
+mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
+  RuntimeTimerPanel: (props: { onComplete?: (blockId: string, results: typeof sampleSessions) => void }) => (
+    <button data-testid="complete-fullscreen" onClick={() => props.onComplete?.('block-1', sampleSessions)}>
       Complete fullscreen
     </button>
   ),

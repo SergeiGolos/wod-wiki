@@ -19,6 +19,7 @@ import { parseFrontmatter, type ParsedFrontmatter } from '@/lib/frontmatter'
 import { QueryBlockView } from '@bitcobblers/wod-wiki-ui'
 import { parseQueryWidgetSuffix } from '@bitcobblers/wod-wiki-wql'
 import { queryService } from '@/services/queryService'
+import { usePageSourcesReady } from '@/hooks/usePageSourcesReady'
 import { entryOpenHref } from '../lib/entryActions'
 import { toEntry, blockToEntry } from '../lib/entryMapper'
 import type { Note } from '@/types/storage'
@@ -43,6 +44,45 @@ function isExternalLink(href: string): boolean {
 }
 
 // ── YAML frontmatter renderer ─────────────────────────────────────────────────
+
+/**
+ * Query fence block — gated on page-source population so `@session`/`@today`
+ * dataset pipelines evaluate against a populated registry on first paint.
+ */
+function CanvasQueryBlock({
+  queryText,
+  widgetType,
+  widgetError,
+}: {
+  queryText: string
+  widgetType?: string
+  widgetError?: string
+}) {
+  const sourcesReady = usePageSourcesReady()
+  if (!sourcesReady) {
+    return (
+      <div className="my-5 not-prose text-xs text-muted-foreground py-2">Loading…</div>
+    )
+  }
+  return (
+    <div className="my-5 not-prose">
+      <QueryBlockView
+        query={queryText}
+        widgetType={widgetType}
+        widgetError={widgetError}
+        executor={queryService}
+        readOnly={true}
+        noteHref={(item) => {
+          const isBlock = 'blockContentId' in item || 'dataType' in item
+          const entry = isBlock
+            ? blockToEntry(item as unknown as Parameters<typeof blockToEntry>[0])
+            : toEntry(item as unknown as Parameters<typeof toEntry>[0])
+          return entryOpenHref(entry)
+        }}
+      />
+    </div>
+  )
+}
 
 function splitFrontmatter(prose: string): { fields: ParsedFrontmatter['meta'] | null; body: string } {
   const { meta, body } = parseFrontmatter(prose)
@@ -136,7 +176,14 @@ const components: Components = {
   // Code blocks — mono styled with language label
   code({ children, className }) {
     const language = className?.replace('language-', '') ?? ''
-    const isInline = !className
+    // A fence with no info string still arrives without a className — tell it
+    // apart from inline code by its newlines (inline spans never contain any).
+    const rawText = typeof children === 'string'
+      ? children
+      : Array.isArray(children)
+        ? children.join('')
+        : String(children ?? '')
+    const isInline = !className && !rawText.includes('\n')
     if (isInline) {
       return (
         <code className="px-1.5 py-0.5 rounded-md bg-muted font-mono text-[0.85em] text-foreground">
@@ -154,22 +201,11 @@ const components: Components = {
       const rawSuffix = language.replace(/^query[:\s]?/, '').trim()
       const parsedSuffix = rawSuffix ? parseQueryWidgetSuffix(rawSuffix) : undefined
       return (
-        <div className="my-5 not-prose">
-          <QueryBlockView
-            query={queryText}
-            widgetType={parsedSuffix?.type}
-            widgetError={parsedSuffix?.error}
-            executor={queryService}
-            readOnly={true}
-            noteHref={(item) => {
-              const isBlock = 'blockContentId' in item || 'dataType' in item
-              const entry = isBlock
-                ? blockToEntry(item as unknown as Parameters<typeof blockToEntry>[0])
-                : toEntry(item as unknown as Parameters<typeof toEntry>[0])
-              return entryOpenHref(entry)
-            }}
-          />
-        </div>
+        <CanvasQueryBlock
+          queryText={queryText}
+          widgetType={parsedSuffix?.type}
+          widgetError={parsedSuffix?.error}
+        />
       )
     }
     return (

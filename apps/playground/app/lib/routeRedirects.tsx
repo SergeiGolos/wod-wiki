@@ -66,7 +66,7 @@ export function ResultsRedirect(): ReactNode {
 
 /** Redirect /results/segments → /sessions with the segments query pre-filled. */
 export function SegmentsRedirect(): ReactNode {
-  return <Navigate to={`/sessions?q=${encodeURIComponent('find:segment{} last 8w')}`} replace />
+  return <Navigate to={`/sessions?q=${encodeURIComponent(':segment{} last 8w')}`} replace />
 }
 
 /** Redirect /results/:resultId → /sessions/:sessionId */
@@ -93,7 +93,7 @@ export function TrackerRedirect(): ReactNode {
  * `/sessions/:sessionId` (or note-scoped `/sessions?q=...`):
  *   /review/:runtimeId                              → /sessions/:runtimeId
  *   /note/:noteId/review/:sectionId/:resultId       → /sessions/:resultId
- *   /note/:noteId/review[/…]                        → /sessions?q=find:session{note:…}
+ *   /note/:noteId/review[/…]                        → /sessions?q=:session{note:…}
  */
 export function ReviewRedirect(): ReactNode {
   const { runtimeId, noteId, resultId } = useParams<{
@@ -107,7 +107,7 @@ export function ReviewRedirect(): ReactNode {
     return <Navigate to={sessionDetailPath(scope)} replace />
   }
   if (noteId) {
-    return <Navigate to={`/sessions?q=${encodeURIComponent(`find:session{note:${noteId}}`)}`} replace />
+    return <Navigate to={`/sessions?q=${encodeURIComponent(`:session{note:${noteId}}`)}`} replace />
   }
   return <Navigate to="/sessions" replace />
 }
@@ -123,12 +123,6 @@ export function PlanRedirect(): ReactNode {
   // The plan-mode param is appended last; any caller `?zip=...` is preserved.
   const suffix = search && search.startsWith('?') ? `${search}&mode=plan` : '?mode=plan'
   return <Navigate to={`/journal${suffix}`} replace />
-}
-
-/** Redirect /syntax/* → /p/syntax/* (pages carry the slug, not the namespace). */
-export function SyntaxRedirect(): ReactNode {
-  const { '*': splat } = useParams()
-  return <Navigate to={splat ? `/p/syntax/${splat}` : '/p/syntax'} replace />
 }
 
 /** Redirect /analytics/explorer → /dashboards, preserving the shareable ?q=

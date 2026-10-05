@@ -6,7 +6,7 @@ corpus: crossfit-multi-week
 ## Query
 
 ```wql
-find:session{result:res-fran-w0}
+:session{result:res-fran-w0}
 ```
 
 ## Expected

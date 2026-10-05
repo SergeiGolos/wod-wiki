@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
  */
 import type { EditorView } from '@codemirror/view'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
+import type { ScriptBlock } from '@/components/Editor/types'
 import { EditorWindow } from '../components/organisms/editor/EditorWindow'
 
 export interface CanvasPanelContentProps {
@@ -14,11 +15,11 @@ export interface CanvasPanelContentProps {
   editorOpacity: number
   activeOriginalSource: string
   handleEditorChange: (value: string) => void
-  resetActiveSource: () => void
+  /** Archive-then-reset: resolves true only when the reset persisted; the draft must only change on `true`. */
+  onResetToSource: () => Promise<boolean>
   canvasNoteId: string
   theme: string
   commands: ScriptCommand[]
-  activeSectionId: string | null
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onViewCreated: (view: EditorView | null) => void
   panelTitle: string
@@ -33,11 +34,10 @@ export function CanvasPanelContent({
   editorOpacity,
   activeOriginalSource,
   handleEditorChange,
-  resetActiveSource,
+  onResetToSource,
   canvasNoteId,
   theme,
   commands,
-  activeSectionId,
   onBlocksChange,
   onViewCreated,
   panelTitle,
@@ -53,7 +53,7 @@ export function CanvasPanelContent({
       {isEditorDirty ? (
         <button
           type="button"
-          onClick={resetActiveSource}
+          onClick={() => { void onResetToSource() }}
           className="rounded-full border border-primary/30 px-3 py-1 text-[10px] font-black text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           Reset to example

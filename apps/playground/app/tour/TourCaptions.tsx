@@ -25,6 +25,12 @@ export interface TourCaptionAction {
   event: HomeEventName
 }
 
+/** A caption button that drives the live stage pane (query/board/Try-it). */
+export interface TourCaptionCommand {
+  key: string
+  label: string
+}
+
 /** Choose-your-own-adventure workout option rendered in the caption combo box. */
 export interface TourCaptionChoice {
   label: string
@@ -76,6 +82,8 @@ export interface TourCaption {
   foot: string
   accent: string
   actions?: TourCaptionAction[]
+  /** Buttons that drive the stage pane via the host's onCommand handler. */
+  commands?: TourCaptionCommand[]
   /** Workout choices rendered as a combo box; picking one resets the tour session. */
   choices?: TourCaptionChoice[]
   /** Prompt shown above the choices combo box. */
@@ -100,7 +108,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     actions: [
       {
         label: 'Start Lesson 1',
-        href: '/guide/syntax/basics',
+        href: '/guide/start#first-workout',
         event: HOME_EVENTS.lessonStarted,
       },
     ],
@@ -120,7 +128,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     actions: [
       {
         label: 'Start Lesson 1',
-        href: '/guide/syntax/basics',
+        href: '/guide/metrics#capture',
         event: HOME_EVENTS.lessonStarted,
       },
     ],
@@ -137,10 +145,11 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     body: 'Click Run in the editor top bar to execute the block — the step-through Clock launches and every line starts generating collected metrics.',
     foot: 'Run button · step-through Clock · untimed rounds',
     accent: TOUR_ACCENTS.editor,
+    commands: [{ key: 'try', label: 'Try it now ↓' }],
     actions: [
       {
         label: 'Read the behaviors explainer',
-        href: '/guide/behaviors',
+        href: '/guide/clock#run-next',
         event: HOME_EVENTS.behaviorsOpened,
       },
     ],
@@ -160,7 +169,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     actions: [
       {
         label: 'Read the behaviors explainer',
-        href: '/guide/behaviors',
+        href: '/guide/clock#run-next',
         event: HOME_EVENTS.behaviorsOpened,
       },
     ],
@@ -180,7 +189,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     actions: [
       {
         label: 'Read the behaviors explainer',
-        href: '/guide/behaviors',
+        href: '/guide/clock#run-next',
         event: HOME_EVENTS.behaviorsOpened,
       },
     ],
@@ -200,7 +209,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     actions: [
       {
         label: 'Read the behaviors explainer',
-        href: '/guide/behaviors',
+        href: '/guide/clock#casting',
         event: HOME_EVENTS.behaviorsOpened,
       },
     ],
@@ -217,6 +226,10 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     body: 'Back Squat, Pullups, a 500m Row — each tracked thing is an effort, drawn from the movement registry with its tags and discipline. Efforts are the nouns your training is written in.',
     foot: 'effort · movement registry · discipline tags',
     accent: TOUR_ACCENTS.timer,
+    commands: [
+      { key: 'q-reps', label: 'Reps by effort' },
+      { key: 'q-tonnage', label: 'Tonnage by week' },
+    ],
     actions: [
       {
         label: 'Browse the registry',
@@ -260,9 +273,16 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Every result is one query away.</em>
       </>
     ),
-    body: 'WQL turns your journal into queryable facts — pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The same elements drive every presentation in this window.',
+    body: 'WQL turns your journal into queryable facts — pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The table in this window is scoped to the run you just finished.',
     foot: 'aggregator · metric · filter · dimension · rollup',
     accent: TOUR_ACCENTS.analytics,
+    actions: [
+      {
+        label: 'Open the WQL guide',
+        href: '/guide/wql',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
   },
   {
     id: 'wql-table',
@@ -273,9 +293,14 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>One query, one ranked table.</em>
       </>
     ),
-    body: 'One aggregator, one metric, one dimension: sum total reps grouped by effort becomes a ranked table the moment the workout is logged. The chips above the widget are the parsed query — the vocabulary, front and center.',
-    foot: 'sum:totalReps{} by {effort} · parsed-query chips',
+    body: 'One aggregator, one metric, one dimension: sum total reps grouped by effort becomes a ranked table the moment the workout is logged — queried straight from this run’s note. Switch the query, watch the table follow.',
+    foot: 'note-scoped WQL · parsed-query chips',
     accent: TOUR_ACCENTS.analytics,
+    commands: [
+      { key: 'q-reps', label: 'Reps by effort' },
+      { key: 'q-tonnage', label: 'Tonnage by week' },
+      { key: 'q-tis', label: 'Avg intensity' },
+    ],
   },
   {
     id: 'wql-graphs',
@@ -289,6 +314,13 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     body: 'Roll the same facts up by week and they become a timeseries — is tonnage rising, is training polarized? A graph is not a feature you enable; it is a rollup away.',
     foot: 'by {week} · timeseries · stacked intensity',
     accent: TOUR_ACCENTS.analytics,
+    actions: [
+      {
+        label: 'Open the WQL guide',
+        href: '/guide/wql',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
   },
   {
     id: 'wql-dashboard',
@@ -299,9 +331,14 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>N queries on one screen.</em>
       </>
     ),
-    body: 'A dashboard is just N queries on one screen. Mix values, lists, and graphs — each tile its own WQL statement, exactly like the DashboardView you get in the app.',
-    foot: 'multi-query tiles · mirrors DashboardView',
+    body: 'A dashboard is just N queries on one screen. These are the app’s real seeded boards — same DashboardView, range selector, units, and widget Inspect you get at /dashboard — loaded right into this window.',
+    foot: 'seeded boards · range · units · inspect',
     accent: TOUR_ACCENTS.analytics,
+    commands: [
+      { key: 'board-training-block-review', label: 'Training Block Review' },
+      { key: 'board-road-to-560-total', label: 'Road to 560 Total' },
+      { key: 'board-polarized-base-marathon', label: 'Polarized Base Marathon' },
+    ],
   },
   {
     id: 'wql-live',
@@ -315,6 +352,13 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     body: 'Every widget here executes against your live journal — these are the sample answers until you have logged work of your own. Open the Dashboards tab to query anything, your way.',
     foot: 'live journal queries · sample fallback',
     accent: TOUR_ACCENTS.analytics,
+    actions: [
+      {
+        label: 'Browse the seeded boards',
+        href: '/guide/dashboards#seeded-boards',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
   },
 ]
 
@@ -323,14 +367,16 @@ export interface TourCaptionsProps {
   activeIndex: number
   /** Called when a workout choice is picked from the combo box (choose-your-own-adventure). */
   onChoice?: (wod: string) => void
+  /** Called when a caption command button is pressed (stage-pane driver). */
+  onCommand?: (captionId: string, key: string) => void
   /** Caption subset for a runway section; defaults to the full walkthrough list. */
   captions?: TourCaption[]
 }
 
 /** Desktop cross-fading caption column. */
-export function TourCaptions({ activeIndex, onChoice, captions = TOUR_CAPTIONS }: TourCaptionsProps) {
+export function TourCaptions({ activeIndex, onChoice, onCommand, captions = TOUR_CAPTIONS }: TourCaptionsProps) {
   return (
-    <div className="relative w-[330px] flex-none min-h-[280px]" data-testid="tour-captions">
+    <div className="relative w-[clamp(320px,24vw,400px)] flex-none min-h-[280px]" data-testid="tour-captions">
       {captions.map((cap, i) => (
         <div
           key={cap.id}
@@ -344,14 +390,14 @@ export function TourCaptions({ activeIndex, onChoice, captions = TOUR_CAPTIONS }
           }}
           aria-hidden={i !== activeIndex}
         >
-          <CaptionBody cap={cap} onChoice={onChoice} />
+          <CaptionBody cap={cap} onChoice={onChoice} onCommand={onCommand} />
         </div>
       ))}
     </div>
   )
 }
 
-export function CaptionBody({ cap, onChoice }: { cap: TourCaption; onChoice?: (wod: string) => void }) {
+export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; onChoice?: (wod: string) => void; onCommand?: (captionId: string, key: string) => void }) {
   return (
     <>
       <div
@@ -405,6 +451,22 @@ export function CaptionBody({ cap, onChoice }: { cap: TourCaption; onChoice?: (w
               </ComboboxOption>
             )}
           </Combobox>
+        </div>
+      )}
+      {cap.commands && cap.commands.length > 0 && onCommand && (
+        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`tour-caption-commands-${cap.id}`}>
+          {cap.commands.map((command) => (
+            <button
+              key={command.key}
+              type="button"
+              onClick={() => onCommand(cap.id, command.key)}
+              className="inline-flex items-center rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-accent"
+              style={{ borderColor: cap.accent, color: cap.accent }}
+              data-testid={`tour-caption-command-${cap.id}-${command.key}`}
+            >
+              {command.label}
+            </button>
+          ))}
         </div>
       )}
       {cap.actions && cap.actions.length > 0 && (

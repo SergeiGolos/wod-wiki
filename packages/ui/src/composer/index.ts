@@ -38,9 +38,11 @@ export { useSuggestions, type ClauseSuggestions } from './useSuggestions';
 export {
   summarizeAggregate,
   summarizeFind,
+  summarizePipeline,
   type WqlAggregateSummary,
   type WqlDiagnostics,
   type WqlFindSummary,
+  type WqlPipelineSummary,
 } from './diagnostics';
 export { WqlDiagnosticsStrip, type WqlDiagnosticsStripProps } from './WqlDiagnosticsStrip';
 export {

@@ -13,6 +13,7 @@ import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'
 import { useChapterProgress } from '../hooks/useChapterProgress'
 import { chapterIcon } from '../components/ChallengeBadges'
+import { CHAPTER_GUIDE_ROUTES, CHAPTER_GUIDE_DEFAULT_ROUTE } from './tourConstants'
 import { cn } from '@/lib/utils'
 
 export interface TourLearnSectionProps {
@@ -20,15 +21,6 @@ export interface TourLearnSectionProps {
   chapters: Chapter[]
   questLabels?: Record<string, string>
   onHomeQuestClick?: (questId: string) => void
-}
-
-const CHAPTER_ROUTES: Record<string, string> = {
-  basics: '/guide/syntax/basics',
-  protocols: '/guide/syntax/protocols',
-  structure: '/guide/syntax/structure',
-  'custom-metrics': '/guide/syntax/custom-metrics',
-  dialects: '/guide/syntax/dialects',
-  complex: '/guide/syntax/complex',
 }
 
 export function LearnProgressOverview({
@@ -55,14 +47,14 @@ export function LearnProgressOverview({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            to="/guide/syntax/basics"
+            to="/guide/start"
             onClick={handleLesson}
             className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Start Lesson 1
           </Link>
           <Link
-            to="/guide/syntax/cheatsheet"
+            to="/guide/start?h=reference"
             onClick={handleCheatsheet}
             className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
           >
@@ -76,7 +68,7 @@ export function LearnProgressOverview({
           per chapter now lives on the hero card; this is the footer readout). */}
       <div className="mt-8 flex flex-wrap items-center gap-2">
         {languageChapters.map(({ chapter, completedCount, totalCount, isComplete }) => {
-          const route = CHAPTER_ROUTES[chapter.id] ?? '/guide/syntax'
+          const route = CHAPTER_GUIDE_ROUTES[chapter.id] ?? CHAPTER_GUIDE_DEFAULT_ROUTE
           const Icon = chapterIcon(chapter.badge)
           return (
             <Link

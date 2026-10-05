@@ -1,7 +1,7 @@
 /**
- * searchEntries — find:block emits one Entry per block (parent identity +
+ * searchEntries — :block emits one Entry per block (parent identity +
  * block payload, #855) in executor order: pipes (order/limit) are applied
- * upstream and the stream must not re-sort presentation. find:note behavior
+ * upstream and the stream must not re-sort presentation. :note behavior
  * is unchanged (whole-note entries, blocks only expand text hits) — but its
  * stage counts describe the actual mapped union.
  */
@@ -51,12 +51,12 @@ function blockResult(raw: string, blocks: BlockIndexRow[]): FindQueryResult {
   }
 }
 
-describe('searchEntries — find:block (#855, #861)', () => {
+describe('searchEntries — :block (#855, #861)', () => {
   it('emits one Entry per block with parent identity and block payload, in executor order', async () => {
     const blocks = [makeBlock(0, 100), makeBlock(1, 200)]
     runFindImpl = async parsed => blockResult(parsed.raw, blocks)
 
-    const entries = await searchEntries('find:block in all')
+    const entries = await searchEntries(':block in all')
     expect(entries).toHaveLength(2)
     // Executor order is presentation order — no local re-sort.
     expect(entries[0]!.block?.segmentId).toBe('seg-0')
@@ -72,13 +72,13 @@ describe('searchEntries — find:block (#855, #861)', () => {
     const blocks = Array.from({ length: 500 }, (_, i) => makeBlock(i, i))
     runFindImpl = async parsed => blockResult(parsed.raw, blocks)
 
-    const entries = await searchEntries('find:block in all')
+    const entries = await searchEntries(':block in all')
     expect(entries).toHaveLength(500)
     expect(entries[0]!.block?.segmentId).toBe('seg-0')
   })
 })
 
-describe('searchEntries — find:note unchanged', () => {
+describe('searchEntries — :note unchanged', () => {
   it('still returns whole-note entries for note queries', async () => {
     runFindImpl = async parsed => ({
       parsed,
@@ -87,14 +87,14 @@ describe('searchEntries — find:note unchanged', () => {
       stages: { selected: 1, matched: 1 },
     })
 
-    const entries = await searchEntries('find:note in all')
+    const entries = await searchEntries(':note in all')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.kind).toBe('note')
     expect(entries[0]!.block).toBeUndefined()
   })
 })
 
-describe('StreamQueryEngine — secondary text search for find:note', () => {
+describe('StreamQueryEngine — secondary text search for :note', () => {
   it('searches block bodies when text: filter is present and combines with notes', async () => {
     const calls: ParsedFindQuery[] = []
     runFindImpl = async parsed => {
@@ -116,14 +116,14 @@ describe('StreamQueryEngine — secondary text search for find:note', () => {
     }
 
     const engine = new StreamQueryEngine()
-    const entries = await engine.query('find:note{text:squat} in all')
+    const entries = await engine.query(':note{text:squat} in all')
     expect(calls).toHaveLength(2)
     expect(calls[0]!.target).toBe('note')
     expect(calls[1]!.target).toBe('block')
     expect(entries).toHaveLength(2)
   })
 
-  it('handles AST input directly for find:note with text: filter', async () => {
+  it('handles AST input directly for :note with text: filter', async () => {
     const calls: ParsedFindQuery[] = []
     runFindImpl = async parsed => {
       calls.push(parsed)
@@ -135,7 +135,7 @@ describe('StreamQueryEngine — secondary text search for find:note', () => {
       }
     }
 
-    const ast = parseQuery('find:note{text:thruster} in all')
+    const ast = parseQuery(':note{text:thruster} in all')
     const entries = await searchEntries(ast)
     expect(calls.length).toBeGreaterThanOrEqual(1)
     expect(entries).toHaveLength(1)
@@ -168,7 +168,7 @@ describe('StreamQueryEngine — note block info (feed previews)', () => {
     }
 
     const engine = new StreamQueryEngine({ noteBlockInfo: true })
-    const entries = await engine.query('find:note{source:playground}')
+    const entries = await engine.query(':note{source:playground}')
 
     // One companion query, identical scope (only the target pivots).
     expect(calls).toHaveLength(2)
@@ -195,7 +195,7 @@ describe('StreamQueryEngine — note block info (feed previews)', () => {
     }
 
     const engine = new StreamQueryEngine()
-    const entries = await engine.query('find:note in all')
+    const entries = await engine.query(':note in all')
     expect(calls).toHaveLength(1)
     expect(entries[0]!.excerpt).toBeUndefined()
   })
@@ -220,12 +220,12 @@ describe('StreamQueryEngine — note block info (feed previews)', () => {
 
     const base = new StreamQueryEngine()
     const forked = base.withNoteBlockInfo()
-    const entries = await forked.query('find:note in all')
+    const entries = await forked.query(':note in all')
     expect(entries[0]!.excerpt).toEqual(['Grace'])
   })
 })
 
-describe('StreamQueryEngine — effort plane (find:effort)', () => {
+describe('StreamQueryEngine — effort plane (:effort)', () => {
   const effortSample: IEffort = {
     id: 'eff-1',
     slug: 'back-squat',
@@ -239,7 +239,7 @@ describe('StreamQueryEngine — effort plane (find:effort)', () => {
     registrySource: 'bundled',
   }
 
-  it('dispatches find:effort to runFindEffort and maps to effort entries', async () => {
+  it('dispatches :effort to runFindEffort and maps to effort entries', async () => {
     let effortCalled = false
     runFindEffortImpl = async parsed => {
       effortCalled = true
@@ -253,7 +253,7 @@ describe('StreamQueryEngine — effort plane (find:effort)', () => {
     }
 
     const engine = new StreamQueryEngine()
-    const entries = await engine.query('find:effort in all')
+    const entries = await engine.query(':effort in all')
     expect(effortCalled).toBe(true)
     expect(entries).toHaveLength(1)
     expect(entries[0]!.kind).toBe('effort')
@@ -262,7 +262,7 @@ describe('StreamQueryEngine — effort plane (find:effort)', () => {
     expect(entries[0]!.effort?.slug).toBe('back-squat')
   })
 
-  it('accepts AST for find:effort', async () => {
+  it('accepts AST for :effort', async () => {
     runFindEffortImpl = async parsed => ({
       parsed,
       notes: [],
@@ -271,7 +271,7 @@ describe('StreamQueryEngine — effort plane (find:effort)', () => {
       stages: { selected: 1, matched: 1 },
     })
 
-    const ast = parseQuery('find:effort{discipline:strength} in all')
+    const ast = parseQuery(':effort{discipline:strength} in all')
     const entries = await searchEntries(ast)
     expect(entries).toHaveLength(1)
     expect(entries[0]!.kind).toBe('effort')
@@ -310,7 +310,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
     ],
   }
 
-  it('dispatches find:session to runFind and maps to session-level result entries', async () => {
+  it('dispatches :session to runFind and maps to session-level result entries', async () => {
     runFindImpl = async parsed => ({
       parsed,
       runs: [sampleRun],
@@ -319,7 +319,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
       stages: { selected: 1, matched: 1 },
     })
 
-    const entries = await searchEntries('find:session{result:res-42}')
+    const entries = await searchEntries(':session{result:res-42}')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.kind).toBe('result')
     expect(entries[0]!.id).toBe('res-42')
@@ -329,7 +329,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
     expect(entries[0]!.execution?.reps).toBe(42)
   })
 
-  it('dispatches find:session with plane:segment to segment-level entries', async () => {
+  it('dispatches :session with plane:segment to segment-level entries', async () => {
     runFindImpl = async parsed => ({
       parsed,
       runs: [sampleRun],
@@ -338,7 +338,7 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
       stages: { selected: 1, matched: 1 },
     })
 
-    const entries = await searchEntries('find:session{result:res-42, plane:segment}')
+    const entries = await searchEntries(':session{result:res-42, plane:segment}')
     expect(entries).toHaveLength(2)
     expect(entries[0]!.kind).toBe('segment')
     expect(entries[0]!.id).toBe('res-42:0')
@@ -361,13 +361,13 @@ describe('StreamQueryEngine — telemetry plane (rows:)', () => {
       noteTitleResolver: async noteId => (noteId === 'crossfit-girls/fran' ? 'Custom Fran Title' : undefined),
     })
 
-    const entries = await engine.query('find:session{result:res-42}')
+    const entries = await engine.query(':session{result:res-42}')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.title).toBe('Custom Fran Title')
   })
 })
 
-describe('StreamQueryEngine — tag hydration (find:note)', () => {
+describe('StreamQueryEngine — tag hydration (:note)', () => {
   it('hydrates tags via noteTagsResolver in StreamQueryEngine options', async () => {
     runFindImpl = async () => ({
       parsed: {} as never,
@@ -380,7 +380,7 @@ describe('StreamQueryEngine — tag hydration (find:note)', () => {
       noteTagsResolver: async (noteId) => (noteId === 'note-1' ? ['benchmark', 'crossfit'] : []),
     })
 
-    const entries = await engine.query('find:note in all')
+    const entries = await engine.query(':note in all')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.tags).toEqual(['benchmark', 'crossfit'])
   })
@@ -388,7 +388,7 @@ describe('StreamQueryEngine — tag hydration (find:note)', () => {
 
 describe('StreamQueryEngine — error and unsupported query handling', () => {
   it('returns empty array on parse error', async () => {
-    const entries = await searchEntries('find:invalid query syntax {}}')
+    const entries = await searchEntries(':invalid query syntax {}}')
     expect(entries).toEqual([])
   })
 
@@ -403,7 +403,7 @@ describe('StreamQueryEngine — error and unsupported query handling', () => {
   })
 })
 
-describe('StreamQueryEngine — tabular rows plane (find:segment / find:event, #1042)', () => {
+describe('StreamQueryEngine — tabular rows plane (:segment / :event, #1042)', () => {
   function tableResult(parsed: ParsedFindQuery): FindQueryResult {
     return {
       parsed,
@@ -424,7 +424,7 @@ describe('StreamQueryEngine — tabular rows plane (find:segment / find:event, #
   it('maps result.table rows to entries — executor order, ids preserved, no noteMap fallback', async () => {
     runFindImpl = async parsed => tableResult(parsed)
 
-    const entries = await searchEntries('find:segment{result:res-42}')
+    const entries = await searchEntries(':segment{result:res-42}')
     expect(entries).toHaveLength(2)
     expect(entries[0]!.kind).toBe('segment')
     expect(entries[0]!.id).toBe('row-1')
@@ -439,7 +439,7 @@ describe('StreamQueryEngine — tabular rows plane (find:segment / find:event, #
     runFindImpl = async parsed => tableResult(parsed)
 
     let stages: { selected: number; matched: number } | undefined
-    await searchEntries('find:segment{result:res-42}', undefined, next => { stages = next })
+    await searchEntries(':segment{result:res-42}', undefined, next => { stages = next })
     expect(stages).toEqual({ selected: 9, matched: 2 })
   })
 })
@@ -468,7 +468,7 @@ describe('StreamQueryEngine — stage counts reconcile the companion union', () 
 
     let stages: { selected: number; matched: number } | undefined
     const engine = new StreamQueryEngine()
-    const entries = await engine.query('find:note{text:squat}', next => { stages = next })
+    const entries = await engine.query(':note{text:squat}', next => { stages = next })
     // Two notes render (primary + companion-only), so matched is 2 — and
     // selected (scope population) never drops below the union.
     expect(entries).toHaveLength(2)

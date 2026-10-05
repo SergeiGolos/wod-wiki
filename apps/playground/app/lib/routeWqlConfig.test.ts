@@ -26,10 +26,10 @@ describe('routeWqlConfig — pure read/write/clear', () => {
   })
 
   it('round-trips a config per route and isolates routes', () => {
-    writeRouteWqlConfig('/journal', { defaultWql: 'find:note last 6w' })
+    writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
     writeRouteWqlConfig('/library', { typeOptions: ['journal'] })
 
-    expect(readRouteWqlConfig('/journal')).toEqual({ defaultWql: 'find:note last 6w' })
+    expect(readRouteWqlConfig('/journal')).toEqual({ defaultWql: ':note last 6w' })
     expect(readRouteWqlConfig('/library')).toEqual({ typeOptions: ['journal'] })
     expect(readRouteWqlConfig('/efforts')).toEqual({})
   })
@@ -46,13 +46,13 @@ describe('routeWqlConfig — pure read/write/clear', () => {
 
   it('drops blank entries and trims values on write', () => {
     writeRouteWqlConfig('/journal', {
-      defaultWql: '  find:note last 6w  ',
+      defaultWql: '  :note last 6w  ',
       typeOptions: ['notes', '  ', 'journal'],
       groupByOptions: ['week', ''],
     })
 
     expect(readRouteWqlConfig('/journal')).toEqual({
-      defaultWql: 'find:note last 6w',
+      defaultWql: ':note last 6w',
       typeOptions: ['note', 'journal'],
       groupByOptions: ['week'],
     })
@@ -106,7 +106,7 @@ describe('routeWqlConfig — pure read/write/clear', () => {
   })
 
   it('clear removes the stored config', () => {
-    writeRouteWqlConfig('/journal', { defaultWql: 'find:note last 6w' })
+    writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
     clearRouteWqlConfig('/journal')
     expect(readRouteWqlConfig('/journal')).toEqual({})
   })
@@ -163,10 +163,10 @@ describe('routeWqlConfig — narrow favorites migration (work item 3)', () => {
 
 describe('routeWqlConfig — resolution', () => {
   it('overrides profile defaultWql and scopeOptions per field', () => {
-    writeRouteWqlConfig('/library', { defaultWql: 'find:note{source:feeds} last 1w' })
+    writeRouteWqlConfig('/library', { defaultWql: ':note{source:journal} last 1w' })
     const applied = applyRouteWqlConfig(LIBRARY_STREAM_PROFILE)
 
-    expect(applied.defaultWql).toBe('find:note{source:feeds} last 1w')
+    expect(applied.defaultWql).toBe(':note{source:journal} last 1w')
     // Unconfigured fields keep the system value.
     expect(applied.scopeOptions).toEqual(LIBRARY_STREAM_PROFILE.scopeOptions)
     expect(applied.route).toBe('/library')
@@ -176,8 +176,8 @@ describe('routeWqlConfig — resolution', () => {
     writeRouteWqlConfig('/library', { typeOptions: [] })
     expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual([])
 
-    writeRouteWqlConfig('/library', { typeOptions: ['feeds'] })
-    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual(['feeds'])
+    writeRouteWqlConfig('/library', { typeOptions: ['guides'] })
+    expect(applyRouteWqlConfig(LIBRARY_STREAM_PROFILE).scopeOptions).toEqual(['guides'])
   })
 
   it('treats migrated target favorites as inert for the scope overlay', () => {
@@ -197,14 +197,14 @@ describe('routeWqlConfig — resolution', () => {
 
   it('exposes the palette as a configurable synthetic route id', () => {
     expect(PALETTE_ROUTE_ID).toBe('/palette')
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: 'find:note{text:fran}' })
-    expect(readRouteWqlConfig(PALETTE_ROUTE_ID).defaultWql).toBe('find:note{text:fran}')
+    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':note{text:fran}' })
+    expect(readRouteWqlConfig(PALETTE_ROUTE_ID).defaultWql).toBe(':note{text:fran}')
   })
 })
 
 describe('routeWqlConfig — type shape', () => {
   it('stores only the three override fields', () => {
-    const config: RouteWqlConfig = { defaultWql: 'find:note', typeOptions: ['notes'], groupByOptions: ['week'] }
+    const config: RouteWqlConfig = { defaultWql: ':note', typeOptions: ['notes'], groupByOptions: ['week'] }
     writeRouteWqlConfig('/library', config)
     expect(Object.keys(readRouteWqlConfig('/library')).sort()).toEqual([
       'defaultWql',
@@ -217,8 +217,8 @@ describe('routeWqlConfig — type shape', () => {
 describe('routeWqlConfig — dependency inversion', () => {
   it('operates against an injected InMemoryBackend without window globals', () => {
     const inMemory = new LocalStore(ROUTE_WQL_STORAGE_PREFIX, new InMemoryBackend())
-    writeRouteWqlConfig('/custom', { defaultWql: 'find:note{source:feeds}' }, inMemory)
-    expect(readRouteWqlConfig('/custom', inMemory).defaultWql).toBe('find:note{source:feeds}')
+    writeRouteWqlConfig('/custom', { defaultWql: ':note{source:journal}' }, inMemory)
+    expect(readRouteWqlConfig('/custom', inMemory).defaultWql).toBe(':note{source:journal}')
     clearRouteWqlConfig('/custom', inMemory)
     expect(readRouteWqlConfig('/custom', inMemory)).toEqual({})
   })

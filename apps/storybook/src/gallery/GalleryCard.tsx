@@ -8,7 +8,7 @@
  * Dispatch by query family: aggregates render through the real Dashboard
  * Note contract (Query Document body + parseQueryWidgetSuffix → WidgetChart,
  * auto-section via useChartShape); rows:{…} renders through RowsTable;
- * find:{target} renders through the gallery-local FindResultList.
+ * :{target} renders through the gallery-local FindResultList.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
@@ -68,7 +68,7 @@ function AutoChart({ result }: { result?: QueryResult }) {
   return <QueryValue result={result} label={`scalar · ${shape.value}`} />;
 }
 
-/** Gallery-local renderer for find: results — no dashboard widget exists
+/** Gallery-local renderer for find-family results — no dashboard widget exists
  *  for content discovery; the list mirrors FindQueryResult's three planes. */
 function FindResultList({ result }: { result: FindQueryResult }) {
   const target = result.parsed.target;

@@ -67,8 +67,10 @@ export function StickyPageHeader({
         className,
       )}
     >
-      {/* Title row */}
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5">
+      {/* Title row — items-start: a multi-line queryBar (stream composer +
+          example line) keeps right-side actions on the composer's line
+          instead of floating mid-block. */}
+      <div className="flex items-start justify-between gap-3 px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5">
         {title && (
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="h-5 w-1.5 shrink-0 rounded-full bg-primary" />

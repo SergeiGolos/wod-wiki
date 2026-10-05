@@ -1,64 +1,68 @@
 /**
- * TourMobileRunway.tsx — the mobile home page: sticky-editor scroll runway.
+ * TourMobileRunway.tsx — the mobile home page: per-chapter sticky runways.
  *
- * The mobile sibling of the desktop runway (HomeTour.tsx). A pinned window
- * below the mobile header showcases the active demo (editor → timer →
- * metrics → analytics) as the visitor scrolls through the 4 tagline sections:
+ * The mobile sibling of the desktop runway (HomeTour.tsx), mirroring its
+ * chapter anatomy — every chapter set is a bounded section and every
+ * boundary is visible (each section opens with its TaglineHeader rule):
  *
- *   01 / Write it in Markdown  (#tour-section-write)
- *   02 / Run it as a Timer      (#tour-section-run)
- *   03 / Own the Metrics        (#tour-section-own)
- *   04 / Explore your analytics (#tour-section-explore)
+ *   hero        — own view box: heading + THE editor at first paint; normal
+ *                 scroll content that scrolls out completely
+ *   01 / write  — TaglineHeader + bounded sticky editor track (#tour-section-write)
+ *   02 / run    — TaglineHeader + bounded sticky clock track  (#tour-section-run)
+ *   03 / own    — TaglineHeader + bounded sticky table track  (#tour-section-own)
+ *   04 / explore— TaglineHeader + bounded sticky WQL track   (#tour-section-explore)
  *
- * Stage detection is card-visibility driven (IntersectionObserver over the
- * reading zone below the pinned window).
+ * Each chapter owns its sticky window via CSS section ownership: the window
+ * pins only while its own section is on screen. The hero and the write
+ * window display the SAME controlled document (edits survive the boundary —
+ * nothing remounts on scroll). No cross-chapter window, so no hidden
+ * duplicated runtimes: one clock, one session table per hosting chapter,
+ * each mounted lazily on first arrival and kept alive after. No decorative
+ * window chrome on mobile — the bounded viewport belongs to the
+ * runtime/editor. Stage detection is card-visibility driven
+ * (IntersectionObserver over the reading zone below the windows).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
-import { MacOSChrome } from '../components/atoms/MacOSChrome'
-import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
-import type { ScriptBlock, Sessions } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import {
-  SCREEN_TITLES,
   TOUR_ACCENTS,
   TOUR_STAGES,
   type TourScreen,
   type TourStage,
   type TourStageId,
+  type RingTargetKey,
 } from './tourConstants'
-import { TourHero } from './TourHero'
+import { TourHeroHeading } from './TourHero'
 import { TourJumpSection } from './TourJumpSection'
 import { TaglineHeader } from './HomeTour'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { TourMetricsScreen } from './screens/TourMetricsScreen'
-import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
+import { TourSessionAnalytics, DEFAULT_TABLE_QUERY_KEY, DEFAULT_BOARD_SLUG } from './screens/TourSessionAnalytics'
+import type { TourSectionTimerWiring, TourSectionSessionWiring } from './TourSectionRunway'
 import { TOUR_CAPTIONS, CaptionBody, type TourCaption } from './TourCaptions'
 import { TourChapterPicker } from './TourChapterPicker'
 import { TourLearnSection } from './TourLearnSection'
 import { TourRing, useRingRef } from './TourRing'
 
 const CARD_SLOT_MIN_HEIGHT = '70vh'
+/** Bounded sticky stage window: full width, 40vh tall under the app nav. */
+const STAGE_WINDOW_HEIGHT = '40vh'
+/** The clock needs usable controls — the timer window grows (still bounded). */
+const TIMER_WINDOW_HEIGHT = 'min(72vh, 42rem)'
+/** First-paint editor box inside the hero view (desktop's is 62vh). */
+const HERO_EDITOR_HEIGHT = '52vh'
 
 export interface TourMobileRunwayApi {
   /** Scroll a stage's caption card into the reading zone. */
   scrollToStage(stageId: TourStageId): void
 }
 
-export interface TourMobileTimerProps {
-  sessionKey: number
-  block: ScriptBlock | null
-  autoStart: boolean
-  /** Scroll-out stop (#885): halt without resetting when off the timer cards. */
-  externalPause: boolean
-  onClose: () => void
-  onComplete: (blockId: string, results: Sessions) => void
-  onRuntimeReady: (runtime: IScriptRuntime) => void
-  onReset: () => void
-}
+// Timer pane wiring mirrors the desktop runway exactly (one inline pane).
+export type TourMobileTimerProps = TourSectionTimerWiring
 
 export interface TourMobileRunwayProps {
   theme: string
@@ -67,25 +71,24 @@ export interface TourMobileRunwayProps {
   chapters: Chapter[]
   questLabels?: Record<string, string>
   onHomeQuestClick?: (questId: string) => void
-  /** Hero editor context — the live welcome-1.md editor at the top of the page. */
+  /** Chapter example run — runs inline in the pinned timer window. */
+  onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
+  onChapterShare?: (doc: string) => void
+  /** The single shared editor document (hero + write window display it). */
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
-  /** Runway editor context — the pinned demo window. */
-  runwayDoc: string
-  onRunwayDocChange: (next: string) => void
-  onRunwayBlocksChange: (blocks: ScriptBlock[]) => void
-  onRunwayRun: () => void
-  onRunwayShare: () => void
   /** Shared-script attribution + reset, forwarded to the editor (#882). */
   sharedBy?: string
   onResetShared?: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank card. */
   onChoice?: (wod: string) => void
-  /** Lazy-mount flags for the timer/metrics/analytics screens. */
-  entered: Record<TourScreen, boolean>
+  /** Caption command buttons (Try it / query presets / board picks). */
+  onCommand?: (captionId: string, key: string) => void
+  /** Session WQL/dashboard pane for the explore window. */
+  session?: TourSectionSessionWiring
   /** Reports the stage whose caption card owns the reading zone. */
   onStageChange: (stage: TourStage) => void
   timer: TourMobileTimerProps
@@ -95,6 +98,25 @@ export interface TourMobileRunwayProps {
   apiRef: React.MutableRefObject<TourMobileRunwayApi | null>
 }
 
+/** The chapter tracks, in page order — one bounded sticky runway each. */
+type ChapterTrackId = 'write' | 'run' | 'own' | 'explore'
+
+/** The screen each chapter's window hosts. */
+const CHAPTER_SCREENS: Record<ChapterTrackId, TourScreen> = {
+  write: 'editor',
+  run: 'timer',
+  own: 'metrics',
+  explore: 'analytics',
+}
+
+/** Ring accent fallback per chapter window. */
+const CHAPTER_ACCENTS: Record<ChapterTrackId, string> = {
+  write: TOUR_ACCENTS.editor,
+  run: TOUR_ACCENTS.timer,
+  own: TOUR_ACCENTS.analytics,
+  explore: TOUR_ACCENTS.analytics,
+}
+
 export function TourMobileRunway({
   theme,
   wodFiles = {},
@@ -102,35 +124,55 @@ export function TourMobileRunway({
   chapters,
   questLabels,
   onHomeQuestClick,
+  onChapterRun,
+  onChapterShare,
   doc,
   onDocChange,
   onBlocksChange,
   onRun,
   onShare,
-  runwayDoc,
-  onRunwayDocChange,
-  onRunwayBlocksChange,
-  onRunwayRun,
-  onRunwayShare,
-  sharedBy,
-  onResetShared,
   onChoice,
-  entered,
+  onCommand,
+  session,
   onStageChange,
   timer,
   heroRef,
   apiRef,
 }: TourMobileRunwayProps) {
-  const trackRef = useRef<HTMLDivElement | null>(null)
+  const writeTrackRef = useRef<HTMLDivElement | null>(null)
+  const runTrackRef = useRef<HTMLDivElement | null>(null)
+  const ownTrackRef = useRef<HTMLDivElement | null>(null)
+  const exploreTrackRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
-  const windowCanvasRef = useRef<HTMLDivElement | null>(null)
+  // Ring canvases: the write window keeps the registered `editor.window`
+  // target; the other windows measure their own canvas without registering.
+  const writeCanvasRef = useRef<HTMLDivElement | null>(null)
   const editorWindowRef = useRingRef('editor.window')
-  const windowCanvasRingRef = useCallback((el: HTMLDivElement | null) => {
-    windowCanvasRef.current = el
-    editorWindowRef(el)
-  }, [editorWindowRef])
+  const writeCanvasRingRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      writeCanvasRef.current = el
+      editorWindowRef(el)
+    },
+    [editorWindowRef],
+  )
+  const runCanvasRef = useRef<HTMLDivElement | null>(null)
+  const ownCanvasRef = useRef<HTMLDivElement | null>(null)
+  const exploreCanvasRef = useRef<HTMLDivElement | null>(null)
 
+  // Heavy panes mount once their chapter track is first reached, then stay
+  // alive (keep-alive — same contract as the desktop sections; dirty edits
+  // and run state survive scrolling). Any track arrival also unlocks
+  // card-driven stage detection.
+  const [reached, setReached] = useState<Record<ChapterTrackId, boolean>>({
+    write: false,
+    run: false,
+    own: false,
+    explore: false,
+  })
+  // The card observer must NOT re-create when `reached` flips (a fresh
+  // IntersectionObserver would orphan the test/page triggers) — the guard
+  // reads a ref while the state only gates pane mounting.
   const reachedRef = useRef(false)
   const visibleRef = useRef(new Map<Element, number>())
   const [stage, setStage] = useState<TourStage | null>(null)
@@ -178,20 +220,31 @@ export function TourMobileRunway({
     return () => observer.disconnect()
   }, [readingZoneTop, resolveVisibleStage])
 
+  // One arrival observer per chapter track: latches that track's keep-alive
+  // mount and unlocks stage detection on the first one.
   useEffect(() => {
-    const el = trackRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-        reachedRef.current = true
-        resolveVisibleStage()
-        observer.disconnect()
-      },
-      { rootMargin: `-${MOBILE_STICKY_TOP + 1}px 0px 0px 0px` },
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
+    if (typeof IntersectionObserver === 'undefined') return
+    const tracks: Array<[ChapterTrackId, HTMLDivElement | null]> = [
+      ['write', writeTrackRef.current],
+      ['run', runTrackRef.current],
+      ['own', ownTrackRef.current],
+      ['explore', exploreTrackRef.current],
+    ]
+    const observers = tracks.map(([id, el]) => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting) return
+          reachedRef.current = true
+          setReached((prev) => (prev[id] ? prev : { ...prev, [id]: true }))
+          resolveVisibleStage()
+          observer.disconnect()
+        },
+        { rootMargin: `-${MOBILE_STICKY_TOP + 1}px 0px 0px 0px` },
+      )
+      if (el) observer.observe(el)
+      return observer
+    })
+    return () => observers.forEach((o) => o.disconnect())
   }, [resolveVisibleStage])
 
   useEffect(() => {
@@ -211,8 +264,18 @@ export function TourMobileRunway({
     }
   }, [apiRef])
 
-  const screen: TourScreen = stage?.screen ?? 'editor'
+  // The runtime pane mounts only after the clock stage was actively visited.
+  const [timerEngaged, setTimerEngaged] = useState(false)
+  useEffect(() => {
+    if (stage?.screen === 'timer') setTimerEngaged(true)
+  }, [stage])
+
   const ringTarget = stage?.ringA ? { key: stage.ringA, tag: stage.tagA } : null
+  /** A window's ring is live only while its own chapter owns the stage. */
+  const ringFor = (id: ChapterTrackId) =>
+    stage?.screen === CHAPTER_SCREENS[id] ? ringTarget : null
+  const accentFor = (id: ChapterTrackId) =>
+    stage?.screen === CHAPTER_SCREENS[id] && stage?.accent ? stage.accent : CHAPTER_ACCENTS[id]
 
   // Categorize captions into the 4 tagged sections
   const writeCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('editor-'))
@@ -236,7 +299,7 @@ export function TourMobileRunway({
         }}
       >
         <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
-          <CaptionBody cap={cap} onChoice={onChoice} />
+          <CaptionBody cap={cap} onChoice={onChoice} onCommand={onCommand} />
         </article>
       </div>
     )
@@ -244,144 +307,171 @@ export function TourMobileRunway({
 
   return (
     <div data-testid="tour-mobile-runway" className="flex flex-col">
-      {/* Hero — interactive greeting and live editor */}
-      <div ref={heroRef}>
-        <TourHero
-          theme={theme}
-          doc={doc}
-          onDocChange={onDocChange}
-          onBlocksChange={onBlocksChange}
-          onRun={onRun}
-          onShare={onShare}
-          sharedBy={sharedBy}
-          onResetShared={onResetShared}
-        />
+      {/* ── Hero — its own view box: heading + THE editor at first paint,
+          normal scroll content; it scrolls out completely before the write
+          track pins (mirrors the desktop hero view). ── */}
+      <div ref={heroRef} id="tour-hero" data-testid="tour-hero" className="relative px-4 pt-8 pb-10">
+        <TourHeroHeading />
+        {/* Flat native card — no decorative chrome on mobile. This is the
+            first display of the shared document; the write section's sticky
+            pane below is the second display of the same controlled doc. */}
+        <div
+          className="mt-6 min-h-[300px] w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
+          style={{ height: HERO_EDITOR_HEIGHT }}
+        >
+          <TourEditorScreen
+            doc={doc}
+            onDocChange={onDocChange}
+            onBlocksChange={onBlocksChange}
+            onRun={onRun}
+            onShare={onShare}
+            theme={theme}
+          />
+        </div>
       </div>
 
-      {/* Jump section immediately below hero */}
+      {/* Direct exits sit between the hero view and the first chapter. */}
       <TourJumpSection />
 
-      {/* Runway: the sticky parent spans window + cards */}
-      <div ref={trackRef} data-testid="tour-mobile-runway-track" className="relative">
-        <div
-          data-testid="tour-mobile-runway-window"
-          className={`sticky z-20 shrink-0 px-4 pt-2 pb-1 ${
-            screen === 'analytics' || screen === 'metrics' ? 'min-h-[26rem]' : ''
-          }`}
-          style={{
-            top: `${MOBILE_STICKY_TOP}px`,
-            height:
-              screen === 'analytics' || screen === 'metrics'
-                ? 'min(72vh, 42rem)'
-                : `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)`,
-          }}
-        >
-          <div ref={windowCanvasRingRef} className="relative h-full">
-            <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
-              <div className="relative h-full">
-                <ScreenFade visible={screen === 'editor'}>
-                  <TourEditorScreen
-                    doc={runwayDoc}
-                    onDocChange={onRunwayDocChange}
-                    onBlocksChange={onRunwayBlocksChange}
-                    onRun={onRunwayRun}
-                    onShare={onRunwayShare}
-                    theme={theme}
-                    withRingTargets
-                  />
-                </ScreenFade>
-                {entered.timer && (
-                  <ScreenFade visible={screen === 'timer'}>
-                    <TourTimerScreen
-                      key={timer.sessionKey}
-                      block={timer.block}
-                      autoStart={timer.autoStart}
-                      onClose={timer.onClose}
-                      onComplete={timer.onComplete}
-                      onRuntimeReady={timer.onRuntimeReady}
-                      onReset={timer.onReset}
-                      externalPause={timer.externalPause}
-                    />
-                  </ScreenFade>
-                )}
-                {entered.metrics && (
-                  <ScreenFade visible={screen === 'metrics'}>
-                    <TourMetricsScreen activeStageId={stage?.id ?? 'metrics-e'} />
-                  </ScreenFade>
-                )}
-                {entered.analytics && (
-                  <ScreenFade visible={screen === 'analytics'}>
-                    <TourAnalyticsShowcaseScreen activeStageId={stage?.id ?? 'wql-idea'} />
-                  </ScreenFade>
-                )}
-              </div>
-            </MacOSChrome>
-            <TourRing
-              target={ringTarget}
-              accent={stage?.accent ?? 'hsl(var(--metric-resistance))'}
-              canvasRef={windowCanvasRef}
-            />
-          </div>
+      {/* ── Section 01: Write it in Markdown — the chapter owns its sticky
+          editor track (CSS section ownership: the window pins only inside
+          this section, then scrolls out with it). ── */}
+      <section id="tour-section-write" data-testid="tour-section-write" className="flex flex-col">
+        <TaglineHeader
+          index="01"
+          before="Write it in "
+          accentText="Markdown"
+          after=""
+          accent={TOUR_ACCENTS.editor}
+          blurb="Freeform Markdown notes, fenced ```time blocks, property and tag suggestions. Everything starts as plain text you can edit."
+        />
+        <div ref={writeTrackRef} data-testid="tour-mobile-runway-track-write" className="relative">
+          <ChapterWindow
+            id="write"
+            height={STAGE_WINDOW_HEIGHT}
+            canvasRef={writeCanvasRef}
+            innerRef={writeCanvasRingRef}
+            ringTarget={ringFor('write')}
+            accent={accentFor('write')}
+          >
+            {reached.write && (
+              <TourEditorScreen
+                doc={doc}
+                onDocChange={onDocChange}
+                onBlocksChange={onBlocksChange}
+                onRun={onRun}
+                onShare={onShare}
+                theme={theme}
+                withRingTargets
+              />
+            )}
+          </ChapterWindow>
+          {writeCaptions.map((cap) => renderCard(cap))}
         </div>
+      </section>
 
-        {/* 4 Tagline sections with cards */}
-        <div data-testid="tour-mobile-runway-cards">
-          {/* Section 01: Write it in Markdown */}
-          <div id="tour-section-write" data-testid="tour-section-write">
-            <TaglineHeader
-              index="01"
-              before="Write it in "
-              accentText="Markdown"
-              after=""
-              accent={TOUR_ACCENTS.editor}
-              blurb="Freeform Markdown notes, fenced ```time blocks, property and tag suggestions. Everything starts as plain text you can edit."
-            />
-            {writeCaptions.map((cap) => renderCard(cap))}
-          </div>
-
-          {/* Section 02: Run it as a Timer */}
-          <div id="tour-section-run" data-testid="tour-section-run">
-            <TaglineHeader
-              index="02"
-              before="Run it as a "
-              accentText="Timer"
-              after=""
-              accent={TOUR_ACCENTS.timer}
-              blurb="The script becomes the clock. Step through rounds, cast to the big screen, and pace the room together."
-            />
-            {runCaptions.map((cap) => renderCard(cap))}
-          </div>
-
-          {/* Section 03: Own the Metrics */}
-          <div id="tour-section-own" data-testid="tour-section-own">
-            <TaglineHeader
-              index="03"
-              before="Own the "
-              accentText="Metrics"
-              after=""
-              accent={TOUR_ACCENTS.analytics}
-              blurb="Every movement produces facts. Metrics bind to efforts, accumulating structured workout data on every pass."
-            />
-            {ownCaptions.map((cap) => renderCard(cap))}
-          </div>
-
-          {/* Section 04: Explore your analytics */}
-          <div id="tour-section-explore" data-testid="tour-section-explore">
-            <TaglineHeader
-              index="04"
-              before=""
-              accentText="Explore"
-              after=" your analytics"
-              accent={TOUR_ACCENTS.rounds}
-              blurb="Query what you just did in WQL. Roll up totals, graph volume over time, and build custom dashboards."
-            />
-            {exploreCaptions.map((cap) => renderCard(cap))}
-          </div>
+      {/* ── Section 02: Run it as a Timer — own bounded clock track. ── */}
+      <section id="tour-section-run" data-testid="tour-section-run" className="flex flex-col">
+        <TaglineHeader
+          index="02"
+          before="Run it as a "
+          accentText="Timer"
+          after=""
+          accent={TOUR_ACCENTS.timer}
+          blurb="The script becomes the clock. Step through rounds, cast to the big screen, and pace the room together."
+        />
+        <div ref={runTrackRef} data-testid="tour-mobile-runway-track-run" className="relative">
+          <ChapterWindow
+            id="run"
+            height={TIMER_WINDOW_HEIGHT}
+            canvasRef={runCanvasRef}
+            ringTarget={ringFor('run')}
+            accent={accentFor('run')}
+          >
+            {/* The runtime mounts only after the clock stage was actively
+                visited — skipping past never creates a hidden runtime. */}
+            {reached.run && timerEngaged && (
+              <TourTimerScreen
+                key={timer.sessionKey}
+                block={timer.block}
+                autoStart={timer.autoStart}
+                onClose={timer.onClose}
+                onComplete={timer.onComplete}
+                onRuntimeReady={timer.onRuntimeReady}
+                onRunStarted={timer.onRunStarted}
+                onReset={timer.onReset}
+                externalStop={timer.externalStop}
+              />
+            )}
+          </ChapterWindow>
+          {runCaptions.map((cap) => renderCard(cap))}
         </div>
-      </div>
+      </section>
+
+      {/* ── Section 03: Own the Metrics — hosts the LIVE session table. ── */}
+      <section id="tour-section-own" data-testid="tour-section-own" className="flex flex-col">
+        <TaglineHeader
+          index="03"
+          before="Own the "
+          accentText="Metrics"
+          after=""
+          accent={TOUR_ACCENTS.analytics}
+          blurb="Every movement produces facts. Metrics bind to efforts, accumulating structured workout data on every pass."
+        />
+        <div ref={ownTrackRef} data-testid="tour-mobile-runway-track-own" className="relative">
+          <ChapterWindow
+            id="own"
+            height={STAGE_WINDOW_HEIGHT}
+            canvasRef={ownCanvasRef}
+            ringTarget={ringFor('own')}
+            accent={accentFor('own')}
+          >
+            {reached.own && (
+              <TourSessionAnalytics
+                activeStageId="wql-table"
+                noteId={session?.noteId ?? null}
+                queryKey={session?.queryKey ?? DEFAULT_TABLE_QUERY_KEY}
+                boardSlug={session?.boardSlug ?? DEFAULT_BOARD_SLUG}
+              />
+            )}
+          </ChapterWindow>
+          {ownCaptions.map((cap) => renderCard(cap))}
+        </div>
+      </section>
+
+      {/* ── Section 04: Explore your analytics — own bounded WQL track. ── */}
+      <section id="tour-section-explore" data-testid="tour-section-explore" className="flex flex-col">
+        <TaglineHeader
+          index="04"
+          before=""
+          accentText="Explore"
+          after=" your analytics"
+          accent={TOUR_ACCENTS.rounds}
+          blurb="Query what you just did in WQL. Roll up totals, graph volume over time, and build custom dashboards."
+        />
+        <div ref={exploreTrackRef} data-testid="tour-mobile-runway-track-explore" className="relative">
+          <ChapterWindow
+            id="explore"
+            height={STAGE_WINDOW_HEIGHT}
+            canvasRef={exploreCanvasRef}
+            ringTarget={ringFor('explore')}
+            accent={accentFor('explore')}
+          >
+            {reached.explore && (
+              <TourSessionAnalytics
+                activeStageId={stage?.id ?? 'wql-idea'}
+                noteId={session?.noteId ?? null}
+                queryKey={session?.queryKey ?? DEFAULT_TABLE_QUERY_KEY}
+                boardSlug={session?.boardSlug ?? DEFAULT_BOARD_SLUG}
+              />
+            )}
+          </ChapterWindow>
+          {exploreCaptions.map((cap) => renderCard(cap))}
+        </div>
+      </section>
 
       {/* Syntax chapter picker — single slide with shared editor & dual buttons */}
-      <TourChapterPicker wodFiles={wodFiles} theme={theme} />
+      <TourChapterPicker wodFiles={wodFiles} theme={theme} onRun={onChapterRun} onShare={onChapterShare} />
 
       {/* High-level learn & quest progress */}
       <TourLearnSection
@@ -394,18 +484,44 @@ export function TourMobileRunway({
   )
 }
 
-/** Cross-fade wrapper for a screen inside the pinned window. */
-function ScreenFade({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+/**
+ * A chapter's bounded sticky stage window — pins under the app nav only
+ * while its own chapter section is on screen, then scrolls out with it.
+ * The pane inside mounts lazily (caller gates on `reached`) and stays alive.
+ */
+function ChapterWindow({
+  id,
+  height,
+  canvasRef,
+  innerRef,
+  ringTarget,
+  accent,
+  children,
+}: {
+  id: ChapterTrackId
+  height: string
+  /** Ring measuring surface (plain ref, shared with the canvas div). */
+  canvasRef: React.RefObject<HTMLDivElement | null>
+  /** The canvas div's ref — the write window passes its ring-registering
+      callback; other windows leave it off and reuse `canvasRef`. */
+  innerRef?: React.Ref<HTMLDivElement>
+  ringTarget: { key: RingTargetKey; tag?: string } | null
+  accent: string
+  children: React.ReactNode
+}) {
   return (
     <div
-      className="absolute inset-0 transition-opacity duration-500"
-      style={{
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
-      }}
-      aria-hidden={!visible}
+      data-testid={`tour-mobile-runway-window-${id}`}
+      className="sticky z-20 shrink-0 px-3 pt-2 pb-1"
+      style={{ top: `${MOBILE_STICKY_TOP}px`, height }}
     >
-      {children}
+      <div
+        ref={innerRef ?? canvasRef}
+        className="relative h-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
+      >
+        <div className="relative h-full">{children}</div>
+        <TourRing target={ringTarget} accent={accent} canvasRef={canvasRef} />
+      </div>
     </div>
   )
 }

@@ -22,6 +22,12 @@ export interface TourTimerScreenProps {
    * cards keep the data.
    */
   externalPause?: boolean
+  /**
+   * Host-driven finalize stop: the host (HomeTour) flips this on metrics
+   * arrival / reset chaining; the panel stops and reports partial results
+   * via onComplete without closing. See RuntimeTimerPanel.externalStop.
+   */
+  externalStop?: boolean
   /** Header Reset button: restart the run on demand (#885). */
   onReset?: () => void
 }
@@ -34,6 +40,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
   onRuntimeReady,
   onRunStarted,
   externalPause,
+  externalStop,
   onReset,
 }) => {
   const floorRef = useRingRef('timer.floor')
@@ -118,6 +125,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
             onRuntimeReady={onRuntimeReady}
             onRunStarted={onRunStarted}
             externalPause={externalPause}
+            externalStop={externalStop}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

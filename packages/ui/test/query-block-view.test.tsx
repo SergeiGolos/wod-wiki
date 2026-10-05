@@ -64,13 +64,13 @@ describe('QueryBlockView with injected QueryExecutor and onResultSaved', () => {
     expect(savedCallback).toBeDefined();
   });
 
-  it('renders find:note results as interactive links with noteHref and onOpenNote', async () => {
+  it('renders :note results as interactive links with noteHref and onOpenNote', async () => {
     const onOpenNote = vi.fn();
     const noteHref = vi.fn((note: { id: string }) => `/note/${note.id}`);
     const executor: QueryExecutor = {
       runQuery: vi.fn(async () => ({} as never)),
       runFind: vi.fn(async () => ({
-        parsed: { family: 'find', raw: 'find:note', target: 'note', filters: [] },
+        parsed: { family: 'find', raw: ':note', target: 'note', filters: [] },
         notes: [{ id: 'note-1', title: 'Fran Benchmark' }],
         blocks: [],
         stages: { selected: 1, matched: 1 },
@@ -80,7 +80,7 @@ describe('QueryBlockView with injected QueryExecutor and onResultSaved', () => {
 
     render(
       <QueryBlockView
-        query="find:note"
+        query=":note"
         executor={executor}
         onOpenNote={onOpenNote}
         noteHref={noteHref}

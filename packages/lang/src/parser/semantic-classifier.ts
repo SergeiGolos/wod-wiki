@@ -83,6 +83,14 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
         : [];
     }
 
+    case 'round_scheme': {
+      // NxM — N rounds of M reps each; same Rounds+Rep scheme as paren ladders.
+      return [
+        { metrics: new RoundsMetric(primitive.rounds), meta: primitive.meta },
+        { metrics: new RepMetric(primitive.reps), meta: primitive.meta },
+      ];
+    }
+
     case 'action': {
       const actionText = primitive.hasColonPrefix
         ? primitive.raw.substring(2, primitive.raw.length - 1).trim()

@@ -69,15 +69,15 @@ describe('gallery manifest coverage', () => {
   });
 
   it('covers find and aggregate query families with correct dispatch', () => {
-    expect(GALLERY_CARDS.some((card) => card.query.startsWith('find:'))).toBe(true);
-    expect(GALLERY_CARDS.some((card) => !card.query.startsWith('find:'))).toBe(true);
+    const families = new Set(
+      GALLERY_CARDS.filter((card) => !card.expectError).map((card) => parseQuery(card.query).family),
+    );
+    expect(families.has('find'), 'needs a find-family card').toBe(true);
+    expect(families.has('aggregate'), 'needs an aggregate-family card').toBe(true);
     for (const card of GALLERY_CARDS) {
       if (card.expectError) continue;
       const parsed = parseQuery(card.query);
       expect(parsed.error, `${card.title}: ${card.query}`).toBeUndefined();
-      if (card.query.startsWith('find:')) {
-        expect(isFindQuery(parsed), `${card.title} should be a find query`).toBe(true);
-      }
     }
   });
 
@@ -117,18 +117,27 @@ describe('gallery manifest coverage', () => {
     const edgeCards = cardsForSection('edge');
     expect(edgeCards.length, 'edge section should have cards').toBeGreaterThanOrEqual(3);
     expect(edgeCards.some((c) => c.expectError), 'needs parse error card').toBe(true);
-    expect(
-      edgeCards.some((c) => !c.expectError && c.query.includes('nonexistent') && !c.query.startsWith('find:')),
-      'needs empty aggregate card',
-    ).toBe(true);
+    // Empty aggregate card: aggregate family, nonexistent filter, parses clean.
+    const emptyAggregate = edgeCards.find((c) => {
+      if (c.expectError || !c.query.includes('nonexistent')) return false;
+      const parsed = parseQuery(c.query);
+      return !parsed.error && parsed.family === 'aggregate';
+    });
+    expect(emptyAggregate, 'needs empty aggregate card').toBeDefined();
     expect(edgeCards.some((c) => c.simulateLoading), 'needs in-flight loading card').toBe(true);
-    expect(
-      edgeCards.some((c) => c.query.startsWith('find:session') && c.query.includes('nonexistent')),
-      'needs empty rows card',
-    ).toBe(true);
-    expect(
-      edgeCards.some((c) => c.query.startsWith('find:') && c.query.includes('nonexistent')),
-      'needs empty find card',
-    ).toBe(true);
+    // Empty rows card: find family over the session target with a nonexistent filter.
+    const emptyRows = edgeCards.find((c) => {
+      if (!c.query.includes('nonexistent')) return false;
+      const parsed = parseQuery(c.query);
+      return !parsed.error && isFindQuery(parsed) && parsed.target === 'session';
+    });
+    expect(emptyRows, 'needs empty rows card').toBeDefined();
+    // Empty find card: any find-family card with a nonexistent filter.
+    const emptyFind = edgeCards.find((c) => {
+      if (!c.query.includes('nonexistent')) return false;
+      const parsed = parseQuery(c.query);
+      return !parsed.error && isFindQuery(parsed);
+    });
+    expect(emptyFind, 'needs empty find card').toBeDefined();
   });
 });

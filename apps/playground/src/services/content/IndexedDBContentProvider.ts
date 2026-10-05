@@ -9,14 +9,44 @@ import { v7 as uuidv7 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
-import { storageService, type StorageService } from '@/services/storage';
-import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
+import { resolveLatestSegment, segmentRowId, storageService, type StorageService } from '@/services/storage';
+import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin, type Page, type PageNote } from '../../types/storage';
 import { parseDocumentSections, type Section, type SectionType, type ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { extractFrontmatterTags, extractTypedFrontmatterTags, type TypedTagItem, parseFrontmatter, serializeFrontmatter } from '../../lib/frontmatter';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import { sessionToPayload } from '../persistence/sessionPayload';
 
 const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
+
+/** Local-calendar YYYY-MM-DD — same key space as Page.date (formatDateKey). */
+function localDateKey(ts: number): string {
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Junction order convention: explicit position first, then earliest link. */
+function linkOrder(a: PageNote, b: PageNote): number {
+    return (a.position ?? Infinity) - (b.position ?? Infinity) || a.createdAt - b.createdAt;
+}
+
+/**
+ * pageId/journalDate/slug resolve independently: primary link, first calendar
+ * page, first named page — a note may sit on both page flavors at once.
+ */
+async function projectNotePages(db: StorageService, noteId: string): Promise<{ pageId?: string; journalDate?: string; slug?: string }> {
+    const links = [...(await db.getNotePages(noteId))].sort(linkOrder);
+    let pageId: string | undefined;
+    let journalDate: string | undefined;
+    let slug: string | undefined;
+    for (const link of links) {
+        const page = await db.getPage(link.pageId);
+        if (!page) continue;
+        if (!pageId) pageId = page.id;
+        if (!journalDate && page.date) journalDate = page.date;
+        if (!slug && page.slug && !page.date) slug = page.slug;
+    }
+    return { pageId, journalDate, slug };
+}
 
 /**
  * Map stored SegmentDataType values to section types: h1–h6 → 'title'
@@ -140,17 +170,17 @@ export class IndexedDBContentProvider implements IContentProvider {
         const notes = await this.db.getAllNotes();
 
         // Batch the derived-field lookups (V22): journalDate and slug come
-        // from the page via the page_notes junction, tags from note_tags +
-        // tags, content from segments (one getAll, grouped client-side).
+        // from the pages via the page_notes junction (resolved independently —
+        // a note may sit on both flavors), tags from note_tags + tags, content
+        // from segments (one getAll, grouped client-side).
         const allPageNotes = await this.db.getAllPageNotes();
-        const pageByNote = new Map<string, PageNote>();
+        const linksByNote = new Map<string, PageNote[]>();
         for (const pn of allPageNotes) {
-            // Primary page: first link by position, or earliest createdAt.
-            const existing = pageByNote.get(pn.noteId);
-            if (!existing || (pn.position ?? Infinity) < (existing.position ?? Infinity)) {
-                pageByNote.set(pn.noteId, pn);
-            }
+            const links = linksByNote.get(pn.noteId);
+            if (links) links.push(pn);
+            else linksByNote.set(pn.noteId, [pn]);
         }
+        for (const links of linksByNote.values()) links.sort(linkOrder);
         const pageIds = Array.from(new Set(allPageNotes.map(pn => pn.pageId)));
         const pages = new Map<string, Page | undefined>();
         await Promise.all(pageIds.map(async id => {
@@ -179,17 +209,27 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
 
         const resolved = notes.map(note => {
-            const pn = pageByNote.get(note.id);
-            const page = pn ? pages.get(pn.pageId) : undefined;
+            // Primary page (pageId): first link by position, or earliest
+            // createdAt; journalDate/slug resolve independently per flavor.
+            let pageId: string | undefined;
+            let journalDate: string | undefined;
+            let slug: string | undefined;
+            for (const pn of linksByNote.get(note.id) ?? []) {
+                const page = pages.get(pn.pageId);
+                if (!page) continue;
+                if (!pageId) pageId = page.id;
+                if (!journalDate && page.date) journalDate = page.date;
+                if (!slug && page.slug && !page.date) slug = page.slug;
+            }
             return {
                 id: note.id,
                 title: note.title,
-                slug: page?.slug,
-                pageId: pn?.pageId,
+                slug,
+                pageId,
                 createdAt: note.createdAt,
                 updatedAt: note.createdAt,
                 targetDate: note.date ?? note.createdAt,
-                journalDate: page?.date,
+                journalDate,
                 rawContent: rawContentFor(note.id),
                 tags: tagsByNote.get(note.id) ?? [],
                 type: note.type || 'note',
@@ -244,14 +284,12 @@ export class IndexedDBContentProvider implements IContentProvider {
         // V11 — content always reconstructs from segments (note.rawContent is gone).
         const segments = await this.db.getLatestSegmentsForNote(note.id);
 
-        // Derived projection fields (V22): page/slug/journalDate via page_notes junction.
-        const [notePages, tags] = await Promise.all([
-            this.db.getNotePages(note.id),
+        // Derived projection fields (V22 — junction; journalDate/slug resolve
+        // independently when the note sits on both page flavors).
+        const [projection, tags] = await Promise.all([
+            projectNotePages(this.db, note.id),
             this.db.getTagsForNote(note.id),
         ]);
-        const primaryPage = notePages.length > 0
-            ? await this.db.getPage(notePages[0].pageId)
-            : undefined;
         const rawContent = segmentsToRawContent(segments, tags.map(t => t.label));
 
         // Fetch latest result for this note
@@ -289,13 +327,13 @@ export class IndexedDBContentProvider implements IContentProvider {
         return {
             id: note.id,
             title: note.title,
-            slug: primaryPage?.slug,
-            pageId: primaryPage?.id,
+            slug: projection.slug,
+            pageId: projection.pageId,
             catalog: note.catalog,
             createdAt: note.createdAt,
             updatedAt: note.createdAt, // V11 — note.updatedAt removed; derive
             targetDate: note.date ?? note.createdAt, // V22 — domain date falls back to createdAt
-            journalDate: primaryPage?.date,
+            journalDate: projection.journalDate,
             rawContent,
             sections,
             results: latestResult ? sessionToPayload(latestResult, latestEvents) : undefined,
@@ -310,16 +348,19 @@ export class IndexedDBContentProvider implements IContentProvider {
         const source = await this.getEntry(sourceId);
         if (!source) throw new Error(`Source entry not found: ${sourceId}`);
 
-        const cloned = await this.saveEntry({
+        const date = targetDate ?? Date.now();
+        // Journal clones join the local-calendar page for the chosen date and
+        // re-save as fresh segments — independent content, no results or
+        // attachments copied; sourceId keeps the lineage.
+        return this.saveEntry({
             title: source.title,
             rawContent: source.rawContent,
             tags: source.tags,
-            targetDate: targetDate || Date.now(),
-            type: 'note',
-            sourceId: source.id,  // Track which entry this was cloned from
+            targetDate: date,
+            journalDate: localDateKey(date),
+            type: 'journal',
+            sourceId: source.id,
         });
-
-        return cloned;
     }
 
     async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
@@ -375,7 +416,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             let position = 0;
             for (const section of sections) {
                 const segment: NoteSegment = {
-                    id: section.id,
+                    id: segmentRowId(noteId, section.id),
                     version: 1,
                     noteId: noteId,
                     position,
@@ -398,6 +439,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             title: entry.title,
             type: entry.type || 'note',
             sourceId: entry.sourceId,
+            date: entry.targetDate ?? createdAt,
             createdAt,
         };
 
@@ -418,7 +460,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             id: noteId,
             createdAt,
             updatedAt: createdAt,
-            targetDate: createdAt,
+            targetDate: note.date ?? createdAt,
             type: note.type,
             journalDate: entry.journalDate,
             schemaVersion: 1
@@ -426,7 +468,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'type'>> & { sourceId?: string | null; slug?: string | null; sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'type'>> & { journalDate?: string | null; sourceId?: string | null; slug?: string | null; sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry> {
         let note = await this.db.getNote(id);
 
         if (!note) {
@@ -444,20 +486,23 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         const now = Date.now();
 
-        // Resolve the note's primary page from the junction (V22).
-        const notePageLinks = await this.db.getNotePages(note.id);
-        const primaryPageId = notePageLinks.length > 0 ? notePageLinks[0].pageId : undefined;
-        const primaryPage = primaryPageId ? await this.db.getPage(primaryPageId) : undefined;
-
         // Update Metadata — the slim V22 note row. journalDate patches map to
-        // page_notes junction; slug patches map to page slug; tags go to
-        // note_tags (N-06). `sourceId: null` clears the source bucket.
-        if (patch.title) note.title = patch.title;
+        // page_notes junction; slug patches move named-page membership (never
+        // renaming a shared page); targetDate syncs the domain date; tags go
+        // to note_tags (N-06). `sourceId: null` clears the source bucket.
+        if (patch.title !== undefined) note.title = patch.title;
         if (patch.type) note.type = patch.type;
+        if (patch.targetDate !== undefined) note.date = patch.targetDate;
         if (patch.sourceId !== undefined) note.sourceId = patch.sourceId ?? undefined;
 
-        // journalDate → update page_notes junction (calendar page membership)
+        // journalDate → update page_notes junction (calendar page membership).
+        // The destination page is secured BEFORE old links are dropped, so a
+        // failed lookup can never strand the note without its calendar
+        // membership; `null` clears that flavor only.
         if (patch.journalDate !== undefined) {
+            const destination = patch.journalDate
+                ? await this.db.getOrCreatePageForDate(patch.journalDate)
+                : undefined;
             // Remove existing calendar-page links (pages with a date)
             const existingLinks = await this.db.getNotePages(note.id);
             for (const link of existingLinks) {
@@ -466,42 +511,45 @@ export class IndexedDBContentProvider implements IContentProvider {
                     await this.db.removeNoteFromPage(note.id, link.pageId);
                 }
             }
-            if (patch.journalDate) {
-                const page = await this.db.getOrCreatePageForDate(patch.journalDate);
-                await this.db.addNoteToPage(note.id, page.id);
-            }
+            if (destination) await this.db.addNoteToPage(note.id, destination.id);
         }
 
-        // slug → update page slug (or create page)
+        // slug → move THIS note's named-page membership (page_notes junction).
+        // A shared slug page is never renamed — sibling notes on it keep their
+        // page. The note detaches from its old slug page(s) only after the
+        // target page exists; `null` clears the named-page flavor only.
         if (patch.slug !== undefined) {
+            let destination: Page | undefined;
+            if (patch.slug) {
+                destination = await this.db.getPageBySlug(patch.slug);
+                if (!destination) {
+                    destination = { id: uuidv7(), slug: patch.slug, title: note.title, createdAt: now };
+                    await this.db.savePage(destination);
+                }
+            }
             const existingLinks = await this.db.getNotePages(note.id);
-            // Find the slug page (a page with a slug, no date)
             for (const link of existingLinks) {
                 const linkedPage = await this.db.getPage(link.pageId);
-                if (linkedPage?.slug && !linkedPage.date) {
-                    if (patch.slug) {
-                        await this.db.savePage({ ...linkedPage, slug: patch.slug });
-                    } else {
-                        // Remove slug page membership when slug is cleared
-                        await this.db.removeNoteFromPage(note.id, link.pageId);
-                    }
+                // Named-page flavor: has a slug, no date.
+                if (linkedPage?.slug && !linkedPage.date && linkedPage.id !== destination?.id) {
+                    await this.db.removeNoteFromPage(note.id, link.pageId);
                 }
             }
-            if (patch.slug) {
-                let page = await this.db.getPageBySlug(patch.slug);
-                if (!page) {
-                    page = { id: uuidv7(), slug: patch.slug, title: note.title, createdAt: now };
-                    await this.db.savePage(page);
-                }
-                await this.db.addNoteToPage(note.id, page.id);
-            }
+            if (destination) await this.db.addNoteToPage(note.id, destination.id);
         }
 
         const metadataChanged = Boolean(
-            patch.title || patch.type || patch.slug !== undefined
+            patch.title !== undefined || patch.type || patch.slug !== undefined
             || patch.sourceId !== undefined || patch.journalDate !== undefined
+            || patch.targetDate !== undefined
             || patch.tags || patch.rawContent !== undefined,
         );
+
+        // Re-project relationships AFTER the writes above: segment stamping and
+        // the returned entry must reflect the new memberships, not the stale
+        // pre-patch primary page (journalDate/slug resolve independently).
+        const projection = await projectNotePages(this.db, note.id);
+        const primaryPageId = projection.pageId;
 
         let finalRawContent = '';
         // Tags parsed out of the new content's frontmatter sections (T4).
@@ -541,7 +589,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 // re-matched (that re-minted every save at version+1 and
                 // left the other live rows to pile up, #705).
                 const existingSegment =
-                    currentSegments.find(s => !consumed.has(s) && s.id === section.id) ||
+                    currentSegments.find(s => !consumed.has(s) && s.id === segmentRowId(note.id, section.id)) ||
                     currentSegments.find(s => {
                         if (consumed.has(s) || s.isHistory) return false;
                         const samePosition = s.position === position;
@@ -555,7 +603,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                     || (existingSegment.sourceContent !== undefined && existingSegment.sourceContent !== sourceFragments[position])) {
                     const newVersion = (existingSegment?.version || 0) + 1;
                     const segment: NoteSegment = {
-                        id: section.id,
+                        id: segmentRowId(note.id, section.id),
                         version: newVersion,
                         noteId: note.id,
                         position,
@@ -573,10 +621,10 @@ export class IndexedDBContentProvider implements IContentProvider {
                         // The bumped incarnation supersedes the previous latest.
                         await retire(existingSegment);
                     }
-                } else if (existingSegment.id !== section.id) {
+                } else if (existingSegment.id !== segmentRowId(note.id, section.id)) {
                     // Same content, different ID — carry forward under the new ID
                     const segment: NoteSegment = {
-                        id: section.id,
+                        id: segmentRowId(note.id, section.id),
                         version: existingSegment.version,
                         noteId: note.id,
                         position,
@@ -614,7 +662,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             // Retire every live row not carried into the new document. Without
             // this sweep, stale live rows accumulate across saves and
             // reconstruction joins them into duplicated content (#705).
-            const keptIds = new Set(sections.map(s => s.id));
+            const keptIds = new Set(sections.map(s => segmentRowId(note.id, s.id)));
             for (const segment of currentSegments) {
                 if (!keptIds.has(segment.id)) await retire(segment);
             }
@@ -656,12 +704,10 @@ export class IndexedDBContentProvider implements IContentProvider {
             // Key the segment lookup by segmentId (positional section id) —
             // previously looked up by blockContentId (a content hash), which
             // never matched and left every result's segmentVersion undefined.
-            const latestSegment = patch.segmentId
-                ? await this.db.getLatestSegmentVersion(patch.segmentId)
-                : undefined;
+            const latestSegment = await resolveLatestSegment(this.db, note.id, patch.segmentId);
             const newSession: Session = {
                 id: patch.resultId || uuidv7(),
-                segmentId: patch.segmentId,
+                segmentId: latestSegment?.id ?? patch.segmentId,
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
                 pageId: primaryPageId,
@@ -712,6 +758,11 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // Derived projection fields for the returned entry (V22 — junction).
         const tags = await this.db.getTagsForNote(note.id);
+        // Metadata-only patches (date/slug moves) must still return the note's
+        // body — consumers treat the return as the fresh entry state.
+        const rawContent = patch.rawContent === undefined
+            ? segmentsToRawContent(await this.db.getLatestSegmentsForNote(note.id), tags.map(t => t.label))
+            : finalRawContent;
 
         return {
             id: note.id,
@@ -719,9 +770,10 @@ export class IndexedDBContentProvider implements IContentProvider {
             createdAt: note.createdAt,
             updatedAt: note.createdAt,
             targetDate: note.date ?? note.createdAt,
-            journalDate: primaryPage?.date,
-            slug: primaryPage?.slug,
-            rawContent: finalRawContent,
+            journalDate: projection.journalDate,
+            slug: projection.slug,
+            pageId: projection.pageId,
+            rawContent,
             tags: tags.map(t => t.label),
             type: note.type ?? 'note',
             sourceId: note.sourceId,

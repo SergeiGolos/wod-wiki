@@ -1,4 +1,4 @@
-import { type ParsedFindQuery, type ParsedAggregateQuery } from '@bitcobblers/wod-wiki-wql';
+import { type ParsedFindQuery, type ParsedAggregateQuery, type ParsedPipelineQuery, type PipelineSource } from '@bitcobblers/wod-wiki-wql';
 import type { AnyParsedQuery } from './useWqlStageCounts';
 export interface WqlDiagnostics {
   valid: boolean;
@@ -55,6 +55,35 @@ export function summarizeAggregate(ast: ParsedAggregateQuery): WqlAggregateSumma
     unit: ast.displayUnit,
     hasJoin: Boolean(ast.join),
     filterCount: ast.filters.length,
+  };
+}
+
+export interface WqlPipelineSummary {
+  source: string;
+  /** One entry per transform stage, in order — `sum:tis`, `avg:load`, … */
+  functions: string[];
+  sink?: string;
+  timeWindow?: string;
+  filterCount: number;
+}
+
+function pipelineSourceLabel(source: PipelineSource): string {
+  if (source.kind === 'dataset') return source.name;
+  return 'target' in source.query ? `:${source.query.target}` : `:${source.query.agg}`;
+}
+
+export function summarizePipeline(ast: ParsedPipelineQuery): WqlPipelineSummary {
+  const sourceQuery = ast.source.kind === 'query' ? ast.source.query : undefined;
+  return {
+    source: pipelineSourceLabel(ast.source),
+    functions: ast.transforms.map((stage) => `${stage.agg}:${stage.metric}`),
+    sink: ast.sink ? `:${ast.sink.head}` : undefined,
+    timeWindow: sourceQuery?.window
+      ? sourceQuery.window.kind === 'relative'
+        ? `last ${sourceQuery.window.size}${sourceQuery.window.unit}`
+        : `from ${sourceQuery.window.start}${sourceQuery.window.end ? ` to ${sourceQuery.window.end}` : ''}`
+      : undefined,
+    filterCount: sourceQuery ? sourceQuery.filters.length : 0,
   };
 }
 

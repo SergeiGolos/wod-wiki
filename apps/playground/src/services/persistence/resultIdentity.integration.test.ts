@@ -20,7 +20,7 @@ import { IndexedDBNotePersistence } from './IndexedDBNotePersistence';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { parseDocumentSections, isWorkoutSectionType } from '@bitcobblers/wod-wiki-core';
 import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
-import { InMemoryStorage, StorageService } from '@/services/storage';
+import { InMemoryStorage, StorageService, resolveLatestSegment } from '@/services/storage';
 
 const storage = new InMemoryStorage();
 const service = new StorageService(storage);
@@ -84,7 +84,11 @@ describe('result identity (real IndexedDB stack)', () => {
     const results = await service.getResultsForNote(noteId);
     expect(results).toHaveLength(1);
     const result = results[0]!;
-    expect(result.segmentId).toBe(section!.id);
+    // segmentId is an opaque persisted key — assert it resolves to a real
+    // segment row of THIS note (the consumer-visible join), never a literal.
+    const resultSegment = await service.getSegment(result.segmentId, result.segmentVersion);
+    expect(resultSegment?.noteId).toBe(noteId);
+    expect(resultSegment?.version).toBe(1);
     expect(result.segmentVersion).toBe(1); // first version of the segment
     expect(result.origin).toBe('playground');
     expect(result.blockContentId).toBe(section!.contentId);
@@ -103,7 +107,7 @@ describe('result identity (real IndexedDB stack)', () => {
       expect(point.grain).toBe('summary');
       expect(point.metricKey).toBe('totalReps');
       expect(point.value).toBe(90);
-      expect(point.segmentId).toBe(section!.id);
+      expect(point.segmentId).toBe(result.segmentId); // event identity agrees with the result row
       expect(point.segmentVersion).toBe(1);
       expect(point.origin).toBe('playground');
       expect(point.resultId).toBe(result.id);
@@ -114,14 +118,15 @@ describe('result identity (real IndexedDB stack)', () => {
     expect(events.some(e => e.grain === 'event')).toBe(true);
 
     // ── Version lineage: editing the content bumps the segment version ────
-    // Segment ids embed a content hash, so an edit chains to a NEW segment id
-    // at version 2 (matched by position + type). The version number is the
-    // lineage; the id identifies the content incarnation that was run.
+    // An edit chains the matched section to version 2 (position + type).
+    // The version number is the lineage; the persisted segmentId is an
+    // opaque note-scoped key resolved through storage, never a literal.
     const edited = RAW_CONTENT.replace('Thrusters 95lb', 'Thrusters 75lb');
     await persistence.mutateNote(noteId, { rawContent: edited });
     const editedSection = parseDocumentSections(edited).find(s => isWorkoutSectionType(s.type))!;
-    const bumped = await service.getLatestSegmentVersion(editedSection.id);
+    const bumped = await resolveLatestSegment(service, noteId, editedSection.id);
     expect(bumped?.version).toBe(2);
+    expect(bumped?.noteId).toBe(noteId);
 
     await persistence.mutateNote(noteId, {
       workoutResult: {

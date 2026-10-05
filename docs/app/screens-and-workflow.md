@@ -17,6 +17,14 @@ The WOD Wiki application follows a continuous loop: **Plan → Track → Analyze
   - Explore movements with physiological MET multipliers, discipline tags, and intensity tiers.
 
 
+### Journal notes
+
+Use the `+` in the L1 rail or mobile navigation to create a journal note. Choose a date and start blank, from a stored template, or from a collection or feed item. Creation opens the new note in edit mode. Each note has its own identity and content; notes on the same date share one calendar page at `/journal/YYYY-MM-DD`.
+
+Date pages also offer **New note**, including on empty dates. Open a note's title to reach its individual editor. **Note relationships** changes or clears its calendar date, named-page link, or source note without changing its identity. Changing a named-page link does not rename the shared page or move other notes.
+
+**Clone** creates an independent copy on another date or named page and links back to the original note. Editing the copy leaves the original unchanged. Workout results and attachments are not copied. Mobile forms use bottom sheets with scrolling fields and fixed actions; template selection reports an empty state when no templates are stored.
+
 ### Note editing
 
 Properties inputs suggest registered property names and typed tag values. General tag inputs suggest tags across types and exclude existing chips. Focus and Ctrl+Space open all available suggestions; typing filters them. Arrow keys select an option, Enter or Tab accepts it, and Escape closes the list. Add tag focuses an existing tag input or opens a draft; no empty property is saved until a tag commits. Escape cancels the draft, and duplicate tag values are ignored case-insensitively.

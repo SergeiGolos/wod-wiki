@@ -23,15 +23,19 @@ import { EFFORT_DISCIPLINES } from "./disciplines";
 import { wqlFilterKeys, wqlGroupingDimensions } from "./capabilities";
 import {
   WQL_AGGREGATORS,
+  WQL_CHART_HEADS,
   WQL_METRIC_FAMILIES,
   WQL_METRIC_AGGREGATES,
   WQL_CALC_TARGETS,
   WQL_INTENSITY_TIERS,
   WQL_GRAINS,
   WQL_ROLLUP_PERIODS,
+  WQL_SOURCE_HEADS,
+  WQL_SOURCE_HEAD_SCOPES,
   WQL_SOURCE_VALUES,
+  WQL_STANDARD_DATASETS,
   WQL_FIND_TARGETS,
-  WQL_RESULT_PLANES,
+  WQL_FUNCTION_HEADS,
   WQL_DISPLAY_UNITS,
 } from "./vocabulary";
 
@@ -59,11 +63,17 @@ export const wqlLanguage = LRLanguage.define({
     props: [
       styleTags({
         // Rule styles color stray punctuation; the Word tokens inside carry
-        // the visible styling (unstyled children reset the parent class).
-        Aggregator: t.keyword,
+        // the visible styling (unstyled children reset the parent class) —
+        // so parents with punctuation children (Head spans `:journal`) are
+        // NOT styled directly, or highlightTree merges the word into the
+        // parent span.
         "Aggregator/Word": t.keyword,
-        Metric: t.variableName,
         "Metric/Word": t.variableName,
+        // Direct Word child of Head = the colon head name (`:sum`, `:journal`).
+        "Head/Word": t.keyword,
+        DatasetReference: t.keyword,
+        "DatasetReference/Word": t.keyword,
+        At: t.punctuation,
         TagKey: t.propertyName,
         "TagKey/Word": t.propertyName,
         TagValue: t.string,
@@ -265,11 +275,24 @@ function chained(list: readonly Completion[], suffix: string): Completion[] {
   }));
 }
 
-const AGGREGATOR_OPTIONS: Completion[] = [
-  { label: 'find', detail: 'content query', type: 'keyword' },
-  { label: 'rows', detail: 'raw fact rows', type: 'keyword' },
-  ...WQL_AGGREGATORS.map((label) => ({ label, type: 'keyword' })),
+/** Colon head vocabulary — canonical sources, functions, charts, datasets. */
+const HEAD_OPTIONS: Completion[] = [
+  ...WQL_FUNCTION_HEADS.map((label) => ({ label, detail: 'function head', type: 'keyword' as const })),
+  ...WQL_SOURCE_HEADS.map((label) => ({ label, detail: 'source head', type: 'keyword' as const })),
+  ...WQL_CHART_HEADS.map((label) => ({ label, detail: 'chart head', type: 'class' as const })),
+  ...WQL_STANDARD_DATASETS.map((label) => ({ label, detail: 'page dataset', type: 'class' as const })),
 ];
+
+/** Insertion for a head option: `:name{` at query start, `name{` when the
+ *  leading colon is already typed; datasets insert bare. */
+function headApply(o: Completion, colonTyped: boolean): Completion {
+  if (o.label.startsWith('@')) return { ...o, apply: o.label };
+  return { ...o, apply: `${colonTyped ? '' : ':'}${o.label}{` };
+}
+
+/** Legacy `agg:` heads still parse (retained numerical syntax); the retired
+ *  find/rows dispatch keywords are no longer offered. */
+const LEGACY_HEAD_OPTIONS: Completion[] = WQL_AGGREGATORS.map((label) => ({ label, type: 'keyword' as const }));
 
 /** Sortable/selectable columns the executors actually read (QueryService). */
 const NOTE_COLUMNS: readonly string[] = ['title', 'date', 'createdAt', 'type', 'sourceId', 'catalog'];
@@ -291,15 +314,28 @@ const UNIT_OPTIONS: Completion[] = WQL_DISPLAY_UNITS.map((label) => ({ label, de
 type Family = 'find' | 'aggregate';
 interface Head { family: Family; target?: string }
 
-/** `find:` resolves its target from the typed word — exact, else unique prefix. */
-function resolveHead(agg: string, typedTarget: string): Head {
-  if (agg.toLowerCase() === 'find') {
-    const typed = typedTarget.toLowerCase();
-    if ((WQL_FIND_TARGETS as readonly string[]).includes(typed)) return { family: 'find', target: typed };
-    const partial = typed ? WQL_FIND_TARGETS.filter((t) => t.startsWith(typed)) : [];
-    return { family: 'find', target: partial.length === 1 ? partial[0] : undefined };
+/** `find:`/rows: dispatch keywords are retired — a legacy `word:` head is
+ * always the retained aggregate surface; the metric slot resolves below. */
+function resolveHead(_agg: string, _typedTarget: string): Head {
+  return { family: 'aggregate' };
+}
+
+/** A colon head: function → aggregate family; source head → its content
+ *  plane (scoped aliases resolve to 'note'); chart → sink params. */
+function resolveColonHead(name: string): Head {
+  const n = name.toLowerCase();
+  if ((WQL_FUNCTION_HEADS as readonly string[]).includes(n)) return { family: 'aggregate' };
+  if ((WQL_CHART_HEADS as readonly string[]).includes(n)) return { family: 'find' };
+  // Partial head word resolves through the unique prefix (`:no{` → note).
+  let source = n;
+  if (!(WQL_SOURCE_HEADS as readonly string[]).includes(source)) {
+    const partial = source ? WQL_SOURCE_HEADS.filter((t) => t.startsWith(source)) : [];
+    if (partial.length === 1) source = partial[0]!;
   }
-  return { family: 'aggregate' }; // rows:/aggregates filter fact rows
+  if ((WQL_SOURCE_HEADS as readonly string[]).includes(source)) {
+    return { family: 'find', target: (WQL_SOURCE_HEAD_SCOPES as Readonly<Record<string, string>>)[source] ? 'note' : source };
+  }
+  return { family: 'find' }; // partial or unknown — union key suggestions
 }
 
 const FIND_KEY_UNION: readonly string[] = [
@@ -554,7 +590,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     const pos = context.pos;
     const word = context.matchBefore(/[\w.*-]*/) ?? { from: pos, to: pos, text: '' };
     // Structural characters open the next slot immediately, no keystroke needed.
-    const opens = word.from === word.to && pos > 0 && /[{,:|(!"]/.test(doc[pos - 1]);
+    const opens = word.from === word.to && pos > 0 && /[{,:|(!"@]/.test(doc[pos - 1]);
     if (word.from === word.to && !context.explicit && !opens) return null;
 
     const scan = scanContext(doc, pos);
@@ -563,27 +599,41 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     // Selected-token replacement lists every slot alternative unfiltered.
     const typed = replaceSelection ? '' : word.text;
 
-    const headM = /^[ \t]*([A-Za-z]+)[ \t]*:[ \t]*([A-Za-z0-9_.-]*)/.exec(doc);
-    const head = headM ? resolveHead(headM[1], headM[2]) : { family: 'aggregate' as const };
+    // Colon heads (`:note{…}`, `:sum{metric:…}`) and the legacy word-colon head.
+    const colonHeadM = /^[ \t]*:[ \t]*([A-Za-z][\w-]*)/.exec(doc);
+    const headM = colonHeadM ?? /^[ \t]*([A-Za-z]+)[ \t]*:[ \t]*([A-Za-z0-9_.-]*)/.exec(doc);
+    const head = colonHeadM
+      ? resolveColonHead(colonHeadM[1]!)
+      : headM ? resolveHead(headM[1]!, headM[2]!) : { family: 'aggregate' as const };
 
     if (scan.pipeFrom >= 0 && scan.depth === 0) return pipeSlot(context, doc, scan, word.from, typed, head);
     if (scan.depth > 0) return braceSlot(context, doc, scan, word.from, typed, head);
 
-    if (!headM) return finish(context, word.from, chained(AGGREGATOR_OPTIONS, ':'), typed);
+    // A '@' before the typed word means a dataset reference — offer only
+    // datasets ('@to' must not surface 'toplist').
+    const datasetTyped = word.from > 0 && doc[word.from - 1] === '@';
+    const headPool = datasetTyped ? HEAD_OPTIONS.filter((o) => o.label.startsWith('@')) : HEAD_OPTIONS;
+    const headTyped = datasetTyped ? '@' + typed : typed;
+
+    const headFrom = datasetTyped ? word.from - 1 : word.from;
+
+    if (!headM) return finish(context, headFrom, headPool.map((o) => headApply(o, false)), headTyped);
+
+    if (colonHeadM) {
+      // Before/inside the head word after ':': offer every head.
+      if (pos <= colonHeadM[0].length) {
+        return finish(context, headFrom, headPool.map((o) => headApply(o, true)), headTyped);
+      }
+      return suffixSlot(context, doc, scan, word.from, typed, head, colonHeadM[0].length);
+    }
 
     const colonIdx = headM[0].indexOf(':');
-    if (pos <= colonIdx) return finish(context, word.from, chained(AGGREGATOR_OPTIONS, ':'), typed);
+    if (pos <= colonIdx) return finish(context, word.from, chained(LEGACY_HEAD_OPTIONS, ':'), typed);
     if (pos <= headM[0].length) {
       // Head target/metric slot: `last` the aggregator vs `last` the window
       // is disambiguated here — before/inside the head word it is the
-      // aggregator; after the complete head it is a suffix (below).
-      const agg = headM[1].toLowerCase();
-      if (agg === 'find') {
-        return finish(context, word.from, options(WQL_FIND_TARGETS).map((c) => ({ ...c, type: 'keyword' as const })), typed);
-      }
-      if (agg === 'rows') {
-        return finish(context, word.from, options(WQL_RESULT_PLANES).map((c) => ({ ...c, type: 'namespace' as const })), typed);
-      }
+      // aggregator; after the complete head it is a suffix (below). The
+      // retired find:/rows: dispatch keywords offer nothing here.
       return metricHeadSlot(context, word.from, typed);
     }
     return suffixSlot(context, doc, scan, word.from, typed, head, headM[0].length);

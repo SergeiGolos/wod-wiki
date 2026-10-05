@@ -13,8 +13,6 @@ import {
   type RouteViewParams,
   type SelectWorkoutItem,
 } from './routeView'
-import { SYNTAX_LINKS } from './routeNav'
-
 /** Minimal result fixture — only `createdAt` matters to the nav derivation. */
 function makeResult(createdAt: number, id = `r-${createdAt}`): Session {
   return { id, noteId: 'note-1', data: {} as Sessions, createdAt }
@@ -124,13 +122,6 @@ describe('resolveRouteView — playground route', () => {
     const view = resolveRouteView('/note/playground/xyz', { name: 'xyz' }, makeDeps())
     expect(view.isPlaygroundRoute).toBe(true)
     expect(view.effectivePlaygroundId).toBe('xyz')
-  })
-})
-
-describe('resolveRouteView — docs routes', () => {
-  it('returns the Syntax links for /guide/syntax', () => {
-    const view = resolveRouteView('/guide/syntax', NO_PARAMS, makeDeps())
-    expect(view.nav).toBe(SYNTAX_LINKS)
   })
 })
 

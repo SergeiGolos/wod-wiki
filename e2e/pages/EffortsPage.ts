@@ -162,7 +162,7 @@ export class EffortsPage {
       return;
     }
     const literal = /\s/.test(term) ? `"${term}"` : term;
-    await this.applyQuery(`find:effort{text:${literal}}`);
+    await this.applyQuery(`:effort{text:${literal}}`);
   }
 
   async replaceEditorDocument(text: string) {

@@ -35,7 +35,7 @@ const zeroRect = { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, h
 (window.Range.prototype as any).getBoundingClientRect ??= () => zeroRect;
 (window.Element.prototype as any).getClientRects ??= () => [];
 
-const DOC = 'Intro prose.\n\n```query:table\nfind:session{result:abc-123}\n```\n';
+const DOC = 'Intro prose.\n\n```query:table\n:session{result:abc-123}\n```\n';
 
 afterEach(() => cleanup());
 

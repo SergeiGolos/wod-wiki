@@ -21,7 +21,7 @@
  * passes `new BroadcastChannel('wodwiki.analytics')`).
  */
 
-import type { AnyParsedQuery } from './wql';
+import type { AnyParsedQuery, ParsedAggregateQuery, ParsedFindQuery } from './wql';
 
 const MUTATION_MESSAGE = 'ANALYTICS_MUTATION';
 
@@ -117,6 +117,16 @@ export interface CacheKeyContext {
     unitDefaults?: Record<string, string | undefined>;
 }
 
+/** Aggregate AST canonical tuple — every semantic field participates. */
+function aggKey(a: ParsedAggregateQuery): unknown[] {
+    return [a.agg, a.metric, a.filters, a.groupBy, a.rollup ?? null, a.window ?? null, a.displayUnit ?? null, a.join ?? null];
+}
+
+/** Find AST canonical tuple — every semantic field participates. */
+function findKey(f: ParsedFindQuery): unknown[] {
+    return [f.target, f.filters, f.sourceScope ?? null, f.window ?? null, f.groupBy ?? null, f.displayUnit ?? null, f.pipes ?? null, f.join ?? null];
+}
+
 /** Structural cache key: canonical AST + every context dimension. */
 export function computeCacheKey(
     parsed: AnyParsedQuery,
@@ -127,12 +137,22 @@ export function computeCacheKey(
     // one document).
     const canonical = JSON.stringify([
         parsed.family,
-        parsed.family === 'aggregate'
-            // `join` participates: different joined populations are different
-            // queries even with identical aggregates.
-            ? [parsed.agg, parsed.metric, parsed.filters, parsed.groupBy, parsed.rollup ?? null, parsed.window ?? null, parsed.displayUnit ?? null, parsed.join ?? null]
+        parsed.family === 'aggregate' ? aggKey(parsed) : null,
+        parsed.family === 'find' ? findKey(parsed) : null,
+        parsed.family === 'pipeline'
+            ? [
+                // Dataset/source identity participates like a query: a
+                // different registry binding or source content is a
+                // different query even with identical stages.
+                parsed.source.kind === 'dataset'
+                    ? ['dataset', parsed.source.name]
+                    : ['query', parsed.source.query.family === 'aggregate'
+                        ? aggKey(parsed.source.query)
+                        : findKey(parsed.source.query)],
+                parsed.transforms.map(aggKey),
+                parsed.sink ? [parsed.sink.head, parsed.sink.filters] : null,
+            ]
             : null,
-        parsed.family === 'find' ? [parsed.target, parsed.filters, parsed.window ?? null, parsed.groupBy ?? null, parsed.displayUnit ?? null, parsed.pipes ?? null, parsed.join ?? null] : null,
     ]);
     return JSON.stringify([
         canonical,

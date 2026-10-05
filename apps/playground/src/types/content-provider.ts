@@ -61,7 +61,17 @@ export interface IContentProvider {
    */
   saveEntry(entry: NoteSaveInput): Promise<HistoryEntry>;
   cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry>;
-  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'type'>> & { sourceId?: string | null; slug?: string | null; sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry>;
+  /**
+   * Relationship patch semantics (V22 journal model):
+   * - `targetDate` syncs the note's domain date (`Note.date`).
+   * - `journalDate` re-members the note onto the calendar page for that date
+   *   (creating the page if needed); `null` unlinks it from calendar pages
+   *   while preserving other memberships.
+   * - `slug` moves the note onto the named page for that slug (creating it if
+   *   needed) — it never renames a shared page; `null` unlinks named-page
+   *   membership only.
+   */
+  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'type'>> & { journalDate?: string | null; sourceId?: string | null; slug?: string | null; sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry>;
   deleteEntry(id: string): Promise<void>;
 
   // Attachments

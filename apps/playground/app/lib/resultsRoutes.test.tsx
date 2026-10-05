@@ -54,7 +54,7 @@ describe('ReviewRedirect cutover (Ticket 005)', () => {
     expect(getByTestId('pathname').textContent).toBe('/sessions/res-456')
   })
 
-  it('redirects legacy note review without resultId to /sessions?q=find:session{note:...}', () => {
+  it('redirects legacy note review without resultId to /sessions?q=:session{note:...}', () => {
     const { getByTestId } = render(
       <MemoryRouter initialEntries={['/note/my-note/review']}>
         <Routes>
@@ -66,10 +66,10 @@ describe('ReviewRedirect cutover (Ticket 005)', () => {
     )
 
     expect(getByTestId('pathname').textContent).toBe('/sessions')
-    expect(getByTestId('search').textContent).toBe('?q=find%3Asession%7Bnote%3Amy-note%7D')
+    expect(getByTestId('search').textContent).toBe('?q=%3Asession%7Bnote%3Amy-note%7D')
   })
 
-  it('redirects section-only note review to /sessions?q=find:session{note:...}', () => {
+  it('redirects section-only note review to /sessions?q=:session{note:...}', () => {
     const { getByTestId } = render(
       <MemoryRouter initialEntries={['/note/my-note/review/sec-1']}>
         <Routes>
@@ -81,7 +81,7 @@ describe('ReviewRedirect cutover (Ticket 005)', () => {
     )
 
     expect(getByTestId('pathname').textContent).toBe('/sessions')
-    expect(getByTestId('search').textContent).toBe('?q=find%3Asession%7Bnote%3Amy-note%7D')
+    expect(getByTestId('search').textContent).toBe('?q=%3Asession%7Bnote%3Amy-note%7D')
   })
 })
 

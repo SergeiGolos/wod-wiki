@@ -29,6 +29,7 @@ export type IrKind =
   | 'query-result'
   | 'find-result'
   | 'rows-result'
+  | 'pipeline-result'
   | 'parse-tree'
   | 'execution-log';
 

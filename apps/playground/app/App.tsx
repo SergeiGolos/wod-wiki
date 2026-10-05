@@ -18,7 +18,6 @@ import { AppContent } from './AppContent'
 import { ROUTE_PATTERNS } from './lib/routes'
 import {
   PlanRedirect,
-  SyntaxRedirect,
   TrackerRedirect,
   ReviewRedirect,
   NotePlaygroundRedirect,
@@ -159,12 +158,10 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.settingsTags} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/settings/library/calcs" element={<div className="p-6"><CalcAuthoringPanel /></div>} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
-                  <Route path="/chapters/basics" element={<Navigate to="/p/syntax/basics" replace />} />
-                  <Route path="/chapters/sequences" element={<Navigate to="/p/syntax" replace />} />
-                  <Route path="/chapters/protocols" element={<Navigate to="/p/syntax/protocols" replace />} />
+                  <Route path="/chapters/basics" element={<Navigate to="/guide/start" replace />} />
+                  <Route path="/chapters/sequences" element={<Navigate to="/guide/start" replace />} />
+                  <Route path="/chapters/protocols" element={<Navigate to="/guide/protocols" replace />} />
                   <Route path="/challenge" element={<Navigate to="/" replace />} />
-                  <Route path="/syntax" element={<SyntaxRedirect />} />
-                  <Route path="/syntax/*" element={<SyntaxRedirect />} />
                   <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
                   <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feed} element={<AppContent searchHandlerRef={searchHandlerRef} />} />

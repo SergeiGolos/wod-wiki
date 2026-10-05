@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
-import { parseQuery, isFindQuery, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isFindQuery, isPipelineQuery, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type PipelineResult, type NoteContainer, type RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { RowsResultsChrome } from './RowsResultsChrome';
@@ -10,6 +10,7 @@ import { WqlTimeseries } from '../widgets/WqlTimeseries';
 import { WqlBars } from '../widgets/WqlBars';
 import { WqlEmptyState } from '../widgets/WqlEmptyState';
 import { WidgetChart, WidgetProblemBadge } from '../widgets/WidgetChart';
+import { toChartResult } from '../widgets/chartData';
 import { extractBlockQueries } from '../utils/blockQueryPatcher';
 import { WqlQueryInspectorModal } from './WqlQueryInspectorModal';
 
@@ -38,9 +39,9 @@ export interface QueryBlockViewProps {
   attributes?: Record<string, string>;
   /** Optional RPE capture handler. */
   onCaptureRpe?: (resultId: string, rpe: number) => Promise<void>;
-  /** Optional click handler for opening a note from find:note results. */
+  /** Optional click handler for opening a note from :note results. */
   onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
-  /** Optional resolver returning the destination href for an item in find:note results. */
+  /** Optional resolver returning the destination href for an item in :note results. */
   noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
 }
 
@@ -89,6 +90,7 @@ export function QueryBlockView({
     widgetType != null && widgetType !== '' && !isDashboardWidgetType(widgetType);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
+  const [pipelineResult, setPipelineResult] = useState<PipelineResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
   const [rowsRefreshKey, setRowsRefreshKey] = useState(0);
 
@@ -108,6 +110,7 @@ export function QueryBlockView({
     setRunError(undefined);
     setResult(undefined);
     setFindResult(undefined);
+    setPipelineResult(undefined);
 
     if (parsed.error) return;
     if (widgetError || unknownType || missing.length > 0) return;
@@ -138,16 +141,34 @@ export function QueryBlockView({
         cancelled = true;
         clearTimeout(retryTimer);
       };
-    } else {
+    }
+
+    if (isPipelineQuery(parsed)) {
+      if (!executor.runPipeline) {
+        setRunError('pipeline queries are not supported by this executor');
+        return;
+      }
       void executor
-        .runQuery(effectiveQuery)
+        .runPipeline(effectiveQuery)
         .then((res) => {
-          if (!cancelled) setResult(res);
+          if (!cancelled) setPipelineResult(res);
         })
         .catch((err) => {
           if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
         });
+      return () => {
+        cancelled = true;
+      };
     }
+
+    void executor
+      .runQuery(effectiveQuery)
+      .then((res) => {
+        if (!cancelled) setResult(res);
+      })
+      .catch((err) => {
+        if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
+      });
 
     return () => {
       cancelled = true;
@@ -207,14 +228,27 @@ export function QueryBlockView({
             <RowsTable result={findResult as any} />
           ) : findResult ? (
             <FindResultList
-              parsed={parsed}
-              result={findResult}
+              target={parsed.target}
+              notes={findResult.notes}
+              blocks={findResult.blocks}
+              containers={findResult.containers}
               onOpenNote={onOpenNote}
               noteHref={noteHref}
             />
           ) : (
             <div className="text-xs text-muted-foreground py-2">Loading rows…</div>
           )}
+        </QueryBlockShell>
+      ) : isPipelineQuery(parsed) ? (
+        <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>
+          <PipelineResultView
+            result={pipelineResult}
+            onOpenNote={onOpenNote}
+            noteHref={noteHref}
+            widgetType={widgetType}
+            attributes={resolvedAttributes}
+            fallbackLabel={parsed.raw}
+          />
         </QueryBlockShell>
       ) : (
         <QueryBlockShell onEdit={onEdit} readOnly={readOnly}>
@@ -268,27 +302,41 @@ function AnalyticsChart({
   return <WqlEmptyState result={result} />;
 }
 
+/**
+ * Canonical page link for a matched note — the parent Page wins over the
+ * standalone note (slug pages → /p/:slug, journal date pages →
+ * /journal/:date); undefined lets the caller's resolver answer.
+ */
+function containerPageHref(container: NoteContainer | undefined): string | undefined {
+  if (!container || container.kind !== 'page') return undefined;
+  const { slug, date } = container as { slug?: string; date?: string };
+  if (slug) return `/p/${encodeURIComponent(slug)}`;
+  if (date) return `/journal/${encodeURIComponent(date)}`;
+  return undefined;
+}
+
 function FindResultList({
-  parsed,
-  result,
+  target,
+  notes,
+  blocks,
+  containers,
   onOpenNote,
   noteHref,
 }: {
-  parsed: FindQueryResult['parsed'];
-  result: FindQueryResult | undefined;
+  target: string;
+  notes: FindQueryResult['notes'];
+  blocks: FindQueryResult['blocks'];
+  containers?: FindQueryResult['containers'];
   onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
   noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
 }) {
-  if (!result) {
-    return <div className="text-xs text-muted-foreground py-2">Loading…</div>;
-  }
-  const isBlock = parsed.target === 'block';
-  const items = isBlock ? result.blocks : result.notes;
+  const isBlock = target === 'block';
+  const items = isBlock ? blocks : notes;
 
   if (items.length === 0) {
     return (
       <div className="text-xs text-muted-foreground py-2">
-        No {parsed.target}s matched this query.
+        No {target}s matched this query.
       </div>
     );
   }
@@ -296,7 +344,7 @@ function FindResultList({
   return (
     <div className="space-y-1">
       <div className="text-[11px] font-medium text-muted-foreground mb-1">
-        {items.length} {parsed.target}{items.length === 1 ? '' : 's'} matched
+        {items.length} {target}{items.length === 1 ? '' : 's'} matched
       </div>
       <ul className="space-y-0.5 max-h-48 overflow-y-auto font-mono text-xs">
         {items.map((item) => {
@@ -304,7 +352,11 @@ function FindResultList({
           const title = isBlock
             ? typedItem.title || typedItem.blockContentId || item.id
             : typedItem.title || item.id;
-          const href = noteHref ? noteHref(typedItem) : undefined;
+          const href = containers
+            ? containerPageHref(containers[item.id]) ?? (noteHref ? noteHref(typedItem) : undefined)
+            : noteHref
+              ? noteHref(typedItem)
+              : undefined;
           return (
             <li key={item.id} className="rounded hover:bg-muted/50 truncate">
               {href ? (
@@ -337,6 +389,92 @@ function FindResultList({
       </ul>
     </div>
   );
+}
+
+/**
+ * Pipeline result rendering (`:source | :fn | :chart`, `@dataset | …`).
+ * The terminal chart sink picks the real renderer (all six heads map onto
+ * production widgets); a source-only pipeline passes its content plane
+ * through; a sink-less numeric result falls back to the automatic chart
+ * shape.
+ */
+function PipelineResultView({
+  result,
+  onOpenNote,
+  noteHref,
+  widgetType,
+  attributes,
+  fallbackLabel,
+}: {
+  result: PipelineResult | undefined;
+  onOpenNote?: (item: { id: string; title?: string; blockContentId?: string }) => void;
+  noteHref?: (item: { id: string; title?: string; blockContentId?: string }) => string;
+  widgetType?: string;
+  attributes?: Record<string, string>;
+  fallbackLabel: string;
+}) {
+  if (!result) {
+    return <div className="text-xs text-muted-foreground py-2">Loading…</div>;
+  }
+  if (result.error) {
+    return (
+      <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded p-2">
+        Query execution error: {result.error}
+      </div>
+    );
+  }
+
+  const listTarget =
+    result.parsed.source.kind === 'query' && result.parsed.source.query.family === 'find'
+      ? result.parsed.source.query.target
+      : 'note';
+  if ((result.notes?.length ?? 0) + (result.blocks?.length ?? 0) > 0) {
+    return (
+      <FindResultList
+        target={listTarget}
+        notes={result.notes ?? []}
+        blocks={result.blocks ?? []}
+        containers={result.containers}
+        onOpenNote={onOpenNote}
+        noteHref={noteHref}
+      />
+    );
+  }
+
+  if (result.runs && result.runs.length > 0) {
+    // Session-run pipelines surface the rows grid (RowsQueryResult shape).
+    const rowsResult = { parsed: result.parsed, runs: result.runs, table: result.table } as unknown as RowsQueryResult;
+    return <RowsTable result={rowsResult} />;
+  }
+
+  const chartHead = widgetType != null && widgetType !== '' ? widgetType : result.chart?.head;
+  if (chartHead) {
+    const sinkAttributes = Object.fromEntries(
+      (result.chart?.filters ?? []).map((f) => [f.key, f.values.map((v) => v.value).join(',')]),
+    );
+    // Bounded height: h-full resolves to 0 against an auto-height shell and
+    // leaves ResponsiveContainer charts with no size to measure.
+    return (
+      <div className="w-full h-[220px] min-h-[160px]">
+        <WidgetChart
+          type={chartHead}
+          result={toChartResult(result)}
+          label={fallbackLabel}
+          attributes={{ ...sinkAttributes, ...attributes }}
+        />
+      </div>
+    );
+  }
+
+  if (result.series && result.series.length > 0) {
+    return (
+      <div className="w-full h-[220px] min-h-[160px]">
+        <AnalyticsChart result={toChartResult(result)} metric={fallbackLabel} />
+      </div>
+    );
+  }
+
+  return <WqlEmptyState result={toChartResult(result)} />;
 }
 
 function QueryBlockShell({

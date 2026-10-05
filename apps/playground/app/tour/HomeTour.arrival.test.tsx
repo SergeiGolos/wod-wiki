@@ -312,7 +312,9 @@ describe('HomeTour arrival & hero-reset contract', () => {
 
     await renderHomeTour()
 
-    const shareButton = screen.getAllByRole('button', { name: /Copy share link/i })[0]
+    // The hero's own share control (the editor pane carries a second share
+    // ghost, so the role query is ambiguous within the hero view).
+    const shareButton = screen.getByTestId('tour-hero-share')
     fireEvent.click(shareButton)
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
 

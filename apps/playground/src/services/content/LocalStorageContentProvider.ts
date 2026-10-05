@@ -148,7 +148,7 @@ export class LocalStorageContentProvider implements IContentProvider {
   }
   async updateEntry(
     id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { blockContentId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'slug' | 'type' | 'sourceId'>> & { journalDate?: string | null; blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const existing = await this.getEntry(id);
     if (!existing) {

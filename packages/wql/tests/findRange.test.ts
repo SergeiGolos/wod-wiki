@@ -47,14 +47,14 @@ describe('range parameter — runFind', () => {
   it('drops notes outside the [start, end] range', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
-      family: 'find', raw: 'find:note', target: 'note', filters: [] };
+      family: 'find', raw: ':note', target: 'note', filters: [] };
     const result = await service.runFind(parsed, { range: { start: T0, end: T0 } });
     expect(result.notes.map(n => n.id)).toEqual(['mid']);
   });
   it('is inclusive at the boundary (start === note.createdAt)', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
-      family: 'find', raw: 'find:note', target: 'note', filters: [] };
+      family: 'find', raw: ':note', target: 'note', filters: [] };
     const result = await service.runFind(parsed, { range: { start: T0, end: T_NEW } });
     expect(result.notes.map(n => n.id).sort()).toEqual(['mid', 'new']);
   });
@@ -63,7 +63,7 @@ describe('range parameter — runFind', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note last 8w',
+      raw: ':note last 8w',
       target: 'note',
       filters: [],
       window: { kind: 'relative', size: 8, unit: 'w' },
@@ -79,7 +79,7 @@ describe('range parameter — runFind', () => {
     expect(result.notes.map(n => n.id).sort()).toEqual(['mid', 'old']);
 
     // Without a window, the host range is the default.
-    const noWindow: ParsedFindQuery = { family: 'find', raw: 'find:note', target: 'note', filters: [] };
+    const noWindow: ParsedFindQuery = { family: 'find', raw: ':note', target: 'note', filters: [] };
     const byRange = await service.runFind(noWindow, { range: { start: T_OLD, end: T_OLD, endExclusive: false } });
     expect(byRange.notes.map(n => n.id)).toEqual(['old']);
   });
@@ -88,7 +88,7 @@ describe('range parameter — runFind', () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
       family: 'find',
-      raw: 'find:note last 8w',
+      raw: ':note last 8w',
       target: 'note',
       filters: [],
       window: { kind: 'relative', size: 8, unit: 'w' },
@@ -102,7 +102,7 @@ describe('range parameter — runFindBlock', () => {
   it('filters blocks by the range parameter', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
-      family: 'find', raw: 'find:block', target: 'block', filters: [] };
+      family: 'find', raw: ':block', target: 'block', filters: [] };
     const result = await service.runFind(parsed, { range: { start: T0, end: T0 } });
     expect(result.blocks.map(b => b.noteId)).toEqual(['mid']);
   });

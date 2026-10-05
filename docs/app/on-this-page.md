@@ -80,8 +80,7 @@ composer wins; otherwise per-route View Settings **Group By**
 | Route | Content |
 |---|---|
 | `/` (Home) | markdown sections (level > 1) + `Workout N` per time/log fence |
-| `/guide/getting-started` | sections only (workout fences skipped on guide pages) |
-| `/guide/syntax` | fixed `SYNTAX_LINKS` (8 static entries: Introduction → Document) |
+| `/guide/*` (8 consolidated chapters) | sections only (workout fences skipped on guide pages) |
 | `/collections/:slug` | sections + `Explore` + one link per collection workout (`onRun` → open editor) |
 
 ### Note pages — `useNotePageNav` document index

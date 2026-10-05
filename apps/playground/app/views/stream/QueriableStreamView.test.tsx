@@ -192,7 +192,7 @@ describe('QueriableStreamView component', () => {
     )
 
     await waitFor(() => {
-      expect(executed.at(-1)).toBe('find:note{source:journal,text:snatch} last 2w')
+      expect(executed.at(-1)).toBe(':note{source:journal,text:snatch} last 2w')
     })
   })
 
@@ -417,7 +417,7 @@ describe('QueriableStreamView component', () => {
           }}
         >
           <QueriableStreamView
-            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note{source:journal} by {discipline}' }}
+            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':note{source:journal} by {discipline}' }}
             queryEngine={engine}
           />
         </NavContext.Provider>
@@ -468,7 +468,7 @@ describe('QueriableStreamView component', () => {
     })
 
     render(
-      <MemoryRouter initialEntries={[`/library?q=${encodeURIComponent('find:note{source:playground}')}`]}>
+      <MemoryRouter initialEntries={[`/library?q=${encodeURIComponent(':note{source:playground}')}`]}>
         <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
       </MemoryRouter>,
     )
@@ -510,6 +510,27 @@ describe('QueriableStreamView component', () => {
     expect(pending?.returnTo).toBe('/playground/uuid-1')
     expect(pending?.block.content).toContain('21-15-9')
     pendingRuntimes.clear()
+  })
+
+  it('View ▸ Arrange-by writes through to the WQL line and the grid follows', async () => {
+    const engine = createMockEngine(sampleEffortEntries)
+
+    render(
+      <MemoryRouter initialEntries={['/efforts']}>
+        <QueriableStreamView profile={EFFORTS_STREAM_PROFILE} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    // Open View settings and pick the Tags arrangement…
+    fireEvent.click(screen.getByTestId('stream-view-settings-trigger'))
+    fireEvent.click(screen.getByTestId('view-settings-group-tag'))
+
+    // …the query now owns grouping: the committed run's `by {tag}` surfaces
+    // in the truth strip (source: query) and the dialog's disclosure notice.
+    await waitFor(() => {
+      expect(screen.getByTestId('stream-query-status').textContent).toContain('by tag (query)')
+    })
+    expect(screen.getByTestId('view-settings-query-grouped').textContent).toContain('by {tag}')
   })
 
   it('keeps grouping when switching layouts — groupBy survives mode changes', async () => {
@@ -667,7 +688,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
       expect(screen.getByTestId('stream-query-counts').textContent).toBe('2 of 7')
     })
     const status = screen.getByTestId('stream-query-status').textContent ?? ''
-    expect(status).toContain('find:note')
+    expect(status).toContain(':note')
     expect(status).toContain('1 applied')
     expect(status).toContain('by date (level)')
     expect(screen.queryByText('Invalid query — showing previous results')).toBeNull()
@@ -687,7 +708,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     })
 
     fireEvent.change(screen.getByPlaceholderText('Filter or search…'), {
-      target: { value: 'find:note{oops' },
+      target: { value: ':note{oops' },
     })
 
     // Exact invalid draft: error surfaced, previous results retained under
@@ -711,7 +732,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     render(
       <MemoryRouter initialEntries={['/journal']}>
         <QueriableStreamView
-          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note{source:journal} by {tag}' }}
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':note{source:journal} by {tag}' }}
           queryEngine={engine}
         />
       </MemoryRouter>,
@@ -725,7 +746,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     // A valid intermediate draft re-parses immediately but its run never
     // commits — the displayed grouping must stay the committed run's.
     fireEvent.change(screen.getByPlaceholderText('Filter or search…'), {
-      target: { value: 'find:note' },
+      target: { value: ':note' },
     })
 
     expect(screen.getByTestId('stream-query-status').textContent).toContain('by tag (query)')
@@ -738,7 +759,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     render(
       <MemoryRouter initialEntries={['/journal']}>
         <QueriableStreamView
-          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note{source:journal} by {nonsense}' }}
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':note{source:journal} by {nonsense}' }}
           queryEngine={engine}
         />
       </MemoryRouter>,
@@ -755,17 +776,18 @@ describe('QueriableStreamView — query truth and retained state', () => {
     fireEvent.click(screen.getByTestId('stream-grouping-fallback-badge'))
 
     await waitFor(() => {
-      expect(executed.at(-1)).toBe('find:note{source:journal} by {tag}')
+      expect(executed.at(-1)).toBe(':note{source:journal} by {tag}')
     })
   })
 
   it('offers Edit query first when an advisory no-ops the empty result', async () => {
     const { engine } = stubEngine(() => [])
+    const authored = ':note{source:journal,discipline:strength}'
 
     render(
       <MemoryRouter initialEntries={['/journal']}>
         <QueriableStreamView
-          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: 'find:note in journal' }}
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: authored }}
           queryEngine={engine}
         />
       </MemoryRouter>,
@@ -780,6 +802,6 @@ describe('QueriableStreamView — query truth and retained state', () => {
     fireEvent.click(within(screen.getByTestId('stream-empty-state')).getByRole('button', { name: 'Edit query' }))
     const state = usePaletteStore.getState()
     expect(state.isOpen).toBe(true)
-    expect(state.request?.wql?.initialQuery).toBe('find:note in journal')
+    expect(state.request?.wql?.initialQuery).toBe(authored)
   })
 })

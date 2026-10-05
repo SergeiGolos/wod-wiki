@@ -33,78 +33,30 @@ import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMe
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
-// Sidebar order for the Syntax guide pillar (maps canonical route to position).
-// Timers/rounds come before custom-metrics; complex carries the sound-behavior
-// slot until a dedicated sound page exists; cheatsheet is the reference cap.
-const syntaxOrder: Record<string, number> = {
-  '/guide/syntax': 0,
-  '/guide/syntax/basics': 1,
-  '/guide/syntax/protocols': 2,
-  '/guide/syntax/structure': 3,
-  '/guide/syntax/custom-metrics': 4,
-  '/guide/syntax/dialects': 5,
-  '/guide/syntax/complex': 6,
-  '/guide/syntax/cheatsheet': 7,
+// Sidebar order for the consolidated learning guide (one pillar, eight
+// chapters — markdown/canvas/guide/**; the old syntax/behaviors/analytics
+// pillars were folded into these eight routes).
+const guideOrder: Record<string, number> = {
+  '/guide/start': 0,
+  '/guide/protocols': 1,
+  '/guide/structure': 2,
+  '/guide/metrics': 3,
+  '/guide/clock': 4,
+  '/guide/wql': 5,
+  '/guide/dashboards': 6,
+  '/guide/sessions': 7,
 }
 
-// Sidebar order for the Behaviors guide pillar.
-const behaviorOrder: Record<string, number> = {
-  '/guide/behaviors': 0,
-  '/guide/behaviors/timers': 1,
-  '/guide/behaviors/rounds': 2,
-  '/guide/behaviors/capture': 3,
-}
-
-// Sidebar order for the Analytics guide pillar.
-const analyticsGuideOrder: Record<string, number> = {
-  '/guide/analytics': 0,
-  '/guide/analytics/anatomy': 1,
-  '/guide/analytics/filters': 2,
-  '/guide/analytics/joins': 3,
-  '/guide/analytics/cookbook': 4,
-  '/guide/analytics/cheatsheet': 5,
-}
-
-function syntaxChildrenFrom(routes: CanvasRoute[]): NavItem[] {
+function guideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
   return routes
     .filter(r => !r.route.startsWith('/collections'))
-    .filter(r => r.page.frontmatter?.type === 'syntax')
-    .sort((a, b) => (syntaxOrder[a.route] ?? 99) - (syntaxOrder[b.route] ?? 99))
+    .filter(r => r.page.frontmatter?.type === 'guide')
+    .sort((a, b) => (guideOrder[a.route] ?? 99) - (guideOrder[b.route] ?? 99))
     .map(r => ({
-      id: `syntax-${r.route}`,
+      id: `guide-${r.route}`,
       label: r.page.sections[0]?.heading ?? 'Untitled',
       level: 2 as const,
       icon: CodeBracketIcon,
-      action: { type: 'route' as const, to: r.route },
-      isActive: (loc: Location) => loc.pathname === r.route,
-    }))
-}
-
-function behaviorsChildrenFrom(routes: CanvasRoute[]): NavItem[] {
-  return routes
-    .filter(r => !r.route.startsWith('/collections'))
-    .filter(r => r.page.frontmatter?.type === 'behavior')
-    .sort((a, b) => (behaviorOrder[a.route] ?? 99) - (behaviorOrder[b.route] ?? 99))
-    .map(r => ({
-      id: `behavior-${r.route}`,
-      label: r.page.sections[0]?.heading ?? 'Untitled',
-      level: 2 as const,
-      icon: BookOpen,
-      action: { type: 'route' as const, to: r.route },
-      isActive: (loc: Location) => loc.pathname === r.route,
-    }))
-}
-
-function analyticsGuideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
-  return routes
-    .filter(r => !r.route.startsWith('/collections'))
-    .filter(r => r.page.frontmatter?.type === 'analytics')
-    .sort((a, b) => (analyticsGuideOrder[a.route] ?? 99) - (analyticsGuideOrder[b.route] ?? 99))
-    .map(r => ({
-      id: `analytics-guide-${r.route}`,
-      label: r.page.sections[0]?.heading ?? 'Untitled',
-      level: 2 as const,
-      icon: ChartBarIcon,
       action: { type: 'route' as const, to: r.route },
       isActive: (loc: Location) => loc.pathname === r.route,
     }))
@@ -113,30 +65,13 @@ function analyticsGuideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
 function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   return [
     {
-      id: 'syntax-group',
-      label: 'Syntax',
+      id: 'guide-group',
+      label: 'Guide',
       level: 2,
       icon: CodeBracketIcon,
-      action: { type: 'none' },
-      children: syntaxChildrenFrom(routes),
-    },
-    {
-      id: 'behaviors-group',
-      label: 'Behaviors',
-      level: 2,
-      icon: BookOpen,
-      action: { type: 'route', to: '/guide/behaviors' },
-      isActive: (loc: Location) => loc.pathname.startsWith('/guide/behaviors'),
-      children: behaviorsChildrenFrom(routes),
-    },
-    {
-      id: 'analytics-guide-group',
-      label: 'Analytics',
-      level: 2,
-      icon: ChartBarIcon,
-      action: { type: 'route', to: '/guide/analytics' },
-      isActive: (loc: Location) => loc.pathname.startsWith('/guide/analytics'),
-      children: analyticsGuideChildrenFrom(routes),
+      action: { type: 'route', to: '/guide/start' },
+      isActive: (loc: Location) => loc.pathname.startsWith('/guide/'),
+      children: guideChildrenFrom(routes),
     },
   ]
 }
@@ -145,7 +80,7 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
 
 /** Canonical playground listing — the dedicated /playgrounds stream route
  *  (the library ?q= deep link remains a valid alias via the library profile). */
-export const PLAYGROUND_LIBRARY_WQL = 'find:note{source:playground} by {source} last 4w'
+export const PLAYGROUND_LIBRARY_WQL = ':note{source:playground} by {source} last 4w'
 export const PLAYGROUND_LIBRARY_HREF = ROUTE_PATTERNS.playgrounds
 
 function isLibraryPlaygroundActive(loc: Location): boolean {
@@ -218,7 +153,7 @@ const effortTagChildren: NavItem[] = [
     icon: Tag,
     action: {
       type: 'route' as const,
-      to: `${ROUTE_PATTERNS.efforts}?q=find:effort{discipline:${disc}}`,
+      to: `${ROUTE_PATTERNS.efforts}?q=:effort{discipline:${disc}}`,
     },
     isActive: (loc: Location) =>
       isEffortsPath(loc.pathname) &&
@@ -245,10 +180,7 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       isActive: (loc) =>
         loc.pathname === '/' ||
         loc.pathname === '' ||
-        loc.pathname === ROUTE_PATTERNS.guideGettingStarted ||
-        loc.pathname.startsWith('/guide/syntax') ||
-        loc.pathname.startsWith('/guide/behaviors') ||
-        loc.pathname.startsWith('/guide/analytics') ||
+        loc.pathname.startsWith('/guide/') ||
         loc.pathname.startsWith('/canvas') ||
         loc.pathname === ROUTE_PATTERNS.home ||
         loc.pathname === ROUTE_PATTERNS.aiFirst ||

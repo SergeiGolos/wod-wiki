@@ -15,7 +15,7 @@ Timer: 1:00
 \`\`\`
 
 \`\`\`query:table
-rows:{result:WOD-341-journal-2099-09-01}
+:segment{result:WOD-341-journal-2099-09-01}
 \`\`\`
 `,
   },
@@ -32,7 +32,7 @@ Timer: 1:00
 \`\`\`
 
 \`\`\`query:table
-rows:{result:WOD-341-playground-WOD-341-results-widget}
+:segment{result:WOD-341-playground-WOD-341-results-widget}
 \`\`\`
 `,
   },
@@ -117,7 +117,7 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
       try {
         for (const { route, heading, workoutContent, dialect, workoutSegmentId, contentId, isPlayground, journalDate } of seeds) {
           await new Promise<void>((resolve, reject) => {
-            const storeNames = ['page', 'notes', 'segments', 'page_notes', 'sessions']
+            const storeNames = ['page', 'notes', 'segments', 'page_notes', 'sessions', 'events']
               .filter((s) => db.objectStoreNames.contains(s));
             const tx = db.transaction(storeNames, 'readwrite');
             const now = Date.now();
@@ -186,7 +186,7 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
               position: 2,
               dataType: 'query',
               data: { widgetType: 'table' },
-              rawContent: `\`\`\`query:table\nrows:{result:${resultId}}\n\`\`\``,
+              rawContent: `\`\`\`query:table\n:segment{result:${resultId}}\n\`\`\``,
               createdAt: now,
               updatedAt: now,
               isHistory: false,
@@ -206,6 +206,20 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
               completed: true,
               status: 'completed',
               createdAt: now,
+            });
+
+            tx.objectStore('events').put({
+              id: `${resultId}:0`,
+              resultId,
+              noteId: route.noteId,
+              segmentId: workoutSegmentId,
+              segmentVersion: 1,
+              blockContentId: contentId,
+              timestamp: now,
+              grain: 'event',
+              outputType: 'segment',
+              effortSlug: 'kettlebell-swing',
+              metrics: [{ type: 'tis', value: 74, unit: 's', metadata: { canonicalKey: 'tis' } }],
             });
 
             tx.oncomplete = () => resolve();
@@ -241,12 +255,14 @@ async function expectResultWidgetAfterReload(page: Page, route: SeedRoute) {
   await expect(page.locator('.cm-content').first()).toBeAttached({ timeout: 15_000 });
   const widget = page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first();
   await expect(widget, `${route.noteId} should show the query table results block before reload`).toBeVisible({ timeout: 10_000 });
-  await expect(widget).toContainText(/1:14|Result|rows|runs/i);
+  await expect(widget.locator('tbody')).toContainText('kettlebell-swing');
+  await expect(widget.locator('tbody')).toContainText('74');
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
   await expect(page.locator('.cm-content').first()).toBeAttached({ timeout: 15_000 });
   await expect(widget, `${route.noteId} should show the query table results block after reload`).toBeVisible({ timeout: 10_000 });
-  await expect(widget).toContainText(/1:14|Result|rows|runs/i);
+  await expect(widget.locator('tbody')).toContainText('kettlebell-swing');
+  await expect(widget.locator('tbody')).toContainText('74');
   await page.screenshot({ path: route.screenshot, fullPage: true });
 }
 

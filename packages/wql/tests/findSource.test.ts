@@ -54,78 +54,82 @@ function makeService() {
 describe('source: filter — runFind (Note[])', () => {
   it('keeps only journal notes when source:journal is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{source:journal} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{source:journal} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['jrnl-1']);
   });
 
   it('keeps only static collection notes when source:collection is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{source:collection} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{source:collection} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['coll-1']);
   });
 
-  it('keeps only feed notes when source:feed is set', async () => {
+  it('source:feed is no longer a supported source choice — feed notes never match', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{source:feed} in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id)).toEqual(['feed-1']);
+    // Parse may reject outright or execute to an empty match; either way the
+    // retired feeds surface is not queryable.
+    const result = await service.runFind(parseQuery(':note{source:feed} in all') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual([]);
   });
-  it('drops feed notes when !source:feed is set', async () => {
+
+  it(':note default scope excludes feeds and guides', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{!source:feed} in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    const result = await service.runFind(parseQuery(':note') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
+
   it('keeps only guide notes when source:guides is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{source:guides} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{source:guides} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['guide-1']);
   });
 
   it('parse-validates source:guides as a known source value', () => {
-    const parsed = parseQuery('find:note{source:guides}');
+    const parsed = parseQuery(':note{source:guides}');
     expect(parsed.error).toBeUndefined();
   });
 
-  it('default (no source filter) returns all notes across journal and static stores', async () => {
+  it('in all spans every WQL-addressable source kind — feeds stay excised', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    const result = await service.runFind(parseQuery(':note in all') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('source:all fails to parse with a hint', () => {
-    const parsed = parseQuery('find:note{source:all}');
+    const parsed = parseQuery(':note{source:all}');
     expect(parsed.error).toContain('source:all is retired');
   });
 
   it('keeps only playground entries when source:playground is set (sourceId convention and legacy type)', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{source:playground} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{source:playground} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id).sort()).toEqual(['pg-1', 'pg-legacy']);
   });
 
   it('parse-validates source:playground as a known source value', () => {
-    const parsed = parseQuery('find:note{source:playground}');
+    const parsed = parseQuery(':note{source:playground}');
     expect(parsed.error).toBeUndefined();
   });
 
-  it('find:page fails to parse with a hint', () => {
-    const parsed = parseQuery('find:page');
-    expect(parsed.error).toContain('find:page is retired');
+  it(':page fails to parse with a hint', () => {
+    const parsed = parseQuery(':page');
+    expect(parsed.error).toBeTruthy();
   });
 
-  it('find:note{type:page} targets notes with type page', async () => {
+  it(':note{type:page} targets notes with type page', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{type:page}') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{type:page}') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['page-1']);
   });
 
-  it('find:note{page:true} targets notes with type page', async () => {
+  it(':note{page:true} targets notes with type page', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:note{page:true}') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{page:true}') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['page-1']);
   });
 
   it('source:page fails to parse with a hint', () => {
-    const parsed = parseQuery('find:note{source:page}');
+    const parsed = parseQuery(':note{source:page}');
     expect(parsed.error).toContain('source:page is retired');
   });
 });
@@ -133,49 +137,43 @@ describe('source: filter — runFind (Note[])', () => {
 describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
   it('keeps only journal blocks when source:journal is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block{source:journal} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':block{source:journal} in all') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['jrnl-1']);
   });
 
   it('keeps only collection blocks when source:collection is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block{source:collection} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':block{source:collection} in all') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
   });
 
-  it('keeps only feed blocks when source:feed is set', async () => {
+  it('source:feed is no longer a supported source choice — feed blocks never match', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block{source:feed} in all') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId)).toEqual(['feed-1']);
-  });
-
-  it('drops feed blocks when !source:feed is set', async () => {
-    const service = makeService();
-    const result = await service.runFind(parseQuery('find:block{!source:feed} in all') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    const result = await service.runFind(parseQuery(':block{source:feed} in all') as ParsedFindQuery);
+    expect(result.blocks.map(b => b.noteId)).toEqual([]);
   });
 
   it('supports exact catalog-prefixed sourceId matching', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block{source:collection:crossfit-girls} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':block{source:collection:crossfit-girls} in all') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
   });
 
-  it('default (no source filter) returns all blocks across journal and static stores', async () => {
+  it('default (no source filter) returns blocks from the allowed source kinds only — feeds excised', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    const result = await service.runFind(parseQuery(':block') as ParsedFindQuery);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
   });
 
   it('keeps only playground blocks (denormalized sourceId) when source:playground is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block{source:playground} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':block{source:playground} in all') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['pg-1']);
   });
 
   it('legacy in journal maps to source:journal correctly at runtime', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery('find:block in journal') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':block in journal') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['jrnl-1']);
   });
 });

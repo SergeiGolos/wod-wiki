@@ -24,15 +24,15 @@ afterEach(() => {
 });
 
 describe('TourLearnSection', () => {
-  it('links Lesson 1 to /guide/syntax/basics', () => {
+  it('links Lesson 1 to /guide/start', () => {
     renderSection();
     const link = screen.getByRole('link', { name: /Start Lesson 1/ });
-    expect(link.getAttribute('href')).toBe('/guide/syntax/basics');
+    expect(link.getAttribute('href')).toBe('/guide/start');
   });
 
-  it('links Cheat sheet to /guide/syntax/cheatsheet', () => {
+  it('links Cheat sheet to the start reference anchor', () => {
     renderSection();
     const link = screen.getByRole('link', { name: /Cheat sheet/ });
-    expect(link.getAttribute('href')).toBe('/guide/syntax/cheatsheet');
+    expect(link.getAttribute('href')).toBe('/guide/start?h=reference');
   });
 });

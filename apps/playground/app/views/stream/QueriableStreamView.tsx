@@ -21,7 +21,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
-import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
+import { parseQuery, isFindQuery, isPipelineQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { wqlFilterKeys } from '@bitcobblers/wod-wiki-wql'
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { CONTENT_GROUPING_DIMENSIONS } from '@bitcobblers/wod-wiki-ui'
@@ -48,7 +48,7 @@ import { useComposerQueryState } from '../../hooks/useComposerQueryState'
 import { useViewSettings } from '../../lib/viewSettingsStorage'
 import { useBatchedItems, type BatchedItems } from '../../hooks/useBatchedItems'
 import { todayKey } from '../../lib/dateFormat'
-import { withoutFilters, withoutWindow } from '../../lib/wqlEdits'
+import { withoutFilters, withoutWindow, withGroupBy } from '../../lib/wqlEdits'
 import { LibraryRow } from '../library/LibraryRow'
 import { PropertyTable } from './PropertyTable'
 import { StreamFeed } from './StreamFeed'
@@ -123,7 +123,7 @@ function StreamQueryStatus({
       {error ? (
         <span className="font-semibold text-destructive">Invalid query — showing previous results</span>
       ) : target ? (
-        <span className="font-mono">find:{target}</span>
+        <span className="font-mono">:{target}</span>
       ) : null}
       <span aria-hidden="true">·</span>
       <span data-testid="stream-query-counts" className={loading ? 'motion-safe:animate-pulse' : undefined}>
@@ -215,11 +215,12 @@ export function QueriableStreamView({
 
   const parsed = useMemo(() => parseQuery(query), [query])
 
-  // Playground scope: the canonical filter find:note{source:playground}. In
-  // this scope the "Catalog Sessions" shelf would mislabel undated playground
-  // entries — they render in the explicit 'Undated' group instead.
+  // Playground scope: the canonical filter source:playground (authored as
+  // :playground{...}). In this scope the "Catalog Sessions" shelf would
+  // mislabel undated playground entries — they render in the explicit
+  // 'Undated' group instead.
   const isPlaygroundScope = useMemo(() => {
-    if (parsed.error) return false
+    if (parsed.error || isPipelineQuery(parsed)) return false
     return parsed.filters.some(
       f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'playground'),
     )
@@ -246,7 +247,7 @@ export function QueriableStreamView({
       // 1. If segment has a specific blockContentId, resolve that block first
       if (entry.kind === 'segment' && entry.blockContentId) {
         const result = await queryService.runFind({
-          raw: `find:block{note:${targetNoteId}}`,
+          raw: `:block{note:${targetNoteId}}`,
           target: 'block',
           filters: [{ key: 'note', negate: false, values: [{ value: targetNoteId, wildcard: false }] }],
         } as ParsedFindQuery)
@@ -267,7 +268,7 @@ export function QueriableStreamView({
       // 3. If still no content, fetch all blocks for the note (catalog sessions, feeds, or indexed notes)
       if (!rawContent && entry.kind !== 'note') {
         const result = await queryService.runFind({
-          raw: `find:block{note:${targetNoteId}}`,
+          raw: `:block{note:${targetNoteId}}`,
           target: 'block',
           filters: [{ key: 'note', negate: false, values: [{ value: targetNoteId, wildcard: false }] }],
         } as ParsedFindQuery)
@@ -394,8 +395,8 @@ export function QueriableStreamView({
     () => new Set(parsed.error || !isFindQuery(parsed) ? [] : wqlFilterKeys(parsed.target, 'find')),
     [parsed],
   )
-  const appliedFilters = parsed.error ? 0 : parsed.filters.filter(f => supportedFilterKeys.has(f.key)).length
-  const ignoredFilters = (parsed.error ? 0 : parsed.filters.length) - appliedFilters
+  const appliedFilters = parsed.error || isPipelineQuery(parsed) ? 0 : parsed.filters.filter(f => supportedFilterKeys.has(f.key)).length
+  const ignoredFilters = (parsed.error || isPipelineQuery(parsed) ? 0 : parsed.filters.length) - appliedFilters
   const regroupTags = useCallback(() => {
     if (queryRunDims?.some(d => !contentDims.includes(d))) {
       setQuery(query.replace(/by\s*\{[^}]*\}/i, 'by {tag}'))
@@ -438,9 +439,15 @@ export function QueriableStreamView({
 
   const handleGroupByChange = useCallback(
     (newGroup: string) => {
-      setGroupBy(newGroup)
+      // View ▸ Arrange-by writes through to the query line (`by {…}`) so the
+      // composer, URL `?q=` and grid share one grouping source. An
+      // unparseable draft can't take the edit — the per-route view setting
+      // still applies as the fallback.
+      const next = withGroupBy(query, newGroup)
+      if (next !== query) setQuery(next)
+      else setGroupBy(newGroup)
     },
-    [setGroupBy],
+    [query, setQuery, setGroupBy],
   )
   const stickyOffset = useStickyBoundaryOffset(104)
 
@@ -532,7 +539,7 @@ export function QueriableStreamView({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                  className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                   title="View Settings"
                   data-testid="stream-view-settings-trigger"
                 >
@@ -543,7 +550,7 @@ export function QueriableStreamView({
                   <Button
                     size="sm"
                     onClick={() => navigate(effortPath('new', undefined, { mode: 'create' }))}
-                    className="h-8 px-2.5 text-xs gap-1.5"
+                    className="h-9 px-2.5 text-xs gap-1.5"
                     data-testid="efforts-catalog-create-btn"
                   >
                     <Plus className="size-3.5" />
