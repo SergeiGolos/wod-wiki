@@ -18,7 +18,7 @@ import {
   SlidersHorizontal,
   TriangleAlertIcon,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
 import { parseQuery, isFindQuery, isPipelineQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
@@ -40,6 +40,7 @@ import {
   parseGroupingDimensions,
 } from '../../lib/entryGrouping'
 import { defaultStreamQueryEngine, StreamQueryEngine } from '../../lib/entrySearch'
+import { publishStreamResults } from './streamResults'
 import { useNav } from '../../nav/NavContext'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { ResponsiveActions } from '../../nav/ResponsiveActions'
@@ -182,6 +183,7 @@ export function QueriableStreamView({
   registerStreamDraft,
 }: QueriableStreamViewProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   // Synchronize composer state with URL
   const { query, setQuery, urlQueryError } = useComposerQueryState({
     defaultQuery: () => profile.defaultWql,
@@ -353,10 +355,16 @@ export function QueriableStreamView({
             // draft edits (each valid intermediate re-parses) must never
             // regroup the still-displayed previous results.
             setQueryRunDims(parseGroupingDimensions(query, parsed))
+            // One full execution per query change — nav facet panels read
+            // this snapshot instead of re-running the query.
+            publishStreamResults({ pathname: location.pathname, query, entries: results })
           }
         })
         .catch(() => {
-          if (!cancelled) setEntries([])
+          if (!cancelled) {
+            setEntries([])
+            publishStreamResults({ pathname: location.pathname, query, entries: [] })
+          }
         })
         .finally(() => {
           if (!cancelled) setLoading(false)
@@ -366,7 +374,7 @@ export function QueriableStreamView({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [query, activeEngine, parsed])
+  }, [query, activeEngine, parsed, location.pathname])
 
   // Grouping: the committed run's query `by {}` dimensions win; otherwise
   // the view setting, then the level default. The query leg is stored WITH

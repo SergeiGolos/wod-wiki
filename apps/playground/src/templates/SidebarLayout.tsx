@@ -3,11 +3,12 @@
 import * as Headless from '@headlessui/react'
 import React, { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
+import { NavigationDrawerProvider, useCloseNavigationDrawer } from '../../app/nav/NavigationDrawerContext'
 import { MobileQuerySlotProvider, MobileQuerySlotTarget } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
+import { useNav } from '../../app/nav/NavContext'
 import { cn } from '@/lib/utils'
 import { ResponsiveActionsProvider } from '../../app/nav/ResponsiveActions'
 
@@ -27,38 +28,75 @@ function CloseMenuIcon() {
   )
 }
 
-function MobileSidebar({ open, close, onCreate, children }: React.PropsWithChildren<{ open: boolean; close: () => void; onCreate?: () => void }>) {
+/**
+ * DrawerApplyFooter — fixed bottom bar of the mobile drawer, outside the
+ * SidebarBody scroll owner, for conditions-filter L1s (nav tree
+ * `applyFooter: true`). Queries already update on every option click, so the
+ * button only dismisses the drawer — no draft/commit transaction.
+ */
+function DrawerApplyFooter() {
+  const { tree, navState } = useNav()
+  const close = useCloseNavigationDrawer()
+  const active = tree.find(item => item.id === navState.activeL1Id)
+  if (!active?.applyFooter) return null
   return (
-    <Headless.Dialog open={open} onClose={close} className="lg:hidden">
+    <div className="shrink-0 border-t border-border/50 bg-card p-3">
+      <button
+        type="button"
+        onClick={close}
+        className="h-11 w-full rounded-lg bg-primary text-sm font-medium text-primary-foreground"
+      >
+        Apply
+      </button>
+    </div>
+  )
+}
+
+function MobileSidebar({ open, close, onSearch, onCreate, children }: React.PropsWithChildren<{ open: boolean; close: () => void; onSearch?: () => void; onCreate?: () => void }>) {
+  return (
+    // z-50 lifts the whole dialog (backdrop + panel) above the mobile
+    // thumb dock (z-40) and query footer (z-30); relative anchors the
+    // Headless stacking context.
+    <Headless.Dialog open={open} onClose={close} className="relative z-50 lg:hidden">
       <Headless.DialogBackdrop
         transition
         className="fixed inset-0 bg-black/30 dark:bg-black/30 transition data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
       />
       <Headless.DialogPanel
         transition
-        className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-out data-closed:-translate-x-full"
+        className="fixed inset-y-0 left-0 w-full transition duration-300 ease-out data-closed:-translate-x-full"
       >
-        <div className="flex h-full flex-col rounded-lg bg-card shadow-xs ring-1 ring-foreground/5">
-          <div className="-mb-3 flex items-center px-4 pt-3">
-            <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
-              <CloseMenuIcon />
-            </Headless.CloseButton>
-            {/* Close before onCreate — two focus traps would fight. */}
-            {onCreate && (
-              <NavbarItem
-                onClick={() => {
-                  close()
-                  onCreate()
-                }}
-                aria-label="New journal note"
-                className="ml-auto"
-              >
-                <Plus className="size-5" />
-              </NavbarItem>
-            )}
+        {/* Full-viewport edge-to-edge drawer; the close seam lets rail/filter
+            flows dismiss explicitly while plain navigation keeps it open. */}
+        <NavigationDrawerProvider close={close}>
+        <div className="flex h-full min-h-0 bg-card">
+          {/* Same icon rail as desktop, fixed 56px, beside the L2 panel.
+              Hit areas bumped to 44px for touch; close runs before
+              create/search so two focus traps never stack. */}
+          <div className="flex h-full w-14 shrink-0 flex-col items-center border-r border-zinc-950/5 bg-background/72 py-3 dark:border-white/5 [&_a]:size-11 [&_button]:size-11">
+            <AppRail
+              onSearch={() => {
+                close()
+                onSearch?.()
+              }}
+              onCreate={onCreate ? () => { close(); onCreate() } : undefined}
+            />
           </div>
-          {children}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-center px-4 pt-3">
+              <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
+                <CloseMenuIcon />
+              </Headless.CloseButton>
+            </div>
+            {/* No own overflow: SidebarBody inside {children} is the single
+                scroll viewport so section headers/footers stick to it. */}
+            <div className="flex min-h-0 flex-1 flex-col">
+              {children}
+            </div>
+            <DrawerApplyFooter />
+          </div>
         </div>
+        </NavigationDrawerProvider>
       </Headless.DialogPanel>
     </Headless.Dialog>
   )
@@ -76,18 +114,17 @@ export function SidebarLayout({
   sidebar: React.ReactNode
   /** Opens the global search palette — wired to the icon rail's search button. */
   onSearch?: () => void
-  /** Opens the global new-journal-note dialog (rail, mobile header, drawer). */
+  /** Opens the global new-journal-note dialog (rail + mobile header; the drawer rail closes first). */
   onCreate?: () => void
   /** Route-declared secondary nav (zone 4); the page index merges in. */
   secondary?: MenuSpec
 }>) {
   let [showSidebar, setShowSidebar] = useState(false)
-  const location = useLocation()
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setShowSidebar(false)
-  }, [location])
+  // No pathname auto-close: L1 selection swaps the L2 panel in place and WQL
+  // facet/query updates keep the drawer open for repeated edits. Dismissal is
+  // explicit only — Apply + modal/external rail flows (NavigationDrawerProvider
+  // seam), Close button, Escape, backdrop.
 
   return (
     <MobileQuerySlotProvider>
@@ -100,11 +137,13 @@ export function SidebarLayout({
             <AppRail onSearch={onSearch ?? (() => {})} onCreate={onCreate} />
           </div>
 
-          <div className="w-60 shrink-0 sticky top-0 self-start h-svh overflow-y-auto border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col">
+          {/* overflow-hidden: SidebarBody is the single scroll owner; shell
+              wrappers only size (min-h-0) so sticky sections resolve to it. */}
+          <div className="w-60 shrink-0 sticky top-0 self-start h-svh min-h-0 overflow-hidden border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col">
             {sidebar}
           </div>
         </nav>
-        <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)} onCreate={onCreate}>
+        <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)} onSearch={onSearch} onCreate={onCreate}>
           {sidebar}
         </MobileSidebar>
 

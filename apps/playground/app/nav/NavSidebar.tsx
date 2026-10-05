@@ -1,33 +1,26 @@
 /**
  *
  * Rendering layers (top → bottom):
- *   1. App logo + version
- *   2. L1 items
- *   3. L2 panel (children list or custom component for the active L1)
+ *   1. Context heading (active L1 label)
+ *   2. L2 panel (children list or custom component for the active L1)
  *
- * "On this page" (L3) section links are intentionally excluded here — they
- * appear only in the "…" ActionsMenu so they don't duplicate the right TOC.
+ * L1 destinations live in AppRail (icon ribbon), shared by desktop and the
+ * mobile drawer. "On this page" (L3) section links are intentionally
+ * excluded here — they appear only in the "…" ActionsMenu so they don't
+ * duplicate the right TOC.
  */
 
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
-import { BookOpen, Dumbbell } from 'lucide-react'
 
 import { Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarLabel, SidebarSection } from '@/components/organisms/layout/Sidebar'
 import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
-import { ShortcutBadge } from '@/components/atoms/ShortcutBadge'
-import { AppVersion } from '@/components/atoms/AppVersion'
-import { ButtonLink } from '@/components/molecules/ButtonLink'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
 import type { NavItem, NavActionDeps, NavState } from './navTypes'
 import { MenuList, useResolvedMenu } from './MenuList'
 import type { MenuSpec } from './menuModel'
-
-// App version injected by Vite define
-declare const __APP_VERSION__: string | undefined
-const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -125,33 +118,30 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
 
 export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
   const { tree, navState, dispatch } = useNav()
-  const location = useLocation()
-  const handleAction = useNavAction()
   const resolvedNav = useResolvedMenu(navSpec)
 
   // Find which L1 is currently active
   const activeL1 = tree.find(item => item.id === navState.activeL1Id) ?? null
 
-  // Render the L2 zone for the active L1
+  // Render the L2 zone for the active L1 — same on desktop and in the
+  // mobile drawer (the drawer wraps it beside the shared icon rail).
   const renderL2 = () => {
     if (!activeL1) return null
 
-    // Custom panel (Journal, Collections, Search) — desktop only; the mobile
-    // drawer renders it indented under the active L1 item instead.
+    // Custom panel (Journal, Collections, Search)
     if (activeL1.panel) {
       const Panel = activeL1.panel
       return (
-        <div className="hidden lg:block border-b border-border/40 pb-2 mb-2">
+        <div className="border-b border-border/40 pb-2 mb-2">
           <Panel item={activeL1} navState={navState} dispatch={dispatch} />
         </div>
       )
     }
 
-    // Children list (Home docs/syntax) — desktop only; the mobile drawer
-    // renders these indented under the active L1 item instead.
+    // Children list (Home docs/syntax)
     if (activeL1.children && activeL1.children.length > 0) {
       return (
-        <div className="hidden lg:block border-b border-border/40 pb-2 mb-2">
+        <div className="border-b border-border/40 pb-2 mb-2">
           <L2ChildrenList items={activeL1.children} />
         </div>
       )
@@ -162,77 +152,11 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
 
   return (
     <Sidebar>
-      {/* ── Logo ─────────────────────────────────────────────────────────── */}
-      {/* max-lg: the drawer carries L1 + the inlined L2 panel here; let it
-          scroll so a tall panel can't push lower L1 items off-screen. */}
-      <SidebarHeader className="max-lg:min-h-0 max-lg:overflow-y-auto">
-        {/* Logo + L1 items — mobile drawer only; the desktop icon rail owns L1 */}
-        <div className="lg:hidden">
-          <div className="flex items-center px-2 py-4">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 rotate-3">
-              <Dumbbell size={18} />
-            </div>
-            <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">
-              Wod Wiki
-            </span>
-            <AppVersion
-              version={appVersion}
-              className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest"
-            />
-          </div>
-
-          <SidebarSection>
-            {tree.map(item => {
-              const active = isItemActive(item, navState, location)
-              const isActiveL1 = item.id === activeL1?.id
-              const showInlineChildren = isActiveL1 && !!item.children?.length
-              const InlinePanel = isActiveL1 ? item.panel : undefined
-              return (
-                <div key={item.id}>
-                  <SidebarItem
-                    onClick={() => {
-                      // Mobile: L1 sections with sub-items expand in place —
-                      // pick a child on the next tap; no navigation, drawer
-                      // stays open. Home is the exception: its landing route
-                      // is the tap target.
-                      if (item.id !== 'home' && (item.children?.length || item.panel)) {
-                        dispatch({ type: 'SET_ACTIVE_L1', id: item.id })
-                        return
-                      }
-                      handleAction(item)
-                    }}
-                    current={active}
-                  >
-                    {item.icon && <item.icon data-slot="icon" />}
-                    <SidebarLabel className="font-semibold tracking-tight">
-                      {item.label}
-                    </SidebarLabel>
-                    {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
-                  </SidebarItem>
-                  {/* Mobile: L2 links/panel indent under the selected L1
-                      instead of forming their own subsection below. */}
-                  {showInlineChildren && (
-                    <div className="ml-4 border-l border-border/40 pl-2">
-                      <L2ChildrenList items={item.children!} />
-                    </div>
-                  )}
-                  {InlinePanel && (
-                    <div className="ml-4 border-l border-border/40 pl-2">
-                      <InlinePanel item={item} navState={navState} dispatch={dispatch} />
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </SidebarSection>
-        </div>
-
-        {/* Context heading — names the active section above its L2 panel.
-            Mobile drawer: sits under the L1 selector section (Home | Library
-            | Dashboards | Efforts); desktop: tops the context sidebar. */}
-        <div className={`px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground${
-          activeL1?.children?.length || activeL1?.panel ? ' hidden lg:block' : ''
-        }`}>
+      {/* ── Context heading ───────────────────────────────────────────────── */}
+      {/* Names the active section above its L2 panel; the L1 icon rail
+          (AppRail) carries destinations on both desktop and mobile drawer. */}
+      <SidebarHeader>
+        <div className="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
           {activeL1?.label ?? 'Wod Wiki'}
         </div>
       </SidebarHeader>

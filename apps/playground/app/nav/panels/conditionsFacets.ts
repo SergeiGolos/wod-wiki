@@ -1,0 +1,436 @@
+/**
+ * conditionsFacets — pure model behind ConditionsNavPanel.
+ *
+ * Sections derive from `wqlFilterKeys(target,'find')` (exactly what the
+ * QueryService executors apply); option values/counts derive from the FULL
+ * current query results (the published stream snapshot), never global
+ * suggestion lists and never a visible batch. Every toggle is an
+ * occurrence-exact `editQueryClause` round trip — parse, mutate the one
+ * targeted occurrence, serialize — so negated, wildcarded and duplicated
+ * occurrences survive instead of being rewritten destructively.
+ */
+
+import {
+  isFindQuery,
+  parseQuery,
+  serialize,
+  sourceMatches,
+  WQL_SOURCE_HEADS,
+  WQL_SOURCE_HEAD_SCOPES,
+  WQL_SOURCE_VALUES,
+  WQL_TYPED_TAG_KEYS,
+  type ParsedFindQuery,
+} from '@bitcobblers/wod-wiki-wql'
+import { editQueryClause, getClauseMeta } from '@bitcobblers/wod-wiki-ui'
+import type { Entry } from '../../lib/entryMapper'
+
+/** AST filter key → composer clause type (mirrors the composer's KEY_TYPE). */
+const KEY_TO_CLAUSE_TYPE: Record<string, string> = { tags: 'tag' }
+
+/** Keys where one positive occurrence is semantically single-valued — a pick
+ *  replaces it instead of ANDing a second occurrence into an empty result. */
+const RADIO_KEYS: Record<string, true> = { source: true }
+
+/** Keys with no enumerable result values — a free text condition instead. */
+const FREEFORM_KEYS: Record<string, true> = { text: true }
+
+/** Sections render every current-result value — long lists scroll in the
+ *  panel; nothing is truncated away invisibly. */
+
+export interface FacetValue {
+  value: string
+  wildcard: boolean
+}
+
+export interface FilterOccurrence {
+  filterIndex: number
+  key: string
+  negate: boolean
+  values: FacetValue[]
+}
+
+export interface FacetOption {
+  /** Serialized clause value (wildcards included, `x*`). */
+  value: string
+  /** Human label when the value is an identifier (note/block/result ids). */
+  label?: string
+  /** Result rows this value would keep — 0 never renders. */
+  count: number
+}
+
+/** A currently-applied value on the query — always rendered, removable even
+ *  when the narrowed result set no longer contains it. */
+export interface SelectedValue {
+  display: string
+  negate: boolean
+  label?: string
+  occurrence: FilterOccurrence
+  valueIndex: number
+}
+
+/** noteId → junction labels (tag rows carry their type). Exact mirror of the
+ *  pair of store reads the executor's tags:/typed-tag filters resolve. */
+export type TagMembership = Map<string, Array<{ label: string; type?: string }>>
+
+export function clauseTypeFor(key: string): string {
+  return KEY_TO_CLAUSE_TYPE[key] ?? key
+}
+
+export function isFreeformKey(key: string): boolean {
+  return !!FREEFORM_KEYS[key]
+}
+
+/** `x` / `x*` — the serialized display form of one filter value. */
+export function displayValue(v: FacetValue): string {
+  return v.wildcard ? `${v.value}*` : v.value
+}
+
+export function occurrencesForKey(parsed: ParsedFindQuery, key: string): FilterOccurrence[] {
+  return parsed.filters
+    .map((filter, filterIndex) => ({ filter, filterIndex }))
+    .filter(({ filter }) => filter.key === key)
+    .map(({ filter, filterIndex }) => ({
+      filterIndex,
+      key,
+      negate: filter.negate,
+      values: filter.values.map(v => ({ value: v.value, wildcard: v.wildcard })),
+    }))
+}
+
+/** Values currently applied to the query for one key, occurrence-exact. */
+export function selectedValuesFor(parsed: ParsedFindQuery, key: string, labels?: Map<string, string>): SelectedValue[] {
+  const rows: SelectedValue[] = []
+  for (const occurrence of occurrencesForKey(parsed, key)) {
+    occurrence.values.forEach((v, valueIndex) => {
+      const display = displayValue(v)
+      rows.push({
+        display,
+        negate: occurrence.negate,
+        label: labels?.get(occurrence.negate ? display : v.value),
+        occurrence,
+        valueIndex,
+      })
+    })
+  }
+  return rows
+}
+
+/** Toggle one value on one key. Existing positive occurrence → the value
+ *  joins it (OR within the key); radio keys (source) replace it; otherwise a
+ *  new occurrence is appended. Returns the query unchanged when the edit
+ *  cannot be represented losslessly. */
+export function addFacetValue(query: string, key: string, display: string): string {
+  if (key === 'source') return setSourceScopeValue(query, display)
+  const parsed = parseQuery(query)
+  if (parsed.error || !isFindQuery(parsed)) return query
+  const positives = occurrencesForKey(parsed, key).filter(o => !o.negate)
+  if (positives.length > 0 && !RADIO_KEYS[key]) {
+    const last = positives[positives.length - 1]!
+    const joined = [...last.values.map(displayValue), display].join('|')
+    return editOccurrence(query, key, last, joined)
+  }
+  if (positives.length > 0) {
+    return editOccurrence(query, key, positives[positives.length - 1]!, display)
+  }
+  const type = clauseTypeFor(key)
+  const draft = editQueryClause(query, clause(key, type, ''), display)
+  return draft.valid ? draft.wql : query
+}
+
+/** Remove one value from its exact occurrence; an occurrence that loses its
+ *  last value is spliced. Negated occurrences are edited in place, never
+ *  merged with positive ones. The source SLOT (head scope + positive
+ *  occurrence) is written by setSourceScopeValue; per-value removal here
+ *  touches only the targeted occurrence. */
+export function removeFacetValue(query: string, key: string, selected: SelectedValue): string {
+  const remaining = selected.occurrence.values
+    .filter((_, i) => i !== selected.valueIndex)
+    .map(displayValue)
+    .join('|')
+  return editOccurrence(query, key, selected.occurrence, remaining || null)
+}
+
+// ── Three-way value state (off / include / exclude) ──────────────────────────
+
+export type FilterValueState = 'off' | 'include' | 'exclude'
+
+/** Current state of one display value on one key. Positive occurrences and
+ *  the source SLOT (head scope counts as authored inclusion) read as
+ *  `include`; negated occurrences read as `exclude`; everything else `off`.
+ *  Unparsable / non-find queries read as `off`. */
+export function filterValueState(query: string, key: string, display: string): FilterValueState {
+  const parsed = parseQuery(query)
+  if (parsed.error || !isFindQuery(parsed)) return 'off'
+  if (key === 'source' && headSourceScope(parsed) === display) return 'include'
+  const occurrences = occurrencesForKey(parsed, key)
+  if (occurrences.some(o => !o.negate && o.values.some(v => displayValue(v) === display))) return 'include'
+  if (occurrences.some(o => o.negate && o.values.some(v => displayValue(v) === display))) return 'exclude'
+  return 'off'
+}
+
+/** Set one value's three-way state. Off removes the exact display value from
+ *  both polarities; include/exclude first remove it from the opposite
+ *  polarity, then add the correct one. Every step is an occurrence-exact
+ *  edit — unrelated occurrences, window, grouping and pipes survive; the
+ *  query returns unchanged when an edit is not representable (pipelines,
+ *  lossless-only constructs). */
+export function setFacetValueState(query: string, key: string, display: string, state: FilterValueState): string {
+  if (filterValueState(query, key, display) === state) return query
+  if (state === 'off') return clearFacetValue(query, key, display, 'both')
+  if (state === 'include') return addFacetValue(clearFacetValue(query, key, display, 'negative'), key, display)
+  return addNegatedFacetValue(clearFacetValue(query, key, display, 'positive'), key, display)
+}
+
+type Polarity = 'positive' | 'negative' | 'both'
+
+/** Remove every exact-display occurrence of the value in the requested
+ *  polarity, including the head-authored source slot. Stops silently when an
+ *  edit cannot be represented. */
+function clearFacetValue(query: string, key: string, display: string, polarity: Polarity): string {
+  let current = query
+  for (;;) {
+    const parsed = parseQuery(current)
+    if (parsed.error || !isFindQuery(parsed)) return current
+    if (key === 'source' && polarity !== 'negative' && headSourceScope(parsed) === display) {
+      const next = setSourceScopeValue(current, null)
+      if (next === current) return current
+      current = next
+      continue
+    }
+    const occurrence = occurrencesForKey(parsed, key).find(o =>
+      (polarity === 'both' || polarity === (o.negate ? 'negative' : 'positive')) &&
+      o.values.some(v => displayValue(v) === display),
+    )
+    if (!occurrence) return current
+    const valueIndex = occurrence.values.findIndex(v => displayValue(v) === display)
+    const next = removeFacetValue(current, key, { display, negate: occurrence.negate, occurrence, valueIndex })
+    if (next === current) return current
+    current = next
+  }
+}
+
+/** Join the value into the key's last negated occurrence, or author a new
+ *  negated occurrence when none exists. One negated multi-value occurrence
+ *  matches engine semantics exactly: every executor applies negated values
+ *  per value — `!key:a|b` keeps rows matching neither a nor b, identical to
+ *  spliced `!key:a` AND `!key:b` clauses — so OR-joining inside the negated
+ *  occurrence is interchangeable with separate negative AND occurrences. */
+function addNegatedFacetValue(query: string, key: string, display: string): string {
+  const parsed = parseQuery(query)
+  if (parsed.error || !isFindQuery(parsed)) return query
+  const negated = occurrencesForKey(parsed, key).filter(o => o.negate)
+  if (negated.length > 0) {
+    const last = negated[negated.length - 1]!
+    if (last.values.some(v => displayValue(v) === display)) return query
+    return editOccurrence(query, key, last, [...last.values.map(displayValue), display].join('|'))
+  }
+  const draft = editQueryClause(query, { ...clause(key, clauseTypeFor(key), ''), negate: true }, display)
+  return draft.valid ? draft.wql : query
+}
+
+/** The source scope is single-valued: scoped heads (`:journal`) author it as
+ *  AST `sourceScope`, while the serializer's canonical form is `source:`
+ *  filters on the generic head. Writing a scope is a TARGETED occurrence
+ *  edit: the FIRST positive `source:` occurrence is replaced in place — the
+ *  same occurrence the composer's scope picker targets — while any further
+ *  positive or negated source occurrences are preserved verbatim. `null`
+ *  clears only the head-authored slot: for a scoped head that is the injected
+ *  occurrence whose value equals the head's scope (matched by exact value);
+ *  user-authored positives and negations survive. */
+export function setSourceScopeValue(query: string, scope: string | null): string {
+  const parsed = parseQuery(query)
+  if (parsed.error || !isFindQuery(parsed)) return query
+  // Scoped heads (`:collection{source:collections}`) make the parser emit the
+  // head scope AND the authored filter — identical positive duplicates that
+  // AND to the same result. Collapse them first (lossless) so the targeted
+  // replacement hits the one real scope slot; distinct user-authored
+  // occurrences survive untouched.
+  const seen = new Set<string>()
+  const normalized = parsed.filters.filter(f => {
+    if (f.key !== 'source' || f.negate) return true
+    const key = f.values.map(v => `${v.value}${v.wildcard ? '*' : ''}`).join('|')
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  const head = WQL_SOURCE_HEADS.find(h => query.startsWith(`:${h}`))
+  const headScope = head ? WQL_SOURCE_HEAD_SCOPES[head] : undefined
+  if (!scope) {
+    // Clear the head-authored slot only: drop the injected positive whose
+    // single value equals the head's scope; everything else stays.
+    if (!headScope) return serialize({ ...parsed, sourceScope: undefined, filters: normalized })
+    let dropped = false
+    const filters = normalized.filter(f => {
+      if (dropped || f.key !== 'source' || f.negate) return true
+      if (f.values.length === 1 && !f.values[0]!.wildcard && f.values[0]!.value === headScope) {
+        dropped = true
+        return false
+      }
+      return true
+    })
+    return serialize({ ...parsed, sourceScope: undefined, filters })
+  }
+  const authored = parseQuery(`:note{source:${scope}}`)
+  if (authored.error || !isFindQuery(authored) || !authored.filters.length) return query
+  const firstPositive = normalized.findIndex(f => f.key === 'source' && !f.negate)
+  const filters = firstPositive >= 0
+    ? normalized.map((f, i) => (i === firstPositive ? authored.filters[0]! : f))
+    : [...normalized, authored.filters[0]!]
+  return serialize({ ...parsed, sourceScope: undefined, filters })
+}
+
+/** The head-authored scope (`:journal`) when it is the only scope signal —
+ *  the panel lists it as the current source selection. */
+export function headSourceScope(parsed: ParsedFindQuery): string | null {
+  const filterScope = parsed.filters.find(f => f.key === 'source' && !f.negate)
+  if (filterScope) return null
+  return parsed.sourceScope?.length === 1 ? parsed.sourceScope[0]! : null
+}
+
+function editOccurrence(query: string, key: string, occurrence: FilterOccurrence, value: string | null): string {
+  const type = clauseTypeFor(key)
+  const draft = editQueryClause(
+    query,
+    {
+      ...clause(key, type, occurrence.values.map(displayValue).join('|')),
+      filterIndex: occurrence.filterIndex,
+      negate: occurrence.negate,
+    },
+    value,
+  )
+  return draft.valid ? draft.wql : query
+}
+
+function clause(key: string, type: string, value: string) {
+  return { id: `nav-${key}`, type, ...getClauseMeta(type), value }
+}
+
+// ── Facet derivation over the current results ────────────────────────────────
+
+export interface FacetContext {
+  entries: Entry[]
+  tagMembership: TagMembership | null
+  /** noteId → effort slugs (block_efforts junction — the exact index the
+   *  `effort:` filters resolve through on the note and block planes). */
+  effortMembership: Map<string, string[]> | null
+}
+
+/** Result-backed options for one supported key. Returns [] when the key has
+ *  no enumerable values on this plane (freeform) or when no snapshot is
+ *  available yet — sections then show selections/freeform only. */
+export function facetOptions(target: string, key: string, ctx: FacetContext): FacetOption[] {
+  const counts = new Map<string, FacetOption>()
+  const bump = (value: string, label?: string) => {
+    const existing = counts.get(value)
+    if (existing) {
+      existing.count += 1
+      if (!existing.label && label) existing.label = label
+    } else {
+      counts.set(value, { value, label, count: 1 })
+    }
+  }
+  const tagKey = WQL_TYPED_TAG_KEYS.includes(key as (typeof WQL_TYPED_TAG_KEYS)[number]) ? key : key === 'tags' ? 'tags' : null
+  if (tagKey && !ctx.tagMembership) return []
+  const effortNoteKey = (target === 'note' || target === 'block') && key === 'effort'
+  if (effortNoteKey && !ctx.effortMembership) return []
+
+  for (const entry of ctx.entries) {
+    switch (`${target}:${key}`) {
+      case 'note:catalog':
+      case 'block:catalog':
+        if (entry.catalog) bump(entry.catalog)
+        break
+      case 'note:type':
+        if (entry.noteType) bump(entry.noteType)
+        break
+      case 'block:type':
+        if (entry.block?.dataType) bump(entry.block.dataType)
+        break
+      case 'note:page':
+        // Executor: `page:true|1` keeps notes typed 'page', `page:false`
+        // (or negated true) keeps everything else — boolean-ish slot.
+        bump(entry.noteType === 'page' ? 'true' : 'false', entry.noteType === 'page' ? 'Pages' : 'Non-pages')
+        break
+      case 'effort:discipline':
+        if (entry.effort?.discipline) bump(entry.effort.discipline)
+        break
+      case 'effort:intensity':
+        if (entry.effort?.intensityTier) bump(entry.effort.intensityTier)
+        break
+      case 'effort:origin':
+        if (entry.effort?.registrySource) bump(entry.effort.registrySource)
+        break
+      case 'effort:effort':
+        if (entry.effort?.slug) bump(entry.effort.slug, entry.effort.label)
+        break
+      case 'session:result':
+        if (entry.execution?.resultId) bump(entry.execution.resultId, entry.title)
+        break
+      case 'session:block': {
+        // One row per retained Entry — dedup values within the run first.
+        const seen = new Set<string>()
+        for (const event of entry.execution?.events ?? []) {
+          if (event.blockContentId) seen.add(event.blockContentId)
+        }
+        for (const id of seen) bump(id, entry.title)
+        break
+      }
+      case 'session:note': {
+        const seen = new Set<string>()
+        for (const event of entry.execution?.events ?? []) {
+          if (event.noteId) seen.add(event.noteId)
+        }
+        for (const id of seen) bump(id, entry.title)
+        break
+      }
+      case 'session:plane': {
+        // A plane-scoped session query renders one Entry per retained EVENT
+        // (rowsQueryResultToEntries maps plane targets event-level, not run
+        // level) — so the option count predicts the post-selection rows.
+        for (const event of entry.execution?.events ?? []) {
+          bump(event.outputType)
+        }
+        break
+      }
+      default:
+        // ponytail: segment/event targets get selections + freeform only —
+        // they are not among the five stream routes; add row-value facets
+        // (metric/unit/tag columns) when a table route needs them.
+        if (tagKey) {
+          const rows = ctx.tagMembership!.get(entry.noteId ?? entry.id) ?? []
+          for (const row of rows) {
+            if (tagKey === 'tags' || row.type === tagKey) bump(row.label)
+          }
+        } else if (effortNoteKey) {
+          for (const slug of ctx.effortMembership!.get(entry.noteId ?? entry.id) ?? []) bump(slug)
+        }
+    }
+  }
+
+  if (target === 'note' && key === 'source') {
+    return WQL_SOURCE_VALUES.map(value => ({
+      value,
+      count: ctx.entries.filter(entry =>
+        sourceMatches({ id: entry.noteId ?? entry.id, sourceId: entry.sourceId, type: entry.noteType }, value),
+      ).length,
+    })).filter(option => option.count > 0)
+  }
+  if (target === 'block' && key === 'source') {
+    // Block rows carry no `type`; identity fields mirror the BlockIndexRow
+    // the executor passes (composite row id ≡ noteId prefix for the pg- check).
+    return WQL_SOURCE_VALUES.map(value => ({
+      value,
+      count: ctx.entries.filter(entry =>
+        sourceMatches({ id: entry.id, noteId: entry.noteId, sourceId: entry.sourceId, type: undefined }, value),
+      ).length,
+    })).filter(option => option.count > 0)
+  }
+  if ((target === 'note' || target === 'block') && key === 'note') {
+    // Identifier facet: one row per result note, labelled with its title.
+    for (const entry of ctx.entries) {
+      bump(entry.noteId ?? entry.id, entry.title)
+    }
+  }
+  return [...counts.values()]
+    .sort((a, b) => b.count - a.count || (a.label ?? a.value).localeCompare(b.label ?? b.value))
+}

@@ -9,11 +9,11 @@
  *       Settings (Feeds folds into Collections — feed routes light Collections)
  *   L2 of Home:        the consolidated Guide chapters (markdown/canvas/guide/**;
  *                      the old syntax/behaviors/analytics pillars are folded in)
- *   L2 of the listing zones (Journal/Collections/Playgrounds): working WQL
- *                      query presets as route ?q= links, over the zone's stream
- *                      profile default; Feeds rides under Collections
- *   L2 of Efforts:     All Efforts + per-discipline tag presets
- *   L2 of Dashboards/Sessions: dynamic panels (vault/runtime data)
+ *   L2 of the five stream routes (Journal/Collections/Playgrounds/Efforts/
+ *                      Sessions): the shared ConditionsNavPanel — current-result
+ *                      `{}` condition accordion plus grouping presets over the
+ *                      CURRENT query; Feeds rides under Collections
+ *   L2 of Dashboards:  dynamic panel (vault/runtime data)
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  *
  * The canvas-guide children derive from the seeded canvas routes passed by
@@ -25,16 +25,14 @@ import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
 import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
-import { scopeOfQuery, withGroupBy, withoutWindow } from '../lib/wqlEdits'
-import { parseGroupingDimensions } from '../lib/entryGrouping'
-import { readRouteWqlConfig, GROUP_BY_FAVORITE_OPTIONS } from '../lib/routeWqlConfig'
-import { JOURNAL_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
+import { scopeOfQuery } from '../lib/wqlEdits'
+import { JOURNAL_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
+import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
-import { SessionsNavPanel } from './panels/SessionsNavPanel'
+import { createConditionsNavPanel } from './panels/ConditionsNavPanel'
 import type { CanvasRoute } from '../canvas/canvasRoutes'
-import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
-import { EFFORT_DISCIPLINES } from '@bitcobblers/wod-wiki-lang'
+
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMeACoffee'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
@@ -87,10 +85,8 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
 /**
  * Journal / Collections / Playgrounds are top-level L1 rows — the old Library
  * wrapper is gone and Feeds folds into Collections (feed routes light the
- * Collections zone). Each zone's L2 is a set of working WQL query presets over
- * its stream profile default, linked as route `?q=` URLs (the sidebar's
- * setQueryParam is a deliberate no-op, so the query must ride the URL), plus
- * the user's saved Query-Defaults grouping favorites when configured.
+ * Collections zone). Each zone's L2 is the shared ConditionsNavPanel; there
+ * are no static preset children to keep in sync.
  */
 interface ListingZoneSpec {
   id: string
@@ -99,9 +95,9 @@ interface ListingZoneSpec {
   icon: NavItem['icon']
   route: string
   profile: StreamProfile
-  /** Preset grouping dimensions (the profile default's own `by {}` is skipped). */
+  /** Preset grouping dimensions (favorites from Query Defaults win). */
   groupDims: readonly string[]
-  /** Extra L2 rows appended after the query presets (e.g. Feeds). */
+  /** Extra panel rows appended after the presets (e.g. Feeds). */
   extraChildren?: NavItem[]
   /** Whole zone route family (L1 activation). */
   familyActive: (loc: Location) => boolean
@@ -120,62 +116,7 @@ function libraryScope(loc: Location): string | null {
 const startsWithAny = (pathname: string, ...prefixes: string[]): boolean =>
   prefixes.some(p => pathname === p || pathname.startsWith(`${p}/`))
 
-const urlQuery = (loc: Location): string => new URLSearchParams(loc.search).get('q') ?? ''
-
-const presetHref = (route: string, wql: string): string => `${route}?q=${encodeURIComponent(wql)}`
-
-const DIM_LABELS: Record<string, string> = Object.fromEntries(
-  GROUP_BY_FAVORITE_OPTIONS.map(option => [option.id, option.label]),
-)
-
 function listingZone(spec: ListingZoneSpec): NavItem {
-  const base = spec.profile.defaultWql
-  const baseDims = parseGroupingDimensions(base) ?? []
-  // Saved Query Defaults feed the presets: a stored grouping-favorites list
-  // replaces the static dimension set. ponytail: read at tree-build time —
-  // edits in Settings appear on the next mount, like the rest of the tree.
-  const saved = readRouteWqlConfig(spec.route)
-  const dimSource = saved.groupByOptions?.length ? saved.groupByOptions.slice(0, 2) : spec.groupDims
-
-  const children: NavItem[] = [
-    {
-      id: `${spec.id}-all`,
-      label: spec.landingLabel,
-      level: 2,
-      icon: spec.icon,
-      action: { type: 'route', to: spec.route },
-      // Lights the zone's own listing-route family (route prefix + legacy
-      // alias), never item detail routes (/c/:slug, …).
-      isActive: (loc: Location) =>
-        (startsWithAny(loc.pathname, spec.route) || (spec.aliasActive?.(loc) ?? false))
-        && urlQuery(loc).trim() === '',
-    },
-  ]
-  for (const dim of dimSource) {
-    if (baseDims.includes(dim.toLowerCase())) continue
-    const wql = withGroupBy(base, dim)
-    children.push({
-      id: `${spec.id}-by-${dim}`,
-      label: DIM_LABELS[dim] ?? dim.charAt(0).toUpperCase() + dim.slice(1),
-      level: 2,
-      icon: ListFilter,
-      action: { type: 'route', to: presetHref(spec.route, wql) },
-      isActive: (loc: Location) => spec.familyActive(loc) && urlQuery(loc) === wql,
-    })
-  }
-  const allTime = withoutWindow(base)
-  if (allTime !== base) {
-    children.push({
-      id: `${spec.id}-all-time`,
-      label: 'All time',
-      level: 2,
-      icon: ListFilter,
-      action: { type: 'route', to: presetHref(spec.route, allTime) },
-      isActive: (loc: Location) => spec.familyActive(loc) && urlQuery(loc) === allTime,
-    })
-  }
-  children.push(...(spec.extraChildren ?? []))
-
   return {
     id: spec.id,
     label: spec.label,
@@ -183,7 +124,16 @@ function listingZone(spec: ListingZoneSpec): NavItem {
     icon: spec.icon,
     action: { type: 'route', to: spec.route },
     isActive: (loc: Location) => spec.familyActive(loc) || (spec.aliasActive?.(loc) ?? false),
-    children,
+    applyFooter: true,
+    panel: createConditionsNavPanel({
+      landingLabel: spec.landingLabel,
+      icon: spec.icon,
+      route: spec.route,
+      profile: spec.profile,
+      groupDims: spec.groupDims,
+      extraChildren: spec.extraChildren,
+      familyActive: spec.familyActive,
+    }),
   }
 }
 
@@ -236,31 +186,6 @@ const listingZones: ListingZoneSpec[] = [
     aliasActive: (loc: Location) => libraryScope(loc) === 'playground',
   },
 ]
-
-const effortTagChildren: NavItem[] = [
-  {
-    id: 'effort-tag-all',
-    label: 'All Efforts',
-    level: 2,
-    icon: Tag,
-    action: { type: 'route', to: ROUTE_PATTERNS.efforts },
-    isActive: (loc: Location) =>
-      isEffortsPath(loc.pathname) && !loc.search.includes('discipline'),
-  },
-  ...EFFORT_DISCIPLINES.map(disc => ({
-    id: `effort-tag-${disc}`,
-    label: disc.charAt(0).toUpperCase() + disc.slice(1),
-    level: 2,
-    icon: Tag,
-    action: {
-      type: 'route' as const,
-      to: `${ROUTE_PATTERNS.efforts}?q=:effort{discipline:${disc}}`,
-    },
-    isActive: (loc: Location) =>
-      isEffortsPath(loc.pathname) &&
-      (loc.search.includes(`discipline:${disc}`) || loc.search.includes(`discipline=${disc}`)),
-  })),
-]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
 
 /**
@@ -311,7 +236,14 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       icon: Dumbbell,
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => isEffortsPath(loc.pathname),
-      children: effortTagChildren,
+      applyFooter: true,
+      panel: createConditionsNavPanel({
+        landingLabel: 'All Efforts',
+        icon: Dumbbell,
+        route: ROUTE_PATTERNS.efforts,
+        profile: EFFORTS_STREAM_PROFILE,
+        familyActive: (loc: Location) => isEffortsPath(loc.pathname),
+      }),
     },
 
     {
@@ -324,7 +256,17 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
         loc.pathname.startsWith('/sessions') ||
         loc.pathname.startsWith('/session/') ||
         loc.pathname.startsWith('/results'),
-      panel: SessionsNavPanel,
+      applyFooter: true,
+      panel: createConditionsNavPanel({
+        landingLabel: 'All Sessions',
+        icon: ClipboardList,
+        route: ROUTE_PATTERNS.sessions,
+        profile: SESSIONS_STREAM_PROFILE,
+        familyActive: (loc: Location) =>
+          loc.pathname.startsWith('/sessions') ||
+          loc.pathname.startsWith('/session/') ||
+          loc.pathname.startsWith('/results'),
+      }),
     },
     {
       id: 'settings',
@@ -370,9 +312,8 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
         },
       ],
     },
-    // Support link — external action (new tab); rendered in the mobile drawer
-    // below Settings (icon + label) and as a rail icon button on desktop
-    // (AppRail excludes it from the L1 loop).
+    // Support link — external action (new tab); rendered as the trailing icon
+    // button on the L1 rail (AppRail excludes it from the L1 loop).
     {
       id: 'buy-me-a-coffee',
       label: 'Buy Me a Coffee',
