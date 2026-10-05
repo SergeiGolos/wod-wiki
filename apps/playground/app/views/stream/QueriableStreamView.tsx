@@ -8,7 +8,7 @@
  * 4. Provides a discrete "View Settings" modal dialog (sliders button in action bar).
  * 5. Preserves all sticky boundaries, DOM batching, and search palette integrations.
  */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -412,16 +412,18 @@ export function QueriableStreamView({
     [entries, groupDims, shelfVisible],
   )
 
-  // Progressive DOM batching
+  // Progressive DOM batching — destructure members (growTo is a stable
+  // callback) so effects/memos depend on values, not the per-render object.
   const entriesBatch = useBatchedItems(entries)
+  const { visible: batchedVisible, growTo: growBatchTo } = entriesBatch
   const visibleGroups = useMemo(
-    () => groupEntriesByDimension(entriesBatch.visible, groupDims, { shelfVisible }),
-    [entriesBatch.visible, groupDims, shelfVisible],
+    () => groupEntriesByDimension(batchedVisible, groupDims, { shelfVisible }),
+    [batchedVisible, groupDims, shelfVisible],
   )
   const groupCountMap = useMemo(() => new Map(allGroups.map(g => [g.id, g.entries.length])), [allGroups])
 
   // Publish dynamic section links to NavContext
-  const { setL3Items } = useNav()
+  const { setL3Items, scrollToSection, navState } = useNav()
   useEffect(() => {
     if (allGroups.length === 0) {
       setL3Items([])
@@ -436,6 +438,35 @@ export function QueriableStreamView({
     setL3Items(sectionLinks)
     return () => setL3Items([])
   }, [allGroups, setL3Items])
+
+  // Progressive anchor reachability: the L3 index covers ALL groups, but only
+  // the rendered prefix has DOM anchors (progressive batching). A click on a
+  // not-yet-rendered group materializes its batch, then completes the scroll —
+  // otherwise the DOM fallback misses and the link is dead.
+  // NavState's runtime field is `activeL3Id` (NavContext reducer); the
+  // navTypes declaration still says `activeL3` — narrow the runtime shape.
+  const activeL3Id =
+    'activeL3Id' in navState && typeof navState.activeL3Id === 'string' ? navState.activeL3Id : null
+  const pendingScrollRef = useRef<string | null>(null)
+  useEffect(() => {
+    const id = activeL3Id
+    if (!id || pendingScrollRef.current === id) return
+    if (document.getElementById(id)) return
+    const group = allGroups.find(g => g.id === id)
+    if (!group) return
+    pendingScrollRef.current = id
+    const last = group.entries[group.entries.length - 1]
+    const endIdx = last ? entries.findIndex(e => e.id === last.id) : -1
+    growBatchTo(endIdx >= 0 ? endIdx + 1 : entries.length)
+  }, [activeL3Id, allGroups, entries, growBatchTo])
+
+  // Once the pending group's anchor exists in the committed DOM, finish the scroll.
+  useEffect(() => {
+    const id = pendingScrollRef.current
+    if (!id || !document.getElementById(id)) return
+    pendingScrollRef.current = null
+    scrollToSection(id)
+  }, [visibleGroups, scrollToSection])
 
   const handleGroupByChange = useCallback(
     (newGroup: string) => {

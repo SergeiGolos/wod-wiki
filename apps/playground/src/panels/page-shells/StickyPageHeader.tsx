@@ -25,6 +25,8 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface StickyPageHeaderProps {
+  /** DOM anchor on the sticky zone (e.g. L3 "page title" scroll target). */
+  id?: string;
   /** Page title shown in the sticky bar. When omitted, the row space is
    *  left for the queryBar/actions (e.g. stream pages). */
   title?: string;
@@ -50,6 +52,7 @@ export interface StickyPageHeaderProps {
 }
 
 export function StickyPageHeader({
+  id,
   title,
   subtitle,
   titleAccessory,
@@ -61,6 +64,7 @@ export function StickyPageHeader({
 }: StickyPageHeaderProps) {
   return (
     <div
+      id={id}
       data-page-sticky-boundary="true"
       className={cn(
         'max-lg:hidden lg:sticky lg:top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 transition-colors',

@@ -5,7 +5,7 @@ export { WqlBars, type WqlBarsProps } from './WqlBars';
 export { WqlTable, type WqlTableProps } from './WqlTable';
 export { WidgetChart, WidgetProblemBadge, ProposedMetricBadge, type WidgetChartProps } from './WidgetChart';
 export { DashboardTokenControls, type DashboardTokenControlsProps } from './DashboardTokenControls';
-export { DashboardView, type DashboardViewProps, type WidgetSpanOption } from './DashboardView';
+export { DashboardView, type DashboardViewProps, type WidgetSpanOption, type DashboardHeadingAnchor } from './DashboardView';
 export { WqlEmptyState, type WqlEmptyStateProps } from './WqlEmptyState';
 export { TopList, type TopListProps } from './TopList';
 export { StackedBar, type StackedBarProps } from './StackedBar';

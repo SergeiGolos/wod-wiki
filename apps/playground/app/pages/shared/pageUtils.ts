@@ -33,17 +33,44 @@ export function applyTemplate(raw: string): { content: string; cursorOffset: num
 
 // ── Page index helpers ───────────────────────────────────────────────────────
 
-/** Extract headings and workout-fence positions from markdown content. */
+/**
+ * True when the browser history has an in-app entry behind the current one
+ * (React Router v6 stores the history index in `history.state.idx`). Used by
+ * detail pages so "back" returns to the listing state that launched them —
+ * query/scroll included — falling back to a canonical list link when the page
+ * was deep-loaded.
+ */
+export function canGoBack(): boolean {
+  const idx = (typeof window !== 'undefined'
+    ? (window.history.state as { idx?: number } | null)?.idx
+    : undefined)
+  return typeof idx === 'number' && idx > 0
+}
+
+/** Extract headings and workout/query/widget-fence positions from markdown content. */
 export function extractPageIndex(content: string): PageNavLink[] {
   const lines = content.split('\n')
   const links: PageNavLink[] = []
   let workoutCount = 0
+  let queryCount = 0
   const seenIds = new Map<string, number>()
 
   const uniqueId = (base: string): string => {
     const count = (seenIds.get(base) ?? 0) + 1
     seenIds.set(base, count)
     return count === 1 ? base : `${base}-${count}`
+  }
+
+  // Label for a query fence: the block's `title:` line when present (dashboard
+  // widgets carry one), else the ordinal.
+  const queryTitle = (from: number): string | undefined => {
+    for (let j = from + 1; j < lines.length; j++) {
+      const body = lines[j]
+      if (body.trim() === '```') break
+      const m = body.match(/^title:\s*(.+)$/)
+      if (m) return m[1].trim().replace(/^["']|["']$/g, '')
+    }
+    return undefined
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -65,11 +92,18 @@ export function extractPageIndex(content: string): PageNavLink[] {
       links.push({ id, label, type: 'heading', timestamp })
       continue
     }
-    const fenceMatch = line.trim().match(/^```(time|log)(:\w+)?\s*$/)
+    const fenceMatch = line.trim().match(/^```(time|log|query|widget)(:[-\w]+)?\s*$/)
     if (fenceMatch) {
-      const tag = fenceMatch[1] as 'time' | 'log'
-      workoutCount++
-      links.push({ id: `${tag}-line-${i + 1}`, label: `Workout ${workoutCount}`, type: tag })
+      const tag = fenceMatch[1] as 'time' | 'log' | 'query' | 'widget'
+      if (tag === 'query') {
+        queryCount++
+        links.push({ id: `query-line-${i + 1}`, label: queryTitle(i) ?? `Query ${queryCount}`, type: 'query' })
+      } else if (tag === 'widget') {
+        links.push({ id: `widget-line-${i + 1}`, label: (fenceMatch[2] ?? '').slice(1) || 'Widget', type: 'widget' })
+      } else {
+        workoutCount++
+        links.push({ id: `${tag}-line-${i + 1}`, label: `Workout ${workoutCount}`, type: tag })
+      }
     }
   }
   return links

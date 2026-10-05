@@ -12,8 +12,8 @@ import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOn
 export interface PageNavLink {
   id: string
   label: string
-  /** 'heading' (default), 'time', or 'log' for workout blocks */
-  type?: 'heading' | 'time' | 'log'
+  /** 'heading' (default), 'time'/'log' workout fences, 'query' WQL blocks, or 'widget' custom-widget fences */
+  type?: 'heading' | 'time' | 'log' | 'query' | 'widget'
   /** When set, a small Play button is rendered aligned to the right */
   onRun?: () => void
   /** Which icon to show for the run button: 'play' (default) or 'link' */

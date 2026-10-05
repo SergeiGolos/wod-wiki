@@ -5,12 +5,15 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Library, Dashboards
- *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
- *   L2 of Library:     Journal, Collections, Feeds, Playground, Efforts, Results
- *   L2 of Dashboards:  Explorer (/dashboard) + the prebuilt dashboard seeds
- *                      (/dashboard/:slug); vault-created dashboards need a
- *                      dynamic panel to join this list (follow-up).
+ *   L1: Home, Journal, Collections, Playgrounds, Dashboard, Efforts, Sessions,
+ *       Settings (Feeds folds into Collections — feed routes light Collections)
+ *   L2 of Home:        the consolidated Guide chapters (markdown/canvas/guide/**;
+ *                      the old syntax/behaviors/analytics pillars are folded in)
+ *   L2 of the listing zones (Journal/Collections/Playgrounds): working WQL
+ *                      query presets as route ?q= links, over the zone's stream
+ *                      profile default; Feeds rides under Collections
+ *   L2 of Efforts:     All Efforts + per-discipline tag presets
+ *   L2 of Dashboards/Sessions: dynamic panels (vault/runtime data)
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  *
  * The canvas-guide children derive from the seeded canvas routes passed by
@@ -19,10 +22,13 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
+import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
-import { scopeOfQuery } from '../lib/wqlEdits'
+import { scopeOfQuery, withGroupBy, withoutWindow } from '../lib/wqlEdits'
+import { parseGroupingDimensions } from '../lib/entryGrouping'
+import { readRouteWqlConfig, GROUP_BY_FAVORITE_OPTIONS } from '../lib/routeWqlConfig'
+import { JOURNAL_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
 import { SessionsNavPanel } from './panels/SessionsNavPanel'
@@ -76,63 +82,158 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   ]
 }
 
-// ─── L2 children for Library ──────────────────────────────────────────────────
+// ─── Listing zones (flattened Library) ────────────────────────────────────────
 
-/** Canonical playground listing — the dedicated /playgrounds stream route
- *  (the library ?q= deep link remains a valid alias via the library profile). */
-export const PLAYGROUND_LIBRARY_WQL = ':note{source:playground} by {source} last 4w'
-export const PLAYGROUND_LIBRARY_HREF = ROUTE_PATTERNS.playgrounds
-
-function isLibraryPlaygroundActive(loc: Location): boolean {
-  if (loc.pathname === '/playground' || loc.pathname.startsWith('/playground/')) return true
-  if (loc.pathname === ROUTE_PATTERNS.playgrounds) return true
-  if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) {
-    return false
-  }
-  return scopeOfQuery(new URLSearchParams(loc.search).get('q') ?? '') === 'playground'
+/**
+ * Journal / Collections / Playgrounds are top-level L1 rows — the old Library
+ * wrapper is gone and Feeds folds into Collections (feed routes light the
+ * Collections zone). Each zone's L2 is a set of working WQL query presets over
+ * its stream profile default, linked as route `?q=` URLs (the sidebar's
+ * setQueryParam is a deliberate no-op, so the query must ride the URL), plus
+ * the user's saved Query-Defaults grouping favorites when configured.
+ */
+interface ListingZoneSpec {
+  id: string
+  label: string
+  landingLabel: string
+  icon: NavItem['icon']
+  route: string
+  profile: StreamProfile
+  /** Preset grouping dimensions (the profile default's own `by {}` is skipped). */
+  groupDims: readonly string[]
+  /** Extra L2 rows appended after the query presets (e.g. Feeds). */
+  extraChildren?: NavItem[]
+  /** Whole zone route family (L1 activation). */
+  familyActive: (loc: Location) => boolean
+  /** The legacy `/library` alias lights this zone for its `?q=` scope. */
+  aliasActive?: (loc: Location) => boolean
 }
 
-const libraryChildren: NavItem[] = [
+/** The `/library` alias route resolves to the zone its `?q=` scope names;
+ *  unscooped library landings stay in Collections (the library default is the
+ *  collection listing). */
+function libraryScope(loc: Location): string | null {
+  if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return null
+  return scopeOfQuery(new URLSearchParams(loc.search).get('q') ?? '')
+}
+
+const startsWithAny = (pathname: string, ...prefixes: string[]): boolean =>
+  prefixes.some(p => pathname === p || pathname.startsWith(`${p}/`))
+
+const urlQuery = (loc: Location): string => new URLSearchParams(loc.search).get('q') ?? ''
+
+const presetHref = (route: string, wql: string): string => `${route}?q=${encodeURIComponent(wql)}`
+
+const DIM_LABELS: Record<string, string> = Object.fromEntries(
+  GROUP_BY_FAVORITE_OPTIONS.map(option => [option.id, option.label]),
+)
+
+function listingZone(spec: ListingZoneSpec): NavItem {
+  const base = spec.profile.defaultWql
+  const baseDims = parseGroupingDimensions(base) ?? []
+  // Saved Query Defaults feed the presets: a stored grouping-favorites list
+  // replaces the static dimension set. ponytail: read at tree-build time —
+  // edits in Settings appear on the next mount, like the rest of the tree.
+  const saved = readRouteWqlConfig(spec.route)
+  const dimSource = saved.groupByOptions?.length ? saved.groupByOptions.slice(0, 2) : spec.groupDims
+
+  const children: NavItem[] = [
+    {
+      id: `${spec.id}-all`,
+      label: spec.landingLabel,
+      level: 2,
+      icon: spec.icon,
+      action: { type: 'route', to: spec.route },
+      // Lights the zone's own listing-route family (route prefix + legacy
+      // alias), never item detail routes (/c/:slug, …).
+      isActive: (loc: Location) =>
+        (startsWithAny(loc.pathname, spec.route) || (spec.aliasActive?.(loc) ?? false))
+        && urlQuery(loc).trim() === '',
+    },
+  ]
+  for (const dim of dimSource) {
+    if (baseDims.includes(dim.toLowerCase())) continue
+    const wql = withGroupBy(base, dim)
+    children.push({
+      id: `${spec.id}-by-${dim}`,
+      label: DIM_LABELS[dim] ?? dim.charAt(0).toUpperCase() + dim.slice(1),
+      level: 2,
+      icon: ListFilter,
+      action: { type: 'route', to: presetHref(spec.route, wql) },
+      isActive: (loc: Location) => spec.familyActive(loc) && urlQuery(loc) === wql,
+    })
+  }
+  const allTime = withoutWindow(base)
+  if (allTime !== base) {
+    children.push({
+      id: `${spec.id}-all-time`,
+      label: 'All time',
+      level: 2,
+      icon: ListFilter,
+      action: { type: 'route', to: presetHref(spec.route, allTime) },
+      isActive: (loc: Location) => spec.familyActive(loc) && urlQuery(loc) === allTime,
+    })
+  }
+  children.push(...(spec.extraChildren ?? []))
+
+  return {
+    id: spec.id,
+    label: spec.label,
+    level: 1,
+    icon: spec.icon,
+    action: { type: 'route', to: spec.route },
+    isActive: (loc: Location) => spec.familyActive(loc) || (spec.aliasActive?.(loc) ?? false),
+    children,
+  }
+}
+
+const feedsChild: NavItem = {
+  id: 'collections-feeds',
+  label: 'Feeds',
+  level: 2,
+  icon: Rss,
+  action: { type: 'route', to: ROUTE_PATTERNS.feeds },
+  isActive: (loc: Location) => startsWithAny(loc.pathname, '/feeds', '/feed'),
+}
+
+const listingZones: ListingZoneSpec[] = [
   {
-    id: 'library-journal',
+    id: 'journal',
     label: 'Journal',
-    level: 2,
+    landingLabel: 'All entries',
     icon: Calendar,
-    action: { type: 'route', to: ROUTE_PATTERNS.journal },
-    isActive: (loc: Location) =>
-      loc.pathname === '/journal' ||
-      loc.pathname.startsWith('/journal/'),
+    route: ROUTE_PATTERNS.journal,
+    profile: JOURNAL_STREAM_PROFILE,
+    groupDims: ['tag', 'kind'],
+    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/journal'),
+    aliasActive: (loc: Location) => libraryScope(loc) === 'journal',
   },
   {
-    id: 'library-collections',
+    id: 'collections',
     label: 'Collections',
-    level: 2,
+    landingLabel: 'All collections',
     icon: Folder,
-    action: { type: 'route', to: ROUTE_PATTERNS.collections },
-    isActive: (loc: Location) =>
-      loc.pathname === '/collections' ||
-      loc.pathname.startsWith('/collections/') ||
-      loc.pathname.startsWith('/c/'),
+    route: ROUTE_PATTERNS.collections,
+    profile: COLLECTIONS_STREAM_PROFILE,
+    groupDims: ['date', 'kind'],
+    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed'),
+    aliasActive: (loc: Location) => {
+      if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return false
+      const scope = libraryScope(loc)
+      return scope !== 'journal' && scope !== 'playground'
+    },
+    extraChildren: [feedsChild],
   },
   {
-    id: 'library-feeds',
-    label: 'Feeds',
-    level: 2,
-    icon: Rss,
-    action: { type: 'route', to: ROUTE_PATTERNS.feeds },
-    isActive: (loc: Location) =>
-      loc.pathname === '/feeds' ||
-      loc.pathname.startsWith('/feeds/') ||
-      loc.pathname === '/feed' ||
-      loc.pathname.startsWith('/feed/'),
-  },
-  {
-    id: 'library-playground',
+    id: 'playgrounds',
     label: 'Playgrounds',
-    level: 2,
+    landingLabel: 'All playgrounds',
     icon: FlaskConical,
-    action: { type: 'route', to: PLAYGROUND_LIBRARY_HREF },
-    isActive: isLibraryPlaygroundActive,
+    route: ROUTE_PATTERNS.playgrounds,
+    profile: PLAYGROUNDS_STREAM_PROFILE,
+    groupDims: ['source', 'tag'],
+    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/playgrounds', '/playground'),
+    aliasActive: (loc: Location) => libraryScope(loc) === 'playground',
   },
 ]
 
@@ -188,34 +289,15 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
       children: homeChildren,
     },
 
-    {
-      id: 'library',
-      label: 'Library',
-      level: 1,
-      icon: BookOpen,
-      action: { type: 'route', to: ROUTE_PATTERNS.journal },
-      isActive: (loc: Location) =>
-        loc.pathname === ROUTE_PATTERNS.library ||
-        loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`) ||
-        loc.pathname === '/journal' ||
-        loc.pathname.startsWith('/journal/') ||
-        loc.pathname === '/playground' ||
-        loc.pathname.startsWith('/playground/') ||
-        loc.pathname === '/playgrounds' ||
-        loc.pathname.startsWith('/collections') ||
-        loc.pathname.startsWith('/c/') ||
-        loc.pathname.startsWith('/feeds') ||
-        loc.pathname.startsWith('/feed'),
-      children: libraryChildren,
-    },
+    ...listingZones.map(listingZone),
 
     {
       id: 'dashboards',
       label: 'Dashboard',
       level: 1,
       icon: ChartBarIcon,
-      action: { type: 'route', to: '/dashboard' },
-      isActive: (loc: Location) => loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/'),
+      action: { type: 'route', to: ROUTE_PATTERNS.dashboards },
+      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.dashboards || loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/') || loc.pathname.startsWith('/d/'),
       // The L2 list (Explorer + vault-created + prebuilts, plus a New
       // dashboard action) is dynamic — vault dashboards are runtime data —
       // so it lives in the panel, not static children.

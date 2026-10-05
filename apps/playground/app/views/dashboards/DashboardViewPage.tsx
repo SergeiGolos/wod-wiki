@@ -26,6 +26,7 @@ import {
   AnalyticsUnitPreference,
   useAnalyticsUnitPreference,
   DashboardView,
+  type DashboardHeadingAnchor,
 } from '@bitcobblers/wod-wiki-ui';
 import { useAnalyticsRange } from '../../hooks/useAnalyticsRange';
 import { journalNotes } from '../../services/journalNotes';
@@ -51,10 +52,16 @@ import {
   updateWidget,
 } from '@bitcobblers/wod-wiki-wql';
 import { useDashboardSource } from '../../hooks/useDashboards';
+import { analyticsExplorerPath } from '../../lib/routes';
+import { useNav } from '../../nav/NavContext';
+import type { NavItemL3 } from '../../nav/navTypes';
 import { ResponsiveActions } from '../../nav/ResponsiveActions';
 import { StickyPageHeader } from '@/panels/page-shells';
 import { SampleDataPrompt } from '../analytics/SampleDataPrompt';
 import { WidgetComposerDialog, type WidgetComposerApply } from './WidgetComposerDialog';
+
+/** Sticky-page-title anchor — the surface for the note's `#` h1 / doc.title L3 entry. */
+const TITLE_ANCHOR = 'dashboard-title';
 
 type ComposerState =
   | { mode: 'add'; expectedRaw: string }
@@ -82,11 +89,83 @@ export function DashboardViewPage() {
   }, [refreshKey]);
   const { source, loading } = useDashboardSource(slug, refreshKey);
 
-  const document = useMemo(() => {
+  const parsed = useMemo(() => {
     if (!source?.rawContent) return null;
     const { meta, sections } = parseDashboardNote(source.rawContent);
-    return buildDashboardDocument(sections, meta);
+    return { doc: buildDashboardDocument(sections, meta), sections };
   }, [source]);
+  const document = parsed?.doc ?? null;
+
+  // L3 outline: every entry targets a real surface — doc.title the sticky
+  // page header, standalone note headings their own grid heading row, and
+  // each query block its widget card. Titled headings (buildDashboardDocument
+  // adjacency) surface as their widget entry's label.
+  const { setL3Items, registerScrollFn } = useNav();
+  const outline = useMemo(() => {
+    if (!parsed) return { headings: [], items: [] as NavItemL3[] };
+    const { doc, sections } = parsed;
+    const titled = new Set<number>();
+    sections.forEach((s, i) => {
+      if (s.type !== 'query') return;
+      const above = sections[i - 1];
+      if (above?.type === 'markdown' && above.subtype === 'paragraph') {
+        const h = sections[i - 2];
+        if (h?.type === 'markdown' && h.subtype === 'heading') titled.add(i - 2);
+      } else if (above?.type === 'markdown' && above.subtype === 'heading') {
+        titled.add(i - 1);
+      }
+    });
+    const headings: DashboardHeadingAnchor[] = [];
+    const items: NavItemL3[] = [];
+    if (doc.title) {
+      items.push({ id: TITLE_ANCHOR, label: doc.title, level: 3, action: { type: 'scroll', sectionId: TITLE_ANCHOR } });
+    }
+    let widgetIdx = 0;
+    sections.forEach((s, i) => {
+      if (s.type === 'markdown' && s.subtype === 'heading') {
+        if (titled.has(i) || /^#\s/.test(s.content)) return; // level 1 = the page title surface above
+        const id = `note-h${i}`;
+        const text = s.content.replace(/^#+\s*/, '');
+        headings.push({ id, level: /^#+/.exec(s.content)?.[0].length ?? 2, text, beforeWidget: widgetIdx });
+        items.push({ id, label: text, level: 3, action: { type: 'scroll', sectionId: id } });
+        return;
+      }
+      if (s.type !== 'query') return;
+      const w = doc.widgets[widgetIdx];
+      if (!w) return;
+      widgetIdx++;
+      const sectionId = `widget-${w.key}`;
+      items.push({ id: sectionId, label: w.title || w.body, level: 3, action: { type: 'scroll', sectionId } });
+    });
+    return { headings, items };
+  }, [parsed]);
+  const l3Items = outline.items;
+  useEffect(() => {
+    setL3Items(l3Items);
+    return () => setL3Items([]);
+  }, [l3Items, setL3Items]);
+
+  // Outline clicks scroll and flash. The component `document` (parsed
+  // DashboardDocument) shadows the DOM global here — hence globalThis.
+  // The context scroll slot is a single ref: restore plain scroll on unmount.
+  useEffect(() => {
+    registerScrollFn((id) => {
+      const el = globalThis.document.getElementById(id);
+      if (!el) return;
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+      if (typeof el.animate === 'function') {
+        el.animate(
+          [{ boxShadow: '0 0 0 3px hsl(var(--primary))' }, { boxShadow: '0 0 0 3px transparent' }],
+          { duration: 1500, easing: 'ease-out' },
+        );
+      }
+    });
+    return () =>
+      registerScrollFn((id) => {
+        const el = globalThis.document.getElementById(id);
+        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+      });
+  }, [registerScrollFn]);
 
   const [editMode, setEditMode] = useState(false);
   const [composer, setComposer] = useState<ComposerState | null>(null);
@@ -223,6 +302,7 @@ export function DashboardViewPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <StickyPageHeader
+        id={TITLE_ANCHOR}
         title={document?.title || source.title}
         subtitle={editable ? 'Editable dashboard note.' : 'Prebuilt — read-only until cloned to your vault.'}
         actions={
@@ -317,6 +397,7 @@ export function DashboardViewPage() {
         {document && (
           <DashboardView
             document={document}
+            headings={outline.headings}
             executor={queryService}
             onTokenChange={editable ? handleTokenChange : undefined}
             editMode={editable && editMode}
@@ -326,6 +407,7 @@ export function DashboardViewPage() {
             onMoveWidget={editable ? (w, delta) => runWidgetOp(source.rawContent, (raw) => moveWidget(raw, w.key, w.body, delta)) : undefined}
             onResizeWidget={editable ? (w, span) => runWidgetOp(source.rawContent, (raw) => resizeWidget(raw, w.key, w.body, span)) : undefined}
             onInspectWidget={!editable ? (w) => setComposer({ mode: 'inspect', widget: w, expectedRaw: source.rawContent }) : undefined}
+            onOpenInExplorer={(w, q) => navigate(analyticsExplorerPath({ q }))}
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
             preferredUnit={preferredUnit}

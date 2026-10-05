@@ -35,6 +35,9 @@ export function useZipProcessor() {
   const [zipParam] = useQueryState('zip');
   const [zParam] = useQueryState('z');
   const [byParam] = useQueryState('by');
+  // Spawn provenance: /load?zip=…&src=/c/<cat>/<name> (openBlockInPlayground)
+  // stamps the source page path onto the created playground note.
+  const [srcParam] = useQueryState('src');
 
   useEffect(() => {
     // Only run on the plain /load route — avoid creating phantom notes when
@@ -81,12 +84,16 @@ export function useZipProcessor() {
     if (!zipParam) return;
 
     let cancelled = false;
+    // Only accept well-formed app paths as provenance — the param is URL data.
+    const sourcePath = srcParam && srcParam.startsWith('/') ? srcParam : undefined;
     (async () => {
       try {
         const content = await decodeZip(zipParam);
         if (content === null) throw new Error('Invalid workout link');
         if (cancelled) return;
-        const name = await createPlaygroundPage(content);
+        const name = sourcePath
+          ? await createPlaygroundPage(content, { sourcePath })
+          : await createPlaygroundPage(content);
         if (!cancelled) {
           navigate(playgroundPath(name), { replace: true });
         }
@@ -103,5 +110,5 @@ export function useZipProcessor() {
       }
     })();
     return () => { cancelled = true; };
-  }, [zipParam, zParam, byParam, navigate, location.pathname]);
+  }, [zipParam, zParam, byParam, srcParam, navigate, location.pathname]);
 }

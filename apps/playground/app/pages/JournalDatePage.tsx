@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView } from '@codemirror/view';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
+import type { Session } from '@/types/storage';
 import { journalNotes } from '../services/journalNotes';
 import { playgroundRecorder } from '@/services/resultRecorder';
+import { storageService } from '@/services/storage';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
 import { useSearchParams, Link, Navigate, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { noteByIdPath } from '../lib/routes';
+import { v7 as uuidv7 } from 'uuid';
+import { journalDatePath, noteByIdPath, runPath } from '../lib/routes';
+import { formatDateKey } from '../services/dateUtils';
 import { CreateJournalNoteDialog } from '../components/organisms/journal/CreateJournalNoteDialog';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
@@ -18,6 +22,10 @@ import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentPro
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { sessionQueryInsert, sessionQueryWql } from '@bitcobblers/wod-wiki-ui/extensions';
 import { resolveCompletionTargets } from '../lib/workoutCompletion';
+import { useNotePageNav, wirePageIndexLinks } from './shared/useNotePageNav';
+import { canGoBack, extractPageIndex, mapIndexToL3 } from './shared/pageUtils';
+import type { NavItemL3 } from '../nav/navTypes';
+import { useNav } from '../nav/NavContext';
 
 import { JournalPageShell } from '@/panels/page-shells';
 const journalContentProvider = new IndexedDBContentProvider();
@@ -40,7 +48,13 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
-  const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
+  // Per-editor script blocks, keyed by note id — the shared state this
+  // replaces let the last-mounted editor win, which mis-attributed Run
+  // and completion to the wrong note on multi-note dates.
+  const [blocksByNote, setBlocksByNote] = useState<Record<string, ScriptBlock[]>>({});
+  const handleBlocksForNote = useCallback((noteId: string, nextBlocks: ScriptBlock[]) => {
+    setBlocksByNote((prev) => (prev[noteId] === nextBlocks ? prev : { ...prev, [noteId]: nextBlocks }));
+  }, []);
   const editorViewsRef = useRef<Map<string, EditorView>>(new Map());
   const editorViewRef = useRef<EditorView | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
@@ -88,7 +102,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     const targets = resolveCompletionTargets({
       blockId,
       editorRunBlock,
-      blocks,
+      blocks: blocksByNote[noteId] ?? [],
       activeNoteId: noteId,
       timerBlock,
       activeRuntimeId,
@@ -129,7 +143,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
-  }, [blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, journalDate, notes, handleNoteContentChange]);
+  }, [blocksByNote, activeRuntimeId, activeNoteId, timerBlock, editorView, journalDate, notes, handleNoteContentChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +155,103 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     });
     return () => { cancelled = true; };
   }, [journalDate]);
+
+  // ── Per-date navigation: journal stream back (state intact) + day stepping
+  const isDateKey = /^\d{4}-\d{2}-\d{2}$/.test(journalDate);
+  const prevNext = useMemo(() => {
+    if (!isDateKey) return null;
+    const [y, m, d] = journalDate.split('-').map(Number) as [number, number, number];
+    return {
+      prev: formatDateKey(new Date(y, m - 1, d - 1)),
+      next: formatDateKey(new Date(y, m - 1, d + 1)),
+    };
+  }, [journalDate, isDateKey]);
+
+  // ── L3 outline: full per-note outline with Run + badges for single-note
+  // dates; grouped per-note outline (one entry per note card) otherwise.
+  const { setL3Items } = useNav();
+  // Result badges per note (keyed like blocks). Stable ids key the fetch so
+  // content edits don't re-query.
+  const [resultsByNote, setResultsByNote] = useState<Record<string, Session[]>>({});
+  const noteIdsKey = notes?.map((n) => n.id).join('|') ?? '';
+  const noteIds = useMemo(() => (noteIdsKey ? noteIdsKey.split('|') : []), [noteIdsKey]);
+  useEffect(() => {
+    if (noteIds.length === 0) return;
+    let cancelled = false;
+    for (const id of noteIds) {
+      storageService.getResultsForNote(id).then((rows) => {
+        if (!cancelled) setResultsByNote((prev) => ({ ...prev, [id]: rows }));
+      }).catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [noteIds]);
+  const singleNote = notes !== null && notes.length === 1 ? notes[0] : null;
+  const results = singleNote ? resultsByNote[singleNote.id] : undefined;
+
+  const handleOutlineRun = useCallback((block: ScriptBlock) => {
+    if (!singleNote) return;
+    const runtimeId = uuidv7();
+    pendingRuntimes.set(runtimeId, {
+      block,
+      noteId: singleNote.id,
+      returnTo: journalDatePath(journalDate),
+    });
+    navigate(runPath(runtimeId));
+  }, [singleNote, journalDate, navigate]);
+
+  useNotePageNav({
+    content: singleNote?.rawContent ?? '',
+    scriptBlocks: singleNote ? (blocksByNote[singleNote.id] ?? []) : [],
+    onStartWorkout: handleOutlineRun,
+    results,
+  });
+
+  // Multi-note outline: real per-note entries (headings + fences) with Run
+  // wired to THAT note's blocks. Entry ids are prefixed with the note-card
+  // DOM id (`note-<uuid>:…`) so the scroll fallback lands on the right
+  // note's card; Run secondary navigates with the per-note closure.
+  const handleOutlineRunFor = useCallback((noteId: string) => (block: ScriptBlock) => {
+    const runtimeId = uuidv7();
+    pendingRuntimes.set(runtimeId, {
+      block,
+      noteId,
+      returnTo: journalDatePath(journalDate),
+    });
+    navigate(runPath(runtimeId));
+  }, [journalDate, navigate]);
+
+  const groupedL3 = useMemo(() => {
+    if (!notes || notes.length <= 1) return [];
+    const items: NavItemL3[] = [];
+    for (const note of notes) {
+      const labelPrefix = note.title || 'Untitled note';
+      const wired = wirePageIndexLinks(
+        extractPageIndex(note.rawContent),
+        blocksByNote[note.id] ?? [],
+        handleOutlineRunFor(note.id),
+        resultsByNote[note.id],
+      );
+      for (const link of wired) {
+        items.push(...mapIndexToL3([{ ...link, id: `note-${note.id}:${link.id}`, label: `${labelPrefix} · ${link.label}` }]));
+      }
+    }
+    return items;
+  }, [notes, blocksByNote, resultsByNote, handleOutlineRunFor]);
+  // Publish-on-mount / clear-on-unmount, guarded so the single-note outline
+  // published by useNotePageNav is never clobbered on transitions (destroy
+  // phase runs before create phase, so the flag keeps clear/create paired).
+  const publishedGroupedRef = useRef(false);
+  useEffect(() => {
+    if (groupedL3.length === 0) return;
+    publishedGroupedRef.current = true;
+    setL3Items(groupedL3);
+    return () => {
+      if (publishedGroupedRef.current) {
+        publishedGroupedRef.current = false;
+        setL3Items([]);
+      }
+    };
+  }, [groupedL3, setL3Items]);
 
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
 
@@ -183,6 +294,26 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           }
           editor={
         <div className="flex flex-col gap-8 px-4 py-6 sm:px-6">
+          <nav aria-label="Journal navigation" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => (canGoBack() ? navigate(-1) : navigate('/journal'))}
+              className="rounded-pill border border-border px-2 py-0.5 hover:bg-accent hover:text-foreground transition-colors"
+            >
+              ‹ Journal
+            </button>
+            {prevNext && (
+              <span className="flex items-center gap-2">
+                <Link to={journalDatePath(prevNext.prev)} aria-label="Previous day" className="hover:bg-accent hover:text-foreground rounded-pill border border-border px-2 py-0.5 transition-colors">
+                  ‹ {prevNext.prev}
+                </Link>
+                <span className="font-semibold text-foreground">{journalDate}</span>
+                <Link to={journalDatePath(prevNext.next)} aria-label="Next day" className="hover:bg-accent hover:text-foreground rounded-pill border border-border px-2 py-0.5 transition-colors">
+                  {prevNext.next} ›
+                </Link>
+              </span>
+            )}
+          </nav>
           {notes.length > 1 && (
             <nav aria-label="Notes on this date" className="flex flex-wrap gap-2">
               {notes.map((note) => (
@@ -223,7 +354,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
                 readonly={viewMode === 'read'}
                 theme={theme}
                 showLineNumbers={false}
-                onBlocksChange={setBlocks}
+                onBlocksChange={(blks) => handleBlocksForNote(notes[0].id, blks)}
                 onCompleteWorkout={(bId, res, resId, runB) => handleCompleteWorkout(bId, res, resId, runB, notes[0].id)}
                 onViewCreated={(view) => handleViewCreatedForNote(notes[0].id, view)}
               />
@@ -247,7 +378,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
                     readonly={viewMode === 'read'}
                     theme={theme}
                     showLineNumbers={false}
-                    onBlocksChange={setBlocks}
+                    onBlocksChange={(blks) => handleBlocksForNote(note.id, blks)}
                     onCompleteWorkout={(bId, res, resId, runB) => handleCompleteWorkout(bId, res, resId, runB, note.id)}
                     onViewCreated={(view) => handleViewCreatedForNote(note.id, view)}
                   />

@@ -55,7 +55,11 @@ export function navReducer(state: NavState, action: NavStateAction): NavState {
     case 'SET_RIGHT_DRAWER': return { ...state, rightDrawerOpen: action.open }
     case 'TOGGLE_EXPANDED': {
       const next = new Set(state.expandedIds)
-      next.has(action.id) ? next.delete(action.id) : next.add(action.id)
+      if (next.has(action.id)) {
+        next.delete(action.id)
+      } else {
+        next.add(action.id)
+      }
       return { ...state, expandedIds: next }
     }
     case 'SET_JOURNAL_DATE':
@@ -110,6 +114,21 @@ export const NavContext = createContext<NavContextValue>({
 
 export function useNav() {
   return useContext(NavContext)
+}
+
+/**
+ * Light an L1 zone by id for routes no tree `isActive` predicate matches
+ * (e.g. the source-agnostic /notes/:noteId page). Guarded: no-op when the id
+ * is absent from the tree, and only dispatched after the auto pathname sync
+ * has settled (entry loads are async, so this runs later in the commit cycle).
+ */
+export function useNoteL1Zone(zoneId: string | null): void {
+  const { tree, dispatch } = useNav()
+  useEffect(() => {
+    if (!zoneId) return
+    if (!tree.some(item => item.id === zoneId)) return
+    dispatch({ type: 'SET_ACTIVE_L1', id: zoneId })
+  }, [zoneId, tree, dispatch])
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────

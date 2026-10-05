@@ -29,6 +29,12 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import type { Session } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
+import {
+  NoteContextLinks,
+  noteOwnership,
+  useNoteContextLinks,
+} from './shared/noteContextLinks';
+import { canGoBack } from './shared/pageUtils';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { EffortResolver, addAliasToEffort, type IEffort, type ResolvedEffort } from '@bitcobblers/wod-wiki-lang';
@@ -275,6 +281,18 @@ export function EffortDetailPage() {
     results,
   });
 
+  // ── Contextual links: back to the catalog (history state intact) + journal
+  // copies stamped with /e/<slug> + workouts whose scripts use this effort.
+  const ownership = useMemo(
+    () => slug ? noteOwnership({ id: `effort/${slug}`, type: 'collection' }) : null,
+    [slug],
+  );
+  const contextData = useNoteContextLinks({
+    noteId: `effort/${slug}`,
+    stamps: ownership?.stamps ?? [],
+    effortSlug: slug,
+  });
+
   // ── WOD block commands ───────────────────────────────────────────────────
   const commands = useScriptBlockCommands('collection-readonly', {
     onPlay: handleStartWorkout,
@@ -298,7 +316,7 @@ export function EffortDetailPage() {
         description: `Created a custom copy of "${effort?.label ?? cloned.label}". You can now edit it.`,
       });
     }
-  }, [cloneForEdit]);
+  }, [cloneForEdit, effort?.label]);
 
   // ── Loading / error states ───────────────────────────────────────────────
   if (!isReady) {
@@ -434,7 +452,7 @@ export function EffortDetailPage() {
         Clone
       </Button>
     ) : undefined}>
-      <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())} aria-label="Back to catalog">
+      <Button variant="ghost" size="icon" onClick={() => (canGoBack() ? navigate(-1) : navigate(effortsPath()))} aria-label="Back to catalog" title={canGoBack() ? 'Back' : 'Back to catalog'}>
         <ArrowLeftIcon className="size-4" />
       </Button>
       <Badge
@@ -486,6 +504,9 @@ export function EffortDetailPage() {
               commands={commands}
               onBlocksChange={setScriptBlocks}
             />
+            <div className="px-6 lg:px-10 pb-4">
+              <NoteContextLinks data={contextData} up={ownership?.up} relatedLabel="Used in" />
+            </div>
           </div>
         }
       />

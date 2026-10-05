@@ -7,7 +7,7 @@
  * group counts come from the full set, so "showing 40 of 21,329" stays
  * truthful. The batch resets when the result set identity changes (new query).
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export const LIBRARY_BATCH_SIZE = 200
 
@@ -20,6 +20,9 @@ export interface BatchedItems<T> {
   sentinelRef: React.RefObject<HTMLDivElement | null>
   /** Total items in the full set (for "N more" messaging). */
   total: number
+  /** Materialize items up to `n` immediately — jump-to-group support so a
+   *  group link never targets an anchor progressive rendering hasn't built. */
+  growTo: (n: number) => void
 }
 
 export function useBatchedItems<T>(items: T[], batchSize = LIBRARY_BATCH_SIZE): BatchedItems<T> {
@@ -32,6 +35,11 @@ export function useBatchedItems<T>(items: T[], batchSize = LIBRARY_BATCH_SIZE): 
   }, [items, batchSize])
 
   const hasMore = count < items.length
+
+  const growTo = useCallback(
+    (n: number) => setCount(c => Math.max(c, Math.min(Math.max(n, 0), items.length))),
+    [items.length],
+  )
 
   useEffect(() => {
     const node = sentinelRef.current
@@ -48,5 +56,5 @@ export function useBatchedItems<T>(items: T[], batchSize = LIBRARY_BATCH_SIZE): 
     return () => observer.disconnect()
   }, [hasMore, items.length, batchSize])
 
-  return { visible: items.slice(0, count), hasMore, sentinelRef, total: items.length }
+  return { visible: items.slice(0, count), hasMore, sentinelRef, total: items.length, growTo }
 }

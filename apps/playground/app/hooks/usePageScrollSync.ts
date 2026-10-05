@@ -89,9 +89,11 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
 
       let lineIdx = -1
 
-      if (id.startsWith('workout-line-')) {
-        const lineNum = parseInt(id.replace('workout-line-', ''), 10)
-        lineIdx = lineNum - 1
+      // Line-anchored outline ids — one per fence family (time/log workout
+      // blocks, query widgets, custom widgets). `<tag>-line-N` is 1-based.
+      const lineMatch = id.match(/^(?:workout|time|log|query|widget)-line-(\d+)$/)
+      if (lineMatch) {
+        lineIdx = Number(lineMatch[1]) - 1
       } else {
         // Section / segmentId match via parseDocumentSections
         const sections = parseDocumentSections(content)

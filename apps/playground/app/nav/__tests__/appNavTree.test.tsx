@@ -5,6 +5,8 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { buildAppNavTree, appNavTree } from '../appNavTree'
 import { ROUTE_PATTERNS } from '../../lib/routes'
+import { withGroupBy, withoutWindow } from '../../lib/wqlEdits'
+import { JOURNAL_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE } from '../../views/stream/streamProfile'
 import { NavProvider } from '../NavContext'
 import { NavSidebar } from '../NavSidebar'
 
@@ -18,103 +20,124 @@ function mockLocation(pathname: string): Location {
   }
 }
 
-describe('appNavTree - Library navigation', () => {
+describe('appNavTree - Flattened listing zones', () => {
   afterEach(() => {
     cleanup()
   })
 
-  it('defines L1 library item with default route /journal, and L2 children ordered Journal, Collections, Feeds, Playgrounds', () => {
+  it('flattens Library into Journal, Collections, Playgrounds L1 rows with no Library row', () => {
     const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')
+    const l1 = tree.filter(item => item.level === 1).map(item => item.id)
 
-    expect(library).toBeDefined()
-    expect(library?.label).toBe('Library')
-    expect(library?.level).toBe(1)
-    expect(library?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
-    expect(library?.children).toBeDefined()
-    expect(library?.children?.length).toBe(4)
+    expect(l1).toEqual([
+      'home',
+      'journal',
+      'collections',
+      'playgrounds',
+      'dashboards',
+      'efforts',
+      'sessions',
+      'settings',
+      'buy-me-a-coffee',
+    ])
+    expect(tree.find(item => item.id === 'library')).toBeUndefined()
+  })
 
-    const [journal, collections, feeds, playground] = library!.children!
-
-    expect(journal.id).toBe('library-journal')
-    expect(journal.label).toBe('Journal')
+  it('exposes working WQL query presets as route ?q= links under Journal', () => {
+    const tree = buildAppNavTree(() => {})
+    const journal = tree.find(item => item.id === 'journal')!
+    expect(journal.level).toBe(1)
     expect(journal.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
 
-    expect(collections.id).toBe('library-collections')
-    expect(collections.label).toBe('Collections')
-    expect(collections.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.collections })
+    const byId = Object.fromEntries(journal.children!.map(child => [child.id, child]))
+    const taggedWql = withGroupBy(JOURNAL_STREAM_PROFILE.defaultWql, 'tag')
+    const allTimeWql = withoutWindow(JOURNAL_STREAM_PROFILE.defaultWql)
 
-    expect(feeds.id).toBe('library-feeds')
-    expect(feeds.label).toBe('Feeds')
-    expect(feeds.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.feeds })
-
-    expect(playground.id).toBe('library-playground')
-    expect(playground.label).toBe('Playgrounds')
-    expect(playground.action).toEqual({
+    // Landing runs the route default (no q).
+    expect(byId['journal-all']!.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.journal })
+    // Presets carry the query in the URL — the sidebar setQueryParam is a no-op.
+    expect(byId['journal-by-tag']!.action).toEqual({
       type: 'route',
-      to: ROUTE_PATTERNS.playgrounds,
+      to: `${ROUTE_PATTERNS.journal}?q=${encodeURIComponent(taggedWql)}`,
     })
+    expect(byId['journal-all-time']!.action).toEqual({
+      type: 'route',
+      to: `${ROUTE_PATTERNS.journal}?q=${encodeURIComponent(allTimeWql)}`,
+    })
+    // Every preset query round-trips through the URL — the navigation/query
+    // boundary: what the route's searchParams receive is the preset WQL.
+    for (const child of journal.children!) {
+      if (child.action.type !== 'route' || !child.action.to.includes('?q=')) continue
+      const [, search] = child.action.to.split('?')
+      expect(new URLSearchParams(search).get('q')).toBe(decodeURIComponent(child.action.to.split('?q=')[1]!))
+    }
   })
 
-  it('orders Library directly after Home', () => {
+  it('folds Feeds under Collections and lights Collections for feed routes', () => {
     const tree = buildAppNavTree(() => {})
-    const l1Ids = tree.filter(item => item.level === 1).map(item => item.id)
-    expect(l1Ids.indexOf('home')).toBe(0)
-    expect(l1Ids.indexOf('library')).toBe(1)
-  })
+    const collections = tree.find(item => item.id === 'collections')!
+    const feeds = collections.children!.find(child => child.id === 'collections-feeds')
 
-  it('activates library L1 for /library, /journal, /collections, /feeds, /feed, and /playground routes', () => {
-    const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')!
-
-    expect(library.isActive!(mockLocation('/library'))).toBe(true)
-    expect(library.isActive!(mockLocation('/journal'))).toBe(true)
-    expect(library.isActive!(mockLocation('/journal/2026-09-14'))).toBe(true)
-    expect(library.isActive!(mockLocation('/collections'))).toBe(true)
-    expect(library.isActive!(mockLocation('/feeds'))).toBe(true)
-    expect(library.isActive!(mockLocation('/feed'))).toBe(true)
-    expect(library.isActive!(mockLocation('/playground/example'))).toBe(true)
-    expect(library.isActive!(mockLocation('/dashboard'))).toBe(false)
-    expect(library.isActive!(mockLocation('/efforts'))).toBe(false)
-  })
-
-  it('activates appropriate L2 child based on route', () => {
-    const tree = buildAppNavTree(() => {})
-    const library = tree.find(item => item.id === 'library')!
-    const [journal, collections, feeds, playground] = library.children!
-
-    expect(journal.isActive!(mockLocation('/journal'))).toBe(true)
-    expect(journal.isActive!(mockLocation('/journal/2026-09-14'))).toBe(true)
-    expect(journal.isActive!(mockLocation('/feeds'))).toBe(false)
+    expect(feeds).toBeDefined()
+    expect(feeds!.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.feeds })
 
     expect(collections.isActive!(mockLocation('/collections'))).toBe(true)
     expect(collections.isActive!(mockLocation('/c/dan-john'))).toBe(true)
-    expect(collections.isActive!(mockLocation('/feeds'))).toBe(false)
+    expect(collections.isActive!(mockLocation('/feeds'))).toBe(true)
+    expect(collections.isActive!(mockLocation('/feed/routines'))).toBe(true)
+    expect(collections.isActive!(mockLocation('/journal'))).toBe(false)
+    expect(collections.isActive!(mockLocation('/playgrounds'))).toBe(false)
 
-    expect(feeds.isActive!(mockLocation('/feeds'))).toBe(true)
-    expect(feeds.isActive!(mockLocation('/feed'))).toBe(true)
-    expect(feeds.isActive!(mockLocation('/collections'))).toBe(false)
-    expect(feeds.isActive!(mockLocation('/journal'))).toBe(false)
-    const playgroundLoc = { ...mockLocation('/library'), search: `?q=${encodeURIComponent(':note{source:playground}')}` }
-    expect(playground.isActive!(playgroundLoc)).toBe(true)
-    expect(playground.isActive!(mockLocation('/playground/example'))).toBe(true)
-    expect(playground.isActive!(mockLocation('/playgrounds'))).toBe(true)
-    expect(playground.isActive!(mockLocation('/journal'))).toBe(false)
+    const journal = tree.find(item => item.id === 'journal')!
+    const playgrounds = tree.find(item => item.id === 'playgrounds')!
+    expect(journal.isActive!(mockLocation('/feeds'))).toBe(false)
+    expect(playgrounds.isActive!(mockLocation('/feeds'))).toBe(false)
   })
 
-  it('renders L2 menu items in NavSidebar when on /library', () => {
+  it('activates exactly one preset at the navigation/query boundary', () => {
+    const tree = buildAppNavTree(() => {})
+    const collections = tree.find(item => item.id === 'collections')!
+    const byId = Object.fromEntries(collections.children!.map(child => [child.id, child]))
+    const dateWql = withGroupBy(COLLECTIONS_STREAM_PROFILE.defaultWql, 'date')
+
+    // Landing without q.
+    const plain = mockLocation('/collections')
+    expect(byId['collections-all']!.isActive!(plain)).toBe(true)
+    expect(byId['collections-by-date']!.isActive!(plain)).toBe(false)
+
+    // The by-date preset's own URL lights it and nothing else.
+    const filtered = { ...mockLocation('/collections'), search: `?q=${encodeURIComponent(dateWql)}` }
+    expect(byId['collections-by-date']!.isActive!(filtered)).toBe(true)
+    expect(byId['collections-all']!.isActive!(filtered)).toBe(false)
+
+    // Zone detail routes light no preset (family, not query state).
+    const detail = mockLocation('/c/dan-john')
+    expect(byId['collections-all']!.isActive!(detail)).toBe(false)
+  })
+
+  it('activates Playgrounds for /playgrounds, /playground notes, and the /library playground scope', () => {
+    const tree = buildAppNavTree(() => {})
+    const playgrounds = tree.find(item => item.id === 'playgrounds')!
+
+    expect(playgrounds.isActive!(mockLocation('/playgrounds'))).toBe(true)
+    expect(playgrounds.isActive!(mockLocation('/playground/example'))).toBe(true)
+    const aliased = { ...mockLocation('/library'), search: `?q=${encodeURIComponent(':note{source:playground}')}` }
+    expect(playgrounds.isActive!(aliased)).toBe(true)
+    expect(playgrounds.isActive!(mockLocation('/journal'))).toBe(false)
+  })
+
+  it('renders the Collections L2 presets in NavSidebar on /collections', () => {
     render(
-      <MemoryRouter initialEntries={['/library']}>
+      <MemoryRouter initialEntries={['/collections']}>
         <NavProvider tree={appNavTree}>
           <NavSidebar />
         </NavProvider>
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Collections').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('All collections').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Playgrounds').length).toBeGreaterThan(0)
+    expect(screen.queryAllByText('Library')).toHaveLength(0)
   })
 })
 
@@ -342,15 +365,15 @@ describe('appNavTree - Mobile drawer L1 taps', () => {
     return () => path
   }
 
-  it('expands L1 submenu on tap without navigating (Library, Settings)', () => {
+  it('expands L1 submenu on tap without navigating (Journal, Settings)', () => {
     const path = renderMobileDrawer('/')
 
-    // Library is an L1 node with L2 children: the first tap only expands
+    // Journal is an L1 node with L2 children: the first tap only expands
     // the submenu, and the drawer stays open.
     act(() => {
-      screen.getByText('Library').click()
+      screen.getByText('Journal').click()
     })
-    expect(screen.getAllByText('Journal').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('All entries').length).toBeGreaterThan(0)
     expect(path()).toBe('/')
 
     // Same for Settings: expand first, pick a subitem on the next tap.

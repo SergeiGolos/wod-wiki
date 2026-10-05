@@ -140,13 +140,6 @@ async function composerEditor(dialog: HTMLElement): Promise<HTMLTextAreaElement 
   });
 }
 
-/** Examples live in the command-bar combo box — open it first. */
-async function clickExample(label: string) {
-  fireEvent.click(screen.getByTestId('explorer-examples'));
-  const menu = await waitFor(() => screen.getByTestId('explorer-examples-menu'));
-  fireEvent.click(within(menu).getByText(label));
-}
-
 describe('AnalyticsExplorerPage', () => {
   beforeEach(() => {
     runQueryCalls = [];
@@ -175,27 +168,16 @@ describe('AnalyticsExplorerPage', () => {
     expect(screen.getByTestId('wql-composer-input').getAttribute('placeholder')).toContain('agg:metric{filters}');
   });
 
-  it('resets the examples combo to its placeholder after a manual edit', async () => {
-    renderPage('');
-    expect(screen.getByTestId('explorer-examples').textContent).toContain('Examples…');
-
-    await clickExample('Weekly strength volume');
-    await waitFor(() => expect(screen.getByTestId('explorer-examples').textContent).toContain('Weekly strength volume'));
-
-    // A manual edit means the running query is no longer that example.
-    fireEvent.click(screen.getByTestId('token-slot-remove-discipline'));
-    await waitFor(() => expect(screen.getByTestId('explorer-examples').textContent).toContain('Examples…'));
-  });
-
-  it('keeps the combo label for examples whose WQL normalizes on restore', async () => {
-    renderPage('');
-
-    // Empty braces drop in the clause round-trip ('avg:tis{} by {round}'
-    // restores as 'avg:tis by {round}') — the label must still claim the
-    // running example until the draft is edited.
-    await clickExample('TIS by round');
+  it('runs example deep links; the examples themselves live in the L2 panel', async () => {
+    // The L2 panel deep-links analyticsExplorerPath({ q }) — the page only
+    // has to run whatever ?q= carries (the semantic example match lives in
+    // the panel). Empty braces drop in the clause round-trip, so this link
+    // also guards restore normalization.
+    renderPage('avg:tis{} by {round}');
     await waitFor(() => expect(pageRuns()).toContain('avg:tis{} by {round}'));
-    expect(screen.getByTestId('explorer-examples').textContent).toContain('TIS by round');
+
+    // No combo remains on the page surface.
+    expect(screen.queryByTestId('explorer-examples')).toBeNull();
   });
 
   it('hides pipeline anatomy behind the Inspect pipeline disclosure', async () => {
@@ -214,9 +196,7 @@ describe('AnalyticsExplorerPage', () => {
       notes: [FEED_NOTE],
       stages: { selected: 1, matched: 1 },
     });
-    renderPage('');
-
-    await clickExample('Find PR notes');
+    renderPage(':note{tags:pr,source:journal}');
 
     // The shared entry pipeline renders the same grouped rows as the Library.
     await waitFor(() => expect(screen.getByTestId('library-group-count').textContent).toBe('1'));
@@ -314,11 +294,11 @@ describe('AnalyticsExplorerPage', () => {
     await waitFor(() => expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5'));
   });
 
-  it('keeps range and units in the options menu; examples live in the command-bar combo', async () => {
+  it('keeps range and units in the options menu; examples are not duplicated on the page', async () => {
     renderPage('sum:totalVolume{}');
     await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{}'));
 
-    // The options menu no longer hosts examples.
+    // The options menu no longer hosts examples (they moved to the L2 panel).
     fireEvent.click(screen.getByTestId('explorer-options'));
     await waitFor(() => expect(screen.getByText('Past 4 weeks')).toBeDefined());
     expect(screen.queryByText('Weekly strength volume')).toBeNull();
@@ -327,11 +307,6 @@ describe('AnalyticsExplorerPage', () => {
     const runsBefore = pageRuns().length;
     fireEvent.click(screen.getByText('Past 4 weeks'));
     await waitFor(() => expect(pageRuns().length).toBeGreaterThan(runsBefore));
-
-    // Examples moved to the command-bar combo box.
-    fireEvent.click(screen.getByTestId('explorer-examples'));
-    const menu = await waitFor(() => screen.getByTestId('explorer-examples-menu'));
-    expect(within(menu).getByText('Weekly strength volume')).toBeDefined();
   });
 
   it('renders the shared WqlComposer in place of the legacy WqlQueryComposer', () => {
@@ -352,10 +327,8 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('updates parsed chips while editing before running the query', async () => {
-    renderPage('');
-
-    // Choose an example query that has a tag filter.
-    await clickExample('Weekly strength volume');
+    // An example query with a tag filter — the L2 panel deep-links it as ?q=.
+    renderPage('sum:totalVolume{discipline:strength} by {week}');
 
     // The parsed chips render inside the Inspect pipeline disclosure.
     fireEvent.click(await waitFor(() => screen.getByTestId('inspect-pipeline')));
@@ -385,12 +358,12 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('restores composer state on browser back and re-runs the restored query', async () => {
-    renderPage('');
-
-    await clickExample('Weekly strength volume');
+    renderPage('sum:totalVolume{discipline:strength} by {week}');
     await waitFor(() => expect(screen.getByTestId('token-slot-metric').textContent).toContain('totalVolume'));
 
-    await clickExample('Thruster time-in-motion');
+    // The L2 panel's example row pushes the second example as a URL — same
+    // history shape the promoted examples produce.
+    capturedNavigate(`/dashboards?q=${encodeURIComponent('avg:tis{effort:thruster} by {week}')}`);
     await waitFor(() => expect(screen.getByTestId('token-slot-metric').textContent).toContain('tis'));
 
     const runsBeforeBack = pageRuns().length;
@@ -414,9 +387,8 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('dispatches find queries through runFind', async () => {
-    renderPage('');
+    renderPage(':note{tags:pr,source:journal}');
 
-    await clickExample('Find PR notes');
     await waitFor(() => expect(runFindCalls).toContain(':note{tags:pr,source:journal}'));
     await waitFor(() => expect(screen.queryByText('No notes found.')).not.toBeNull());
   });

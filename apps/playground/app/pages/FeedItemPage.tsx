@@ -27,6 +27,11 @@ import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
 import { noteByIdPath, runPath, journalEntryAutoStartPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
+import {
+  NoteContextLinks,
+  noteOwnership,
+  useNoteContextLinks,
+} from './shared/noteContextLinks';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
 import { PageActions } from './shared/PageActions';
@@ -86,7 +91,7 @@ export function FeedItemPage({
           workoutName: item?.name ?? feedItem,
           category: feedSlug,
           sourceNoteLabel: feed?.name,
-          sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
+          sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}/${feedDate}/${encodeURIComponent(feedItem)}`,
           wodContent: block.content,
         });
         pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
@@ -97,7 +102,7 @@ export function FeedItemPage({
         navigate(runPath(runtimeId));
       }
     },
-    [feed, feedItem, feedSlug, item, navigate, noteId],
+    [feed, feedDate, feedItem, feedSlug, item, navigate, noteId],
   );
 
   const handleAddToToday = useCallback(async (block: ScriptBlock) => {
@@ -106,7 +111,7 @@ export function FeedItemPage({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,
-        sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
+        sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}/${feedDate}/${encodeURIComponent(feedItem)}`,
         wodContent: block.content,
       });
       const today = localDateKey(new Date());
@@ -122,7 +127,7 @@ export function FeedItemPage({
     } catch {
       toast({ title: 'Error', description: 'Could not add to journal', variant: 'destructive' });
     }
-  }, [feed, feedItem, feedSlug, item, navigate]);
+  }, [feed, feedDate, feedItem, feedSlug, item, navigate]);
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
 
@@ -136,7 +141,7 @@ export function FeedItemPage({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,
-        sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
+        sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}/${feedDate}/${encodeURIComponent(feedItem)}`,
         wodContent: block.content,
         date: date,
       });
@@ -153,13 +158,20 @@ export function FeedItemPage({
     } catch {
       toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' });
     }
-  }, [feed, feedItem, feedSlug, item, navigate]);
+  }, [feed, feedDate, feedItem, feedSlug, item, navigate]);
 
   const index = useNotePageNav({
     content,
     scriptBlocks,
     onStartWorkout: handleStartWorkout,
   });
+
+  // Canonical corpus id (`feeds/<slug>/<date>/<item>`) drives ownership and
+  // the block indexes. Feed runs stamp the FEED listing path as sourceNote,
+  // so per-item journal-copy backlinks don't exist in the data.
+  const corpusId = `feeds/${feedSlug}/${feedDate}/${feedItem}`;
+  const ownership = useMemo(() => noteOwnership({ id: corpusId, type: 'collection' }), [corpusId]);
+  const contextData = useNoteContextLinks({ noteId: corpusId, stamps: ownership.stamps });
 
   const commands = useScriptBlockCommands('collection-readonly', {
     onPlay: handleStartWorkout,
@@ -184,19 +196,22 @@ export function FeedItemPage({
           </ResponsiveActions>
         }
         editor={
-          <NoteEditor
-            value={content}
-            onChange={onChange}
-            onCursorPositionChange={onLineChange}
-            onBlur={onBlur}
-            noteId={noteId}
-            commands={commands}
-            enableInlineRuntime={false}
-            onViewCreated={onViewCreated}
-            theme={theme}
-            showLineNumbers={false}
-            onBlocksChange={setScriptBlocks}
-          />
+          <div className="flex flex-col gap-3 px-4 py-6 sm:px-6">
+            <NoteContextLinks data={contextData} up={ownership.up} />
+            <NoteEditor
+              value={content}
+              onChange={onChange}
+              onCursorPositionChange={onLineChange}
+              onBlur={onBlur}
+              noteId={noteId}
+              commands={commands}
+              enableInlineRuntime={false}
+              onViewCreated={onViewCreated}
+              theme={theme}
+              showLineNumbers={false}
+              onBlocksChange={setScriptBlocks}
+            />
+          </div>
         }
       />
       {pendingScheduleBlock && (
