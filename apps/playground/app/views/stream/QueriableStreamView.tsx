@@ -610,6 +610,7 @@ export function QueriableStreamView({
             scopeOptions={profile.scopeOptions}
             execute={execute}
             defaultQuery={profile.defaultWql}
+            route={profile.route}
           />
         }
       />
@@ -652,6 +653,7 @@ export function QueriableStreamView({
             scopeOptions={profile.scopeOptions}
             execute={execute}
             defaultQuery={profile.defaultWql}
+            route={profile.route}
             compact
           />,
           mobileSlot,

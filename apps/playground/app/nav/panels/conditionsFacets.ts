@@ -80,6 +80,22 @@ export function isFreeformKey(key: string): boolean {
   return !!FREEFORM_KEYS[key]
 }
 
+/** The filter key naming a find target's own result rows — the per-result
+ *  identity a library page must never offer as a filter catalog (every
+ *  result would list itself as a filter value). Journal/collection(s)/
+ *  playground heads already canonicalize to target 'note' (+ an injected
+ *  source scope) in the AST, so the note plane covers journal, collections
+ *  and playgrounds alike; on the block/session planes the note/block/result
+ *  keys are cross-target relations and stay. Null when the target has no
+ *  self-identity key. */
+export function resultIdentityKey(target: string): string | null {
+  switch (target) {
+    case 'note': return 'note'
+    case 'effort': return 'effort'
+    default: return null
+  }
+}
+
 /** `x` / `x*` — the serialized display form of one filter value. */
 export function displayValue(v: FacetValue): string {
   return v.wildcard ? `${v.value}*` : v.value
@@ -277,6 +293,21 @@ export function setSourceScopeValue(query: string, scope: string | null): string
     ? normalized.map((f, i) => (i === firstPositive ? authored.filters[0]! : f))
     : [...normalized, authored.filters[0]!]
   return serialize({ ...parsed, sourceScope: undefined, filters })
+}
+
+/** Add or remove one grouping dimension on the CURRENT query — the header
+ *  checkbox counterpart of `by {}`. Sibling dimensions, filters, window and
+ *  pipes survive; unparseable input and no-op states return unchanged. */
+export function toggleGroupDimension(query: string, dimension: string, on: boolean): string {
+  const parsed = parseQuery(query)
+  if (parsed.error || !isFindQuery(parsed)) return query
+  const dims = parsed.groupBy ?? []
+  const has = dims.some(d => d.toLowerCase() === dimension.toLowerCase())
+  if (on === has) return query
+  const next = on
+    ? [...dims, dimension.toLowerCase()]
+    : dims.filter(d => d.toLowerCase() !== dimension.toLowerCase())
+  return serialize({ ...parsed, groupBy: next.length > 0 ? next : undefined })
 }
 
 /** The head-authored scope (`:journal`) when it is the only scope signal —

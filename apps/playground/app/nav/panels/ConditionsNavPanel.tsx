@@ -29,20 +29,21 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import clsx from 'clsx'
-import { CheckSquare, MinusSquare, Plus, Square } from 'lucide-react'
+import { BookmarkPlus, CheckSquare, MinusSquare, Plus, Square } from 'lucide-react'
 
 import { isFindQuery, parseQuery, WQL_TYPED_TAG_KEYS, type ParsedFindQuery } from '@bitcobblers/wod-wiki-wql'
-import { wqlFilterKeys } from '@bitcobblers/wod-wiki-wql'
+import { wqlFilterKeys, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql'
 import { getClauseMeta } from '@bitcobblers/wod-wiki-ui'
 
 import { SidebarItem, SidebarLabel, SidebarSection } from '@/components/organisms/layout/Sidebar'
 import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
+import { SaveWqlShortcutDialog } from '../../components/organisms/wql/SaveWqlShortcutDialog'
 
 import { staticNoteStore } from '@/services/content/staticBlockIndex'
 import { storageService } from '@/services/storage'
 
-import { applyRouteWqlConfig, readRouteWqlConfig, GROUP_BY_FAVORITE_OPTIONS } from '../../lib/routeWqlConfig'
-import { withGroupBy, withoutWindow } from '../../lib/wqlEdits'
+import { applyRouteWqlConfig } from '../../lib/routeWqlConfig'
+import { ALL_SHORTCUT_ID, SHORTCUT_ICONS, shortcutMatches, useRouteShortcuts } from '../../lib/routeWqlShortcuts'
 import type { StreamProfile } from '../../views/stream/streamProfile'
 import { useStreamResults, type StreamResultSnapshot } from '../../views/stream/streamResults'
 import type { Entry } from '../../lib/entryMapper'
@@ -55,8 +56,11 @@ import {
   filterValueState,
   headSourceScope,
   isFreeformKey,
+  occurrencesForKey,
+  resultIdentityKey,
   selectedValuesFor,
   setFacetValueState,
+  toggleGroupDimension,
   type FacetContext,
   type FacetOption,
   type TagMembership,
@@ -69,8 +73,6 @@ export interface ConditionsPanelSpec {
   icon: NavItem['icon']
   route: string
   profile: StreamProfile
-  /** Grouping preset dimensions when no Query-Defaults favorites exist. */
-  groupDims?: readonly string[]
   /** Plain page actions after the presets (e.g. Feeds). */
   extraChildren?: NavItem[]
   /** Whole zone route family (drives landing-row + L1 activation). */
@@ -82,10 +84,6 @@ export interface ConditionsPanelSpec {
 const EMPTY_ENTRIES: Entry[] = []
 
 const urlQuery = (loc: Location): string => new URLSearchParams(loc.search).get('q') ?? ''
-
-const DIM_LABELS: Record<string, string> = Object.fromEntries(
-  GROUP_BY_FAVORITE_OPTIONS.map(option => [option.id, option.label]),
-)
 
 /** Static-corpus tags are untyped labels on the note rows the executor's
  *  static store answers `tags:` with; junction rows carry their tag type. */
@@ -134,7 +132,6 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
       () => (!parsed.error && isFindQuery(parsed) ? parsed : null),
       [parsed],
     )
-    const isFind = parsedFind !== null
 
     // Snapshot freshness: pathname AND query must match the committed run —
     // a previous page's results or a superseded draft never feed options.
@@ -152,9 +149,18 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
     const pending = entries === null && committed !== null && committed.pathname === location.pathname
     const facetEntries = entries ?? (pending ? committed!.entries : EMPTY_ENTRIES)
 
+    // Result identity is never offered as a facet catalog: on a target's own
+    // plane (note — journal/collection/playground heads parse to target
+    // 'note' + an injected source scope — and effort) the identity key would
+    // list every result row as a filter value. A query that explicitly
+    // authors the identity key keeps its section so rows stay removable.
+    const identityKey = parsedFind ? resultIdentityKey(parsedFind.target) : null
+    const identityAuthored = !!parsedFind && !!identityKey && occurrencesForKey(parsedFind, identityKey).length > 0
     const sectionKeys = useMemo(
-      () => (parsedFind ? wqlFilterKeys(parsedFind.target, 'find').slice() : []),
-      [parsedFind],
+      () => (parsedFind
+        ? wqlFilterKeys(parsedFind.target, 'find').filter(key => key !== identityKey || identityAuthored)
+        : []),
+      [parsedFind, identityKey, identityAuthored],
     )
     const needsTagMembership = sectionKeys.some(
       key => key === 'tags' || (WQL_TYPED_TAG_KEYS as readonly string[]).includes(key),
@@ -203,67 +209,114 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
       [sectionKeys],
     )
 
-    // Grouping presets: the CURRENT query is the base — never a reset.
-    const saved = readRouteWqlConfig(spec.route)
-    const dimSource = saved.groupByOptions?.length ? saved.groupByOptions.slice(0, 2) : spec.groupDims ?? []
-    const currentDims = parsedFind?.groupBy ?? []
-    const groupRows = (dimSource)
-      .filter(dim => !currentDims.includes(dim.toLowerCase()))
-      .map(dim => ({ dim, wql: withGroupBy(effectiveQuery, dim) }))
-      .filter(row => row.wql !== effectiveQuery)
-    const allTime = withoutWindow(effectiveQuery)
+    // Saved shortcuts (routeWqlShortcuts): the built-in library-group links
+    // (landing, Feeds route action) plus the user's saved full-WQL links
+    // (grouping `by {}` is simply part of a saved query — the per-section
+    // Group-by checkbox owns ad-hoc grouping edits). Matching is full-query
+    // and permutation-insensitive on WHERE items / group dimensions, so a
+    // base All link never matches a custom filter and an unmatched query is
+    // the Custom row above the Create action. Writes elsewhere (WQL line,
+    // Settings) land here live via useRouteShortcuts.
+    const shortcuts = useRouteShortcuts(spec.route)
+    const matchCtx = { pathname: location.pathname, query: urlQuery(location) }
+    const allShortcut = shortcuts.find(s => s.id === ALL_SHORTCUT_ID) ?? null
+    const userShortcuts = shortcuts.filter(s => s.to === undefined && s.id !== ALL_SHORTCUT_ID)
+    const landingWql = allShortcut?.wql ?? ''
+    const landingLabel = allShortcut?.label ?? spec.landingLabel
+    const LandingIcon = allShortcut ? SHORTCUT_ICONS[allShortcut.icon]! : spec.icon
+    const customQuery =
+      matchCtx.query && !parseQuery(matchCtx.query).error && !shortcuts.some(s => shortcutMatches(s, matchCtx))
+        ? effectiveQuery
+        : null
+    const [shortcutEditorOpen, setShortcutEditorOpen] = useState(false)
 
+    // Full-bleed over the SidebarBody gutter: condition accordion headers
+    // span the whole L2 view; shortcuts row and section bodies re-inset rows.
     return (
-      <div className="flex flex-col gap-1 px-2 py-3" data-testid="conditions-nav-panel">
-        <SidebarSection>
+      <div className="-mx-4 flex flex-col gap-1 py-3" data-testid="conditions-nav-panel">
+        <SidebarSection className="px-6">
           <SidebarItem
             onClick={() => {
-              navigate(spec.route)
+              if (landingWql) {
+                apply(landingWql)
+              } else {
+                navigate(spec.route)
+              }
               closeNavigationDrawer()
             }}
-            current={spec.familyActive(location) && urlQuery(location).trim() === ''}
+            current={
+              landingWql && allShortcut
+                ? shortcutMatches(allShortcut, matchCtx)
+                : spec.familyActive(location) && urlQuery(location).trim() === ''
+            }
           >
-            {spec.icon && <spec.icon data-slot="icon" />}
-            <SidebarLabel>{spec.landingLabel}</SidebarLabel>
+            {LandingIcon && <LandingIcon data-slot="icon" />}
+            <SidebarLabel>{landingLabel}</SidebarLabel>
           </SidebarItem>
-          {groupRows.map(row => (
-            <SidebarItem
-              key={`group-${row.dim}`}
-              onClick={() => {
-                apply(row.wql)
-                closeNavigationDrawer()
-              }}
-              current={urlQuery(location) === row.wql}
-            >
-              <SidebarLabel>{DIM_LABELS[row.dim] ?? row.dim}</SidebarLabel>
-            </SidebarItem>
-          ))}
-          {isFind && allTime !== effectiveQuery && (
-            <SidebarItem
-              onClick={() => {
-                apply(allTime)
-                closeNavigationDrawer()
-              }}
-              current={urlQuery(location) === allTime}
-            >
-              <SidebarLabel>All time</SidebarLabel>
-            </SidebarItem>
-          )}
-          {(spec.extraChildren ?? []).map(child => (
-            <SidebarItem
-              key={child.id}
-              onClick={() => {
-                if (child.action) {
-                  executeNavAction(child.action, { navigate, setQueryParam: () => {} })
+          {userShortcuts.map(s => {
+            const Icon = SHORTCUT_ICONS[s.icon]!
+            return (
+              <SidebarItem
+                key={`shortcut-${s.id}`}
+                onClick={() => {
+                  if (s.wql) apply(s.wql)
+                  else navigate(spec.route)
                   closeNavigationDrawer()
-                }
-              }}
-              current={child.isActive?.(location) ?? false}
-            >
-              {child.icon && <child.icon data-slot="icon" />}
-              <SidebarLabel>{child.label}</SidebarLabel>
-            </SidebarItem>
-          ))}
+                }}
+                current={shortcutMatches(s, matchCtx)}
+                data-testid={`nav-shortcut-${s.id}`}
+              >
+                <Icon data-slot="icon" />
+                <SidebarLabel>{s.label}</SidebarLabel>
+              </SidebarItem>
+            )
+          })}
+          {customQuery && (
+            <div className="flex items-center gap-1" data-testid="conditions-nav-custom">
+              <SidebarItem current className="min-w-0 flex-1" title={customQuery} aria-label={`Custom query: ${customQuery}`}>
+                <SidebarLabel>Custom</SidebarLabel>
+              </SidebarItem>
+              <button
+                type="button"
+                onClick={() => setShortcutEditorOpen(true)}
+                aria-label="Save shortcut"
+                title="Save shortcut"
+                data-testid="conditions-nav-custom-save"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                <BookmarkPlus className="size-4" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          <SidebarItem
+            onClick={() => setShortcutEditorOpen(true)}
+            aria-label="New shortcut"
+            data-testid="conditions-nav-shortcut-create"
+          >
+            <Plus data-slot="icon" />
+            <SidebarLabel>New shortcut</SidebarLabel>
+          </SidebarItem>
+          {(spec.extraChildren ?? []).map(child => {
+            const target = child.action.type === 'route' ? child.action.to : null
+            const override = target ? shortcuts.find(s => s.to === target) : null
+            const OverrideIcon = override ? SHORTCUT_ICONS[override.icon]! : null
+            return (
+              <SidebarItem
+                key={child.id}
+                onClick={() => {
+                  if (child.action) {
+                    executeNavAction(child.action, { navigate, setQueryParam: () => {} })
+                    closeNavigationDrawer()
+                  }
+                }}
+                current={child.isActive?.(location) ?? false}
+                data-testid={override ? `nav-shortcut-${override.id}` : undefined}
+              >
+                {OverrideIcon ? <OverrideIcon data-slot="icon" /> : child.icon && <child.icon data-slot="icon" />}
+                <SidebarLabel>{override?.label ?? child.label}</SidebarLabel>
+              </SidebarItem>
+            )
+          })}
         </SidebarSection>
 
         {parsedFind && (
@@ -284,6 +337,13 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
             ))}
           </div>
         )}
+
+        <SaveWqlShortcutDialog
+          open={shortcutEditorOpen}
+          onOpenChange={setShortcutEditorOpen}
+          route={spec.route}
+          initialQuery={effectiveQuery}
+        />
       </div>
     )
   }
@@ -393,13 +453,38 @@ function ConditionSection({
   )
 
   if (rows.length === 0 && !freeform) return null
+  // Group-by header checkbox: gated on the section key mapping to a supported
+  // content grouping dimension (wqlGroupingDimensions — tags→tag, source→
+  // source, type→type, discipline/origin on the effort plane); dims `by {}`
+  // rejects (catalog, intensity, plane, …) get no checkbox.
+  const groupDim = clauseTypeFor(entryKey)
+  const groupSupported = wqlGroupingDimensions(parsed.target, 'find').includes(groupDim)
+  const groupOn = !!parsed.groupBy?.some(dim => dim.toLowerCase() === groupDim.toLowerCase())
   return (
     <SidebarAccordion
       title={config.label ?? meta.label}
       count={rows.length}
       defaultOpen={rows.some(row => row.state !== 'off') || freeform}
       sticky
-      className="[&>button]:gap-1.5 [&>button]:py-1.5 [&>button]:text-[11px] [&>button]:font-semibold [&>button]:normal-case [&>button]:tracking-normal [&>button>span:last-child]:h-auto [&>button>span:last-child]:w-auto [&>button>span:last-child]:min-w-0 [&>button>span:last-child]:rounded-sm [&>button>span:last-child]:px-1 [&>button>span:last-child]:bg-transparent [&>button>span:last-child]:text-[10px] [&>button>span:last-child]:font-semibold [&>button>span:last-child]:text-muted-foreground"
+      buttonClassName="gap-1.5 py-1.5 text-[11px] font-semibold normal-case tracking-normal [&>span:last-child]:h-auto [&>span:last-child]:w-auto [&>span:last-child]:min-w-0 [&>span:last-child]:rounded-sm [&>span:last-child]:px-1 [&>span:last-child]:bg-transparent [&>span:last-child]:text-[10px] [&>span:last-child]:font-semibold [&>span:last-child]:text-muted-foreground"
+      bodyClassName="px-6"
+      trailing={groupSupported ? (
+        <label
+          className="flex shrink-0 cursor-pointer items-center gap-1 pr-2 text-[10px] font-semibold text-muted-foreground"
+          title={`Group by ${meta.label}`}
+        >
+          <input
+            type="checkbox"
+            data-testid={`conditions-groupby-${entryKey}`}
+            aria-label={`Group by ${meta.label}`}
+            checked={groupOn}
+            disabled={pending}
+            onChange={() => onApply(toggleGroupDimension(query, groupDim, !groupOn))}
+            className="size-3.5 cursor-pointer accent-primary disabled:cursor-default"
+          />
+          Group
+        </label>
+      ) : undefined}
     >
       {/* Every current-result value renders — long lists flow through the
           shared SidebarBody scroller, never a per-section viewport. */}

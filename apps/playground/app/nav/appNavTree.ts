@@ -95,8 +95,6 @@ interface ListingZoneSpec {
   icon: NavItem['icon']
   route: string
   profile: StreamProfile
-  /** Preset grouping dimensions (favorites from Query Defaults win). */
-  groupDims: readonly string[]
   /** Extra panel rows appended after the presets (e.g. Feeds). */
   extraChildren?: NavItem[]
   /** Whole zone route family (L1 activation). */
@@ -130,7 +128,6 @@ function listingZone(spec: ListingZoneSpec): NavItem {
       icon: spec.icon,
       route: spec.route,
       profile: spec.profile,
-      groupDims: spec.groupDims,
       extraChildren: spec.extraChildren,
       familyActive: spec.familyActive,
     }),
@@ -154,7 +151,6 @@ const listingZones: ListingZoneSpec[] = [
     icon: Calendar,
     route: ROUTE_PATTERNS.journal,
     profile: JOURNAL_STREAM_PROFILE,
-    groupDims: ['tag', 'kind'],
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/journal'),
     aliasActive: (loc: Location) => libraryScope(loc) === 'journal',
   },
@@ -165,7 +161,6 @@ const listingZones: ListingZoneSpec[] = [
     icon: Folder,
     route: ROUTE_PATTERNS.collections,
     profile: COLLECTIONS_STREAM_PROFILE,
-    groupDims: ['date', 'kind'],
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed'),
     aliasActive: (loc: Location) => {
       if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return false
@@ -181,7 +176,6 @@ const listingZones: ListingZoneSpec[] = [
     icon: FlaskConical,
     route: ROUTE_PATTERNS.playgrounds,
     profile: PLAYGROUNDS_STREAM_PROFILE,
-    groupDims: ['source', 'tag'],
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/playgrounds', '/playground'),
     aliasActive: (loc: Location) => libraryScope(loc) === 'playground',
   },

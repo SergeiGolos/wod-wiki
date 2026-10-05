@@ -1,0 +1,272 @@
+/**
+ * routeWqlShortcuts — user-saved full-query shortcuts per library route
+ * (wayfinder: library group links + Settings ▸ Query Defaults).
+ *
+ * A shortcut is { id, label, icon, wql } plus one optional behaviour field:
+ *   - plain  — navigating applies its FULL WQL to the route (URL `?q=`,
+ *              history entry, drawer closes); grouping (`by {}`) is simply
+ *              part of the saved query;
+ *   - to     — a route action (the Feeds link): navigates to the target
+ *              route, no query semantics.
+ * The reserved ids are the built-in links (`all` landing, `feeds` route
+ * action); until a route's list is first stored, the built-ins stand.
+ * Matching compares whole queries semantically and ORDER-INSENSITIVELY:
+ * the WHERE filter items and GROUP BY dimensions may be permuted and still
+ * match (the serializer's canonical form over a sorted AST), while
+ * negation, windows and pipes remain part of the query's identity — so a
+ * base All link never matches a custom filter and an unmatched query is
+ * Custom. Storage mirrors routeWqlConfig: one LocalStore key per route id
+ * in this browser only. Writes verify the read-back — the shared browser
+ * backend swallows quota/private-mode failures, so a silent no-op must not
+ * be reported as saved. Reactive: useRouteShortcuts re-reads on any
+ * successful write (panel/Settings update live, no reload).
+ */
+import { useSyncExternalStore } from 'react'
+import {
+  Activity,
+  Bookmark,
+  Calendar,
+  ClipboardList,
+  Clock,
+  Dumbbell,
+  Flame,
+  Folder,
+  FlaskConical,
+  Heart,
+  Rss,
+  Star,
+  Tag,
+  type LucideIcon,
+} from 'lucide-react'
+import { isFindQuery, parseQuery, serialize, type AnyParsedQuery } from '@bitcobblers/wod-wiki-engine'
+import { LocalStore } from '@/services/storage/LocalStore'
+
+export interface WqlShortcut {
+  id: string
+  label: string
+  /** One of SHORTCUT_ICONS keys — a finite vocabulary, validated on read. */
+  icon: string
+  /** Plain shortcut: full WQL; '' = the route landing (no `?q=`). */
+  wql: string
+  /** Route action: navigate to this path instead of applying a query. */
+  to?: string
+}
+
+/** Built-in landing link id — overridden in storage once customized. */
+export const ALL_SHORTCUT_ID = 'all'
+/** Built-in Feeds route-action id (Collections zone). */
+export const FEEDS_ID = 'feeds'
+
+export const SHORTCUT_ICONS: Record<string, LucideIcon> = {
+  bookmark: Bookmark,
+  calendar: Calendar,
+  'clipboard-list': ClipboardList,
+  clock: Clock,
+  dumbbell: Dumbbell,
+  flame: Flame,
+  folder: Folder,
+  'flask-conical': FlaskConical,
+  heart: Heart,
+  rss: Rss,
+  star: Star,
+  tag: Tag,
+  activity: Activity,
+}
+
+export const ROUTE_SHORTCUTS_STORAGE_PREFIX = 'wodwiki.routeWqlShortcuts.v1'
+
+export const routeShortcutsStore = new LocalStore(ROUTE_SHORTCUTS_STORAGE_PREFIX)
+
+/** The built-in landing link (nav-tree label/icon vocabulary). */
+export function defaultLandingShortcut(label: string, icon: string): WqlShortcut {
+  return { id: ALL_SHORTCUT_ID, label, icon, wql: '' }
+}
+
+// ── Built-in library-group links ────────────────────────────────────────────
+// ponytail: labels/icons duplicate the nav tree's zone vocabulary — five
+// stable strings; if the tree's landing labels ever change, update here too
+// (upgrade path: lift the labels into streamProfile and read them).
+
+const LANDING_LABELS: Record<string, string> = {
+  '/journal': 'All entries',
+  '/collections': 'All collections',
+  '/playgrounds': 'All playgrounds',
+  '/efforts': 'All Efforts',
+  '/sessions': 'All Sessions',
+}
+
+const LANDING_ICONS: Record<string, string> = {
+  '/journal': 'calendar',
+  '/collections': 'folder',
+  '/playgrounds': 'flask-conical',
+  '/efforts': 'dumbbell',
+  '/sessions': 'clipboard-list',
+}
+
+/** Route actions per zone (the Feeds link lives in the Collections panel). */
+const ROUTE_ACTIONS: Record<string, { id: string; label: string; icon: string; to: string }> = {
+  '/collections': { id: FEEDS_ID, label: 'Feeds', icon: 'rss', to: '/feeds' },
+}
+
+/** The built-in links for a route: the landing plus the zone's route
+ *  action if any. */
+export function builtinShortcuts(routeId: string): WqlShortcut[] {
+  const id = normalizeRouteId(routeId)
+  const action = ROUTE_ACTIONS[id]
+  return [
+    defaultLandingShortcut(LANDING_LABELS[id] ?? 'Landing link', LANDING_ICONS[id] ?? 'bookmark'),
+    ...(action ? [{ ...action, wql: '' }] : []),
+  ]
+}
+
+function normalizeRouteId(routeId: string): string {
+  return routeId.startsWith('/') ? routeId : `/${routeId}`
+}
+
+/** Shape-level sanitize: non-object rows and unknown shapes (bad label/icon,
+ *  duplicate ids, a non-path or protocol-relative `to` — `//host` would
+ *  navigate off-site) are dropped, never turned into rows. WQL text is
+ *  validated at the editor; an unparseable stored query degrades exactly
+ *  like an unparseable URL `q` (the view falls back to the default), so it
+ *  is not re-validated here. */
+function sanitizeShortcuts(value: unknown): WqlShortcut[] {
+  if (!Array.isArray(value)) return []
+  const out: WqlShortcut[] = []
+  const seen = new Set<string>()
+  for (const raw of value) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue
+    const s = raw as Record<string, unknown>
+    if (typeof s.id !== 'string' || !s.id.trim() || seen.has(s.id)) continue
+    if (typeof s.label !== 'string' || !s.label.trim()) continue
+    if (typeof s.icon !== 'string' || !SHORTCUT_ICONS[s.icon]) continue
+    if (typeof s.wql !== 'string') continue
+    if (s.to !== undefined && (typeof s.to !== 'string' || !/^\/(?!\/)/.test(s.to))) continue
+    seen.add(s.id.trim())
+    out.push({
+      id: s.id.trim(),
+      label: s.label.trim(),
+      icon: s.icon,
+      wql: s.wql.trim(),
+      ...(s.to !== undefined ? { to: s.to } : {}),
+    })
+  }
+  return out
+}
+
+export function readRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): WqlShortcut[] {
+  return sanitizeShortcuts(store.get(normalizeRouteId(routeId)))
+}
+
+/**
+ * The route's live link list: the stored list once anything was stored
+ * (delete-all included — the built-ins then stay gone), the built-ins
+ * before that. Every consumer (panel rows, dialog upsert, Settings) reads
+ * through this so a first save never silently drops built-in links.
+ */
+export function resolveRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): WqlShortcut[] {
+  const id = normalizeRouteId(routeId)
+  if (store.getRaw(id) != null) return readRouteShortcuts(routeId, store)
+  return builtinShortcuts(routeId)
+}
+
+/**
+ * Persist one route's shortcut list. Returns false WITHOUT notifying when
+ * the backend dropped the write (quota / private mode) — callers must treat
+ * false as not-saved, never claim success.
+ */
+export function writeRouteShortcuts(
+  routeId: string,
+  shortcuts: readonly WqlShortcut[],
+  store: LocalStore = routeShortcutsStore,
+): boolean {
+  const id = normalizeRouteId(routeId)
+  const clean = sanitizeShortcuts(shortcuts)
+  store.set(id, clean)
+  if (store.getRaw(id) !== JSON.stringify(clean)) return false
+  notifyRouteShortcuts()
+  return true
+}
+
+/** Discard the stored list — the built-in links stand again. */
+export function resetRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): void {
+  store.remove(normalizeRouteId(routeId))
+  notifyRouteShortcuts()
+}
+
+// ── Reactivity — version-counter store for useSyncExternalStore ─────────────
+
+let shortcutsVersion = 0
+const listeners = new Set<() => void>()
+
+export function subscribeRouteShortcuts(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+export function routeShortcutsVersion(): number {
+  return shortcutsVersion
+}
+
+function notifyRouteShortcuts(): void {
+  shortcutsVersion++
+  for (const listener of listeners) listener()
+}
+
+/** Live shortcut list for a route — re-reads after any successful write. */
+export function useRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): WqlShortcut[] {
+  useSyncExternalStore(subscribeRouteShortcuts, routeShortcutsVersion)
+  return resolveRouteShortcuts(routeId, store)
+}
+
+// ── Matching ────────────────────────────────────────────────────────────────
+
+export interface ShortcutMatchContext {
+  /** Current pathname (route actions match by path prefix). */
+  pathname: string
+  /** Explicit routed query ('' on a landing — only the landing link matches). */
+  query: string
+}
+
+/** Order-insensitive WHERE + GROUP BY while negation, windows and pipes
+ *  keep their identity: sort the find AST's filter items (and each
+ *  occurrence's values) and the group dimensions, then emit the serializer's
+ *  canonical form. Non-find queries serialize as authored. */
+function canonicalForm(parsed: AnyParsedQuery): string {
+  if (!isFindQuery(parsed)) return serialize(parsed)
+  return serialize({
+    ...parsed,
+    filters: (parsed.filters ?? [])
+      .map(f => ({ ...f, values: [...(f.values ?? [])].sort((a, b) => a.value.localeCompare(b.value)) }))
+      .sort((a, b) => a.key.localeCompare(b.key) || Number(a.negate) - Number(b.negate)
+        || a.values.map(v => v.value).join('|').localeCompare(b.values.map(v => v.value).join('|'))),
+    groupBy: [...(parsed.groupBy ?? [])].sort((a, b) => a.localeCompare(b)),
+  })
+}
+
+/**
+ * Full-query shortcut match. Plain shortcuts: '' matches only the landing
+ * state; otherwise raw equality first, then semantic equality through the
+ * canonical form — reordered WHERE items, occurrence values and GROUP BY
+ * dimensions are the same query; negation, windows and pipes are not.
+ * Route actions match by pathname.
+ */
+export function shortcutMatches(s: WqlShortcut, ctx: ShortcutMatchContext): boolean {
+  if (s.to) return ctx.pathname === s.to || ctx.pathname.startsWith(`${s.to}/`)
+  return shortcutMatchesQuery(s.wql, ctx.query)
+}
+
+/**
+ * Plain full-query equality helper (also the plain branch of
+ * shortcutMatches): raw equality, then order-insensitive semantic equality
+ * for parseable queries.
+ */
+export function shortcutMatchesQuery(wql: string, query: string): boolean {
+  if (!wql.trim()) return query.trim() === ''
+  if (query.trim() === '') return false
+  if (query === wql) return true
+  const pa = parseQuery(query)
+  const pb = parseQuery(wql)
+  return !pa.error && !pb.error && canonicalForm(pa) === canonicalForm(pb)
+}

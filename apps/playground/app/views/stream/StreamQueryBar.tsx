@@ -15,11 +15,12 @@
  * the mobile dock, owned by ResponsiveActions).
  */
 
-import { useCallback } from 'react'
-import { ChevronUp, Search } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { BookmarkPlus, ChevronUp, Search } from 'lucide-react'
 import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
+import { SaveWqlShortcutDialog } from '../../components/organisms/wql/SaveWqlShortcutDialog'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
 
 export interface StreamQueryBarProps {
@@ -34,6 +35,9 @@ export interface StreamQueryBarProps {
   /** The route's default WQL — composer guidance and the compact dock's
    *  summary when the draft is empty (actual profile default, not a slogan). */
   defaultQuery?: string
+  /** Canonical route id — when present, the desktop WQL line gains a save
+   *  icon that stores the current query as a route shortcut. */
+  route?: string
   /** Compact (mobile) variant — summary line instead of the composer. */
   compact?: boolean
   className?: string
@@ -60,6 +64,7 @@ export function StreamQueryBar({
   scopeOptions,
   execute,
   defaultQuery,
+  route,
   compact = false,
   className,
 }: StreamQueryBarProps) {
@@ -67,31 +72,53 @@ export function StreamQueryBar({
     () => openStreamQueryEditor(query, execute, onQueryChange),
     [query, execute, onQueryChange],
   )
+  const [saveOpen, setSaveOpen] = useState(false)
 
   if (compact) {
-    // Mobile thumb-footer button row — one native button control (48px
-    // target) that opens the WQL palette. Same border token as the desktop
-    // composer box so both variants read as one chrome. An empty draft
-    // summarizes the route's actual default query.
+    // Mobile thumb-footer button row — the summary control (48px target)
+    // opens the WQL palette; the trailing save icon stores the current
+    // query as a route shortcut. Same border token as the desktop composer
+    // box so both variants read as one chrome. An empty draft summarizes
+    // the route's actual default query.
     return (
-      <button
-        type="button"
-        data-testid="stream-query-bar"
-        onClick={openEditor}
+      <div
+        data-testid="stream-query-bar-dock"
         className={cn(
-          'flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-3 text-left shadow-xs transition-colors hover:bg-muted/70',
+          'flex min-h-12 w-full items-stretch overflow-hidden rounded-xl border border-border bg-muted/40 shadow-xs',
           className,
         )}
       >
-        <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span
-          data-testid="stream-query-summary"
-          className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
+        <button
+          type="button"
+          data-testid="stream-query-bar"
+          onClick={openEditor}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 px-3 text-left transition-colors hover:bg-muted/70"
         >
-          {query || defaultQuery || 'Filter or search…'}
-        </span>
-        <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      </button>
+          <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span
+            data-testid="stream-query-summary"
+            className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
+          >
+            {query || defaultQuery || 'Filter or search…'}
+          </span>
+          <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </button>
+        {route && (
+          <>
+            <button
+              type="button"
+              onClick={() => setSaveOpen(true)}
+              title="Save search shortcut"
+              aria-label="Save search shortcut"
+              data-testid="stream-query-save"
+              className="grid w-12 shrink-0 place-items-center border-l border-border text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+            >
+              <BookmarkPlus className="size-4" aria-hidden="true" />
+            </button>
+            <SaveWqlShortcutDialog open={saveOpen} onOpenChange={setSaveOpen} route={route} initialQuery={query} />
+          </>
+        )}
+      </div>
     )
   }
 
@@ -114,6 +141,26 @@ export function StreamQueryBar({
         placeholder="Filter or search…"
         className="min-w-0 flex-1"
       />
+      {route && (
+        <>
+          <button
+            type="button"
+            onClick={() => setSaveOpen(true)}
+            title="Save search shortcut"
+            aria-label="Save search shortcut"
+            data-testid="stream-query-save"
+            className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            <BookmarkPlus className="size-4" aria-hidden="true" />
+          </button>
+          <SaveWqlShortcutDialog
+            open={saveOpen}
+            onOpenChange={setSaveOpen}
+            route={route}
+            initialQuery={query}
+          />
+        </>
+      )}
     </div>
   )
 }

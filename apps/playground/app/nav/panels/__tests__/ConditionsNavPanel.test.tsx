@@ -94,7 +94,6 @@ const ConditionsPanel = createConditionsNavPanel({
   icon: undefined,
   route: '/collections',
   profile: COLLECTIONS_STREAM_PROFILE,
-  groupDims: ['date', 'kind'],
   familyActive: () => true,
 })
 
@@ -379,7 +378,7 @@ describe('ConditionsNavPanel', () => {
     expect((screen.getByTestId('conditions-input-text') as HTMLInputElement).value).toBe('')
   })
 
-  it('closes the drawer on full-query shortcuts only, never on facet edits', async () => {
+  it('closes the drawer on full-query shortcuts only, never on facet or group-by edits', async () => {
     let closed = 0
     renderPanel('/collections', () => {
       closed += 1
@@ -392,13 +391,20 @@ describe('ConditionsNavPanel', () => {
     await waitFor(() => expect(tagsValues(findOf(parseQuery(routedQuery()))!)).toEqual(['strength']))
     expect(closed).toBe(0)
 
-    // Grouping preset — a full-query rewrite — closes after applying.
-    fireEvent.click(screen.getByText('Date'))
-    expect(closed).toBe(1)
+    // The header Group-by checkbox is a query edit too: it rewrites `by {}`
+    // in place, keeps the drawer open AND the section expanded (never a
+    // DisclosureButton toggle), while the shortcut/Custom match re-derives.
+    const groupToggle = screen.getByTestId('conditions-groupby-tags') as HTMLInputElement
+    expect(groupToggle.checked).toBe(true) // DEFAULT_Q groups by {tag}
+    fireEvent.click(groupToggle)
+    await waitFor(() => expect(findOf(parseQuery(routedQuery()))!.groupBy).toBeUndefined())
+    expect(closed).toBe(0)
+    expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy()
+    expect((screen.getByTestId('conditions-groupby-tags') as HTMLInputElement).checked).toBe(false)
 
     // Landing row (route-default query) closes too.
     fireEvent.click(screen.getByText('All collections'))
-    expect(closed).toBe(2)
+    expect(closed).toBe(1)
   })
 
   it('enumerates effort slugs from the containment index over current results', () => {
