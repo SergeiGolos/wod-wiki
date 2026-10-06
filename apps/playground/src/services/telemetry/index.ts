@@ -3,3 +3,4 @@ export type { TelemetryEvent, TelemetryForwarder, TelemetryServiceOptions } from
 export { HOME_EVENTS } from './homeEvents';
 export type { HomeEventName } from './homeEvents';
 export { useTelemetry } from './useTelemetry';
+export { useScrollTelemetry } from './useScrollTelemetry';

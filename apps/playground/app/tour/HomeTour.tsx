@@ -62,7 +62,7 @@ import { CelebrationBridge } from './CelebrationBridge'
 import { TourChapterPicker } from './TourChapterPicker'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
-import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
+import { HOME_EVENTS, useTelemetry, useScrollTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
 import {
   BOARD_SLUGS,
@@ -292,6 +292,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
   const track = telemetry?.track
+  useScrollTelemetry('/')
 
   // ── Editor document ──
   // Arrival contract (#882): the initial load content is the shared script

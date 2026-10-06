@@ -90,7 +90,7 @@ import { themeCompartment, languageCompartment, modeCompartment } from "@/compon
 import type { ScriptBlock } from "@/components/Editor/types";
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
 import { Play, Plus, ExternalLink, Copy, Check } from "lucide-react";
-import { buildPlaygroundUrl } from "@/components/atoms/WhiteboardPlaygroundButton";
+import { buildHomeShareUrl, buildPlaygroundUrl } from "@/components/atoms/WhiteboardPlaygroundButton";
 
 export interface NoteEditorProps {
   /** Note ID for result lookup */
@@ -400,7 +400,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         });
       },
       onSplitClick: async (block) => {
-        const url = await buildPlaygroundUrl(block.content);
+        // Copy shares the home-page version (/load?z=) — the workout lands
+        // in the home hero editor, not a spawned playground note.
+        const url = await buildHomeShareUrl(block.content);
         await navigator.clipboard.writeText(url);
       },
     });

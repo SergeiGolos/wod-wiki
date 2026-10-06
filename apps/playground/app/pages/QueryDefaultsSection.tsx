@@ -28,6 +28,7 @@ import {
   type RouteWqlConfig,
 } from '../lib/routeWqlConfig'
 import {
+  ALL_SHORTCUT_ID,
   SHORTCUT_ICONS,
   useRouteShortcuts,
   writeRouteShortcuts,
@@ -326,9 +327,10 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
 /**
  * Settings editor for one library group's shortcuts: the built-in links
  * (landing, route action) plus the user's saved full-WQL shortcuts.
- * Built-in route actions edit label/icon only (the target is part of the
- * nav tree; no delete). Deleting any other link removes it from the panel,
- * while the plain landing falls back to the tree's default. Writes are
+ * Built-ins — the landing All link and route actions — edit label/icon
+ * only and cannot be deleted (the All link is the permanent default row;
+ * resolveRouteShortcuts re-adds it even to legacy lists that lack it).
+ * Deleting any other link removes it from the panel. Writes are
  * read-back-verified; a dropped write keeps the list as-is with an error
  * instead of a false success, and successful writes reach the nav panels
  * live (no reload).
@@ -380,7 +382,7 @@ function RouteShortcutsEditor({ surface }: { surface: ConfigurableSurface }) {
             >
               <Pencil className="size-3" />
             </button>
-            {!s.to && (
+            {!s.to && s.id !== ALL_SHORTCUT_ID && (
               <button
                 type="button"
                 aria-label={`Delete ${s.label}`}

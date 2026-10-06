@@ -46,7 +46,7 @@ import type { TourSectionTimerWiring, TourSectionSessionWiring } from './TourSec
 import { TOUR_CAPTIONS, CaptionBody, type TourCaption } from './TourCaptions'
 import { TourChapterPicker } from './TourChapterPicker'
 import { TourLearnSection } from './TourLearnSection'
-import { TourRing, useRingRef } from './TourRing'
+import { RingElementRegistrar, RingTargetsProvider, TourRing } from './TourRing'
 
 const CARD_SLOT_MIN_HEIGHT = '70vh'
 /** Bounded sticky stage window: full width, 40vh tall under the app nav. */
@@ -142,16 +142,9 @@ export function TourMobileRunway({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   // Ring canvases: the write window keeps the registered `editor.window`
-  // target; the other windows measure their own canvas without registering.
+  // target (registered inside its ChapterWindow's own RingTargetsProvider);
+  // the other windows measure their own canvas without registering.
   const writeCanvasRef = useRef<HTMLDivElement | null>(null)
-  const editorWindowRef = useRingRef('editor.window')
-  const writeCanvasRingRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      writeCanvasRef.current = el
-      editorWindowRef(el)
-    },
-    [editorWindowRef],
-  )
   const runCanvasRef = useRef<HTMLDivElement | null>(null)
   const ownCanvasRef = useRef<HTMLDivElement | null>(null)
   const exploreCanvasRef = useRef<HTMLDivElement | null>(null)
@@ -345,7 +338,7 @@ export function TourMobileRunway({
             id="write"
             height={STAGE_WINDOW_HEIGHT}
             canvasRef={writeCanvasRef}
-            innerRef={writeCanvasRingRef}
+            windowRingKey="editor.window"
             ringTarget={ringFor('write')}
             accent={accentFor('write')}
           >
@@ -487,7 +480,7 @@ function ChapterWindow({
   id,
   height,
   canvasRef,
-  innerRef,
+  windowRingKey,
   ringTarget,
   accent,
   children,
@@ -496,13 +489,23 @@ function ChapterWindow({
   height: string
   /** Ring measuring surface (plain ref, shared with the canvas div). */
   canvasRef: React.RefObject<HTMLDivElement | null>
-  /** The canvas div's ref — the write window passes its ring-registering
-      callback; other windows leave it off and reuse `canvasRef`. */
-  innerRef?: React.Ref<HTMLDivElement>
+  /** Ring key under which the canvas div itself is registered — only the
+      write window registers ('editor.window'), inside its own
+      RingTargetsProvider (a useRingRef here would reach the outer
+      provider). */
+  windowRingKey?: RingTargetKey
   ringTarget: { key: RingTargetKey; tag?: string } | null
   accent: string
   children: React.ReactNode
 }) {
+  const [innerEl, setInnerEl] = useState<HTMLDivElement | null>(null)
+  const setDivRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setInnerEl(el)
+      canvasRef.current = el
+    },
+    [canvasRef],
+  )
   return (
     <div
       data-testid={`tour-mobile-runway-window-${id}`}
@@ -510,11 +513,17 @@ function ChapterWindow({
       style={{ top: `${MOBILE_STICKY_TOP}px`, height }}
     >
       <div
-        ref={innerRef ?? canvasRef}
+        ref={setDivRef}
         className="relative h-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
       >
-        <div className="relative h-full">{children}</div>
-        <TourRing target={ringTarget} accent={accent} canvasRef={canvasRef} />
+        {/* Private ring registry per window — several chapter windows mount
+            concurrently and would otherwise overwrite each other's
+            'editor.window' registration under a shared provider. */}
+        <RingTargetsProvider>
+          {windowRingKey && <RingElementRegistrar ringKey={windowRingKey} el={innerEl} />}
+          <div className="relative h-full">{children}</div>
+          <TourRing target={ringTarget} accent={accent} canvasRef={canvasRef} />
+        </RingTargetsProvider>
       </div>
     </div>
   )

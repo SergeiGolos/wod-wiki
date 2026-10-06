@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryState } from 'nuqs'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import type { ScriptBlock } from '@/components/Editor/types'
+import { useScrollTelemetry } from '@/services/telemetry'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useSyntaxChallenge } from '../hooks/useSyntaxChallenge'
@@ -52,6 +53,8 @@ export function ScrollCanvasPage({
   const scroll = page.scroll!
   const stages = scroll.stages
   const navigate = useNavigate()
+  const isGuide = page.type === 'guide' || page.route.startsWith('/guide')
+  useScrollTelemetry(isGuide ? page.route : undefined)
 
   // ── Editor document (controlled into the runway) + per-stage sources ──
   const sourcesByStageId = useMemo(

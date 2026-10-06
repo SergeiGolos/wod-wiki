@@ -4,10 +4,12 @@
  * Split pill that: (a) opens the Playground pre-loaded with a WOD
  * block's content, and (b) copies that URL to the clipboard.
  *
- * URL format: {origin}/#/load?zip=<gzip+base64 encoded markdown>
- *
- * The `?zip=` param is decoded by the playground's LoadZipPage component,
- * which saves it as a new page in IndexedDB and redirects to #/playground/{uuid}.
+ * URL formats (both carry the same gzip+base64 encoded markdown):
+ *  - Playground link: {origin}/load?zip=… → saved as a new playground page,
+ *    redirects to /playground/{id}.
+ *  - Copy:            {origin}/load?z=…    → the home-share contract: decoded
+ *    onto the home page, where the shared workout replaces the hero editor's
+ *    existing ```time section until the visitor resets it.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -66,6 +68,17 @@ export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
   return `${base}/load?zip=${encoded}`;
 }
 
+/**
+ * Builds the home-share URL for the given WOD content string. `/load?z=`
+ * decodes onto the home page (see useZipProcessor), where the hero editor
+ * renders the shared workout instead of the default ```time section.
+ */
+export async function buildHomeShareUrl(wodContent: string): Promise<string> {
+  const markdown = `\`\`\`time\n${wodContent.trimEnd()}\n\`\`\`\n`;
+  const encoded = await gzipBase64(markdown);
+  return `${window.location.origin}/load?z=${encoded}`;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -85,6 +98,7 @@ export const WhiteboardPlaygroundButton: React.FC<WhiteboardPlaygroundButtonProp
 }) => {
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [href, setHref] = useState<string>('#');
+  const [homeHref, setHomeHref] = useState<string | null>(null);
 
   // Lazily compute the URL the first time the user interacts with either half.
   // Avoids doing async work on every render that contains a WOD block.
@@ -94,6 +108,13 @@ export const WhiteboardPlaygroundButton: React.FC<WhiteboardPlaygroundButtonProp
     setHref(url);
     return url;
   }, [href, wodContent]);
+
+  const resolveHomeUrl = useCallback(async (): Promise<string> => {
+    if (homeHref) return homeHref;
+    const url = await buildHomeShareUrl(wodContent);
+    setHomeHref(url);
+    return url;
+  }, [homeHref, wodContent]);
 
   const handleLinkClick = useCallback(async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -108,14 +129,16 @@ export const WhiteboardPlaygroundButton: React.FC<WhiteboardPlaygroundButtonProp
     if (copyState === 'copying') return;
     setCopyState('copying');
     try {
-      const url = await resolveUrl();
+      // Copy shares the home-page version — the recipient edits/runs the
+      // workout right on '/', not in a spawned playground note.
+      const url = await resolveHomeUrl();
       await navigator.clipboard.writeText(url);
       setCopyState('copied');
       setTimeout(() => setCopyState('idle'), 1500);
     } catch {
       setCopyState('idle');
     }
-  }, [copyState, resolveUrl]);
+  }, [copyState, resolveHomeUrl]);
 
   return (
     <div
@@ -153,7 +176,7 @@ export const WhiteboardPlaygroundButton: React.FC<WhiteboardPlaygroundButtonProp
             ? 'text-emerald-600 bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-500/20 scale-105'
             : 'hover:bg-accent hover:text-accent-foreground',
         )}
-        title="Copy playground link to clipboard"
+        title="Copy home-page link to clipboard"
         type="button"
       >
         {copyState === 'copied'

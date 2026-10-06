@@ -83,6 +83,26 @@ export function useRingRef(key: RingTargetKey) {
   return useCallback((el: HTMLElement | null) => register?.(key, el), [key, register])
 }
 
+/**
+ * Registers an element held via parent state/ref under a ring key in the
+ * NEAREST RingTargetsProvider. Needed when the registering component sits
+ * ABOVE the provider in the tree — its own useRingRef would resolve to an
+ * outer provider (runways scope a provider around their stage pane).
+ */
+export function RingElementRegistrar({
+  ringKey,
+  el,
+}: {
+  ringKey: RingTargetKey
+  el: HTMLElement | null
+}) {
+  const { register } = useRingTargets()
+  useLayoutEffect(() => {
+    register(ringKey, el)
+  }, [ringKey, el, register])
+  return null
+}
+
 // ── Ring ────────────────────────────────────────────────────────────────────
 
 export interface TourRingProps {
@@ -131,10 +151,19 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
     // Re-measure after transitions/layout settles (screen cross-fades, fonts).
     const t1 = window.setTimeout(measure, 120)
     const t2 = window.setTimeout(measure, 480)
+    // The proxy itself can settle late (font swap re-measures it) — follow
+    // its box so the ring stays glued instead of freezing at first measure.
+    let ro: ResizeObserver | null = null
+    const el = registry.current[targetKey]
+    if (el && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure)
+      ro.observe(el)
+    }
     window.addEventListener('resize', measure)
     return () => {
       window.clearTimeout(t1)
       window.clearTimeout(t2)
+      ro?.disconnect()
       window.removeEventListener('resize', measure)
     }
   }, [targetKey, version, registry, canvasRef])

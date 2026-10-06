@@ -32,7 +32,7 @@ import {
   type TourScreen,
   type RingTargetKey,
 } from './tourConstants'
-import { TourRing, useRingRef } from './TourRing'
+import { RingElementRegistrar, RingTargetsProvider, TourRing } from './TourRing'
 import { TourTvCard } from './TourTvCard'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
@@ -160,16 +160,15 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
   ) {
     const runwayRef = useRef<HTMLElement | null>(null)
     const canvasInnerRef = useRef<HTMLDivElement | null>(null)
+    const [canvasEl, setCanvasEl] = useState<HTMLDivElement | null>(null)
     // The whole section window (outside the chrome) is the 'editor.window'
-    // ring target — mirrors the old single-runway framing.
-    const editorWindowRef = useRingRef('editor.window')
-    const canvasInnerRingRef = useCallback(
-      (el: HTMLDivElement | null) => {
-        canvasInnerRef.current = el
-        editorWindowRef(el)
-      },
-      [editorWindowRef],
-    )
+    // ring target. It is registered via <RingElementRegistrar> rendered
+    // INSIDE the section's RingTargetsProvider — a useRingRef in this
+    // component body would resolve to the outer (shared) provider.
+    const canvasInnerRingRef = useCallback((el: HTMLDivElement | null) => {
+      canvasInnerRef.current = el
+      setCanvasEl(el)
+    }, [])
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
 
@@ -288,9 +287,14 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                 rail stays a readable 320–400px column. Content smaller than
                 the pane centers inside it (screens own their fit). */}
             <div className="flex min-h-0 w-full flex-1 items-stretch gap-[clamp(20px,2.5vw,44px)] px-5 pb-5 lg:px-10">
-              {/* stage pane */}
+              {/* stage pane — the RingTargetsProvider scopes the ring registry
+                  to THIS section; every runway registers 'editor.window', so a
+                  shared registry lets later sections steal earlier ones' ring
+                  targets (ring drawn around an off-screen window). */}
               <div className="relative h-full min-w-0 flex-1">
                 <div ref={canvasInnerRingRef} className="absolute inset-0">
+                  <RingTargetsProvider>
+                  <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
                   <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
                     <div className="relative h-full">
                       {editor && (
@@ -360,6 +364,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                     accent={slice.stage.accent ?? TOUR_ACCENTS.editor}
                     canvasRef={canvasInnerRef}
                   />
+                  </RingTargetsProvider>
                 </div>
               </div>
 

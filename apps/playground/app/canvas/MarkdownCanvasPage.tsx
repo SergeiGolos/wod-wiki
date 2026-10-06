@@ -14,6 +14,7 @@ import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
+import { useScrollTelemetry } from '@/services/telemetry'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
@@ -74,6 +75,8 @@ export function MarkdownCanvasPage({
   const navigate = useNavigate()
   const { sections, route, chapters } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
+  const isGuide = page.type === 'guide' || route.startsWith('/guide')
+  useScrollTelemetry(isGuide ? route : undefined)
 
   const isCollection = route.startsWith('/collections/') || route.startsWith('/c/')
   const collectionSlug = isCollection ? (route.split('/').pop() ?? null) : null

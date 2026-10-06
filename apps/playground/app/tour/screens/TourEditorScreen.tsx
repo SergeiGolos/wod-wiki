@@ -51,74 +51,48 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   // and register an invisible proxy over exactly that region. Presets are
   // line-aligned so this box is identical for every adventure pick.
   const measure = useCallback(() => {
-    if (!withRingTargets) return
-    const view = viewRef.current
+    if (!withRingTargets) return null
     const body = bodyRef.current
-    if (!body) return
+    if (!body) return null
 
-    let calculatedBlockBox: BlockBox | null = null
-    if (view) {
-      try {
-        const doc = view.state.doc
-        let openPos = -1
-        let closePos = -1
-        for (let i = 1; i <= doc.lines; i++) {
-          const text = doc.line(i).text
-          if (text.startsWith('```time') || text.startsWith('```wod') || text.startsWith('```log')) {
-            openPos = doc.line(i).from
-          } else if (openPos !== -1 && text.startsWith('```')) {
-            closePos = doc.line(i).from
-            break
-          }
-        }
-        if (openPos !== -1 && closePos !== -1) {
-          const topBlock = view.lineBlockAt(openPos)
-          const bottomBlock = view.lineBlockAt(closePos)
-          calculatedBlockBox = {
-            top: topBlock.top,
-            left: 0,
-            width: view.dom.offsetWidth || body.offsetWidth,
-            height: (bottomBlock.top + bottomBlock.height) - topBlock.top,
-          }
-        }
-      } catch {
-        // fallback to DOM if line blocks not yet initialized
+    // Measure the styled fence lines (.cm-wod-fence-open … .cm-wod-fence-close,
+    // drawn by previewDecorations) in VIEWPORT space and convert to body
+    // space. getBoundingClientRect is scroll- and padding-correct; CM block
+    // coordinates (lineBlockAt) are document-space and would misplace the
+    // proxy by the scroller's scroll offset.
+    let block: BlockBox | null = null
+    const open = body.querySelector('.cm-wod-fence-open')
+    const close = body.querySelector('.cm-wod-fence-close')
+    if (open && close) {
+      const bodyRect = body.getBoundingClientRect()
+      const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
+      const openRect = open.getBoundingClientRect()
+      const closeRect = close.getBoundingClientRect()
+      block = {
+        top: (openRect.top - bodyRect.top) / scale,
+        left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
+        width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
+        height: (closeRect.bottom - openRect.top) / scale,
       }
     }
-
-    if (!calculatedBlockBox) {
-      const open = body.querySelector('.cm-wod-fence-open')
-      const close = body.querySelector('.cm-wod-fence-close')
-      if (open && close) {
-        const bodyRect = body.getBoundingClientRect()
-        const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
-        const openRect = open.getBoundingClientRect()
-        const closeRect = close.getBoundingClientRect()
-        calculatedBlockBox = {
-          top: (openRect.top - bodyRect.top) / scale,
-          left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
-          width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
-          height: (closeRect.bottom - openRect.top) / scale,
-        }
-      }
-    }
-    setBlockBox(calculatedBlockBox)
+    setBlockBox(block)
 
     // Measure the Run pill rendered on the workout block by InlineCommandBar
+    let run: BlockBox | null = null
     const runPill = body.querySelector(`[data-testid="${TEST_IDS.EDITOR_START_WORKOUT}"]`) ?? body.querySelector('button[title="Run"]')
     if (runPill) {
       const bodyRect = body.getBoundingClientRect()
       const pillRect = runPill.getBoundingClientRect()
       const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
-      setRunBox({
+      run = {
         top: (pillRect.top - bodyRect.top) / scale,
         left: (pillRect.left - bodyRect.left) / scale,
         width: pillRect.width / scale,
         height: pillRect.height / scale,
-      })
-    } else {
-      setRunBox(null)
+      }
     }
+    setRunBox(run)
+    return { block, run }
   }, [withRingTargets])
 
   useLayoutEffect(() => {
@@ -134,13 +108,45 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(measure)
       ro.observe(body)
+      // Font load / decoration settle changes line heights INSIDE the
+      // fixed-height editor without resizing the body — the fence proxy
+      // goes stale unless the CM content itself is watched.
+      const content = viewRef.current?.contentDOM
+      if (content) ro.observe(content)
     }
+    // Settle loop: absolutely-positioned chrome (the InlineCommandBar Run
+    // pill) shifts with section geometry when fonts swap, without resizing
+    // anything the observers above watch, and its React re-render can land
+    // AFTER fonts.ready fires. Re-measure every frame for a fixed window so
+    // the proxies converge wherever the layout lands. Restarted by
+    // fonts.ready — the swap can land later than the initial window.
+    let raf = 0
+    let started = 0
+    const settle = () => {
+      measure()
+      if (performance.now() - started < 3000) raf = requestAnimationFrame(settle)
+    }
+    const startSettle = () => {
+      started = performance.now()
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(settle)
+    }
+    startSettle()
+    // Webfonts resolve after the settle timers; line heights (and thus the
+    // fence position) change when the monospace face swaps in.
+    document.fonts?.ready?.then(startSettle).catch(() => {})
+    // The proxies are body-absolute but the fence scrolls inside the CM
+    // scroller — re-measure on scroll or the ring drifts off the block.
+    const scroller = viewRef.current?.scrollDOM
+    scroller?.addEventListener('scroll', measure, { passive: true })
     window.addEventListener('resize', measure)
     return () => {
       window.clearTimeout(t1)
       window.clearTimeout(t2)
       ro?.disconnect()
+      scroller?.removeEventListener('scroll', measure)
       window.removeEventListener('resize', measure)
+      cancelAnimationFrame(raf)
     }
   }, [doc, withRingTargets, measure])
   const handleStartWorkout = useCallback(() => {
