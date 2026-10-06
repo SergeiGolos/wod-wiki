@@ -380,7 +380,7 @@ describe('ConditionsNavPanel', () => {
     fireEvent.click(screen.getByTestId('conditions-jump-wql-text'))
     expect(closed).toBe(1)
   })
-  it('closes the drawer on full-query shortcuts only, never on facet or group-by edits', async () => {
+  it('closes the drawer on full-query shortcuts only, never on facet edits', async () => {
     let closed = 0
     renderPanel('/collections', () => {
       closed += 1
@@ -392,20 +392,15 @@ describe('ConditionsNavPanel', () => {
     fireEvent.click(stateButton('tags', 'strength'))
     await waitFor(() => expect(tagsValues(findOf(parseQuery(routedQuery()))!)).toEqual(['strength']))
     expect(closed).toBe(0)
-
-    // The header Group-by checkbox is a query edit too: it rewrites `by {}`
-    // in place, keeps the drawer open AND the section expanded (never a
-    // DisclosureButton toggle), while the shortcut/Custom match re-derives.
-    const groupToggle = screen.getByTestId('conditions-groupby-tags') as HTMLInputElement
-    expect(groupToggle.checked).toBe(true) // DEFAULT_Q groups by {tag}
-    fireEvent.click(groupToggle)
-    await waitFor(() => expect(findOf(parseQuery(routedQuery()))!.groupBy).toBeUndefined())
-    expect(closed).toBe(0)
     expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy()
-    expect((screen.getByTestId('conditions-groupby-tags') as HTMLInputElement).checked).toBe(false)
 
-    // Landing row (route-default query) closes too.
-    fireEvent.click(screen.getByText('All collections'))
+    // Custom query row now renders at the top with save and clear buttons
+    expect(screen.getByTestId('conditions-nav-custom')).toBeTruthy()
+    expect(screen.getByTestId('conditions-nav-custom-save')).toBeTruthy()
+    expect(screen.getByTestId('conditions-nav-custom-clear')).toBeTruthy()
+
+    // Clear button resets the query to all entries
+    fireEvent.click(screen.getByTestId('conditions-nav-custom-clear'))
     expect(closed).toBe(1)
   })
 

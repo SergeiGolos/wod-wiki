@@ -89,10 +89,66 @@ describe('SecondaryNav on home page', () => {
     screen.getByText('Welcome').click();
     expect(scrollToSection).toHaveBeenCalledWith('tour-hero');
   });
-
-  it('renders nothing on home when no outline is published', () => {
+  it('renders nothing on home when no outline is published and no stream controls', () => {
     const { container } = renderHomeNav([]);
     expect(container.firstChild).toBeNull();
+  });
+
+  it('renders date window picker, group by options, and on this page when stream controls are active', () => {
+    const onToggleGroupDim = mock((dim: string) => {});
+    const onQueryChange = mock((q: string) => {});
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <NuqsAdapter>
+          <NavContext.Provider
+            value={{
+              tree: [],
+              navState: initialNavState,
+              dispatch: () => {},
+              l3Items: HOME_OUTLINE,
+              setL3Items: () => {},
+              secondarySpec: undefined,
+              setSecondarySpec: () => {},
+              streamControls: {
+                query: ':journal{} last 4w',
+                onQueryChange,
+                groupDims: ['date'],
+                onToggleGroupDim,
+                availableGroupDims: [
+                  { id: 'date', label: 'Date' },
+                  { id: 'tag', label: 'Tags' },
+                  { id: 'type', label: 'Type' },
+                ],
+              },
+              setStreamControls: () => {},
+              scrollToSection: () => {},
+              registerScrollFn: () => {},
+            }}
+          >
+            <SecondaryNav />
+          </NavContext.Provider>
+        </NuqsAdapter>
+      </MemoryRouter>,
+    );
+
+    // First level item: Date window
+    expect(screen.getByTestId('l3-stream-controls')).toBeTruthy();
+    expect(screen.getByText('Date window')).toBeTruthy();
+    expect(screen.getByText('last 4w')).toBeTruthy();
+
+    // Group by properties as items to check
+    expect(screen.getByTestId('l3-groupby-options')).toBeTruthy();
+    const dateCheck = screen.getByTestId('l3-groupby-date').querySelector('input') as HTMLInputElement;
+    const tagCheck = screen.getByTestId('l3-groupby-tag').querySelector('input') as HTMLInputElement;
+    expect(dateCheck.checked).toBe(true);
+    expect(tagCheck.checked).toBe(false);
+
+    tagCheck.click();
+    expect(onToggleGroupDim).toHaveBeenCalledWith('tag');
+
+    // On this page TOC preserved under group by
+    expect(screen.getByText('On this page')).toBeTruthy();
+    expect(screen.getByText('Welcome')).toBeTruthy();
   });
 });
 

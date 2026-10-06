@@ -29,7 +29,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import clsx from 'clsx'
-import { BookmarkPlus, CheckSquare, MinusSquare, Plus, Square } from 'lucide-react'
+import { BookmarkPlus, CheckSquare, MinusSquare, Plus, Square, X } from 'lucide-react'
 
 import { isFindQuery, parseQuery, WQL_TYPED_TAG_KEYS, type ParsedFindQuery } from '@bitcobblers/wod-wiki-wql'
 import { wqlFilterKeys, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql'
@@ -50,6 +50,7 @@ import type { Entry } from '../../lib/entryMapper'
 import type { NavItem, NavPanelProps } from '../navTypes'
 import { executeNavAction } from '../navTypes'
 import { useCloseNavigationDrawer } from '../NavigationDrawerContext'
+import { useNav } from '../NavContext'
 import {
   clauseTypeFor,
   facetOptions,
@@ -77,6 +78,11 @@ export interface ConditionsPanelSpec {
   extraChildren?: NavItem[]
   /** Whole zone route family (drives landing-row + L1 activation). */
   familyActive: (loc: Location) => boolean
+  createAction?: {
+    label: string
+    testId?: string
+    onClick: (deps: { navigate: (to: string) => void; openCreateJournal: (opts?: { mode?: 'blank' | 'source' }) => void }) => void
+  }
 }
 
 /** Stable identity for the no-data facet feed — a fresh `[]` per render
@@ -93,12 +99,21 @@ async function loadTagMembership(): Promise<TagMembership> {
     staticNoteStore.getAllNotes(),
   ])
   for (const note of staticNotes) {
+    const cat = (note.id.startsWith('feeds/') ? note.id.slice('feeds/'.length) : note.id).split('/')[0]
     for (const label of note.tags ?? []) {
       const rows = byNote.get(note.id)
       if (rows) {
         if (!rows.some(row => row.label === label)) rows.push({ label })
       } else {
         byNote.set(note.id, [{ label }])
+      }
+      if (cat && cat !== note.id) {
+        const catRows = byNote.get(cat)
+        if (catRows) {
+          if (!catRows.some(row => row.label === label)) catRows.push({ label })
+        } else {
+          byNote.set(cat, [{ label }])
+        }
       }
     }
   }
@@ -121,6 +136,7 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
     const location = useLocation()
     const navigate = useNavigate()
     const published = useStreamResults()
+    const { openCreateJournal } = useNav()
 
     // Exact host parity: the URL `q` rides verbatim (whitespace included)
     // when it parses; absent or invalid falls back to the profile default —
@@ -242,24 +258,88 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
     return (
       <div className="-mx-4 flex flex-col gap-1 py-3" data-testid="conditions-nav-panel">
         <SidebarSection className="px-6">
-          <SidebarItem
-            onClick={() => {
-              if (landingWql) {
-                apply(landingWql)
-              } else {
-                navigate(spec.route)
+          {spec.createAction && (
+            <div className="mb-2">
+              <button
+                type="button"
+                data-testid={spec.createAction.testId ?? 'conditions-nav-create'}
+                onClick={() => {
+                  spec.createAction!.onClick({
+                    navigate,
+                    openCreateJournal: (opts) => openCreateJournal?.(opts),
+                  })
+                  closeNavigationDrawer()
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+              >
+                <Plus className="size-4 shrink-0" />
+                <span>{spec.createAction.label}</span>
+              </button>
+            </div>
+          )}
+          {customQuery ? (
+            <div className="flex items-center gap-1" data-testid="conditions-nav-custom">
+              <SidebarItem
+                current
+                className="min-w-0 flex-1"
+                title={customQuery}
+                aria-label={`Custom query: ${customQuery}`}
+                onClick={() => {
+                  apply(customQuery)
+                  closeNavigationDrawer()
+                }}
+              >
+                {LandingIcon && <LandingIcon data-slot="icon" />}
+                <SidebarLabel>Custom</SidebarLabel>
+              </SidebarItem>
+              <button
+                type="button"
+                onClick={() => setShortcutEditorOpen(true)}
+                aria-label="Save shortcut"
+                title="Save shortcut"
+                data-testid="conditions-nav-custom-save"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                <BookmarkPlus className="size-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (landingWql) {
+                    apply(landingWql)
+                  } else {
+                    navigate(spec.route)
+                  }
+                  closeNavigationDrawer()
+                }}
+                aria-label="Clear query"
+                title="Clear to all entries"
+                data-testid="conditions-nav-custom-clear"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <SidebarItem
+              onClick={() => {
+                if (landingWql) {
+                  apply(landingWql)
+                } else {
+                  navigate(spec.route)
+                }
+                closeNavigationDrawer()
+              }}
+              current={
+                landingWql && allShortcut
+                  ? shortcutMatches(allShortcut, matchCtx)
+                  : spec.familyActive(location) && urlQuery(location).trim() === ''
               }
-              closeNavigationDrawer()
-            }}
-            current={
-              landingWql && allShortcut
-                ? shortcutMatches(allShortcut, matchCtx)
-                : spec.familyActive(location) && urlQuery(location).trim() === ''
-            }
-          >
-            {LandingIcon && <LandingIcon data-slot="icon" />}
-            <SidebarLabel>{landingLabel}</SidebarLabel>
-          </SidebarItem>
+            >
+              {LandingIcon && <LandingIcon data-slot="icon" />}
+              <SidebarLabel>{landingLabel}</SidebarLabel>
+            </SidebarItem>
+          )}
           {userShortcuts.map(s => {
             const Icon = SHORTCUT_ICONS[s.icon]!
             return (
@@ -278,31 +358,6 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
               </SidebarItem>
             )
           })}
-          {customQuery && (
-            <div className="flex items-center gap-1" data-testid="conditions-nav-custom">
-              <SidebarItem current className="min-w-0 flex-1" title={customQuery} aria-label={`Custom query: ${customQuery}`}>
-                <SidebarLabel>Custom</SidebarLabel>
-              </SidebarItem>
-              <button
-                type="button"
-                onClick={() => setShortcutEditorOpen(true)}
-                aria-label="Save shortcut"
-                title="Save shortcut"
-                data-testid="conditions-nav-custom-save"
-                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-              >
-                <BookmarkPlus className="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          )}
-          <SidebarItem
-            onClick={() => setShortcutEditorOpen(true)}
-            aria-label="New shortcut"
-            data-testid="conditions-nav-shortcut-create"
-          >
-            <Plus data-slot="icon" />
-            <SidebarLabel>New shortcut</SidebarLabel>
-          </SidebarItem>
           {(spec.extraChildren ?? []).map(child => {
             const target = child.action.type === 'route' ? child.action.to : null
             const override = target ? shortcuts.find(s => s.to === target) : null
@@ -481,13 +536,6 @@ function ConditionSection({
   )
 
   if (rows.length === 0 && !freeform) return null
-  // Group-by header checkbox: gated on the section key mapping to a supported
-  // content grouping dimension (wqlGroupingDimensions — tags→tag, source→
-  // source, type→type, discipline/origin on the effort plane); dims `by {}`
-  // rejects (catalog, intensity, plane, …) get no checkbox.
-  const groupDim = clauseTypeFor(entryKey)
-  const groupSupported = wqlGroupingDimensions(parsed.target, 'find').includes(groupDim)
-  const groupOn = !!parsed.groupBy?.some(dim => dim.toLowerCase() === groupDim.toLowerCase())
   return (
     <SidebarAccordion
       title={config.label ?? meta.label}
@@ -496,23 +544,6 @@ function ConditionSection({
       sticky
       buttonClassName="gap-1.5 py-1.5 text-[11px] font-semibold normal-case tracking-normal [&>span:last-child]:h-auto [&>span:last-child]:w-auto [&>span:last-child]:min-w-0 [&>span:last-child]:rounded-sm [&>span:last-child]:px-1 [&>span:last-child]:bg-transparent [&>span:last-child]:text-[10px] [&>span:last-child]:font-semibold [&>span:last-child]:text-muted-foreground"
       bodyClassName="px-6"
-      trailing={groupSupported ? (
-        <label
-          className="flex shrink-0 cursor-pointer items-center gap-1 pr-2 text-[10px] font-semibold text-muted-foreground"
-          title={`Group by ${meta.label}`}
-        >
-          <input
-            type="checkbox"
-            data-testid={`conditions-groupby-${entryKey}`}
-            aria-label={`Group by ${meta.label}`}
-            checked={groupOn}
-            disabled={pending}
-            onChange={() => onApply(toggleGroupDimension(query, groupDim, !groupOn))}
-            className="size-3.5 cursor-pointer accent-primary disabled:cursor-default"
-          />
-          Group
-        </label>
-      ) : undefined}
     >
       {/* Every current-result value renders — long lists flow through the
           shared SidebarBody scroller, never a per-section viewport. */}

@@ -505,3 +505,148 @@ describe('catalogOfItem', () => {
     expect(catalogOfItem({ catalog: 'custom-cat', id: '123' })).toBe('custom-cat');
   });
 });
+
+describe(':catalog search by efforts, tags, text, etc.', () => {
+  const notes = [
+    {
+      id: 'crossfit-girls',
+      title: 'CrossFit Girls',
+      type: 'collection',
+      sourceId: 'page:collection:crossfit-girls',
+      catalog: 'crossfit-girls',
+      tags: ['benchmark', 'classic'],
+      createdAt: 1000,
+    },
+    {
+      id: 'crossfit-girls/fran',
+      title: 'Fran',
+      type: 'note',
+      sourceId: 'collection:crossfit-girls/fran',
+      catalog: 'crossfit-girls',
+      tags: ['for-time'],
+      createdAt: 1000,
+    },
+    {
+      id: 'dan-john',
+      title: 'Dan John Workouts',
+      type: 'collection',
+      sourceId: 'page:collection:dan-john',
+      catalog: 'dan-john',
+      tags: ['strength'],
+      createdAt: 2000,
+    },
+    {
+      id: 'dan-john/armor-building',
+      title: 'Armor Building Complex',
+      type: 'note',
+      sourceId: 'collection:dan-john/armor-building',
+      catalog: 'dan-john',
+      tags: ['kettlebell'],
+      createdAt: 2000,
+    },
+  ];
+
+  const blockEfforts = [
+    { noteId: 'crossfit-girls/fran', effortSlug: 'pull-up' },
+    { noteId: 'crossfit-girls/fran', effortSlug: 'thruster' },
+    { noteId: 'dan-john/armor-building', effortSlug: 'clean' },
+  ];
+
+  const service = new QueryService({
+    eventStore: {
+      getEventsByTimeRange: async () => [],
+      getEventsByResult: async () => [],
+    },
+    noteStore: {
+      getAllNotes: async () => notes as never,
+      getNoteIdsForTag: async (tag) => new Set(notes.filter(n => n.tags?.includes(tag)).map(n => n.id)),
+    },
+    blockStore: { getAllBlocks: async () => [] },
+    blockEffortsStore: {
+      getAllFromIndex: async (_idx, key) => blockEfforts.filter(r => r.effortSlug === key),
+    },
+  });
+
+  it(':catalog returns all catalogs', async () => {
+    const result = await service.runFind({
+      family: 'find',
+      raw: ':catalog',
+      target: 'note',
+      filters: [
+        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+      ],
+    });
+    expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls', 'dan-john']);
+  });
+
+  it(':catalog{effort:pull-up} identifies catalog containing workouts with pull-up', async () => {
+    const result = await service.runFind({
+      family: 'find',
+      raw: ':catalog{effort:pull-up}',
+      target: 'note',
+      filters: [
+        { key: 'effort', negate: false, values: [{ value: 'pull-up', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+      ],
+    });
+    expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls']);
+  });
+
+  it(':catalog{effort:clean} identifies catalog containing clean', async () => {
+    const result = await service.runFind({
+      family: 'find',
+      raw: ':catalog{effort:clean}',
+      target: 'note',
+      filters: [
+        { key: 'effort', negate: false, values: [{ value: 'clean', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+      ],
+    });
+    expect(result.notes.map(n => n.id)).toEqual(['dan-john']);
+  });
+
+  it(':catalog{tags:for-time} identifies catalog whose notes have tag for-time', async () => {
+    const result = await service.runFind({
+      family: 'find',
+      raw: ':catalog{tags:for-time}',
+      target: 'note',
+      filters: [
+        { key: 'tags', negate: false, values: [{ value: 'for-time', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+      ],
+    });
+    expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls']);
+  });
+
+  it(':catalog{text:fran} identifies catalog whose note title includes fran', async () => {
+    const result = await service.runFind({
+      family: 'find',
+      raw: ':catalog{text:fran}',
+      target: 'note',
+      filters: [
+        { key: 'text', negate: false, values: [{ value: 'fran', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+      ],
+    });
+    expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls']);
+  });
+
+  it(':catalog{effort:snatch} returns empty when no catalog contains snatch', async () => {
+    const result = await service.runFind({
+      family: 'find',
+      raw: ':catalog{effort:snatch}',
+      target: 'note',
+      filters: [
+        { key: 'effort', negate: false, values: [{ value: 'snatch', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+      ],
+    });
+    expect(result.notes).toEqual([]);
+  });
+});

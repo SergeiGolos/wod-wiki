@@ -31,7 +31,7 @@ describe('wqlCompletionSource', () => {
   it('offers heads at the query start, narrowed by prefix', () => {
     expect(complete('')).toEqual([
       'sum', 'avg', 'min', 'max', 'count', 'last', 'delta',
-      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'playground',
+      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
       'timeseries', 'bar', 'table', 'donut', 'toplist', 'value',
       '@session', '@today',
     ]);
@@ -270,7 +270,7 @@ describe('wqlCompletionSource — colon heads', () => {
   it('offers head names after the colon, narrowed by prefix', () => {
     expect(complete(':')).toEqual([
       'sum', 'avg', 'min', 'max', 'count', 'last', 'delta',
-      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'playground',
+      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
       'timeseries', 'bar', 'table', 'donut', 'toplist', 'value',
       '@session', '@today',
     ]);

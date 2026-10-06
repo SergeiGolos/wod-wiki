@@ -15,14 +15,12 @@
  * the mobile dock, owned by ResponsiveActions).
  */
 
-import { useCallback, useState } from 'react'
-import { BookmarkPlus, ChevronUp, Search } from 'lucide-react'
+import { useCallback } from 'react'
+import { ChevronUp, Search } from 'lucide-react'
 import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { cn } from '@/lib/utils'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
-import { SaveWqlShortcutDialog } from '../../components/organisms/wql/SaveWqlShortcutDialog'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
-import { WqlWindowPicker } from './WqlWindowPicker'
 export interface StreamQueryBarProps {
   /** The controlled WQL string (the composer query state). */
   query: string
@@ -64,7 +62,6 @@ export function StreamQueryBar({
   scopeOptions,
   execute,
   defaultQuery,
-  route,
   compact = false,
   className,
 }: StreamQueryBarProps) {
@@ -72,7 +69,6 @@ export function StreamQueryBar({
     () => openStreamQueryEditor(query, execute, onQueryChange),
     [query, execute, onQueryChange],
   )
-  const [saveOpen, setSaveOpen] = useState(false)
 
   if (compact) {
     // Mobile thumb-footer button row — the summary control (48px target)
@@ -103,21 +99,6 @@ export function StreamQueryBar({
           </span>
           <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         </button>
-        {route && (
-          <>
-            <button
-              type="button"
-              onClick={() => setSaveOpen(true)}
-              title="Save search shortcut"
-              aria-label="Save search shortcut"
-              data-testid="stream-query-save"
-              className="grid w-12 shrink-0 place-items-center border-l border-border text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-            >
-              <BookmarkPlus className="size-4" aria-hidden="true" />
-            </button>
-            <SaveWqlShortcutDialog open={saveOpen} onOpenChange={setSaveOpen} route={route} initialQuery={query} />
-          </>
-        )}
       </div>
     )
   }
@@ -127,11 +108,7 @@ export function StreamQueryBar({
       data-testid="stream-query-bar"
       className={cn('flex min-w-0 flex-1 items-center gap-1 text-xs', className)}
     >
-      {/* Shared composer — same parsing, catalog and searchable picker as the
-          dialog; the header has no separate draft text or scope menu. No
-          defaultQuery here: the route default would render the composer's
-          "Example WQL" line in the sticky header. The mobile compact summary
-          below still uses it when the draft is empty. */}
+      {/* Shared composer — fills the row left empty by the removed title. */}
       <WqlComposer
         query={query}
         onQueryChange={onQueryChange}
@@ -141,31 +118,6 @@ export function StreamQueryBar({
         placeholder="Filter or search…"
         className="min-w-0 flex-1"
       />
-      <WqlWindowPicker
-        query={query}
-        onQueryChange={onQueryChange}
-        className="shrink-0"
-      />
-      {route && (
-        <>
-          <button
-            type="button"
-            onClick={() => setSaveOpen(true)}
-            title="Save search shortcut"
-            aria-label="Save search shortcut"
-            data-testid="stream-query-save"
-            className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            <BookmarkPlus className="size-4" aria-hidden="true" />
-          </button>
-          <SaveWqlShortcutDialog
-            open={saveOpen}
-            onOpenChange={setSaveOpen}
-            route={route}
-            initialQuery={query}
-          />
-        </>
-      )}
     </div>
   )
 }

@@ -28,6 +28,7 @@ export const ROUTE_PATTERNS = {
   feed: '/feed',
   feedDetail: '/feeds/:feedSlug',
   feedItem: '/feeds/:feedSlug/:feedDate/:feedItem',
+  catalogs: '/catalogs',
   collections: '/collections',
   collectionDetail: '/collections/:slug',
   collectionWorkout: '/collections/:collection/:workout',

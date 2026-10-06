@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { getWorkoutPreview } from './CollectionWorkoutsList'
+import { getWorkoutPreview, matchesCollectionQuery, workoutDateKey } from './CollectionWorkoutsList'
 
 const FRONTMATTER = `---
 tags:
@@ -64,5 +64,38 @@ describe('getWorkoutPreview', () => {
   it('skips heading and code-fence delimiter lines when picking the first body line', () => {
     const content = FRONTMATTER + '\n# Title\n\nFirst real sentence.\n\n```time\n(5) burpees\n```\n'
     expect(getWorkoutPreview(content)).toBe('First real sentence.')
+  })
+})
+
+describe('matchesCollectionQuery', () => {
+  const item = {
+    id: 'markdown/collections/ZombieFit-org-2009-Dec/wod-120109.md',
+    name: 'wod-120109',
+    category: 'ZombieFit-org-2009-Dec',
+    content: 'quadrupedal movement',
+    date: new Date('2009-12-01T12:00:00Z').getTime(),
+  }
+
+  it('matches date substrings (year, year-month, full date)', () => {
+    expect(matchesCollectionQuery(item, '2009')).toBe(true)
+    expect(matchesCollectionQuery(item, '2009-12')).toBe(true)
+    expect(matchesCollectionQuery(item, '2009-12-01')).toBe(true)
+    expect(matchesCollectionQuery(item, '2009-11')).toBe(false)
+  })
+
+  it('still matches name and content, and passes everything on empty query', () => {
+    expect(matchesCollectionQuery(item, 'quadrupedal')).toBe(true)
+    expect(matchesCollectionQuery(item, 'wod-120')).toBe(true)
+    expect(matchesCollectionQuery(item, '')).toBe(true)
+    expect(matchesCollectionQuery(item, '   ')).toBe(true)
+  })
+
+  it('ignores the date arm when the item has no date', () => {
+    const undated = { ...item, date: undefined }
+    expect(matchesCollectionQuery(undated, '2009')).toBe(false)
+  })
+
+  it('workoutDateKey formats noon-UTC epoch as YYYY-MM-DD without TZ drift', () => {
+    expect(workoutDateKey(new Date('2009-12-01T12:00:00Z').getTime())).toBe('2009-12-01')
   })
 })

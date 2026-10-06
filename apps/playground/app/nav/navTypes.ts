@@ -117,7 +117,7 @@ export interface NavItem extends Omit<INavActivation, 'icon'> {
   applyFooter?: boolean
   to?: string
   disabled?: boolean
-  hidden?: boolean
+  variant?: 'default' | 'notable'
   meta?: Record<string, unknown>
 }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test'
 import {
   JOURNAL_STREAM_PROFILE,
+  CATALOGS_STREAM_PROFILE,
   COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
   LIBRARY_STREAM_PROFILE,
@@ -29,9 +30,17 @@ describe('streamProfile presets', () => {
     expect(COLLECTIONS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
   })
 
+  it('defines the Catalogs stream profile', () => {
+    expect(CATALOGS_STREAM_PROFILE.route).toBe('/catalogs')
+    expect(CATALOGS_STREAM_PROFILE.defaultWql).toBe(':catalog')
+    expect(CATALOGS_STREAM_PROFILE.level).toBe('session')
+    expect(CATALOGS_STREAM_PROFILE.target).toBe('note')
+    expect(CATALOGS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
+  })
+
   it('defines the Feeds stream profile', () => {
     expect(FEEDS_STREAM_PROFILE.route).toBe('/feeds')
-    expect(FEEDS_STREAM_PROFILE.defaultWql).toBe(':note{} last 2w')
+    expect(FEEDS_STREAM_PROFILE.defaultWql).toBe(':catalog{} last 2w')
     expect(FEEDS_STREAM_PROFILE.level).toBe('note')
     expect(FEEDS_STREAM_PROFILE.target).toBe('note')
     // feeds is excised from WQL storage scopes.
@@ -74,6 +83,7 @@ describe('streamProfile presets', () => {
     expect(LIBRARY_STREAM_PROFILE.title).toBe('Library')
     expect(JOURNAL_STREAM_PROFILE.title).toBe('Journal')
     expect(COLLECTIONS_STREAM_PROFILE.title).toBe('Collections')
+    expect(CATALOGS_STREAM_PROFILE.title).toBe('Catalogs')
     expect(FEEDS_STREAM_PROFILE.title).toBe('Feeds')
     expect(EFFORTS_STREAM_PROFILE.title).toBe('Efforts')
     expect(SESSIONS_STREAM_PROFILE.title).toBe('Sessions')
@@ -125,6 +135,7 @@ describe('streamProfile presets', () => {
     expect(getStreamProfile('/journal')?.route).toBe('/journal')
     expect(getStreamProfile('/journal/')?.route).toBe('/journal')
     expect(getStreamProfile('/collections')?.route).toBe('/collections')
+    expect(getStreamProfile('/catalogs')?.route).toBe('/catalogs')
     expect(getStreamProfile('/feeds')?.route).toBe('/feeds')
     expect(getStreamProfile('/efforts')?.route).toBe('/efforts')
     expect(getStreamProfile('/sessions')?.route).toBe('/sessions')
@@ -169,16 +180,16 @@ describe('streamProfile legacy configurations', () => {
   it('migrates legacy content parameters with default source', () => {
     const journalLegacy = JOURNAL_STREAM_PROFILE.legacy!
     expect(journalLegacy).toBeDefined()
-    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':note{source:journal,text:snatch} last 2w')
-    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch+clean&timePreset=4w'))).toBe(':note{source:journal,text:"snatch clean"} last 4w')
-    expect(journalLegacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':note{source:journal}')
+    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':journal{text:snatch} last 2w')
+    expect(journalLegacy.toQuery(new URLSearchParams('text=snatch+clean&timePreset=4w'))).toBe(':journal{text:"snatch clean"} last 4w')
+    expect(journalLegacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':journal')
   })
 
   it('migrates legacy tri-state parameters', () => {
     const libraryLegacy = LIBRARY_STREAM_PROFILE.legacy!
     expect(libraryLegacy).toBeDefined()
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':note{source:journal} last 2w')
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':note{source:collections} last 2w')
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
+    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
     // `post` mapped to the feeds WQL scope — excised, so it no longer narrows.
     expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on'))).toBe(':note last 2w')
   })

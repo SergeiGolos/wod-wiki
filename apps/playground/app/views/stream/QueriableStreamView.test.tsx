@@ -192,7 +192,7 @@ describe('QueriableStreamView component', () => {
     )
 
     await waitFor(() => {
-      expect(executed.at(-1)).toBe(':note{source:journal,text:snatch} last 2w')
+      expect(executed.at(-1)).toBe(':journal{text:snatch} last 2w')
     })
   })
 
@@ -417,7 +417,7 @@ describe('QueriableStreamView component', () => {
           }}
         >
           <QueriableStreamView
-            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':note{source:journal} by {discipline}' }}
+            profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':journal{} by {discipline}' }}
             queryEngine={engine}
           />
         </NavContext.Provider>
@@ -732,7 +732,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     render(
       <MemoryRouter initialEntries={['/journal']}>
         <QueriableStreamView
-          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':note{source:journal} by {tag}' }}
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':journal{} by {tag}' }}
           queryEngine={engine}
         />
       </MemoryRouter>,
@@ -759,7 +759,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     render(
       <MemoryRouter initialEntries={['/journal']}>
         <QueriableStreamView
-          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':note{source:journal} by {nonsense}' }}
+          profile={{ ...JOURNAL_STREAM_PROFILE, defaultWql: ':journal{} by {nonsense}' }}
           queryEngine={engine}
         />
       </MemoryRouter>,
@@ -776,13 +776,13 @@ describe('QueriableStreamView — query truth and retained state', () => {
     fireEvent.click(screen.getByTestId('stream-grouping-fallback-badge'))
 
     await waitFor(() => {
-      expect(executed.at(-1)).toBe(':note{source:journal} by {tag}')
+      expect(executed.at(-1)).toBe(':journal{} by {tag}')
     })
   })
 
   it('offers Edit query first when an advisory no-ops the empty result', async () => {
     const { engine } = stubEngine(() => [])
-    const authored = ':note{source:journal,discipline:strength}'
+    const authored = ':journal{discipline:strength}'
 
     render(
       <MemoryRouter initialEntries={['/journal']}>

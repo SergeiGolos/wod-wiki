@@ -12,6 +12,7 @@
 
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 
 import { Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarLabel, SidebarSection } from '@/components/organisms/layout/Sidebar'
 import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
@@ -40,8 +41,15 @@ function useNavDeps(): NavActionDeps {
 
 function useNavAction() {
   const deps = useNavDeps()
+  const { openCreateJournal } = useNav()
 
-  return (item: NavItem) => executeNavAction(item.action, deps)
+  return (item: NavItem) => {
+    if (item.id === 'home-new-journal') {
+      openCreateJournal({ mode: 'blank' })
+      return
+    }
+    executeNavAction(item.action, deps)
+  }
 }
 
 export function isItemActive(item: NavItem, navState: NavState, location: Location): boolean {
@@ -66,6 +74,21 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
   return (
     <SidebarSection>
       {items.map(child => {
+        if (child.variant === 'notable') {
+          return (
+            <div key={child.id} className="mb-2">
+              <button
+                type="button"
+                data-testid={`nav-item-${child.id}`}
+                onClick={() => handleAction(child)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+              >
+                <Plus className="size-4 shrink-0" />
+                <span>{child.label}</span>
+              </button>
+            </div>
+          )
+        }
         const active = isItemActive(child, navState, location)
 
         // Accordion group (e.g. Syntax with sub-pages)
@@ -121,7 +144,7 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
   const resolvedNav = useResolvedMenu(navSpec)
 
   // Find which L1 is currently active
-  const activeL1 = tree.find(item => item.id === navState.activeL1Id) ?? null
+  const activeL1 = (tree ?? []).find(item => item?.id === navState.activeL1Id) ?? null
 
   // Render the L2 zone for the active L1 — same on desktop and in the
   // mobile drawer (the drawer wraps it beside the shared icon rail).

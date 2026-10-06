@@ -17,7 +17,7 @@ function semantic(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(semantic);
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value)
-      .filter(([key, item]) => !['raw', 'advisories', 'error'].includes(key) && item !== undefined && !(key === 'groupBy' && Array.isArray(item) && item.length === 0))
+      .filter(([key, item]) => !['raw', 'advisories', 'error', 'head'].includes(key) && item !== undefined && !(key === 'groupBy' && Array.isArray(item) && item.length === 0))
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, item]) => [key, semantic(item)]));
   }

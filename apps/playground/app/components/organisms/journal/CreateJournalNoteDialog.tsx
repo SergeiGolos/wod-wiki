@@ -19,9 +19,11 @@ export interface CreateJournalNoteDialogProps {
   onOpenChange: (open: boolean) => void
   /** Preselected journal date (YYYY-MM-DD); defaults to today. */
   defaultDate?: string
-  /** Called with the created entry after a successful create. */
-  onCreated?: (entry: HistoryEntry) => void
-}
+  /** Preselected mode; defaults to 'blank'. */
+  defaultMode?: StartMode
+   /** Called with the created entry after a successful create. */
+   onCreated?: (entry: HistoryEntry) => void
+ }
 
 type StartMode = 'blank' | 'template' | 'source'
 
@@ -43,11 +45,12 @@ const fieldClass =
 
 export function CreateJournalNoteDialog({
   open,
-  onOpenChange,
-  defaultDate,
-  onCreated,
-}: CreateJournalNoteDialogProps) {
-  const [mode, setMode] = useState<StartMode>('blank')
+   onOpenChange,
+   defaultDate,
+  defaultMode = 'blank',
+   onCreated,
+ }: CreateJournalNoteDialogProps) {
+  const [mode, setMode] = useState<StartMode>(defaultMode)
   const [date, setDate] = useState(() => getTodayDateKey())
   const [title, setTitle] = useState('')
   const [creating, setCreating] = useState(false)
@@ -70,8 +73,7 @@ export function CreateJournalNoteDialog({
     if (!open) return
     templatesReq.current++
     sourcesReq.current++
-    setMode('blank')
-    setTitle('')
+    setMode(defaultMode)
     setDate(defaultDate && parseJournalDate(defaultDate) ? defaultDate : getTodayDateKey())
     setCreating(false)
     setSubmitError(null)

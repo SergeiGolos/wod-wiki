@@ -447,6 +447,7 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.feed).toBe('/feed')
     expect(ROUTE_PATTERNS.feedDetail).toBe('/feeds/:feedSlug')
     expect(ROUTE_PATTERNS.feedItem).toBe('/feeds/:feedSlug/:feedDate/:feedItem')
+    expect(ROUTE_PATTERNS.catalogs).toBe('/catalogs')
     expect(ROUTE_PATTERNS.collections).toBe('/collections')
     expect(ROUTE_PATTERNS.collectionDetail).toBe('/collections/:slug')
     expect(ROUTE_PATTERNS.collectionWorkout).toBe('/collections/:collection/:workout')

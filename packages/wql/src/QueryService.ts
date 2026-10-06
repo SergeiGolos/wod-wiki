@@ -1070,6 +1070,13 @@ export class QueryService {
     if (this.staticNoteStore) {
       notes = notes.concat(await this.staticNoteStore.getAllNotes());
     }
+    const isCatalogHead = parsed.target === 'note'
+      && parsed.filters.some(f => f.key === 'type' && !f.negate && f.values.some(v => v.value === 'collection'))
+      && (parsed.filters.some(f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'collection' || v.value === 'collections'))
+          || parsed.sourceScope?.includes('collections'));
+    if (isCatalogHead) {
+      return this.runFindCatalog(parsed, options, notes);
+    }
     notes = applySourceFilter(notes, parsed.filters);
     // :note scope (parse-authored sourceScope) — an AND-restriction applied
     // whenever present, INCLUDING alongside an authored source: filter, so a
@@ -2037,5 +2044,147 @@ export class QueryService {
       if (staticTags && staticTags.length > 0) return staticTags;
     }
     return [];
+  }
+
+  /**
+   * Find catalogs: identifies catalogs whose member notes (or catalog landing
+   * notes) match the authored criteria (effort, tags, text, typed tags, etc.).
+   */
+  private async runFindCatalog(parsed: ParsedFindQuery, options: FindOptions, allNotes: Note[]): Promise<FindQueryResult> {
+    const ctx = runContext(options);
+    const collectionNotes = allNotes.filter(n => sourceMatches(n, 'collections') || (n.catalog && !n.sourceId));
+
+    let catalogNotes = collectionNotes.filter(n => n.type === 'collection' || n.sourceId?.startsWith('page:collection:'));
+    const existingCatIds = new Set(catalogNotes.map(n => catalogOfItem(n) ?? n.id));
+    for (const n of collectionNotes) {
+      const cat = catalogOfItem(n);
+      if (cat && !existingCatIds.has(cat)) {
+        catalogNotes.push({
+          id: cat,
+          title: cat,
+          type: 'collection',
+          sourceId: `page:collection:${cat}`,
+          catalog: cat,
+          createdAt: n.createdAt ?? 0,
+        });
+        existingCatIds.add(cat);
+      }
+    }
+
+    const membersByCat = new Map<string, Note[]>();
+    for (const catNote of catalogNotes) {
+      const catId = catalogOfItem(catNote) ?? catNote.id;
+      membersByCat.set(catId, [catNote]);
+    }
+    for (const n of collectionNotes) {
+      const catId = catalogOfItem(n);
+      if (catId) {
+        const list = membersByCat.get(catId);
+        if (list) {
+          if (!list.includes(n)) list.push(n);
+        } else {
+          membersByCat.set(catId, [n]);
+        }
+      }
+    }
+
+    const criteriaFilters = parsed.filters.filter(f =>
+      !(f.key === 'source' && !f.negate && f.values.some(v => v.value === 'collections' || v.value === 'collection')) &&
+      !(f.key === 'type' && !f.negate && f.values.some(v => v.value === 'collection'))
+    );
+
+    let matchingCatalogs = [...catalogNotes];
+
+    for (const filter of criteriaFilters) {
+      if (filter.key === 'catalog') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        matchingCatalogs = matchingCatalogs.filter(c => {
+          const catId = catalogOfItem(c) ?? c.id;
+          const hit = wanted.has(catId);
+          return filter.negate ? !hit : hit;
+        });
+      } else if (filter.key === 'effort') {
+        const matchingIds = new Set<string>();
+        for (const v of filter.values) {
+          const ids = await this.getNoteIdsForEffort(v.value);
+          ids.forEach(id => matchingIds.add(id));
+        }
+        matchingCatalogs = matchingCatalogs.filter(c => {
+          const catId = catalogOfItem(c) ?? c.id;
+          const members = membersByCat.get(catId) ?? [];
+          const hit = members.some(m => matchingIds.has(m.id));
+          return filter.negate ? !hit : hit;
+        });
+      } else if (filter.key === 'tags') {
+        const matchingIds = new Set<string>();
+        for (const v of filter.values) {
+          const ids = await this.noteStore.getNoteIdsForTag(v.value);
+          const sIds = this.staticNoteStore ? await this.staticNoteStore.getNoteIdsForTag(v.value) : new Set<string>();
+          ids.forEach(id => matchingIds.add(id));
+          sIds.forEach(id => matchingIds.add(id));
+        }
+        matchingCatalogs = matchingCatalogs.filter(c => {
+          const catId = catalogOfItem(c) ?? c.id;
+          const members = membersByCat.get(catId) ?? [];
+          const hit = members.some(m => matchingIds.has(m.id) || (m.tags && filter.values.some(v => m.tags!.includes(v.value))));
+          return filter.negate ? !hit : hit;
+        });
+      } else if (WQL_TYPED_TAG_KEYS.includes(filter.key as WqlTypedTagKey)) {
+        const matchingIds = new Set<string>();
+        for (const v of filter.values) {
+          const ids = await this.getNoteIdsForTypedTag(filter.key, v.value);
+          ids.forEach(id => matchingIds.add(id));
+        }
+        matchingCatalogs = matchingCatalogs.filter(c => {
+          const catId = catalogOfItem(c) ?? c.id;
+          const members = membersByCat.get(catId) ?? [];
+          const hit = members.some(m => matchingIds.has(m.id));
+          return filter.negate ? !hit : hit;
+        });
+      } else if (filter.key === 'text') {
+        const search = filter.values.map(v => v.value).join(' ').toLowerCase();
+        matchingCatalogs = matchingCatalogs.filter(c => {
+          const catId = catalogOfItem(c) ?? c.id;
+          const members = membersByCat.get(catId) ?? [];
+          const hit = members.some(m => m.title.toLowerCase().includes(search));
+          return filter.negate ? !hit : hit;
+        });
+      } else if (filter.key === 'note') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        matchingCatalogs = matchingCatalogs.filter(c => {
+          const catId = catalogOfItem(c) ?? c.id;
+          const members = membersByCat.get(catId) ?? [];
+          const hit = members.some(m => wanted.has(m.id));
+          return filter.negate ? !hit : hit;
+        });
+      }
+    }
+
+    if (parsed.window || options.range) {
+      matchingCatalogs = matchingCatalogs.filter(c => {
+        const catId = catalogOfItem(c) ?? c.id;
+        const members = membersByCat.get(catId) ?? [];
+        return members.some(m => effectiveTimeWindow(m.date ?? m.createdAt, parsed.window, options.range, ctx));
+      });
+    }
+
+    if (parsed.pipes?.order) {
+      for (const order of [...parsed.pipes.order].reverse()) {
+        const dir = order.dir === 'desc' ? -1 : 1;
+        matchingCatalogs = [...matchingCatalogs].sort((a, b) => {
+          const av = (a as unknown as Record<string, unknown>)[order.col] ?? '';
+          const bv = (b as unknown as Record<string, unknown>)[order.col] ?? '';
+          if (av === bv) return 0;
+          return ((av as string | number) > (bv as string | number) ? 1 : -1) * dir;
+        });
+      }
+    }
+
+    return {
+      parsed,
+      notes: matchingCatalogs,
+      blocks: [],
+      stages: { selected: catalogNotes.length, matched: matchingCatalogs.length },
+    };
   }
 }

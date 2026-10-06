@@ -75,7 +75,15 @@ export function navReducer(state: NavState, action: NavStateAction): NavState {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-interface NavContextValue {
+export interface StreamNavControls {
+  query: string
+  onQueryChange: (wql: string) => void
+  groupDims: string[]
+  onToggleGroupDim: (dim: string) => void
+  availableGroupDims: { id: string; label: string }[]
+}
+
+export interface NavContextValue {
   tree: NavItem[]
   navState: NavState
   dispatch: NavDispatch
@@ -83,6 +91,8 @@ interface NavContextValue {
   setL3Items: (items: NavItemL3[]) => void
   secondarySpec?: MenuSpec
   setSecondarySpec: (spec?: MenuSpec) => void
+  streamControls?: StreamNavControls | null
+  setStreamControls: (controls: StreamNavControls | null) => void
   scrollToSection: (id: string) => void
   /**
    * Register a custom scroll-to handler. Called by AppContent so the sidebar
@@ -90,6 +100,8 @@ interface NavContextValue {
    * Falls back to standard DOM getBoundingClientRect scroll.
    */
   registerScrollFn: (fn: (id: string) => void) => void
+  openCreateJournal: (opts?: { mode?: 'blank' | 'source' | 'template' }) => void
+  registerCreateJournal: (fn: (opts?: { mode?: 'blank' | 'source' | 'template' }) => void) => void
 }
 
 const defaultScroll = (id: string) => {
@@ -108,8 +120,12 @@ export const NavContext = createContext<NavContextValue>({
   setL3Items: () => {},
   secondarySpec: undefined,
   setSecondarySpec: () => {},
+  streamControls: null,
+  setStreamControls: () => {},
   scrollToSection: defaultScroll,
   registerScrollFn: () => {},
+  openCreateJournal: () => {},
+  registerCreateJournal: () => {},
 })
 
 export function useNav() {
@@ -142,11 +158,12 @@ export function NavProvider({ tree, children }: NavProviderProps) {
   const [navState, dispatch] = useReducer(navReducer, initialNavState)
   const [l3Items, setL3ItemsInternal] = useState<NavItemL3[]>([])
   const [secondarySpec, setSecondarySpec] = useState<MenuSpec | undefined>(undefined)
+  const [streamControls, setStreamControls] = useState<StreamNavControls | null>(null)
   const location = useLocation()
 
   // Mutable ref so AppContent can override scroll behaviour without re-rendering
   const scrollFnRef = useRef<(id: string) => void>(defaultScroll)
-
+  const createJournalFnRef = useRef<((opts?: { mode?: 'blank' | 'source' | 'template' }) => void) | null>(null)
   // Auto-sync activeL1Id from current pathname
   useEffect(() => {
     const match = tree.find(item => {
@@ -162,9 +179,10 @@ export function NavProvider({ tree, children }: NavProviderProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
-  // Close left drawer on route change
+  // Close left drawer and clear stream controls on route change
   useEffect(() => {
     dispatch({ type: 'SET_LEFT_DRAWER', open: false })
+    setStreamControls(null)
   }, [location.pathname])
   const setL3Items = useCallback((items: NavItemL3[]) => {
     setL3ItemsInternal((prev) => {
@@ -192,6 +210,13 @@ export function NavProvider({ tree, children }: NavProviderProps) {
     scrollFnRef.current = fn
   }, [])
 
+  const openCreateJournal = useCallback((opts?: { mode?: 'blank' | 'source' | 'template' }) => {
+    createJournalFnRef.current?.(opts)
+  }, [])
+
+  const registerCreateJournal = useCallback((fn: (opts?: { mode?: 'blank' | 'source' | 'template' }) => void) => {
+    createJournalFnRef.current = fn
+  }, [])
   const value: NavContextValue = useMemo(
     () => ({
       tree,
@@ -201,10 +226,14 @@ export function NavProvider({ tree, children }: NavProviderProps) {
       setL3Items,
       secondarySpec,
       setSecondarySpec,
+      streamControls,
+      setStreamControls,
       scrollToSection,
       registerScrollFn,
+      openCreateJournal,
+      registerCreateJournal,
     }),
-    [tree, navState, l3Items, setL3Items, secondarySpec, scrollToSection, registerScrollFn],
+    [tree, navState, l3Items, setL3Items, secondarySpec, streamControls, scrollToSection, registerScrollFn, openCreateJournal, registerCreateJournal],
   )
   return (
     <NavContext.Provider value={value}>
