@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryState } from 'nuqs'
 import { cn } from '@/lib/utils'
-import { PlayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
+import { PlayIcon, StopIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
 
 import { searchEntries } from '../lib/entrySearch'
 import { useNav } from './NavContext'
@@ -132,7 +132,13 @@ function MenuRow({
         <span
           role="button"
           tabIndex={-1}
-          title={entry.runIcon === 'link' ? 'View workout' : 'Start workout'}
+          title={
+            entry.runIcon === 'link'
+              ? 'View workout'
+              : entry.runIcon === 'stop'
+                ? 'Stop workout'
+                : 'Start workout'
+          }
           onClick={e => {
             e.stopPropagation()
             entry.onRun?.()
@@ -141,6 +147,8 @@ function MenuRow({
         >
           {entry.runIcon === 'link' ? (
             <ArrowTopRightOnSquareIcon className="size-3.5" />
+          ) : entry.runIcon === 'stop' ? (
+            <StopIcon className="size-3.5" />
           ) : (
             <PlayIcon className="size-3.5" />
           )}

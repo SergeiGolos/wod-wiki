@@ -83,9 +83,12 @@ export type {
  *  `catalog:` filter matches — presentation catalogs must not diverge. */
 export function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; catalog?: string }): string | undefined {
   if (item.catalog) return item.catalog;
-  const raw = item.sourceId ? item.sourceId.replace(/^(collection|feed):/, '') : (item.noteId || item.id || '');
+  const isCollectionOrFeed = !!item.sourceId && /^(collection|feed):/.test(item.sourceId);
+  const raw = isCollectionOrFeed ? item.sourceId!.replace(/^(collection|feed):/, '') : (item.noteId || item.id || '');
   if (!raw) return undefined;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return undefined;
   const clean = raw.startsWith('feeds/') ? raw.slice('feeds/'.length) : raw;
+  if (!isCollectionOrFeed && !clean.includes('/')) return undefined;
   return clean.split('/')[0];
 }
 

@@ -25,7 +25,7 @@
  * landing row) stay plain routes.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import clsx from 'clsx'
@@ -192,7 +192,14 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
       () => ({ entries: facetEntries, tagMembership: memberships.tags, effortMembership: memberships.efforts }),
       [facetEntries, memberships],
     )
+    const knownOptionsRef = useRef<Map<string, Map<string, Map<string, FacetOption>>>>(new Map())
+    let routeKnownOptions = knownOptionsRef.current.get(location.pathname)
+    if (!routeKnownOptions) {
+      routeKnownOptions = new Map()
+      knownOptionsRef.current.set(location.pathname, routeKnownOptions)
+    }
 
+    const hasEverPublished = entries !== null || committed !== null
     const apply = (wql: string) => navigateToQuery(location, navigate, wql)
     // Full-query shortcuts (landing row, grouping presets, page actions)
     // replace the whole query/page — the drawer closes after navigating.
@@ -331,6 +338,8 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
                   labels={identifierLabels(parsedFind.target, key, facetEntries)}
                   headScope={key === 'source' ? headScope : null}
                   pending={pending}
+                  hasEverPublished={hasEverPublished}
+                  routeKnownOptions={routeKnownOptions}
                   onApply={apply}
                 />
               </div>
@@ -401,6 +410,8 @@ function ConditionSection({
   labels,
   headScope,
   pending,
+  hasEverPublished,
+  routeKnownOptions,
   onApply,
 }: {
   query: string
@@ -410,6 +421,8 @@ function ConditionSection({
   labels: Map<string, string>
   headScope: string | null
   pending: boolean
+  hasEverPublished: boolean
+  routeKnownOptions: Map<string, Map<string, FacetOption>>
   onApply: (wql: string) => void
 }) {
   const config = conditionSectionConfig(entryKey)
@@ -419,6 +432,17 @@ function ConditionSection({
 
   const selected = selectedValuesFor(parsed, entryKey, labels)
   const options = facetOptions(parsed.target, entryKey, facetContext)
+
+  let keyMap = routeKnownOptions.get(entryKey)
+  if (!keyMap) {
+    keyMap = new Map()
+    routeKnownOptions.set(entryKey, keyMap)
+  }
+  for (const opt of options) {
+    if (!keyMap.has(opt.value)) {
+      keyMap.set(opt.value, { value: opt.value, label: opt.label, count: 0 })
+    }
+  }
 
   const selectedByDisplay = new Map(selected.map(row => [row.display, row] as const))
   const optionByValue = new Map(options.map(option => [option.value, option] as const))
@@ -431,18 +455,22 @@ function ConditionSection({
     rows.push({
       value,
       label: labelOverride ?? option?.label ?? selectedByDisplay.get(value)?.label ?? value,
-      count: option ? option.count : null,
+      count: option ? option.count : 0,
       state: filterValueState(query, entryKey, value),
     })
   }
-  // Expected values constrain + relabel the CURRENT options; an expected
-  // value with no support here (and no active selection) is never invented.
-  for (const spec of expected ?? []) {
-    const option = optionByValue.get(spec.value)
-    if (option || selectedByDisplay.has(spec.value)) addRow(spec.value, option, spec.label)
+  if (hasEverPublished) {
+    for (const spec of expected ?? []) {
+      const option = optionByValue.get(spec.value)
+      addRow(spec.value, option, spec.label)
+    }
+    if (!expected) {
+      for (const option of options) addRow(option.value, option)
+      for (const known of keyMap.values()) {
+        addRow(known.value, optionByValue.get(known.value), known.label)
+      }
+    }
   }
-  if (!expected) for (const option of options) addRow(option.value, option)
-  // Active selections always render — even absent from the narrowed results.
   for (const row of selected) addRow(row.display, optionByValue.get(row.display))
   if (entryKey === 'source' && headScope) addRow(headScope, optionByValue.get(headScope))
   // Configured order first, then label — never count ranking.
@@ -532,10 +560,11 @@ function ConditionRow({
   const next = TRI_STATES[(TRI_STATES.indexOf(row.state) + 1) % TRI_STATES.length]!
   const Icon = STATE_ICON[row.state]
   const cycleLabel = `${STATE_TITLE[next]} “${row.label}” (currently ${STATE_TITLE[row.state]})`
+  const isZero = row.count === 0 && row.state === 'off'
   return (
-    <li data-testid={`conditions-row-${entryKey}:${row.value}`} className={clsx('px-1 py-0.5', pending && 'opacity-60')}>
+    <li data-testid={`conditions-row-${entryKey}:${row.value}`} className={clsx('px-1 py-0.5', pending && 'opacity-60', isZero && 'opacity-40')}>
       <div className="flex h-11 items-center gap-1.5">
-        <span className="min-w-0 flex-1 truncate text-xs leading-4 text-foreground">{row.label}</span>
+        <span className={clsx('min-w-0 flex-1 truncate text-xs leading-4', isZero ? 'text-muted-foreground' : 'text-foreground')}>{row.label}</span>
         {row.count !== null && (
           <span className="text-[10px] leading-4 tabular-nums text-muted-foreground">{row.count}</span>
         )}
@@ -576,7 +605,36 @@ function FreeformRow({
   pending: boolean
   onApply: (value: string) => void
 }) {
+  const closeNavigationDrawer = useCloseNavigationDrawer()
   const [text, setText] = useState('')
+
+  if (entryKey === 'text') {
+    const handleJumpToWql = () => {
+      closeNavigationDrawer()
+      const el = document.querySelector<HTMLElement>('[data-testid="wql-text-input"]')
+      if (el) {
+        el.focus()
+      } else {
+        const streamBarBtn = document.querySelector<HTMLButtonElement>('[data-testid="stream-query-bar"]')
+        streamBarBtn?.click()
+      }
+    }
+
+    return (
+      <div className="px-1 py-1.5">
+        <button
+          type="button"
+          onClick={handleJumpToWql}
+          data-testid="conditions-jump-wql-text"
+          className="flex w-full items-center justify-between rounded-md border border-dashed border-border/80 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40 hover:text-foreground"
+        >
+          <span>Type in search / WQL bar…</span>
+          <span className="font-mono text-[10px] text-primary">text:…</span>
+        </button>
+      </div>
+    )
+  }
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const value = text.trim()

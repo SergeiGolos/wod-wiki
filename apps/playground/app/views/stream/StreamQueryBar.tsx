@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { SaveWqlShortcutDialog } from '../../components/organisms/wql/SaveWqlShortcutDialog'
 import { wqlSearchSource } from '../../services/wqlSearchSource'
-
+import { WqlWindowPicker } from './WqlWindowPicker'
 export interface StreamQueryBarProps {
   /** The controlled WQL string (the composer query state). */
   query: string
@@ -140,6 +140,11 @@ export function StreamQueryBar({
         preferredChoices={scopeOptions}
         placeholder="Filter or search…"
         className="min-w-0 flex-1"
+      />
+      <WqlWindowPicker
+        query={query}
+        onQueryChange={onQueryChange}
+        className="shrink-0"
       />
       {route && (
         <>

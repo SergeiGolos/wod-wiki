@@ -243,6 +243,7 @@ export function WqlTextEditor({ value, onChange, onSubmit, onEscape, placeholder
             '&.cm-focused': { outline: 'none' },
             '.cm-content': { fontFamily: 'var(--font-mono, ui-monospace, monospace)', padding: dense ? '8px 0' : '12px 0', minHeight: dense ? '34px' : '48px' },
             '.cm-line': { padding: '0 12px' },
+            '.cm-line span[class*="tok-"]:hover, .cm-line span[class^="tok-"]:hover': { fontWeight: '700', textShadow: '0 0 0.5px currentColor', cursor: 'pointer' },
             '.cm-scroller': { overflow: 'auto' },
             '.cm-placeholder': { color: 'hsl(var(--muted-foreground))' },
             '.cm-tooltip': {

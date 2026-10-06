@@ -73,13 +73,11 @@ export interface TourMobileRunwayProps {
   onHomeQuestClick?: (questId: string) => void
   /** Chapter example run — runs inline in the pinned timer window. */
   onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
-  onChapterShare?: (doc: string) => void
   /** The single shared editor document (hero + write window display it). */
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
-  onShare: () => void
   /** Shared-script attribution + reset, forwarded to the editor (#882). */
   sharedBy?: string
   onResetShared?: () => void
@@ -125,12 +123,10 @@ export function TourMobileRunway({
   questLabels,
   onHomeQuestClick,
   onChapterRun,
-  onChapterShare,
   doc,
   onDocChange,
   onBlocksChange,
   onRun,
-  onShare,
   onChoice,
   onCommand,
   session,
@@ -324,7 +320,6 @@ export function TourMobileRunway({
             onDocChange={onDocChange}
             onBlocksChange={onBlocksChange}
             onRun={onRun}
-            onShare={onShare}
             theme={theme}
           />
         </div>
@@ -360,7 +355,6 @@ export function TourMobileRunway({
                 onDocChange={onDocChange}
                 onBlocksChange={onBlocksChange}
                 onRun={onRun}
-                onShare={onShare}
                 theme={theme}
                 withRingTargets
               />
@@ -470,8 +464,8 @@ export function TourMobileRunway({
         </div>
       </section>
 
-      {/* Syntax chapter picker — single slide with shared editor & dual buttons */}
-      <TourChapterPicker wodFiles={wodFiles} theme={theme} onRun={onChapterRun} onShare={onChapterShare} />
+      {/* Syntax chapter picker — single slide with shared editor */}
+      <TourChapterPicker wodFiles={wodFiles} theme={theme} onRun={onChapterRun} />
 
       {/* High-level learn & quest progress */}
       <TourLearnSection

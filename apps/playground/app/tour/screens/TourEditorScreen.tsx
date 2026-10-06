@@ -1,10 +1,10 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Play, Copy, Check, Share2 } from 'lucide-react'
+import { Play, Copy, Check, Share2, ExternalLink } from 'lucide-react'
 import type { EditorView } from '@codemirror/view'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
-import { shareBlock } from '../../services/openInPlayground'
+import { shareBlock, openBlockInPlaygroundNewTab } from '../../services/openInPlayground'
 import { useRingRef } from '../TourRing'
 import { TEST_IDS } from '@/testing/contracts/TestIdContract'
 export interface TourEditorScreenProps {
@@ -156,12 +156,15 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       onClick: handleStartWorkout,
     },
     {
-      id: 'copy',
-      label: 'Copy link',
-      icon: <Copy className="h-3 w-3" />,
-      successIcon: <Check className="h-3 w-3 text-emerald-500" />,
-      iconOnly: true,
+      id: 'playground',
+      label: 'Playground',
+      icon: <ExternalLink className="h-3 w-3" />,
       onClick: (block) => {
+        openBlockInPlaygroundNewTab(block)
+      },
+      splitIcon: <Copy className="h-3 w-3" />,
+      splitSuccessIcon: <Check className="h-3 w-3 text-emerald-500" />,
+      onSplitClick: (block) => {
         shareBlock(block)
       },
     },

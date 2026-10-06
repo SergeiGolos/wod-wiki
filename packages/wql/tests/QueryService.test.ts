@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import type { EventRecord } from '@bitcobblers/wod-wiki-core';
-import { QueryService, type NoteQueryStore, type EventStore } from '../src/QueryService';
+import { QueryService, catalogOfItem, type NoteQueryStore, type EventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
@@ -487,5 +487,21 @@ describe('window module (C1) execution', () => {
     });
     if (result.status !== 0) throw new Error(result.stderr);
     expect(result.stdout.trim()).toBe('2026-03-23');
+  });
+});
+
+describe('catalogOfItem', () => {
+  it('does not assign UUIDs or standalone note IDs as catalog', () => {
+    expect(catalogOfItem({ id: '0db18f41-f121-5656-8b42-57de0e4618d5' })).toBeUndefined();
+    expect(catalogOfItem({ noteId: '0db18f41-f121-5656-8b42-57de0e4618d5', sourceId: 'journal' })).toBeUndefined();
+    expect(catalogOfItem({ noteId: 'user-note-1', sourceId: 'playground' })).toBeUndefined();
+  });
+
+  it('extracts catalog from collections, feeds, or explicit catalog field', () => {
+    expect(catalogOfItem({ sourceId: 'collection:crossfit-girls/fran' })).toBe('crossfit-girls');
+    expect(catalogOfItem({ sourceId: 'collection:crossfit-girls' })).toBe('crossfit-girls');
+    expect(catalogOfItem({ sourceId: 'feed:feeds/dan-john/2026-01-12/day-01' })).toBe('dan-john');
+    expect(catalogOfItem({ noteId: 'crossfit-girls/fran' })).toBe('crossfit-girls');
+    expect(catalogOfItem({ catalog: 'custom-cat', id: '123' })).toBe('custom-cat');
   });
 });

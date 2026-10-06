@@ -117,7 +117,9 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   }, [secondarySpec, setSecondarySpec])
 
   useEffect(() => {
-    if (!view.shell.withIndex) return
+    // Skip empty indexes: pages that own their L3 (home tour, streams, date
+    // groups) publish directly — writing [] here would clobber their links.
+    if (!view.shell.withIndex || currentNavLinks.length === 0) return
     setL3Items(mapIndexToL3(currentNavLinks))
     return () => setL3Items([])
   }, [view.shell.withIndex, currentNavLinks, setL3Items])

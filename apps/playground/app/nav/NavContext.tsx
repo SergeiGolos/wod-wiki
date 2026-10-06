@@ -170,7 +170,13 @@ export function NavProvider({ tree, children }: NavProviderProps) {
     setL3ItemsInternal((prev) => {
       if (
         prev.length === items.length &&
-        prev.every((item, i) => item.id === items[i]?.id && item.label === items[i]?.label)
+        prev.every(
+          (item, i) =>
+            item.id === items[i]?.id &&
+            item.label === items[i]?.label &&
+            item.secondaryAction?.id === items[i]?.secondaryAction?.id &&
+            item.secondaryRunIcon === items[i]?.secondaryRunIcon,
+        )
       ) {
         return prev
       }

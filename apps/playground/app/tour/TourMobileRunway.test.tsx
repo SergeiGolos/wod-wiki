@@ -139,7 +139,6 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onDocChange: () => {},
     onBlocksChange: () => {},
     onRun: () => {},
-    onShare: () => {},
     onChoice: () => {},
     onStageChange: () => {},
     timer: {

@@ -37,6 +37,7 @@ import { TourTvCard } from './TourTvCard'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourSessionAnalytics } from './screens/TourSessionAnalytics'
+import { TourSessionResult } from './screens/TourSessionResult'
 import { TourCaptions, type TourCaption } from './TourCaptions'
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
@@ -48,7 +49,6 @@ export interface TourSectionEditorWiring {
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
-  onShare: () => void
 }
 
 export interface TourSectionTimerWiring {
@@ -72,6 +72,11 @@ export interface TourSectionSessionWiring {
   boardSlug: string
   /** Pin the pane to one stage (e.g. the metrics section's live table). */
   fixedStage?: string
+  /**
+   * Recorded run results — when set, the pane shows the recorded $session
+   * segments (metrics section after a stop) instead of the WQL table.
+   */
+  result?: Sessions | null
 }
 
 export interface TourSectionRunwayProps {
@@ -295,7 +300,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                             onDocChange={editor.onDocChange}
                             onBlocksChange={editor.onBlocksChange}
                             onRun={editor.onRun}
-                            onShare={editor.onShare}
                             theme={editor.theme}
                             withRingTargets
                           />
@@ -321,12 +325,16 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                           against a zero-size box forever. */}
                       {showScreens && !timer && !editor && session && (
                         <Screen visible={activeScreen === 'analytics' || activeScreen === 'metrics'}>
-                          <TourSessionAnalytics
-                            activeStageId={session.fixedStage ?? slice.stage.id}
-                            noteId={session.noteId}
-                            queryKey={session.queryKey}
-                            boardSlug={session.boardSlug}
-                          />
+                          {session.result ? (
+                            <TourSessionResult result={session.result} />
+                          ) : (
+                            <TourSessionAnalytics
+                              activeStageId={session.fixedStage ?? slice.stage.id}
+                              noteId={session.noteId}
+                              queryKey={session.queryKey}
+                              boardSlug={session.boardSlug}
+                            />
+                          )}
                         </Screen>
                       )}
                       {toastLabel != null && (
