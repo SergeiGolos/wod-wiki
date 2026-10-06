@@ -42,6 +42,7 @@ import { TaglineHeader } from './HomeTour'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourSessionAnalytics, DEFAULT_TABLE_QUERY_KEY, DEFAULT_BOARD_SLUG } from './screens/TourSessionAnalytics'
+import { TourSessionResult } from './screens/TourSessionResult'
 import type { TourSectionTimerWiring, TourSectionSessionWiring } from './TourSectionRunway'
 import { TOUR_CAPTIONS, CaptionBody, type TourCaption } from './TourCaptions'
 import { TourChapterPicker } from './TourChapterPicker'
@@ -414,12 +415,16 @@ export function TourMobileRunway({
             accent={accentFor('own')}
           >
             {reached.own && (
-              <TourSessionAnalytics
-                activeStageId="wql-table"
-                noteId={session?.noteId ?? null}
-                queryKey={session?.queryKey ?? DEFAULT_TABLE_QUERY_KEY}
-                boardSlug={session?.boardSlug ?? DEFAULT_BOARD_SLUG}
-              />
+              session?.result ? (
+                <TourSessionResult result={session.result} />
+              ) : (
+                <TourSessionAnalytics
+                  activeStageId="wql-table"
+                  noteId={session?.noteId ?? null}
+                  queryKey={session?.queryKey ?? DEFAULT_TABLE_QUERY_KEY}
+                  boardSlug={session?.boardSlug ?? DEFAULT_BOARD_SLUG}
+                />
+              )
             )}
           </ChapterWindow>
           {ownCaptions.map((cap) => renderCard(cap))}

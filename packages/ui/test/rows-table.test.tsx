@@ -45,6 +45,15 @@ describe('RowsTable — the Session Results Table', () => {
     expect(table.querySelectorAll('tbody tr')).toHaveLength(1);
   });
 
+  it('renders all 9 column headers aligning with row cells', () => {
+    render(<RowsTable result={rowsResultWith([segmentEvent])} />);
+    const table = screen.getByTestId('output-statements-table');
+    const headers = table.querySelectorAll('thead th');
+    expect(headers).toHaveLength(9);
+    const cells = table.querySelectorAll('tbody tr td');
+    expect(cells).toHaveLength(9);
+  });
+
   it('widens to all output types via the All preset pill', () => {
     render(<RowsTable result={rowsResultWith([segmentEvent, soundEvent])} />);
     fireEvent.click(screen.getByTestId('output-filter-preset-all'));

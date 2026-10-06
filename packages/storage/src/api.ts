@@ -20,6 +20,7 @@ import type {
   StoreType,
 } from './contract';
 import { STORE_DEFS, type StoreDef } from './schema';
+import { stampUserOwned } from './membership';
 import {
   encodeKey,
   isRange,
@@ -99,9 +100,16 @@ async function remoteDelete(http: Http, store: StoreName, keyOrRange: KeyDTO | R
 export class ApiStorage implements IStorage {
   private readonly http: Http;
   private readonly defs: Record<StoreName, StoreDef>;
+  /** Injected identity: user-owned rows are stamped with this on write. */
+  private readonly getUserId?: () => string;
 
-  constructor(baseUrl: string = '/api', fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis)) {
+  constructor(
+    baseUrl: string = '/api',
+    fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis),
+    options: { getUserId?: () => string } = {},
+  ) {
     this.http = { baseUrl, fetchImpl };
+    this.getUserId = options.getUserId;
     // Keys are StoreName by construction (STORE_DEFS[].name is typed so).
     this.defs = Object.fromEntries(STORE_DEFS.map((d) => [d.name, d])) as Record<StoreName, StoreDef>;
   }
@@ -117,7 +125,7 @@ export class ApiStorage implements IStorage {
     buffer?: Map<string, BufferEntry>,
     cleared?: Set<StoreName>,
   ): IReadWriteStore<StoreType<K>> {
-    return new ApiStore<StoreType<K>>(this.http, this.def(store), store, buffer, cleared);
+    return new ApiStore<StoreType<K>>(this.http, this.def(store), store, buffer, cleared, this.getUserId);
   }
 
   readonly<K extends StoreName>(store: K): IReadOnlyStore<StoreType<K>> {
@@ -184,6 +192,7 @@ class ApiStore<T> implements IReadWriteStore<T> {
     private readonly store: StoreName,
     private readonly buffer?: Map<string, BufferEntry>,
     private readonly cleared?: Set<StoreName>,
+    private readonly getUserId?: () => string,
   ) {}
 
   /** True when this tx has buffered writes for this store. */
@@ -278,12 +287,14 @@ class ApiStore<T> implements IReadWriteStore<T> {
   }
 
   async put(value: T, _key?: IDBValidKey): Promise<IDBValidKey> {
-    const key = keyFromValue(this.def, value);
+    const userId = this.getUserId?.();
+    const stored = userId ? (stampUserOwned(this.store, value, userId) as T) : value;
+    const key = keyFromValue(this.def, stored);
     if (this.buffer) {
-      this.buffer.set(bufferSlot(this.store, key), { kind: 'put', value });
+      this.buffer.set(bufferSlot(this.store, key), { kind: 'put', value: stored });
       return key;
     }
-    await request(this.http, 'POST', '/tx', { body: { ops: [{ op: 'put', store: this.store, value }] } });
+    await request(this.http, 'POST', '/tx', { body: { ops: [{ op: 'put', store: this.store, value: stored }] } });
     return key;
   }
 

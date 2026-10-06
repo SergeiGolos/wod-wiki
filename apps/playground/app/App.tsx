@@ -43,6 +43,7 @@ import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 import { useZipProcessor } from './hooks/useZipProcessor'
 import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
 import { runSeedSync } from '@/services/seed/seedSync'
+import { profileService } from '@/services/storage'
 import { initSeedContentBroadcast, invalidateSeedContent, useSeedContent } from '@/services/content/seedContent'
 import { Button } from '@/components/atoms/primitives/button'
 import type { WorkoutItem } from './lib/workoutIndex'
@@ -81,7 +82,12 @@ function ScrollToTop() {
 function GlobalState() {
   useZipProcessor()
   useJournalZipProcessor()
-  useEffect(() => { void runSeedSync() }, [])
+  useEffect(() => {
+    // Profile first: rows written by the seed sync onward get stamped with
+    // the membership id (best-effort — unstamped until current() resolves).
+    void profileService.current().catch(console.error)
+    void runSeedSync()
+  }, [])
   return null
 }
 
@@ -153,6 +159,7 @@ export function App() {
 
                   <Route path="/settings" element={<Navigate to="/settings/appearance" replace />} />
                   <Route path="/settings/appearance" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.settingsProfile} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/settings/system" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.settingsQueries} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.settingsTags} element={<AppContent searchHandlerRef={searchHandlerRef} />} />

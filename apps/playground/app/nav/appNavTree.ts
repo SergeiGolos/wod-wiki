@@ -22,7 +22,7 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag, Library, Plus } from 'lucide-react'
+import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag, Library, Plus, UserRound } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 import { scopeOfQuery } from '../lib/wqlEdits'
@@ -331,6 +331,14 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
           isActive: (loc: Location) =>
             loc.pathname === ROUTE_PATTERNS.settings ||
             loc.pathname === ROUTE_PATTERNS.settingsAppearance,
+        },
+        {
+          id: 'settings-profile',
+          label: 'Profile',
+          level: 2,
+          icon: UserRound,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsProfile },
+          isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsProfile,
         },
         {
           id: 'settings-queries',

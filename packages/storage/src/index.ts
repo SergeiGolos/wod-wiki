@@ -9,5 +9,6 @@
 export * from './entities';
 export * from './contract';
 export * from './schema';
+export * from './membership';
 export * from './wire';
 export * from './api';

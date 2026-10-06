@@ -6,6 +6,7 @@ import type {
   StoreName,
   StoreType,
 } from './IStorage';
+import { stampUserOwned } from '@bitcobblers/wod-wiki-storage';
 
 interface IndexDef {
   keyPath: string | string[];
@@ -155,6 +156,10 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
     keyPath: 'key',
     indexes: {},
   },
+  memberships: {
+    keyPath: 'id',
+    indexes: {},
+  },
 };
 
 function getNestedValue(obj: unknown, path: string): unknown {
@@ -219,6 +224,7 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
 
   constructor(
     private readonly storeName: StoreName,
+    private readonly getUserId?: () => string,
     private readonly config = STORE_CONFIGS[storeName]
   ) {}
 
@@ -278,11 +284,13 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
   }
 
   async put(value: T, key?: IDBValidKey): Promise<IDBValidKey> {
-    const resolvedKey = key ?? extractKey(value, this.config.keyPath);
+    const userId = this.getUserId?.();
+    const stored = (userId ? stampUserOwned(this.storeName, value, userId) : value) as T;
+    const resolvedKey = key ?? extractKey(stored, this.config.keyPath);
     if (resolvedKey === undefined) {
       throw new Error(`Cannot put record into ${this.storeName} without primary key`);
     }
-    this.records.set(serializeKey(resolvedKey), value);
+    this.records.set(serializeKey(resolvedKey), stored);
     return resolvedKey;
   }
 
@@ -312,10 +320,12 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
 export class InMemoryStorage implements IStorage {
   private readonly stores = new Map<StoreName, InMemoryStore<unknown>>();
 
+  constructor(private readonly options: { getUserId?: () => string } = {}) {}
+
   private getStore<K extends StoreName>(name: K): InMemoryStore<StoreType<K>> {
     let store = this.stores.get(name) as InMemoryStore<StoreType<K>> | undefined;
     if (!store) {
-      store = new InMemoryStore<StoreType<K>>(name);
+      store = new InMemoryStore<StoreType<K>>(name, this.options.getUserId);
       this.stores.set(name, store);
     }
     return store;

@@ -308,3 +308,30 @@ export type { AnalyticsDataPoint, EventRecord, EventGrain, } from '@bitcobblers/
 // Effort — the canonical effort entity is IEffort in @bitcobblers/wod-wiki-lang;
 // the efforts store is typed with it directly (no storage-local duplicate).
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Membership — identity + profile for the records a user creates (V25)
+// ---------------------------------------------------------------------------
+/**
+ * Membership: the account/profile row behind user-owned records. In
+ * IndexedDB mode there is exactly one membership (id DEFAULT_MEMBERSHIP_ID)
+ * and its source of truth is localStorage — this store exists for schema
+ * parity and API mode, where the server keeps the membership table (and
+ * wipe() must never destroy it — StoreDef.system). Body metrics are stored
+ * as entered (unit-tagged, no normalization); age is derived from birthDate
+ * at display time.
+ */
+export interface Membership {
+  id: string;             // DEFAULT_MEMBERSHIP_ID ('default') in local mode
+  displayName: string;
+  /** Profile picture: client-resized JPEG data URL (≤256px, ~tens of KB). */
+  picture?: string;
+  weight?: number;
+  weightUnit?: 'kg' | 'lb';
+  height?: number;
+  heightUnit?: 'cm' | 'in';
+  /** ISO date (YYYY-MM-DD). */
+  birthDate?: string;
+  createdAt: number;
+  updatedAt?: number;
+}

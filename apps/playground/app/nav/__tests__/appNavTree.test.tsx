@@ -146,7 +146,7 @@ describe('appNavTree - Settings navigation', () => {
     cleanup()
   })
 
-  it('defines L1 settings item with L2 children for Appearance, System, and Query Defaults', () => {
+  it('defines L1 settings item with L2 children for Appearance, Profile, System, and Query Defaults', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')
 
@@ -155,13 +155,17 @@ describe('appNavTree - Settings navigation', () => {
     expect(settings?.level).toBe(1)
     expect(settings?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
     expect(settings?.children).toBeDefined()
-    expect(settings?.children?.length).toBe(4)
+    expect(settings?.children?.length).toBe(5)
 
-    const [appearance, queries, tags, system] = settings!.children!
+    const [appearance, profile, queries, tags, system] = settings!.children!
 
     expect(appearance.id).toBe('settings-appearance')
     expect(appearance.label).toBe('Appearance')
     expect(appearance.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
+
+    expect(profile.id).toBe('settings-profile')
+    expect(profile.label).toBe('Profile')
+    expect(profile.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsProfile })
 
     expect(queries.id).toBe('settings-queries')
     expect(queries.label).toBe('Query Defaults')
@@ -188,10 +192,13 @@ describe('appNavTree - Settings navigation', () => {
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')!
-    const [appearance, queries, tags, system] = settings.children!
+    const [appearance, profile, queries, tags, system] = settings.children!
 
     expect(appearance.isActive!(mockLocation('/settings'))).toBe(true)
     expect(appearance.isActive!(mockLocation('/settings/appearance'))).toBe(true)
+
+    expect(profile.isActive!(mockLocation('/settings/profile'))).toBe(true)
+    expect(profile.isActive!(mockLocation('/settings/appearance'))).toBe(false)
 
     expect(queries.isActive!(mockLocation('/settings/queries'))).toBe(true)
     expect(queries.isActive!(mockLocation('/settings/appearance'))).toBe(false)

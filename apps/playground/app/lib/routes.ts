@@ -64,6 +64,7 @@ export const ROUTE_PATTERNS = {
   library: '/library',
   settings: '/settings',
   settingsAppearance: '/settings/appearance',
+  settingsProfile: '/settings/profile',
   settingsSystem: '/settings/system',
   settingsQueries: '/settings/queries',
   settingsTags: '/settings/tags',
@@ -257,7 +258,7 @@ export function parseEffortRouteOptions(searchParams: URLSearchParams): {
 }
 
 /** /settings or /settings/:section */
-export function settingsPath(section?: 'appearance' | 'system' | 'queries'): string {
+export function settingsPath(section?: 'appearance' | 'profile' | 'system' | 'queries'): string {
   return section ? `/settings/${section}` : '/settings/appearance';
 }
 // Legacy-alias → canonical redirect matrix

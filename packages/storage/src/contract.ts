@@ -9,6 +9,7 @@ import type {
   BlockEffort,
   BlockIndexRow,
   EventRecord,
+  Membership,
   Note,
   NoteSegment,
   NoteTag,
@@ -46,6 +47,7 @@ export interface StorageSchema {
   block_index: BlockIndexRow;
   block_efforts: BlockEffort;
   meta: unknown;
+  memberships: Membership;
 }
 
 export type StoreName = keyof StorageSchema;
