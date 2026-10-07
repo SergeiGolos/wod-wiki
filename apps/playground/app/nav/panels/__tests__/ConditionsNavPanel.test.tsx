@@ -34,6 +34,7 @@ import {
   addFacetValue,
   removeFacetValue,
   selectedValuesFor,
+  setTextCondition,
   facetOptions,
   setSourceScopeValue,
 } from '../conditionsFacets'
@@ -216,6 +217,47 @@ describe('conditionsFacets toggling', () => {
       { value: 'segment', count: 2 },
       { value: 'load', count: 1 },
     ])
+  })
+})
+
+// ── pure text-condition model ────────────────────────────────────────────────
+
+function textValues(parsed: ParsedFindQuery): string[] {
+  return parsed.filters
+    .filter(f => f.key === 'text' && !f.negate)
+    .flatMap(f => f.values.map(v => v.value))
+}
+
+describe('setTextCondition', () => {
+  it('appends, rewrites and clears the positive text condition losslessly', () => {
+    const base = ':collection{} by {tag} last 4w'
+    const added = findOf(parseQuery(setTextCondition(base, 'squat')))!
+    expect(textValues(added)).toEqual(['squat'])
+    expect(added.groupBy).toEqual(['tag'])
+    expect(added.window).toBeDefined()
+
+    const rewritten = findOf(parseQuery(setTextCondition(serialize(added), 'press')))!
+    expect(textValues(rewritten)).toEqual(['press'])
+    expect(rewritten.groupBy).toEqual(['tag'])
+    expect(rewritten.window).toBeDefined()
+
+    const cleared = findOf(parseQuery(setTextCondition(serialize(rewritten), '')))!
+    expect(textValues(cleared)).toEqual([])
+    expect(cleared.groupBy).toEqual(['tag'])
+    expect(cleared.window).toBeDefined()
+  })
+
+  it('survives negated occurrences and collapses ANDed positives', () => {
+    const withNegation = findOf(parseQuery(setTextCondition(':collection{!text:junk}', 'squat')))!
+    expect(textValues(withNegation)).toEqual(['squat'])
+    expect(withNegation.filters.some(f => f.key === 'text' && f.negate)).toBe(true)
+
+    const anded = findOf(parseQuery(setTextCondition(':collection{text:a | text:b}', 'squat')))!
+    expect(textValues(anded)).toEqual(['squat'])
+  })
+
+  it('returns unparseable input unchanged', () => {
+    expect(setTextCondition('not a query at all (((', 'x')).toBe('not a query at all (((')
   })
 })
 

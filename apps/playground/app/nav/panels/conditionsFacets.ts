@@ -244,6 +244,46 @@ function addNegatedFacetValue(query: string, key: string, display: string): stri
   return draft.valid ? draft.wql : query
 }
 
+/** Live contains-box write for the freeform `text:` key: replace the query's
+ *  positive text condition with the single given value — appending one when
+ *  none exists, removing every positive occurrence when the value is empty.
+ *  ANDed extra positive occurrences cannot be represented by one contains
+ *  string and are collapsed; negated user-authored occurrences survive.
+ *  Unparseable / non-find queries return unchanged. One occurrence-exact
+ *  edit per re-parse round, like clearFacetValue. */
+export function setTextCondition(query: string, value: string): string {
+  const next = value.trim()
+  let current = query
+  let replaced = false
+  for (;;) {
+    const parsed = parseQuery(current)
+    if (parsed.error || !isFindQuery(parsed)) return current
+    const positives = occurrencesForKey(parsed, 'text').filter(o => !o.negate)
+    if (positives.length === 0) {
+      if (!next || replaced) return current
+      const draft = editQueryClause(current, clause('text', clauseTypeFor('text'), ''), next)
+      return draft.valid ? draft.wql : current
+    }
+    if (!next) {
+      const edited = editOccurrence(current, 'text', positives[0]!, null)
+      if (edited === current) return current
+      current = edited
+      continue
+    }
+    if (!replaced) {
+      const edited = editOccurrence(current, 'text', positives[0]!, next)
+      if (edited === current) return current
+      current = edited
+      replaced = true
+      continue
+    }
+    if (positives.length === 1) return current
+    const edited = editOccurrence(current, 'text', positives[1]!, null)
+    if (edited === current) return current
+    current = edited
+  }
+}
+
 /** The source scope is single-valued: scoped heads (`:journal`) author it as
  *  AST `sourceScope`, while the serializer's canonical form is `source:`
  *  filters on the generic head. Writing a scope is a TARGETED occurrence

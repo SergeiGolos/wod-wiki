@@ -30,13 +30,15 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import clsx from 'clsx'
-import { CheckSquare, MinusSquare, Plus, Square } from 'lucide-react'
+import { CheckSquare, MinusSquare, Plus, Square, SquarePen } from 'lucide-react'
 
 import { isFindQuery, parseQuery, WQL_TYPED_TAG_KEYS, type ParsedFindQuery } from '@bitcobblers/wod-wiki-wql'
 import { wqlFilterKeys } from '@bitcobblers/wod-wiki-wql'
 import { getClauseMeta } from '@bitcobblers/wod-wiki-ui'
 
 import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
+
+import { useCloseNavigationDrawer } from '../NavigationDrawerContext'
 
 import { staticNoteStore } from '@/services/content/staticBlockIndex'
 import { storageService } from '@/services/storage'
@@ -468,6 +470,7 @@ function FreeformRow({
   onApply: (value: string) => void
 }) {
   const [text, setText] = useState('')
+  const closeNavigationDrawer = useCloseNavigationDrawer()
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const value = text.trim()
@@ -489,6 +492,20 @@ function FreeformRow({
           data-testid="conditions-input-text"
           className="h-8 w-full min-w-0 rounded-md border border-border/60 bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
         />
+        <button
+          type="button"
+          data-testid="conditions-jump-wql-text"
+          onClick={() => {
+            closeNavigationDrawer()
+            // Jump lands on the header WQL bar when the stream page is
+            // mounted; opening it puts the full query in the composer.
+            document.querySelector<HTMLElement>('[data-testid="stream-query-bar"]')?.click()
+          }}
+          className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <SquarePen aria-hidden="true" className="size-3" />
+          Edit in WQL bar
+        </button>
       </div>
     )
   }
