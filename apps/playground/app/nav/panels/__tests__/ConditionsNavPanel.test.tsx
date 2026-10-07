@@ -337,10 +337,15 @@ describe('ConditionsNavPanel', () => {
   it('never offers options from a stale snapshot (previous page or superseded draft)', () => {
     renderPanel()
     publish({ pathname: '/journal', query: ':journal{}', entries: ENTRIES })
-    // No option rows anywhere: the published run belongs to another page.
+    // No option rows anywhere: the published run belongs to another page
+    // (hasEverPublished gates rendering). facetOptions itself degrades to
+    // the corpus vocabulary at count 0 — the empty criteria stay listed.
     expect(screen.queryByTestId('conditions-row-tags:strength')).toBeNull()
     expect(screen.queryByTestId('conditions-row-tags:barbell')).toBeNull()
-    expect(facetOptions('note', 'tags', { entries: [], tagMembership: MEMBERSHIP, effortMembership: EFFORT_MEMBERSHIP })).toEqual([])
+    expect(facetOptions('note', 'tags', { entries: [], tagMembership: MEMBERSHIP, effortMembership: EFFORT_MEMBERSHIP })).toEqual([
+      { value: 'barbell', count: 0 },
+      { value: 'strength', count: 0 },
+    ])
   })
 
   it('retains prior rows visibly disabled while a matching execution is pending', async () => {

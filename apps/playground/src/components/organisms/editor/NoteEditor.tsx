@@ -49,6 +49,7 @@ import { previewDecorations } from '@bitcobblers/wod-wiki-ui/extensions';
 import { embedPreviewDecorations } from '@bitcobblers/wod-wiki-ui/extensions';
 import { frontmatterPreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { markdownTablePreview } from '@bitcobblers/wod-wiki-ui/extensions';
+import { linkPreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { markdownSyntaxHiding } from '@bitcobblers/wod-wiki-ui/extensions';
 import { wodLinter } from '@bitcobblers/wod-wiki-ui/extensions';
 import { wodAutocompletion, wodEditorKeymap, wodAutoWrap, registerCustomCompletionSource, unregisterCustomCompletionSource, type CustomCompletionSource } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -518,6 +519,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         createFrontmatterSuggestions(),
         markdownTablePreview,
         markdownSyntaxHiding(),
+        linkPreview,
       ] : []),
 
       // Whiteboard Script linting (no separate lintGutter — unified gutter handles it)

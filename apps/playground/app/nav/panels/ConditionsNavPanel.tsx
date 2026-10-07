@@ -4,9 +4,9 @@
  *
  * Chrome rows (create action, landing row, Custom row with save/clear,
  * saved shortcuts, page actions) plus the {@link FacetProperties}
- * properties accordion over the CURRENT query. Facets render identically in
- * the L3 right rail, the ⋯ fallback, and the mobile right drawer — one
- * model, every surface.
+ * properties accordion over the CURRENT query — the ONLY surface where
+ * where-clause filters render (the L3 rail and ⋯ menu carry view controls
+ * instead).
  *
  * Grouping presets ("Arrange by …", "All time") ride the CURRENT query as
  * their base — never the profile default — and page actions (Feeds, the

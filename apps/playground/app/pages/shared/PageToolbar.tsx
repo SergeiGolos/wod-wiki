@@ -6,7 +6,7 @@
  */
 
 import { useState, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -26,8 +26,6 @@ import { PlusIcon } from '@heroicons/react/16/solid'
 import { useNav } from '../../nav/NavContext'
 import { useResolvedMenu } from '../../nav/MenuList'
 import { StreamControlsNav } from '../../nav/SecondaryNav'
-import { FacetProperties } from '../../nav/panels/FacetProperties'
-import { isStreamRoute, resolveStreamProfile } from '../../views/stream/streamProfile'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import type { NavItemL3 } from '../../nav/navTypes'
 // ── NewEntryButton ───────────────────────────────────────────────────────────
@@ -134,28 +132,14 @@ export function usePageOptionsEntries(
   onDownload?: () => void,
 ): PageOptionsEntry[] {
   const navigate = useNavigate()
-  const location = useLocation()
   const { l3Items: contextL3, scrollToSection, secondarySpec, streamControls } = useNav()
   const l3Items = items && items.length > 0 ? items : contextL3
   const resolvedSecondary = useResolvedMenu(secondarySpec)
-  // Stream routes mirror the rail's Properties block (same facet model as
-  // the L2 panel and the mobile right drawer). Legacy /results* classify as
-  // stream routes but have no profile of their own — the library fallback
-  // matches what the view resolves.
-  const streamRouteProfile = isStreamRoute(location.pathname) ? resolveStreamProfile(location.pathname) : undefined
 
   const entries: PageOptionsEntry[] = []
-  // The ⋯ surfaces mirror the right rail: properties, stream controls, the
-  // route secondary menu, then On this page. Same components, same state.
-  if (streamRouteProfile) {
-    entries.push({ kind: 'heading', id: 'l3-properties-heading', label: 'Properties', nav: true })
-    entries.push({
-      kind: 'custom',
-      id: 'l3-properties',
-      nav: true,
-      render: () => <FacetProperties profile={streamRouteProfile} />,
-    })
-  }
+  // The ⋯ surfaces mirror the right rail: stream (view) controls, the route
+  // secondary menu, then On this page. Same components, same state. Where
+  // filters stay in the L2 panel only.
   if (streamControls) {
     entries.push({
       kind: 'custom',

@@ -1,12 +1,11 @@
 /**
- * FacetProperties — the properties accordion of a stream surface, extracted
- * from ConditionsNavPanel so the same facet model renders anywhere: the L2
- * context panel, the L3 right rail, the ⋯ fallback, and the mobile right
- * drawer.
+ * FacetProperties — the properties accordion of a stream surface, rendered
+ * by the L2 ConditionsNavPanel (the only host since the L3 rail and ⋯ menu
+ * dropped where-filters in favour of view controls).
  *
- * ponytail: each host mounts its own instance (L2 panel + rail are both
- * permanently mounted), so async membership loads can fire per host. Swap
- * for a shared context cache if that shows up in profiling.
+ * ponytail: the L2 panel remounts per route mount, so async membership
+ * loads re-fire on navigation. Swap for a shared context cache if that
+ * shows up in profiling.
  *
  * One accordion of every `{}` condition the CURRENT query's target supports
  * (`wqlFilterKeys(target,'find')`), with values and counts derived from the
@@ -39,7 +38,6 @@ import { getClauseMeta } from '@bitcobblers/wod-wiki-ui'
 
 import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
 
-import { useCloseNavigationDrawer } from '../NavigationDrawerContext'
 import { staticNoteStore } from '@/services/content/staticBlockIndex'
 import { storageService } from '@/services/storage'
 
@@ -57,6 +55,7 @@ import {
   resultIdentityKey,
   selectedValuesFor,
   setFacetValueState,
+  setTextCondition,
   type FacetContext,
   type FacetOption,
   type FilterValueState,
@@ -302,6 +301,14 @@ function ConditionSection({
   const freeform = isFreeformKey(entryKey) || IDENTIFIER_FREEFORM[entryKey] !== undefined
 
   const selected = selectedValuesFor(parsed, entryKey, labels)
+  // Raw positive `text:` value the live box controls — OR-joined when the
+  // query carries multiple values.
+  const liveText = entryKey === 'text'
+    ? occurrencesForKey(parsed, 'text')
+        .filter(o => !o.negate)
+        .map(o => o.values.map(v => v.value).join('|'))
+        .join('|')
+    : null
   const options = facetOptions(parsed.target, entryKey, facetContext)
 
   let keyMap = routeKnownOptions.get(entryKey)
@@ -380,6 +387,8 @@ function ConditionSection({
           entryKey={entryKey}
           placeholder={meta.placeholder}
           pending={pending}
+          currentText={liveText ?? undefined}
+          onTextChange={value => onApply(setTextCondition(query, value))}
           onApply={value => onApply(setFacetValueState(query, entryKey, value, 'include'))}
         />
       )}
@@ -445,44 +454,20 @@ function FreeformRow({
   entryKey,
   placeholder,
   pending,
+  currentText,
+  onTextChange,
   onApply,
 }: {
   entryKey: string
   placeholder: string
   pending: boolean
+  /** Current positive `text:` value (text box only) — controlled by the query. */
+  currentText?: string
+  /** Live text edit → query rewrite (text box only). */
+  onTextChange?: (value: string) => void
   onApply: (value: string) => void
 }) {
   const [text, setText] = useState('')
-  // The text jump hands focus to the stream bar — surfaces that host the
-  // accordion close their drawer so the bar is visible; facet edits never
-  // call this, so the accordion stays open for value picking.
-  const closeNavigationDrawer = useCloseNavigationDrawer()
-
-  if (entryKey === 'text') {
-    return (
-      <div className="px-1 py-1.5">
-        <button
-          type="button"
-          onClick={() => {
-            closeNavigationDrawer()
-            const el = document.querySelector<HTMLElement>('[data-testid="wql-text-input"]')
-            if (el) {
-              el.focus()
-            } else {
-              const streamBarBtn = document.querySelector<HTMLButtonElement>('[data-testid="stream-query-bar"]')
-              streamBarBtn?.click()
-            }
-          }}
-          data-testid="conditions-jump-wql-text"
-          className="flex w-full items-center justify-between rounded-md border border-dashed border-border/80 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40 hover:text-foreground"
-        >
-          <span>Type in search / WQL bar…</span>
-          <span className="font-mono text-[10px] text-primary">text:…</span>
-        </button>
-      </div>
-    )
-  }
-
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const value = text.trim()
@@ -490,6 +475,24 @@ function FreeformRow({
     onApply(value)
     setText('')
   }
+
+  if (entryKey === 'text') {
+    // Live contains-box: every keystroke rewrites the query's `text:`
+    // condition (setTextCondition) — the WQL bar stays the same truth.
+    return (
+      <div className="px-1 py-1.5">
+        <input
+          value={currentText ?? ''}
+          onChange={event => onTextChange?.(event.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          data-testid="conditions-input-text"
+          className="h-8 w-full min-w-0 rounded-md border border-border/60 bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+        />
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={submit} className="flex items-center gap-1 px-1 py-1.5">
       <input

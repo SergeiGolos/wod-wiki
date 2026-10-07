@@ -494,9 +494,13 @@ export function QueriableStreamView({
       groupDims,
       onToggleGroupDim: handleToggleGroupDim,
       availableGroupDims,
+      settings,
+      onLayoutChange: setLayout,
+      onToggleField: toggleField,
+      level: profile.level,
     })
     return () => setStreamControls?.(null)
-  }, [query, setQuery, groupDims, handleToggleGroupDim, availableGroupDims, setStreamControls])
+  }, [query, setQuery, groupDims, handleToggleGroupDim, availableGroupDims, setStreamControls, settings, setLayout, toggleField, profile.level])
 
   // Progressive anchor reachability: the L3 index covers ALL groups, but only
   // the rendered prefix has DOM anchors (progressive batching). A click on a

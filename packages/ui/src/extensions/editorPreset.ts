@@ -25,6 +25,7 @@ import { linkOpen } from "./link-open";
 import { smartIncrement } from "./smart-increment";
 import { markdownSyntaxHiding } from "./markdown-syntax-hiding";
 import { markdownTablePreview } from "./markdown-tables";
+import { linkPreview } from "./link-preview";
 import { queryBlockPreview } from "./query-block-preview";
 import type { QueryExecutor } from "../contracts/query";
 
@@ -127,6 +128,7 @@ export function editorPreset(optionsOrDialect: string | EditorPresetOptions = 'm
       linkOpen,
       markdownSyntaxHiding(),
       markdownTablePreview,
+      linkPreview,
       queryBlockPreview({ executor, onResultSaved }),
     );
   }

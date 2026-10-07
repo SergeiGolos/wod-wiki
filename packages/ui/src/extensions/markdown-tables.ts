@@ -62,18 +62,35 @@ class MarkdownTableWidget extends WidgetType {
   }
 }
 
-function parseSectionTable(state: EditorState, section: EditorSection): { head: string[]; rows: string[][] } | null {
-  const lines: string[] = [];
+/** Locate the contiguous run of `|`-lines that forms a table (header +
+ *  separator on its first two lines). Returns the parsed grid plus the
+ *  1-based line range it occupies, or null when the section has no table. */
+function parseSectionTable(
+  state: EditorState,
+  section: EditorSection,
+): { head: string[]; rows: string[][]; fromLine: number; toLine: number } | null {
+  // Collect maximal runs of consecutive `|`-lines.
+  const runs: { fromLine: number; toLine: number }[] = [];
   for (let l = section.startLine; l <= section.endLine; l++) {
-    lines.push(state.doc.line(l).text);
+    if (!state.doc.line(l).text.trim().startsWith("|")) continue;
+    const last = runs[runs.length - 1];
+    if (last && last.toLine === l - 1) last.toLine = l;
+    else runs.push({ fromLine: l, toLine: l });
   }
-  const tableLines = lines.filter((l) => l.trim().startsWith("|"));
-  if (tableLines.length < 2) return null;
-  if (!isTableSeparator(tableLines[1])) return null;
 
-  const head = parseTableCells(tableLines[0]);
-  const rows = tableLines.slice(2).map(parseTableCells);
-  return { head, rows };
+  for (const run of runs) {
+    const lines: string[] = [];
+    for (let l = run.fromLine; l <= run.toLine; l++) {
+      lines.push(state.doc.line(l).text);
+    }
+    if (lines.length < 2 || !isTableSeparator(lines[1].trim())) continue;
+
+    const head = parseTableCells(lines[0]);
+    const rows = lines.slice(2).map(parseTableCells);
+    return { head, rows, fromLine: run.fromLine, toLine: run.toLine };
+  }
+
+  return null;
 }
 
 function buildTableDecos(state: EditorState): DecorationSet {
@@ -82,15 +99,21 @@ function buildTableDecos(state: EditorState): DecorationSet {
   const cursor = state.selection.main.head;
 
   for (const section of sections) {
-    if (section.type !== "markdown" || section.subtype !== "table") continue;
-    if (cursor >= section.from && cursor <= section.to) continue;
+    if (section.type !== "markdown") continue;
 
     const parsed = parseSectionTable(state, section);
     if (!parsed) continue;
 
+    // Only the table's own lines are replaced; surrounding prose stays.
+    // The raw source shows while the cursor is inside the table so it
+    // stays editable (same convention as markdownSyntaxHiding).
+    const from = state.doc.line(parsed.fromLine).from;
+    const to = state.doc.line(parsed.toLine).to;
+    if (cursor >= from && cursor <= to) continue;
+
     builder.add(
-      section.from,
-      section.to,
+      from,
+      to,
       Decoration.replace({
         widget: new MarkdownTableWidget(parsed.head, parsed.rows),
         block: true,

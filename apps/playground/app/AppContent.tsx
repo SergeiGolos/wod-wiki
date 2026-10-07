@@ -107,15 +107,13 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   // (journal date, workout/effort/feed/dashboard slug) — on mobile the navbar
   // crumb is the ONLY page identity, since the page header is hidden below lg.
   const crumbTitle = view.shell.title ?? currentWorkout.name
-  // Stream surfaces resolve their profile once per path — the view, the L3
-  // properties rail, and the mobile right drawer all read the same profile.
+  // Stream surfaces resolve their profile once per path — the view reads it
+  // directly (where-filters are L2-only; the L3 rail carries view controls).
   const streamProfile = useMemo(
     () => (view.page === 'library' ? applyRouteWqlConfig(resolveStreamProfile(location.pathname)) : undefined),
     [view.page, location.pathname],
   )
-  // Route-declared secondary spec (canvas pages may declare one); stream
-  // surfaces derive their L3 properties from the profile at render time in
-  // SecondaryNav — no spec plumbing needed.
+  // Route-declared secondary spec (canvas pages may declare one).
   const secondarySpec = view.shell.secondary
 
   useEffect(() => {

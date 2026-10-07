@@ -508,6 +508,42 @@ No frontmatter here.
     container.remove();
   });
 
+  it('renders a new-tab navigate button for URL-valued properties (edit and read-only)', () => {
+    const doc = '---\ntitle: Demo\nsource: https://example.com/src\n---\n# Body\n';
+
+    const editState = EditorState.create({
+      doc,
+      extensions: [sectionField, frontmatterPreview],
+    });
+    const editContainer = document.createElement('div');
+    document.body.appendChild(editContainer);
+    const editView = new EditorView({ state: editState, parent: editContainer });
+
+    const editLink = editContainer.querySelector('a[aria-label="Open source in new tab"]') as HTMLAnchorElement;
+    expect(editLink).not.toBeNull();
+    expect(editLink.href).toBe('https://example.com/src');
+    expect(editLink.target).toBe('_blank');
+    expect(editLink.rel).toContain('noopener');
+    // Non-URL values get no button.
+    expect(editContainer.querySelector('a[aria-label="Open title in new tab"]')).toBeNull();
+    editView.destroy();
+    editContainer.remove();
+
+    const roState = EditorState.create({
+      doc,
+      extensions: [sectionField, frontmatterPreview, EditorState.readOnly.of(true)],
+    });
+    const roContainer = document.createElement('div');
+    document.body.appendChild(roContainer);
+    const roView = new EditorView({ state: roState, parent: roContainer });
+
+    const roLink = roContainer.querySelector('a[aria-label="Open source in new tab"]') as HTMLAnchorElement;
+    expect(roLink).not.toBeNull();
+    expect(roLink.href).toBe('https://example.com/src');
+    roView.destroy();
+    roContainer.remove();
+  });
+
   it('does not render metadata buttons for notes without frontmatter in read-only mode', () => {
     const NOTE_WITHOUT_FM = `# Readonly Heading
 No frontmatter.

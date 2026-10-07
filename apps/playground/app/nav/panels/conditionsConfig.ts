@@ -32,7 +32,9 @@ const capitalized = (values: readonly string[]): ConditionValueSpec[] =>
 
 /** Defaults cover only the closed vocabularies. Open-ended facets (tags,
  *  typed tags, effort slugs, note/result/block/note ids, session planes)
- *  stay result-ranked with no expectation list. */
+ *  stay result-ranked with no expectation list; the membership-backed ones
+ *  union the corpus vocabulary at count 0, so empty criteria stay listed
+ *  after narrowing (see facetOptions). */
 const SECTION_CONFIG: Record<string, ConditionSectionConfig> = {
   source: { enabled: false, expectedValues: capitalized(WQL_SOURCE_VALUES) },
   page: { enabled: false, expectedValues: [{ value: 'true', label: 'Pages' }, { value: 'false', label: 'Non-pages' }] },

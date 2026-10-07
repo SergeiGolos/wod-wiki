@@ -334,6 +334,34 @@ function createPlusIcon(): SVGElement {
   return svg;
 }
 
+function createExternalIcon(): SVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("class", "h-3 w-3");
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M15 3h6v6");
+  svg.appendChild(path);
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", "10");
+  line.setAttribute("x2", "21");
+  line.setAttribute("y1", "14");
+  line.setAttribute("y2", "3");
+  svg.appendChild(line);
+
+  const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  polyline.setAttribute("points", "21 14 21 3 10 3");
+  svg.appendChild(polyline);
+
+  return svg;
+}
+
 function createCloseIcon(size: "sm" | "md" = "md"): SVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
@@ -625,6 +653,20 @@ export class DefaultFrontmatterWidget extends WidgetType {
               valInput.blur();
             }
           });
+        }
+
+        // Text-link values get a navigate-to (new tab) button.
+        if (/^https?:\/\/\S+$/i.test(strVal)) {
+          const openLink = document.createElement("a");
+          openLink.href = strVal;
+          openLink.target = "_blank";
+          openLink.rel = "noopener noreferrer";
+          openLink.title = strVal;
+          openLink.setAttribute("aria-label", `Open ${key} in new tab`);
+          openLink.className =
+            "shrink-0 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer";
+          openLink.appendChild(createExternalIcon());
+          valCol.appendChild(openLink);
         }
       }
       row.appendChild(valCol);

@@ -36,6 +36,7 @@ export { embedPreviewDecorations } from './embed-preview';
 export { frontmatterPreview, frontmatterPreviewField, DefaultFrontmatterWidget, frontmatterSuggestions, type FrontmatterSuggestionCatalog } from './frontmatter-preview';
 export { markdownSyntaxHiding } from './markdown-syntax-hiding';
 export { markdownTablePreview } from './markdown-tables';
+export { linkPreview } from './link-preview';
 export {
   gutterUnified,
   gutterHighlightsField,

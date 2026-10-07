@@ -347,9 +347,11 @@ export interface FacetContext {
   effortMembership: Map<string, string[]> | null
 }
 
-/** Result-backed options for one supported key. Returns [] when the key has
- *  no enumerable values on this plane (freeform) or when no snapshot is
- *  available yet — sections then show selections/freeform only. */
+/** Options for one supported key: current-result values with live counts,
+ *  unioned with the corpus-wide vocabulary (membership-backed keys) at
+ *  count 0 so empty filter criteria stay listed. Returns [] when the key
+ *  has no enumerable values on this plane (freeform) or its membership
+ *  index has not loaded yet. */
 export function facetOptions(target: string, key: string, ctx: FacetContext): FacetOption[] {
   const counts = new Map<string, FacetOption>()
   const bump = (value: string, label?: string) => {
@@ -365,6 +367,14 @@ export function facetOptions(target: string, key: string, ctx: FacetContext): Fa
   if (tagKey && !ctx.tagMembership) return []
   const effortNoteKey = (target === 'note' || target === 'block') && key === 'effort'
   if (effortNoteKey && !ctx.effortMembership) return []
+
+  /** Empty filter criteria stay listed: the corpus-wide index is the
+   *  source type's full vocabulary — values with no rows in the (possibly
+   *  narrowed) current run enter at count 0 and render dimmed. Result
+   *  counts below always win over the zero seed. */
+  const seedZero = (value: string) => {
+    if (!counts.has(value)) counts.set(value, { value, count: 0 })
+  }
 
   for (const entry of ctx.entries) {
     switch (`${target}:${key}`) {
@@ -464,6 +474,22 @@ export function facetOptions(target: string, key: string, ctx: FacetContext): Fa
       bump(entry.noteId ?? entry.id, entry.title)
     }
   }
+  // Corpus vocabulary for the membership-backed keys — the empty criteria
+  // rows survive any narrowing (and a fresh mount straight onto a filtered
+  // query). Result-derived counts above always win over the zero seed.
+  if (tagKey) {
+    for (const rows of ctx.tagMembership!.values()) {
+      for (const row of rows) {
+        if (tagKey === 'tags' || row.type === tagKey) seedZero(row.label)
+      }
+    }
+  }
+  if (effortNoteKey) {
+    for (const slugs of ctx.effortMembership!.values()) {
+      for (const slug of slugs) seedZero(slug)
+    }
+  }
+
   return [...counts.values()]
     .sort((a, b) => b.count - a.count || (a.label ?? a.value).localeCompare(b.label ?? b.value))
 }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import type { ReactElement } from 'react';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ActionsMenu } from './PageToolbar';
 import { NavContext, initialNavState } from '../../nav/NavContext';
@@ -168,6 +168,10 @@ describe('L3 fallback uniformity (⋯ menu mirrors the rail)', () => {
       { id: 'date', label: 'Date' },
       { id: 'discipline', label: 'Discipline' },
     ],
+    settings: { level: 'note' as const, layout: 'cards' as const, visibleFields: ['title'] },
+    onLayoutChange: mock(() => {}),
+    onToggleField: mock(() => {}),
+    level: 'note' as const,
   };
 
   function renderMenu(ui: ReactElement, controls: typeof streamControls | null = streamControls) {
@@ -201,10 +205,12 @@ describe('L3 fallback uniformity (⋯ menu mirrors the rail)', () => {
     });
     expect(screen.getByText('Date window')).toBeDefined();
     expect(screen.getByText('Group by')).toBeDefined();
-    expect((screen.getByLabelText('Date') as HTMLInputElement).checked).toBe(true);
-    expect((screen.getByLabelText('Discipline') as HTMLInputElement).checked).toBe(false);
+    // Scope to the Group-by block — the Fields section has its own Date row.
+    const groupBlock = screen.getByTestId('l3-groupby-options');
+    expect((within(groupBlock).getByLabelText('Date') as HTMLInputElement).checked).toBe(true);
+    expect((within(groupBlock).getByLabelText('Discipline') as HTMLInputElement).checked).toBe(false);
     act(() => {
-      screen.getByLabelText('Discipline').click();
+      within(groupBlock).getByLabelText('Discipline').click();
     });
     expect(streamControls.onToggleGroupDim).toHaveBeenCalledWith('discipline');
   });
