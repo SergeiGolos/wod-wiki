@@ -347,6 +347,9 @@ describe('IndexedDBNotePersistence', () => {
       deleteEvents: async (ids: string[]) => { deletedEventIds.push(...ids); },
       getEventsForNote: async () => [],
       getEventsByResult: async () => initialEvents,
+      // Atomicity is covered against real backends (atomic.test.ts) — the
+      // scoped surface is the fake itself here.
+      withTransaction: async <R>(_stores: unknown[], fn: (scoped: never) => Promise<R>) => fn(storage as never),
     };
     const persistence = new IndexedDBNotePersistence(storage as never, {} as never);
 

@@ -102,7 +102,10 @@ function createHarness(result: Session, initialEvents: EventRecord[] = [], segme
       currentEvents = currentEvents.filter((r) => !doomed.has(r.id));
     },
     getEventsForNote: async () => currentEvents,
-    getEventsByResult: async (resultId) => currentEvents.filter((r) => r.resultId === resultId),
+    getEventsByResult: async (resultId: string) => currentEvents.filter((r) => r.resultId === resultId),
+    // Atomicity is covered against real backends (atomic.test.ts) — the
+    // scoped surface is the fake itself here.
+    withTransaction: async <R>(_stores: unknown[], fn: (scoped: never) => Promise<R>) => fn(storage as never),
   };
 
   const persistence = new IndexedDBNotePersistence(storage);
