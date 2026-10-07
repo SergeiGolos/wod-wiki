@@ -5,6 +5,8 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { shareBlock, openBlockInPlaygroundNewTab } from '../../services/openInPlayground'
+import { encodeZip } from '../../services/encodeZip'
+import { toast } from '@/hooks/use-toast'
 import { useRingRef } from '../TourRing'
 import { TEST_IDS } from '@/testing/contracts/TestIdContract'
 export interface TourEditorScreenProps {
@@ -13,8 +15,8 @@ export interface TourEditorScreenProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   /** Starts the fullscreen playground bound to this editor's first block. */
   onRun: () => void
-  /** Copies a /load?z= share link for the current doc (#882). */
-  onShare: () => void
+  /** Copies a /?z= share link for the current doc. */
+  onShare?: () => void
   theme: string
   /**
    * Opt in to ring-target registration (#884): the measured fenced-block
@@ -153,6 +155,21 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     onRun()
   }, [onRun])
 
+  const handleShareClick = useCallback(() => {
+    if (onShare) {
+      onShare()
+      return
+    }
+    encodeZip(doc).then((encoded) => {
+      const url = `${window.location.origin}/?z=${encoded}`
+      navigator.clipboard.writeText(url).then(() => {
+        toast({ title: 'Link copied', description: 'Share link copied to clipboard.' })
+      }).catch(() => {
+        toast({ title: 'Could not copy', description: url, variant: 'destructive' })
+      })
+    })
+  }, [doc, onShare])
+
   const commands = useMemo<ScriptCommand[]>(() => [
     {
       id: 'run',
@@ -229,7 +246,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           <button
             type="button"
             title="Copy share link"
-            onClick={onShare}
+            onClick={handleShareClick}
             className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-background/80 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40 hover:text-foreground"
           >
             <Share2 size={13} />

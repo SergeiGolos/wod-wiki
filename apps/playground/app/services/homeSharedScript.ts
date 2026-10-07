@@ -39,6 +39,9 @@ function storage(): Storage | null {
 export function saveHomeShared(script: HomeSharedScript): void {
   try {
     storage()?.setItem(SHARED_KEY, JSON.stringify(script))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('wodwiki:home-shared', { detail: script }))
+    }
   } catch {
     // Non-fatal — a shared script is disposable.
   }

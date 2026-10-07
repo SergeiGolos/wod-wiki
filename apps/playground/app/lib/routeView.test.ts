@@ -286,6 +286,13 @@ describe('resolveRouteView — single-note and collection-date routes', () => {
     expect(view.noteById).toBe(UUID)
     expect(view.workout.category).toBe('note')
   })
+  it('classifies /note/:noteId as the single-note page', () => {
+    const view = resolveRouteView(`/note/${UUID}`, NO_PARAMS, makeDeps())
+    expect(view.page).toBe('note')
+    expect(view.isNoteByIdRoute).toBe(true)
+    expect(view.noteById).toBe(UUID)
+    expect(view.workout.category).toBe('note')
+  })
 
   it('classifies /collections/:slug/:noteId as the single-note page', () => {
     const view = resolveRouteView(`/collections/girls/${UUID}`, { collection: 'girls', workout: UUID }, makeDeps())
@@ -379,5 +386,11 @@ describe('resolveRouteView — target-scheme routes (/c, /e, /sessions, /d, /p, 
     const view = resolveRouteView('/p/syntax/basics', NO_PARAMS, makeDeps({ canvasPage }))
     expect(view.page).toBe('canvas')
     expect(view.shell.wrap).toBe('canvas')
+  })
+  it('classifies /p/:slug non-canvas pages as a single-note page by slug', () => {
+    const view = resolveRouteView('/p/my-custom-note', NO_PARAMS, makeDeps({ canvasPage: null }))
+    expect(view.page).toBe('note')
+    expect(view.isNoteByIdRoute).toBe(true)
+    expect(view.noteById).toBe('my-custom-note')
   })
 })

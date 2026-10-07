@@ -33,6 +33,8 @@ export interface UseNotePageNavOptions {
    * Only the JournalPage uses this today.
    */
   results?: Session[]
+  /** Optional callback to edit the note from the L3 header item. */
+  onEditNote?: () => void
 }
 
 /**
@@ -45,8 +47,9 @@ export function wirePageIndexLinks(
   scriptBlocks: ScriptBlock[],
   onStartWorkout: (block: ScriptBlock) => void,
   results?: Session[],
+  onEditNote?: () => void,
 ): PageNavLink[] {
-  return base.map(link => {
+  const wired = base.map(link => {
     if (link.type !== 'time' && link.type !== 'log') return link
     const lineNum = parseInt(link.id.replace(`${link.type}-line-`, ''), 10)
     const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
@@ -75,6 +78,16 @@ export function wirePageIndexLinks(
       },
     }
   })
+  if (onEditNote) {
+    const headerIdx = wired.findIndex(l => l.type === 'heading')
+    const targetIdx = headerIdx !== -1 ? headerIdx : 0
+    if (wired[targetIdx]) {
+      return wired.map((link, idx) =>
+        idx === targetIdx ? { ...link, onRun: onEditNote, runIcon: 'edit' as const } : link,
+      )
+    }
+  }
+  return wired
 }
 
 /**
@@ -86,10 +99,11 @@ export function useNotePageNav({
   scriptBlocks,
   onStartWorkout,
   results,
+  onEditNote,
 }: UseNotePageNavOptions): PageNavLink[] {
   const index = useMemo(
-    () => wirePageIndexLinks(extractPageIndex(content), scriptBlocks, onStartWorkout, results),
-    [content, scriptBlocks, onStartWorkout, results],
+    () => wirePageIndexLinks(extractPageIndex(content), scriptBlocks, onStartWorkout, results, onEditNote),
+    [content, scriptBlocks, onStartWorkout, results, onEditNote],
   )
 
   const { setL3Items } = useNav()

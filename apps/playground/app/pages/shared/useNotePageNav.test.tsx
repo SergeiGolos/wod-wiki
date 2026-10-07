@@ -94,4 +94,39 @@ describe('useNotePageNav — log link gating', () => {
     captured.find(l => l.type === 'time')?.onRun?.();
     expect(onStart).toHaveBeenCalledTimes(1);
   });
+  it('attaches onEditNote with edit runIcon to the note header item', () => {
+    const onEdit = mock(() => {});
+    let captured: PageNavLink[] = [];
+    function Harness() {
+      captured = useNotePageNav({
+        content: CONTENT,
+        scriptBlocks: [block(2), block(6)],
+        onStartWorkout: () => {},
+        onEditNote: onEdit,
+      });
+      return null;
+    }
+    render(
+      <MemoryRouter>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: [],
+            setL3Items: () => {},
+            scrollToSection: () => {},
+            registerScrollFn: () => {},
+          }}
+        >
+          <Harness />
+        </NavContext.Provider>
+      </MemoryRouter>,
+    );
+    const headerLink = captured.find(l => l.type === 'heading');
+    expect(headerLink?.runIcon).toBe('edit');
+    expect(headerLink?.onRun).toBeDefined();
+    headerLink?.onRun?.();
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
 });

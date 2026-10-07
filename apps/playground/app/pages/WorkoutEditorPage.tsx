@@ -90,7 +90,6 @@ export function WorkoutEditorPage({
   }, [category, isCollection, name])
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
-  const [viewMode, setViewMode] = useState<'read' | 'edit'>('read')
 
   const handleStartWorkout = useCallback(
     async (block: ScriptBlock) => {
@@ -171,7 +170,15 @@ export function WorkoutEditorPage({
   })
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
-  const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout })
+  const handleEditNote = useCallback(() => {
+    navigate(noteByIdPath(noteId))
+  }, [navigate, noteId])
+  const index = useNotePageNav({
+    content,
+    scriptBlocks,
+    onStartWorkout: handleStartWorkout,
+    onEditNote: isCollection ? handleEditNote : undefined,
+  })
   // Contextual links (efforts in script, sibling workouts sharing blocks,
   // journal copies) — only for real collection items, not journal/syntax ids.
   const ownership = useMemo(
@@ -182,17 +189,8 @@ export function WorkoutEditorPage({
     noteId,
     stamps: ownership?.stamps ?? [],
   })
-  const editToggle = (
-    <Button
-      type="button"
-      onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
-      variant="outline"
-    >
-      {viewMode === 'read' ? 'Edit' : 'Read mode'}
-    </Button>
-  )
   const headerActions = (
-    <ResponsiveActions navbar={editToggle}>
+    <ResponsiveActions>
       <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
     </ResponsiveActions>
   )
@@ -220,7 +218,7 @@ export function WorkoutEditorPage({
               onCursorPositionChange={onLineChange}
               onBlur={onBlur}
               noteId={noteId}
-              readonly={viewMode === 'read'}
+              readonly={true}
               enableInlineRuntime={usePopup}
               commands={commands}
               onViewCreated={onViewCreated}

@@ -39,7 +39,6 @@ interface JournalDatePageProps {
 
 export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDatePageProps) {
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
-  const [viewMode, setViewMode] = useState<'read' | 'edit'>('edit');
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
@@ -261,19 +260,10 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return <Navigate to={noteByIdPath(selectedNoteId)} replace />;
   }
 
-  const editToggle = notes.length > 0 ? (
-    <Button
-      type="button"
-      onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
-      variant="outline"
-    >
-      {viewMode === 'read' ? 'Edit' : 'Read mode'}
-    </Button>
-  ) : undefined;
 
   const handleCreated = (created: HistoryEntry) => {
     journalNotes.listByDate(journalDate).then(setNotes).catch(() => {});
-    navigate(`${noteByIdPath(created.id)}?edit=1`);
+    navigate(noteByIdPath(created.id));
   };
 
   return (
@@ -283,7 +273,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           subtitle={`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
           actions={
             <ResponsiveActions
-              navbar={editToggle}
               primary={
                 <Button type="button" onClick={() => setCreateOpen(true)}>
                   <Plus className="size-4 mr-1.5" aria-hidden="true" />
@@ -351,7 +340,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
                 value={notes[0].rawContent}
                 onChange={(val) => handleNoteContentChange(notes[0].id, val)}
                 noteId={notes[0].id}
-                readonly={viewMode === 'read'}
+                readonly={false}
                 theme={theme}
                 showLineNumbers={false}
                 onBlocksChange={(blks) => handleBlocksForNote(notes[0].id, blks)}
@@ -375,7 +364,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
                     value={note.rawContent}
                     onChange={(val) => handleNoteContentChange(note.id, val)}
                     noteId={note.id}
-                    readonly={viewMode === 'read'}
+                    readonly={false}
                     theme={theme}
                     showLineNumbers={false}
                     onBlocksChange={(blks) => handleBlocksForNote(note.id, blks)}

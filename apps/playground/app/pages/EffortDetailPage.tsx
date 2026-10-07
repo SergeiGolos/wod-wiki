@@ -495,7 +495,7 @@ export function EffortDetailPage() {
               value={document}
               onChange={setDocument}
               theme={actualTheme}
-              readonly={!isEditable}
+              readonly={false}
               showLineNumbers={true}
               enablePreview={true}
               enableLinting={true}

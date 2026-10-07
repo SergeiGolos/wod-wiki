@@ -44,6 +44,17 @@ describe('mapIndexToL3', () => {
     expect(l3[0].action).toEqual({ type: 'scroll', sectionId: 'log-line-7' })
     expect(l3[0].secondaryAction).toBeUndefined()
   })
+  it('maps heading with edit runIcon to secondary edit action', () => {
+    const onEdit = mock(() => {})
+    const index: PageNavLink[] = [{ id: 'fran', label: 'Fran', type: 'heading', onRun: onEdit, runIcon: 'edit' }]
+    const l3 = mapIndexToL3(index)
+
+    expect(l3[0].action).toEqual({ type: 'scroll', sectionId: 'fran' })
+    expect(l3[0].secondaryAction?.id).toBe('fran-edit')
+    expect(l3[0].secondaryAction?.label).toBe('Edit')
+    expect(l3[0].secondaryAction?.action).toEqual({ type: 'call', handler: onEdit })
+    expect(l3[0].secondaryRunIcon).toBe('edit')
+  })
 })
 
 describe('extractPageIndex', () => {

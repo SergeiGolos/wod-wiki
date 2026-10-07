@@ -76,7 +76,7 @@ export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
 export async function buildHomeShareUrl(wodContent: string): Promise<string> {
   const markdown = `\`\`\`time\n${wodContent.trimEnd()}\n\`\`\`\n`;
   const encoded = await gzipBase64(markdown);
-  return `${window.location.origin}/load?z=${encoded}`;
+  return `${window.location.origin}/?z=${encoded}`;
 }
 
 // ---------------------------------------------------------------------------

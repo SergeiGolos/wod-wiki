@@ -99,6 +99,25 @@ describe('useZipProcessor', () => {
     expect(window.localStorage.getItem(SHARED_KEY)).toContain('decoded:abc')
     expect(toastMock).not.toHaveBeenCalled()
   })
+  it('lands the ?z= share directly when visited on home route (/)', async () => {
+    mockPathname = '/'
+    params = { z: 'abc' }
+    renderHook(() => useZipProcessor())
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
+    expect(ensureEntryMock).toHaveBeenCalledTimes(1)
+    expect(window.localStorage.getItem(SHARED_KEY)).toContain('decoded:abc')
+    expect(toastMock).not.toHaveBeenCalled()
+  })
+  it('ignores ?zip= on home route (/)', async () => {
+    mockPathname = '/'
+    params = { zip: 'abc' }
+    renderHook(() => useZipProcessor())
+
+    await Promise.resolve()
+    expect(mockNavigate).not.toHaveBeenCalled()
+    expect(createPageMock).not.toHaveBeenCalled()
+  })
   it('sends the ?z= home-hero share to the loaded playground page under the journal startup setting', async () => {
     startPage = 'journal'
     params = { z: 'abc', by: 'Tester' }

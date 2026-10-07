@@ -342,6 +342,15 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: () => '/',
   },
+  // /note/:noteId (single segment, not playground) → /notes/:noteId
+  {
+    match: (p) => {
+      const m = p.match(/^\/note\/(?!playground(?:$|\/))([^/]+)$/);
+      if (!m || m[1] === 'playground') return false;
+      return { noteId: decodeURIComponent(m[1]!) };
+    },
+    to: ({ noteId }) => noteByIdPath(noteId),
+  },
   // /note/:category/:name  →  /c/:category/:name (legacy workout alias)
   {
     match: (p) => {

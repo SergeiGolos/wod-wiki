@@ -7,7 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/atoms/primitives/dropdown-menu'
-import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from '@heroicons/react/20/solid'
+import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon, ArrowDownTrayIcon, PencilSquareIcon } from '@heroicons/react/20/solid'
 
 export interface PageNavLink {
   id: string
@@ -17,7 +17,7 @@ export interface PageNavLink {
   /** When set, a small Play button is rendered aligned to the right */
   onRun?: () => void
   /** Which icon to show for the run button: 'play' (default) or 'link' */
-  runIcon?: 'play' | 'link'
+  runIcon?: 'play' | 'link' | 'edit'
   /** Optional timestamp for timeline view (e.g. '08:30') */
   timestamp?: string
   /** Optional number of workout completions */
@@ -114,11 +114,13 @@ export function PageNavDropdown({
             {link.onRun && (
               <button
                 className="flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
-                title={link.runIcon === 'link' ? "View workout" : "Start workout"}
+                title={link.runIcon === 'link' ? "View workout" : link.runIcon === 'edit' ? "Edit note" : "Start workout"}
                 onClick={(e) => { e.stopPropagation(); link.onRun!() }}
               >
                 {link.runIcon === 'link' ? (
                   <ArrowTopRightOnSquareIcon className="size-3" />
+                ) : link.runIcon === 'edit' ? (
+                  <PencilSquareIcon className="size-3" />
                 ) : (
                   <PlayIcon className="size-3" />
                 )}

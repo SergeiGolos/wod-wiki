@@ -52,13 +52,21 @@ export async function openBlockInPlaygroundNewTab(
 }
 
 
+/** Build the /?z= home-share URL for a time/log block. */
+export async function buildHomeShareUrl(block: ScriptBlock): Promise<string> {
+  const dialect = block.dialect || 'time'
+  const fenceTag = block.sport ? `${dialect}:${block.sport}` : dialect
+  const markdown = `\`\`\`${fenceTag}\n${block.content.trimEnd()}\n\`\`\`\n`
+  const encoded = await encodeZip(markdown)
+  return `${window.location.origin}/?z=${encoded}`
+}
+
 /**
- * Copy the /load?zip= URL for the time/log block to the clipboard and show a
- * toast confirmation. The recipient can paste this URL into any browser to
- * open the workout in their own playground.
+ * Copy the /?z= home-share URL for the time/log block to the clipboard and show a
+ * toast confirmation. The recipient opens the workout directly on the home page.
  */
 export function shareBlock(block: ScriptBlock): void {
-  buildZipUrl(block).then(url => {
+  buildHomeShareUrl(block).then(url => {
     navigator.clipboard.writeText(url).then(() => {
       toast({
         title: 'Link copied',

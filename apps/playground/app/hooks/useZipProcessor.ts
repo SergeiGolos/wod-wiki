@@ -40,10 +40,8 @@ export function useZipProcessor() {
   const [srcParam] = useQueryState('src');
 
   useEffect(() => {
-    // Only run on the plain /load route — avoid creating phantom notes when
-    // /load/journal?zip=… is handled by useJournalZipProcessor, and prevent
-    // PlanRedirect from leaking ?zip into /journal?zip=…
-    if (location.pathname !== '/load') return;
+    // Plain /load route, or home route (/) when handling ?z= home shares (#882).
+    if (location.pathname !== '/load' && !(location.pathname === '/' && zParam)) return;
 
     if (zParam) {
       let cancelled = false;

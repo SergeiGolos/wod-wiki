@@ -27,6 +27,7 @@ export interface CanvasPanelContentProps {
   panelThemeClass?: string
   headerActions?: ReactNode
   onRun?: (doc: string, block: ScriptBlock | null) => void
+  readonly?: boolean
 }
 
 export function CanvasPanelContent({
@@ -45,6 +46,7 @@ export function CanvasPanelContent({
   panelThemeClass,
   headerActions,
   onRun,
+  readonly = false,
 }: CanvasPanelContentProps) {
   const isEditorDirty = editorSource !== activeOriginalSource
   const subheader = (
@@ -73,7 +75,7 @@ export function CanvasPanelContent({
         onBlocksChange={onBlocksChange}
         onViewCreated={onViewCreated}
         theme={theme}
-        readonly={false}
+        readonly={readonly}
         showLineNumbers={false}
         enableOverlay={false}
         enableInlineRuntime={false}

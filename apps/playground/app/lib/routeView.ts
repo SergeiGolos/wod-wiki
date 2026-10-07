@@ -144,7 +144,7 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
   const feedItemMatch = matchFeedItem(pathname)
   const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(pathname)
 
-  const noteByIdMatch = pathname.match(/^\/notes\/([^/]+)$/)
+  const noteByIdMatch = pathname.match(/^\/(?:notes|note)\/([^/]+)$/)
   const isNoteByIdRoute = noteByIdMatch != null
   const noteById = noteByIdMatch ? decodeURIComponent(noteByIdMatch[1]!) : undefined
 
@@ -308,6 +308,13 @@ export function resolveRouteView(
   deps: RouteViewDeps,
 ): RouteView {
   const flags = detectFlags(pathname, params)
+  if (!deps.canvasPage && !flags.noteById) {
+    const pageSlugMatch = pathname.match(/^\/p\/([^/]+)$/)
+    if (pageSlugMatch) {
+      flags.isNoteByIdRoute = true
+      flags.noteById = decodeURIComponent(pageSlugMatch[1]!)
+    }
+  }
   const workout = deriveWorkout(flags, pathname, params, deps.workoutItems, deps.canvasPage)
   const nav = deriveNav(pathname, deps)
   const page = derivePage(flags, pathname, deps.canvasPage)

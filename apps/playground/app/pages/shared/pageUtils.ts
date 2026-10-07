@@ -7,7 +7,7 @@
 
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { NavItemL3 } from '../../nav/navTypes'
-import { ArrowTopRightOnSquareIcon, PlayIcon } from '@heroicons/react/20/solid'
+import { ArrowTopRightOnSquareIcon, PlayIcon, PencilSquareIcon } from '@heroicons/react/20/solid'
 
 // ── Runtime-category constants ───────────────────────────────────────────────
 
@@ -121,11 +121,12 @@ export function mapIndexToL3(index: PageNavLink[]): NavItemL3[] {
         : { type: 'scroll' as const, sectionId: link.id },
     secondaryAction: link.onRun
       ? {
-          id: link.id + '-run',
-          label: 'Run',
-          icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
+          id: link.id + (link.runIcon === 'edit' ? '-edit' : '-run'),
+          label: link.runIcon === 'edit' ? 'Edit' : 'Run',
+          icon: link.runIcon === 'edit' ? PencilSquareIcon : link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
           action: { type: 'call' as const, handler: link.onRun },
         }
       : undefined,
+    secondaryRunIcon: link.runIcon,
   }))
 }

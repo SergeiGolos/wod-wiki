@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
@@ -73,7 +73,9 @@ export function MarkdownCanvasPage({
   onScrollToSection,
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { sections, route, chapters } = page
+  const isPageSlug = location.pathname.startsWith('/p/') || route.startsWith('/p/')
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
   const isGuide = page.type === 'guide' || route.startsWith('/guide')
   useScrollTelemetry(isGuide ? route : undefined)
@@ -432,6 +434,7 @@ export function MarkdownCanvasPage({
       handleEditorChange={handleEditorChange}
       onResetToSource={handlePanelReset}
       canvasNoteId={canvasNoteId}
+      readonly={isPageSlug}
       theme={theme}
       commands={canvasCommands}
       onBlocksChange={handleBlocksChange}

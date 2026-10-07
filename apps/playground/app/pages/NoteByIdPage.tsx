@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { v7 as uuidv7 } from 'uuid'
 import { CalendarDays, Copy } from 'lucide-react'
 import { Button } from '@/components/atoms/primitives/button'
@@ -45,12 +45,11 @@ export interface NoteByIdPageProps {
  */
 export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const [entry, setEntry] = useState<HistoryEntry | null>(null)
   const [missing, setMissing] = useState(false)
-  const [viewMode, setViewMode] = useState<'read' | 'edit'>(() =>
-    searchParams.get('edit') === '1' ? 'edit' : 'read',
-  )
+  const isReadOnly = location.pathname.startsWith('/p/')
   const [saveError, setSaveError] = useState<{ noteId: string; message: string } | null>(null)
   const [placement, setPlacement] = useState<NotePlacementMode | null>(null)
   const [sourceEntry, setSourceEntry] = useState<HistoryEntry | null>(null)
@@ -69,7 +68,6 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
     setEntry(null)
     setMissing(false)
     setSaveError(null)
-    setViewMode(searchParams.get('edit') === '1' ? 'edit' : 'read')
     contentProvider
       .getEntry(noteId)
       .then((loaded) => {
@@ -214,17 +212,11 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
   } else if (!entry) {
     body = <div className="flex flex-1 items-center justify-center text-zinc-400">Loading…</div>
   } else {
-    const editToggle = (
-      <Button type="button" onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))} variant="outline">
-        {viewMode === 'read' ? 'Edit' : 'Read mode'}
-      </Button>
-    )
-
     const actionPill =
       'inline-flex min-h-11 items-center gap-1 rounded-pill border border-border bg-card px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent'
 
     const pageActions = (
-      <ResponsiveActions navbar={editToggle} label="Note actions">
+      <ResponsiveActions label="Note actions">
         <button type="button" className={actionPill} onClick={() => setPlacement('relationships')}>
           <CalendarDays className="size-3.5" aria-hidden="true" />
           Note relationships
@@ -286,7 +278,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
                   onChange={onChange}
                   onBlur={onBlur}
                   noteId={entry.id}
-                  readonly={viewMode === 'read'}
+                  readonly={isReadOnly}
                   theme={theme}
                   showLineNumbers={false}
                   onCompleteWorkout={handleCompleteWorkout}

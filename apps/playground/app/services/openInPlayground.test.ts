@@ -37,7 +37,7 @@ describe('openInPlayground', () => {
     expect(openedUrl).toContain('/load?zip=')
   })
 
-  it('shareBlock copies the load URL to the clipboard', async () => {
+  it('shareBlock copies the home-page share URL to the clipboard', async () => {
     const writeTextMock = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, {
       clipboard: {
@@ -49,7 +49,7 @@ describe('openInPlayground', () => {
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledTimes(1)
-      expect(writeTextMock.mock.calls[0][0]).toContain('/load?zip=')
+      expect(writeTextMock.mock.calls[0][0]).toContain('/?z=')
     })
   })
 })

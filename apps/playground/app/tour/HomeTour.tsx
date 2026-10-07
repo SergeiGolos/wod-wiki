@@ -306,6 +306,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const initialContent = sharedScript?.content ?? welcomeScript
   const sharedBy = sharedScript ? sharedScript.by?.trim() || 'anonymous' : undefined
 
+  useEffect(() => {
+    const onShared = (e: Event) => {
+      const detail = (e as CustomEvent<HomeSharedScript | null>).detail
+      if (detail?.content) {
+        setSharedScript(detail)
+        setDoc(detail.content)
+      }
+    }
+    window.addEventListener('wodwiki:home-shared', onShared)
+    return () => window.removeEventListener('wodwiki:home-shared', onShared)
+  }, [])
   const [doc, setDoc] = useState(initialContent)
   const docRef = useRef(doc)
   docRef.current = doc
