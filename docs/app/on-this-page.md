@@ -34,9 +34,17 @@ or `{ type: 'call', handler }`. Scrolls go through
 **Consumers:**
 | Surface | Breakpoint | Shows |
 |---|---|---|
-| `SecondaryNav` right rail | 2xl+ (≥ 1520px) | route secondary spec + "On this page" |
-| `ActionsMenu` (`⋯` header) | below 2xl (< 1520px) | same sections collapsed into dropdown (content capped at 984px with growing right padding from 1280px to 1519px) |
+| `SecondaryNav` right rail | 2xl+ (≥ 1520px) | Properties (stream routes: the shared facet accordion, `FacetProperties` — same model as the L2 conditions panel) + stream controls (date window + group by) + route secondary spec + "On this page" + page action (`PageDownloadAction`) |
+| `ActionsMenu` (`⋯` header dropdown) | lg–2xl (984–1519px) | the SAME L3 content, uniformly (same `FacetProperties`/`StreamControlsNav` components/links/toggles); the `⋯` trigger is `2xl:hidden` — it exists only where the rail does not (content capped at 984px with growing right padding from 1280px to 1519px) |
+| Mobile right drawer (`MobileRightDrawer` in `SidebarLayout`) | below lg (< 1024px) | the SAME L3 content, sliding in full-viewport from the right edge; trigger (sliders icon) mirrors the hamburger in the mobile header and appears only when the rail has content; Apply footer + close button dismiss — facet edits keep it open |
 | `NavSidebar` L2 panel | all | active-state highlighting of scroll items |
+> **2026-10 change:** the stream profiles' `secondary` recent-* WQL listing
+> menus (Recent entries / Recent sessions / Recent playground pages) were
+> removed — L3 surfaces the shared facet **Properties** instead
+> (`FacetProperties`, extracted from `ConditionsNavPanel`). The mobile dock
+> sheet also dropped the global Page-options fallback rows; page-specific
+> sheet rows (e.g. playground New/Reset) remain.
+
 **Invariants (as implemented):**
 - Exactly one writer owns `l3Items` per page kind. Writers clear on unmount
   (`setL3Items([])`).

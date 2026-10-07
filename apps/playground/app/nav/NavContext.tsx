@@ -179,10 +179,13 @@ export function NavProvider({ tree, children }: NavProviderProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
-  // Close left drawer and clear stream controls on route change
+  // Close left drawer on route change. Stream controls are NOT cleared here:
+  // this effect fires after children on mount/update, which would wipe the
+  // stream view's just-published controls (child effects run first, so the
+  // pathname clear always won the race). The stream view's own unmount
+  // cleanup clears them when the route actually leaves the stream.
   useEffect(() => {
     dispatch({ type: 'SET_LEFT_DRAWER', open: false })
-    setStreamControls(null)
   }, [location.pathname])
   const setL3Items = useCallback((items: NavItemL3[]) => {
     setL3ItemsInternal((prev) => {

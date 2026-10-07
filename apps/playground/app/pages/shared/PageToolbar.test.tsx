@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
+import type { ReactElement } from 'react';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ActionsMenu } from './PageToolbar';
@@ -154,5 +155,72 @@ describe('ActionsMenu', () => {
     const itemEl = screen.getByText('Section 1');
     const container = itemEl.closest('[class*="2xl:hidden"]');
     expect(container).not.toBeNull();
+  });
+});
+
+describe('L3 fallback uniformity (⋯ menu mirrors the rail)', () => {
+  const streamControls = {
+    query: ':journal{} last 4w',
+    onQueryChange: mock(() => {}),
+    groupDims: ['date'],
+    onToggleGroupDim: mock(() => {}),
+    availableGroupDims: [
+      { id: 'date', label: 'Date' },
+      { id: 'discipline', label: 'Discipline' },
+    ],
+  };
+
+  function renderMenu(ui: ReactElement, controls: typeof streamControls | null = streamControls) {
+    return render(
+      <MemoryRouter>
+        <NavContext.Provider
+          value={{
+            tree: [],
+            navState: initialNavState,
+            dispatch: () => {},
+            l3Items: [],
+            setL3Items: () => {},
+            secondarySpec: undefined,
+            setSecondarySpec: () => {},
+            streamControls: controls,
+            setStreamControls: () => {},
+            scrollToSection: () => {},
+            registerScrollFn: () => {},
+          }}
+        >
+          {ui}
+        </NavContext.Provider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('ActionsMenu renders the L3 stream controls (date window + group by) below the rail', () => {
+    renderMenu(<ActionsMenu currentWorkout={{ name: 'Test', content: '' }} />);
+    act(() => {
+      screen.getByRole('button').click();
+    });
+    expect(screen.getByText('Date window')).toBeDefined();
+    expect(screen.getByText('Group by')).toBeDefined();
+    expect((screen.getByLabelText('Date') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText('Discipline') as HTMLInputElement).checked).toBe(false);
+    act(() => {
+      screen.getByLabelText('Discipline').click();
+    });
+    expect(streamControls.onToggleGroupDim).toHaveBeenCalledWith('discipline');
+  });
+
+  it('omits stream controls when the route publishes none', () => {
+    renderMenu(<ActionsMenu currentWorkout={{ name: 'Test', content: '# Test' }} />, null);
+    act(() => {
+      screen.getByRole('button').click();
+    });
+    expect(screen.queryByText('Date window')).toBeNull();
+    expect(screen.queryByText('Group by')).toBeNull();
+  });
+
+  it('hides the ⋯ trigger at 2xl even when non-nav rows (download) exist', () => {
+    renderMenu(<ActionsMenu currentWorkout={{ name: 'Test', content: '# Test' }} />, null);
+    const trigger = screen.getByRole('button');
+    expect(trigger.className).toContain('2xl:hidden');
   });
 });

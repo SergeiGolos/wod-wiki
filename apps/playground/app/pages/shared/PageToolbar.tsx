@@ -6,7 +6,7 @@
  */
 
 import { useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -25,6 +25,9 @@ import { PlusIcon } from '@heroicons/react/16/solid'
 
 import { useNav } from '../../nav/NavContext'
 import { useResolvedMenu } from '../../nav/MenuList'
+import { StreamControlsNav } from '../../nav/SecondaryNav'
+import { FacetProperties } from '../../nav/panels/FacetProperties'
+import { isStreamRoute, resolveStreamProfile } from '../../views/stream/streamProfile'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import type { NavItemL3 } from '../../nav/navTypes'
 // ── NewEntryButton ───────────────────────────────────────────────────────────
@@ -62,11 +65,13 @@ export function NewEntryButton() {
 
 // ── Page options ─────────────────────────────────────────────────────────────
 
-/** One heading or actionable row of the Page options surface — shared by the
- *  desktop dropdown (ActionsMenu) and the mobile dock sheet's stacked
- *  buttons. `nav` marks navigation-derived entries (secondary sections +
- *  On this page); the desktop dropdown hides those at ≥2xl where the
- *  secondary rail owns them, the mobile sheet always shows them. */
+/** One heading or actionable row of the Page options surface — shared by
+ *  the desktop dropdown (ActionsMenu) and the mobile dock sheet's stacked
+ *  buttons. `nav` marks navigation-derived entries (stream controls,
+ *  secondary sections + On this page); below 2xl the ⋯ surfaces render the
+ *  same L3 content as the right rail, at ≥2xl the rail owns it all and the
+ *  ⋯ hides. `custom` entries render live components (no menu-item chrome);
+ *  the dropdown wraps them so interactions don't dismiss the menu. */
 export type PageOptionsEntry =
   | { kind: 'heading'; id: string; label: string; nav: boolean }
   | {
@@ -78,6 +83,50 @@ export type PageOptionsEntry =
       onSelect: () => void
       secondary?: { label: string; icon?: ReactNode; onSelect: () => void }
     }
+  | { kind: 'custom'; id: string; nav: boolean; render: () => ReactNode }
+
+/** Default Download Markdown behavior: export the resolved document. Pages
+ *  whose content loads in-page (playground/journal editors) resolve to an
+ *  empty string — callers hide the row rather than download a stub. */
+export function downloadMarkdown(
+  currentWorkout: { name: string; content: string },
+  onDownload?: () => void,
+): void {
+  if (onDownload) {
+    onDownload()
+    return
+  }
+  const blob = new Blob([currentWorkout.content], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const safeName = currentWorkout.name.replace(/[/\\:*?"<>|]/g, '-')
+  a.download = `${safeName}.md`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** Download Markdown as an L3 rail row (2xl+) — the same action the ⋯
+ *  surfaces carry below 2xl. Renders nothing when there is no document. */
+export function PageDownloadAction({
+  currentWorkout,
+  onDownload,
+}: {
+  currentWorkout: { name: string; content: string }
+  onDownload?: () => void
+}) {
+  if (currentWorkout.content === '') return null
+  return (
+    <button
+      type="button"
+      onClick={() => downloadMarkdown(currentWorkout, onDownload)}
+      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+    >
+      <ArrowDownTrayIcon className="size-4 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">Download Markdown</span>
+    </button>
+  )
+}
 
 export function usePageOptionsEntries(
   currentWorkout: { name: string; content: string },
@@ -85,11 +134,36 @@ export function usePageOptionsEntries(
   onDownload?: () => void,
 ): PageOptionsEntry[] {
   const navigate = useNavigate()
-  const { l3Items: contextL3, scrollToSection, secondarySpec } = useNav()
+  const location = useLocation()
+  const { l3Items: contextL3, scrollToSection, secondarySpec, streamControls } = useNav()
   const l3Items = items && items.length > 0 ? items : contextL3
   const resolvedSecondary = useResolvedMenu(secondarySpec)
+  // Stream routes mirror the rail's Properties block (same facet model as
+  // the L2 panel and the mobile right drawer). Legacy /results* classify as
+  // stream routes but have no profile of their own — the library fallback
+  // matches what the view resolves.
+  const streamRouteProfile = isStreamRoute(location.pathname) ? resolveStreamProfile(location.pathname) : undefined
 
   const entries: PageOptionsEntry[] = []
+  // The ⋯ surfaces mirror the right rail: properties, stream controls, the
+  // route secondary menu, then On this page. Same components, same state.
+  if (streamRouteProfile) {
+    entries.push({ kind: 'heading', id: 'l3-properties-heading', label: 'Properties', nav: true })
+    entries.push({
+      kind: 'custom',
+      id: 'l3-properties',
+      nav: true,
+      render: () => <FacetProperties profile={streamRouteProfile} />,
+    })
+  }
+  if (streamControls) {
+    entries.push({
+      kind: 'custom',
+      id: 'l3-stream-controls',
+      nav: true,
+      render: () => <StreamControlsNav streamControls={streamControls} />,
+    })
+  }
   for (const section of resolvedSecondary) {
     if (section.kind === 'section') {
       if (section.entries.length === 0) continue
@@ -157,20 +231,7 @@ export function usePageOptionsEntries(
       label: 'Download Markdown',
       icon: <ArrowDownTrayIcon className="size-4" />,
       nav: false,
-      onSelect: () => {
-        if (onDownload) {
-          onDownload()
-          return
-        }
-        const blob = new Blob([currentWorkout.content], { type: 'text/markdown' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        const safeName = currentWorkout.name.replace(/[/\\:*?"<>|]/g, '-')
-        a.download = `${safeName}.md`
-        a.click()
-        URL.revokeObjectURL(url)
-      },
+      onSelect: () => downloadMarkdown(currentWorkout, onDownload),
     })
   }
 
@@ -190,6 +251,16 @@ export function ActionsMenu({
   const asMenuItem = (entry: PageOptionsEntry) => {
     if (entry.kind === 'heading') {
       return <DropdownMenuHeading key={entry.id}>{entry.label}</DropdownMenuHeading>
+    }
+    if (entry.kind === 'custom') {
+      // Live components (stream controls) sit in a plain region, not a
+      // menuitem, so toggling a checkbox or opening the nested window
+      // picker does not dismiss the menu.
+      return (
+        <div key={entry.id} className="px-1 py-1">
+          {entry.render()}
+        </div>
+      )
     }
     return (
       <DropdownMenuItem key={entry.id} onClick={entry.onSelect} className="gap-2">
@@ -214,9 +285,10 @@ export function ActionsMenu({
   const navEntries = entries.filter((entry) => entry.nav)
   const actionEntries = entries.filter((entry) => !entry.nav)
 
-  // Nothing to select → no trigger. When only nav rows exist, the 2xl
-  // secondary rail owns them, so the trigger also hides from 2xl up where
-  // the dropdown itself would be empty.
+  // Nothing to select → no trigger. The ⋯ is purely the narrow-screen
+  // rendering of the L3 rail (stream controls, secondary menu, On this
+  // page, download): every entry also lives in the 2xl+ rail, so the
+  // trigger hides from 2xl up.
   if (entries.length === 0) return null
 
   return (
@@ -226,13 +298,15 @@ export function ActionsMenu({
           variant="ghost"
           size="icon"
           aria-label="Page options"
-          className={cn('text-muted-foreground', actionEntries.length === 0 && '2xl:hidden')}
+          className={cn('text-muted-foreground', '2xl:hidden')}
         >
           <EllipsisVerticalIcon className="size-5" />
           <span className="sr-only">Page options</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-56">
+      {/* The facet accordion can grow tall — cap the menu at the viewport
+          so expanded sections stay scrollable between lg and 2xl. */}
+      <DropdownMenuContent align="end" className="min-w-56 max-h-[calc(100dvh-6rem)] overflow-y-auto">
         {/* Navigation sections fold into the menu below 2xl; the secondary
             rail owns them from 2xl up. */}
         {navEntries.length > 0 && (
@@ -247,53 +321,3 @@ export function ActionsMenu({
   )
 }
 
-/** The same Page options functions as stacked full-width buttons for the
- *  mobile dock sheet — the ⋮ in the thumb stack opens these going up. */
-export function PageOptionsSheetRows({
-  currentWorkout,
-  items,
-}: {
-  currentWorkout: { name: string; content: string }
-  items?: NavItemL3[]
-}) {
-  const entries = usePageOptionsEntries(currentWorkout, items)
-  return (
-    <>
-      {entries.map((entry) => {
-        if (entry.kind === 'heading') {
-          return (
-            <div
-              key={entry.id}
-              className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground"
-            >
-              {entry.label}
-            </div>
-          )
-        }
-        return (
-          <button
-            key={entry.id}
-            type="button"
-            onClick={entry.onSelect}
-            className="flex w-full items-center gap-2 rounded-lg px-1 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            {entry.icon}
-            <span className="flex-1 truncate">{entry.label}</span>
-            {entry.secondary && (
-              <button
-                className="flex size-8 shrink-0 items-center justify-center rounded text-primary hover:bg-primary/10"
-                title={entry.secondary.label}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  entry.secondary?.onSelect()
-                }}
-              >
-                {entry.secondary.icon}
-              </button>
-            )}
-          </button>
-        )
-      })}
-    </>
-  )
-}

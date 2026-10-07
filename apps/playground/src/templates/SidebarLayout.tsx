@@ -1,11 +1,12 @@
 'use client'
 
 import * as Headless from '@headlessui/react'
-import React, { useEffect, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Plus, SlidersHorizontal } from 'lucide-react'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
 import { NavigationDrawerProvider, useCloseNavigationDrawer } from '../../app/nav/NavigationDrawerContext'
+import type { MenuSpec } from '../../app/nav/menuModel'
 import { MobileQuerySlotProvider, MobileQuerySlotTarget } from '../panels/page-shells'
 import { SecondaryNav } from '../../app/nav/SecondaryNav'
 import { useNav } from '../../app/nav/NavContext'
@@ -102,12 +103,62 @@ function MobileSidebar({ open, close, onSearch, onCreate, children }: React.Prop
   )
 }
 
+/**
+ * MobileRightDrawer — the mirrored mobile L3 surface: slides in from the
+ * right edge, full viewport, hosting the SAME SecondaryNav content as the
+ * 2xl+ rail (properties, stream controls, On this page, download). Facet
+ * edits keep it open for repeated picking; the Apply footer (and close
+ * button / Escape / backdrop) dismisses it. The ⋯ header dropdown owns
+ * these entries between lg and 2xl instead.
+ */
+function MobileRightDrawer({ open, close, children }: React.PropsWithChildren<{ open: boolean; close: () => void }>) {
+  return (
+    // Same z-50 contract as MobileSidebar: above the thumb dock (z-40) and
+    // query footer (z-30).
+    <Headless.Dialog open={open} onClose={close} className="relative z-50 lg:hidden">
+      <Headless.DialogBackdrop
+        transition
+        className="fixed inset-0 bg-black/30 dark:bg-black/30 transition data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
+      />
+      <Headless.DialogPanel
+        transition
+        className="fixed inset-y-0 right-0 w-full transition duration-300 ease-out data-closed:translate-x-full"
+      >
+        {/* The same close seam as the left drawer: rail flows (WQL-text jump,
+            explicit dismissals) close whichever drawer hosts them. */}
+        <NavigationDrawerProvider close={close}>
+        <div className="flex h-full min-h-0 flex-col bg-card">
+          <div className="flex items-center justify-end px-4 pt-3">
+            <Headless.CloseButton as={NavbarItem} aria-label="Close page options">
+              <CloseMenuIcon />
+            </Headless.CloseButton>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {children}
+          </div>
+          <div className="shrink-0 border-t border-border/50 bg-card p-3">
+            <button
+              type="button"
+              onClick={close}
+              className="h-11 w-full rounded-lg bg-primary text-sm font-medium text-primary-foreground"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+        </NavigationDrawerProvider>
+      </Headless.DialogPanel>
+    </Headless.Dialog>
+  )
+}
+
 export function SidebarLayout({
   navbar,
   sidebar,
   onSearch,
   onCreate,
   secondary,
+  pageAction,
   children,
 }: React.PropsWithChildren<{
   navbar: React.ReactNode
@@ -118,8 +169,21 @@ export function SidebarLayout({
   onCreate?: () => void
   /** Route-declared secondary nav (zone 4); the page index merges in. */
   secondary?: MenuSpec
+  /** Per-page action row appended to the L3 rail (e.g. Download Markdown) —
+   * the same action the ⋯ fallback carries below 2xl. */
+  pageAction?: React.ReactNode
 }>) {
   let [showSidebar, setShowSidebar] = useState(false)
+  let [showRightDrawer, setShowRightDrawer] = useState(false)
+  // The right-drawer trigger mirrors the hamburger: it only appears when the
+  // L3 rail actually has content (stream properties, page index, controls,
+  // download). The rail stays mounted at every width (hidden below 2xl via
+  // CSS), so its rendered output is the source of truth for the trigger.
+  const railContentRef = useRef<HTMLDivElement>(null)
+  const [railHasContent, setRailHasContent] = useState(false)
+  useLayoutEffect(() => {
+    setRailHasContent((railContentRef.current?.childElementCount ?? 0) > 0)
+  })
 
   // No pathname auto-close: L1 selection swaps the L2 panel in place and WQL
   // facet/query updates keep the drawer open for repeated edits. Dismissal is
@@ -166,6 +230,13 @@ export function SidebarLayout({
                 </NavbarItem>
               </div>
             )}
+            {railHasContent && (
+              <div className="py-2.5 shrink-0">
+                <NavbarItem onClick={() => setShowRightDrawer(true)} aria-label="Open page options">
+                  <SlidersHorizontal className="size-5" />
+                </NavbarItem>
+              </div>
+            )}
           </header>
 
         <main className="flex flex-1 flex-col lg:min-w-0">
@@ -181,13 +252,24 @@ export function SidebarLayout({
 
         </div>
 
-        {/* Secondary nav — zone 4; desktop (2xl+) only. Below 2xl the same
-            entries collapse into the header ⋯ menu (see ActionsMenu).
-            Between xl (1280px) and 2xl (1520px), content remains capped at 984px
-            and right padding grows until the 240px rail fits without shrinking content. */}
+        {/* Secondary nav — zone 4; the canonical L3 surface. Desktop (2xl+)
+            renders this rail; between lg and 2xl the same entries collapse
+            into the header ⋯ (ActionsMenu); below lg the mobile right drawer
+            hosts them (trigger mirrors the hamburger in the mobile header).
+            Between xl (1280px) and 2xl (1520px), content remains capped at
+            984px and right padding grows until the 240px rail fits without
+            shrinking content. */}
         <aside className="hidden 2xl:flex w-60 shrink-0 sticky top-0 h-svh flex-col overflow-y-auto bg-background/72 backdrop-blur-sm">
-          <SecondaryNav spec={secondary} />
+          {/* display:contents pass-through — the wrapper exists only to
+              measure whether SecondaryNav rendered anything (drives the
+              mobile right-drawer trigger). */}
+          <div ref={railContentRef} className="contents">
+            <SecondaryNav spec={secondary} pageAction={pageAction} />
+          </div>
         </aside>
+        <MobileRightDrawer open={showRightDrawer} close={() => setShowRightDrawer(false)}>
+          <SecondaryNav spec={secondary} pageAction={pageAction} />
+        </MobileRightDrawer>
 
       {/* Mobile thumb dock — single-mounted via ResponsiveActionsProvider
           (search FAB + page primary + overflow, aligned per the appearance

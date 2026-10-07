@@ -90,20 +90,23 @@ describe('streamProfile presets', () => {
     expect(PLAYGROUNDS_STREAM_PROFILE.title).toBe('Playgrounds')
   })
 
-  it('owns a per-surface secondary rail — the composition seam for rebranded routes', () => {
-    // Library and journal keep the shared recent-entries rail (existing behavior)
-    const libraryRail = LIBRARY_STREAM_PROFILE.secondary?.[0]
-    expect(libraryRail).toMatchObject({ kind: 'wql', id: 'recent-entries', label: 'Recent entries' })
-    expect(JOURNAL_STREAM_PROFILE.secondary?.[0]?.id).toBe('recent-entries')
-
-    // Sessions lists its own records, linked into the sessions family
-    const sessionsRail = SESSIONS_STREAM_PROFILE.secondary?.[0]
-    expect(sessionsRail).toMatchObject({ kind: 'wql', id: 'recent-sessions', label: 'Recent sessions' })
-    expect(sessionsRail?.kind === 'wql' && sessionsRail.toEntry?.({ id: 'res-1' } as never)).toBe('/sessions/res-1')
-
-    // Playgrounds link back into the playground editor
-    const playgroundRail = PLAYGROUNDS_STREAM_PROFILE.secondary?.[0]
-    expect(playgroundRail).toMatchObject({ kind: 'wql', id: 'recent-playgrounds', label: 'Recent playground pages' })
+  it('carries no recent-* secondary rails — L3 surfaces the shared facet properties instead', () => {
+    // The recent-entries/recent-sessions/recent-playgrounds WQL listing
+    // menus were replaced by the properties block (FacetProperties) that
+    // SecondaryNav renders for every stream route; profiles no longer
+    // declare a secondary menu at all.
+    for (const profile of [
+      JOURNAL_STREAM_PROFILE,
+      CATALOGS_STREAM_PROFILE,
+      COLLECTIONS_STREAM_PROFILE,
+      FEEDS_STREAM_PROFILE,
+      LIBRARY_STREAM_PROFILE,
+      EFFORTS_STREAM_PROFILE,
+      SESSIONS_STREAM_PROFILE,
+      PLAYGROUNDS_STREAM_PROFILE,
+    ]) {
+      expect('secondary' in profile).toBe(false)
+    }
   })
 
   it('owns stream-surface membership — isStreamRoute is the single registry', () => {

@@ -24,6 +24,12 @@ interface DropdownMenuContextValue {
   activeIndex: number
   setActiveIndex: React.Dispatch<React.SetStateAction<number>>
   itemCount: number
+  /** This menu's instance id. */
+  menuId: string
+  /** Ancestor-ordered id chain (root…this menu) — portals tag it so
+   *  outside-click handlers can tell "portal of my descendant" (interior)
+   *  from "portal of my ancestor/sibling" (exterior). */
+  portalChain: string
 }
 
 const DropdownMenuContext = React.createContext<DropdownMenuContextValue | null>(null)
@@ -47,6 +53,9 @@ interface DropdownMenuProps {
 }
 
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({ children, open, onOpenChange }) => {
+  const parentCtx = React.useContext(DropdownMenuContext)
+  const menuId = React.useId()
+  const portalChain = parentCtx ? `${parentCtx.portalChain}/${menuId}` : menuId
   const [isOpen, setIsOpen] = React.useState(open ?? false)
   const triggerRef = React.useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = React.useState(-1)
@@ -94,8 +103,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ children, open, onOp
       activeIndex,
       setActiveIndex,
       itemCount,
+      menuId,
+      portalChain,
     }),
-    [isOpen, handleOpenChange, registerItem, unregisterItem, getItemIndex, activeIndex, itemCount]
+    [isOpen, handleOpenChange, registerItem, unregisterItem, getItemIndex, activeIndex, itemCount, menuId, portalChain]
   )
 
   return (
@@ -156,7 +167,7 @@ interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> 
 
 export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
   ({ className, children, align = "center", side = "bottom", ...props }, ref) => {
-    const { isOpen, setIsOpen, triggerRef, setActiveIndex, itemCount } = useDropdownMenu()
+    const { isOpen, setIsOpen, triggerRef, setActiveIndex, itemCount, menuId, portalChain } = useDropdownMenu()
     const internalRef = React.useRef<HTMLDivElement>(null)
     const contentRef = (ref as React.RefObject<HTMLDivElement | null>) || internalRef
     const [position, setPosition] = React.useState<{ top: number; bottom: number; left: number; width: number }>({
@@ -195,6 +206,16 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
         const target = event.target as Node
         if (contentRef.current && contentRef.current.contains(target)) return
         if (triggerRef.current && triggerRef.current.contains(target)) return
+        // A nested dropdown (e.g. WqlWindowPicker inside a menu region)
+        // portals its content to <body>. It is interior only when it belongs
+        // to THIS menu or one of its descendants (the clicked portal's chain
+        // contains our id); a sibling/ancestor menu's portal is exterior —
+        // e.g. the nested picker must close when the user clicks back into
+        // the surrounding parent menu.
+        const chain = (target as HTMLElement)
+          .closest?.("[data-dropdown-chain]")
+          ?.getAttribute("data-dropdown-chain")
+        if (chain && chain.split("/").includes(menuId)) return
         setIsOpen(false)
       }
 
@@ -205,7 +226,7 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
         clearTimeout(id)
         document.removeEventListener("mousedown", handleClickOutside)
       }
-    }, [isOpen, setIsOpen, contentRef, triggerRef])
+    }, [isOpen, setIsOpen, contentRef, triggerRef, menuId])
 
     // Keyboard navigation
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -265,6 +286,7 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
       <div
         ref={contentRef}
         role="menu"
+        data-dropdown-chain={portalChain}
         className={cn(
           "min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
           className

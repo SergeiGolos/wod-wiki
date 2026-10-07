@@ -131,7 +131,7 @@ export interface NavItemL3 extends NavItem {
   /** Optional secondary action rendered as a small icon button (e.g. run/link). */
   secondaryAction?: INavActivation
   /** Icon flavor for the secondary action button (default 'play'). */
-  secondaryRunIcon?: 'play' | 'stop' | 'link'
+  secondaryRunIcon?: 'play' | 'stop' | 'link' | 'edit'
 }
 
 // ─── Canvas navigation helpers ─────────────────────────────────────────────────

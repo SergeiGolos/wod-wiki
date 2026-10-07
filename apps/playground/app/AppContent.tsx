@@ -12,7 +12,7 @@ import { Navbar } from '@/components/organisms/layout/Navbar'
 import { NavSidebar } from './nav/NavSidebar'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
-import { ResponsiveActions, NavbarActions } from './nav/ResponsiveActions'
+import { NavbarActions } from './nav/ResponsiveActions'
 import type { PageKind } from './lib/routeView'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
@@ -55,7 +55,7 @@ import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { DashboardViewPage } from './views/dashboards/DashboardViewPage'
 import { PageActions } from './pages/shared/PageActions'
-import { PageOptionsSheetRows } from './pages/shared/PageToolbar'
+import { PageDownloadAction } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { useWorkoutItems, EMPTY_WOD_FILES } from './lib/workoutIndex'
 import { useSeedContent } from '@/services/content/seedContent'
@@ -107,13 +107,16 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   // (journal date, workout/effort/feed/dashboard slug) — on mobile the navbar
   // crumb is the ONLY page identity, since the page header is hidden below lg.
   const crumbTitle = view.shell.title ?? currentWorkout.name
-  // Stream surfaces resolve their profile once per path — the profile owns the
-  // surface's secondary rail (composition: same view, per-route variation).
+  // Stream surfaces resolve their profile once per path — the view, the L3
+  // properties rail, and the mobile right drawer all read the same profile.
   const streamProfile = useMemo(
     () => (view.page === 'library' ? applyRouteWqlConfig(resolveStreamProfile(location.pathname)) : undefined),
     [view.page, location.pathname],
   )
-  const secondarySpec = streamProfile ? streamProfile.secondary : view.shell.secondary
+  // Route-declared secondary spec (canvas pages may declare one); stream
+  // surfaces derive their L3 properties from the profile at render time in
+  // SecondaryNav — no spec plumbing needed.
+  const secondarySpec = view.shell.secondary
 
   useEffect(() => {
     setSecondarySpec(secondarySpec)
@@ -384,15 +387,13 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
       }
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
       secondary={secondarySpec}
+      pageAction={currentWorkout.content !== '' ? <PageDownloadAction currentWorkout={currentWorkout} /> : undefined}
       onSearch={openSearchPalette}
       onCreate={openJournalCreate}
     >
-      {/* Global Page options for the mobile thumb dock — stacked function
-          rows (secondary nav, On this page, download) under every
-          page's own sheet rows. */}
-      <ResponsiveActions fallback label="Page options">
-        <PageOptionsSheetRows currentWorkout={currentWorkout} />
-      </ResponsiveActions>
+      {/* Mobile L3 (properties, stream controls, On this page, download)
+          lives in the right drawer; the dock sheet hosts only page-specific
+          rows (e.g. playground New/Reset) — no global fallback rows. */}
       <CreateJournalNoteDialog
         open={journalCreateOpen}
         onOpenChange={setJournalCreateOpen}

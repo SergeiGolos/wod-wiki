@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
+import type { ReactNode } from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { NuqsAdapter } from 'nuqs/adapters/react-router';
@@ -14,7 +15,7 @@ const HOME_OUTLINE: NavItemL3[] = [
     secondaryAction: { id: 'run-start', label: 'Start the run', action: { type: 'call', handler: () => {} } } },
 ];
 
-function renderHomeNav(l3Items: NavItemL3[], scrollToSection = mock(() => {})) {
+function renderHomeNav(l3Items: NavItemL3[], scrollToSection = mock(() => {}), pageAction?: ReactNode) {
   return render(
     <MemoryRouter initialEntries={['/']}>
       <NuqsAdapter>
@@ -31,7 +32,7 @@ function renderHomeNav(l3Items: NavItemL3[], scrollToSection = mock(() => {})) {
             registerScrollFn: () => {},
           }}
         >
-          <SecondaryNav />
+          <SecondaryNav pageAction={pageAction} />
         </NavContext.Provider>
       </NuqsAdapter>
     </MemoryRouter>,
@@ -89,6 +90,17 @@ describe('SecondaryNav on home page', () => {
     screen.getByText('Welcome').click();
     expect(scrollToSection).toHaveBeenCalledWith('tour-hero');
   });
+  it('renders a pageAction node after the page index', () => {
+    renderHomeNav(HOME_OUTLINE, mock(() => {}), <button type="button">Download Markdown</button>);
+    expect(screen.getByText('Download Markdown')).toBeTruthy();
+  });
+
+  it('renders the pageAction alone when it is the only L3 content', () => {
+    renderHomeNav([], mock(() => {}), <button type="button">Download Markdown</button>);
+    expect(screen.getByText('Download Markdown')).toBeTruthy();
+    expect(screen.queryByText('On this page')).toBeNull();
+  });
+
   it('renders nothing on home when no outline is published and no stream controls', () => {
     const { container } = renderHomeNav([]);
     expect(container.firstChild).toBeNull();

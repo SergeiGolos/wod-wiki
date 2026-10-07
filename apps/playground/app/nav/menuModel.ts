@@ -27,7 +27,7 @@ export interface MenuLink {
   /** Custom action (e.g. start a workout block); wins over to/sectionId. */
   onRun?: () => void
   /** Icon for the run affordance rendered at the row's right edge. */
-  runIcon?: 'play' | 'stop' | 'link'
+  runIcon?: 'play' | 'stop' | 'link' | 'edit'
   /** Muted mono prefix (e.g. '08:30' timestamps). */
   timestamp?: string
   /** Trivial count/marker badge. */
