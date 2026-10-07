@@ -21,6 +21,9 @@
  *   7. Escape dismisses and resolves { dismissed: true }; Cancel closes
  *      without changing the page URL.
  *   8. Back navigation (popstate) dismisses instead of leaving the page.
+ *   9. Find mode (plain text default): plain words filter the list with no
+ *      Invalid feedback; ':'-prefixed drafts keep WQL behavior; the mode
+ *      chip reflects the auto-detected mode and can force the other.
  */
 import { beforeAll, afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -349,5 +352,100 @@ describe('PaletteShell WQL mode', () => {
     const result = await response
     expect(result).toEqual({ dismissed: true })
     expect(usePaletteStore.getState().isOpen).toBe(false)
+  })
+})
+
+describe('PaletteShell Find mode (plain text default)', () => {
+  it('filters the list for plain words: no Invalid feedback, chip shows Find', async () => {
+    const item: PaletteItem = { id: 'entry:1', label: 'Heavy day', type: 'entry', payload: { id: 'entry:1' } }
+    // Simulates a withWqlText-wrapped text source: it receives the draft and
+    // matches on the plain words — the salvage path canvasRouteSource and
+    // constructSource use. The draft is the raw one the composer emits for
+    // plain words on a non-lossless base (e.g. an aggregate stream draft).
+    const search = mock(async (q: string): Promise<PaletteItem[]> =>
+      q.includes('front squat') ? [item] : [])
+    renderShell()
+    openPalette({
+      wql: { initialQuery: 'front squat', execute },
+      sources: [{ id: 'pages:wql-text', search }],
+    })
+
+    await screen.findByText('Heavy day')
+    expect(search).toHaveBeenCalledWith('front squat')
+    // Find mode: no red Invalid surfaces, chip reflects the mode.
+    expect(screen.queryByTestId('wql-validity-badge')).toBeNull()
+    expect(screen.queryByText('Invalid')).toBeNull()
+    expect(screen.queryByTestId('palette-stale')).toBeNull()
+    const chip = screen.getByTestId('palette-mode')
+    expect(chip.textContent).toBe('Find')
+    expect(chip.getAttribute('aria-pressed')).toBe('false')
+    // The composer's WQL error fallback (role="alert") is CSS-suppressed in
+    // Find mode — jsdom applies no styles, so assert the scoping class.
+    const wrapper = chip.parentElement!.children[1] as HTMLElement
+    expect(wrapper.className).toContain('[&_[role=alert]]:hidden')
+  })
+
+  it("keeps ':'-prefixed drafts in WQL mode: diagnostics, stale badge, canceled search", async () => {
+    const search = mock(async (_q: string): Promise<PaletteItem[]> => [
+      { id: 'entry:1', label: 'Fran', type: 'entry', payload: { id: 'entry:1' } },
+    ])
+    renderShell()
+    openPalette({
+      wql: { initialQuery: ':journal', execute },
+      sources: [{ id: 'wql-search', search }],
+    })
+
+    const chip = await screen.findByTestId('palette-mode')
+    expect(chip.textContent).toBe('WQL')
+    expect(chip.getAttribute('aria-pressed')).toBe('true')
+    await screen.findByTestId('wql-validity-badge') // diagnostics visible
+    await screen.findByText('Fran')
+
+    // Mid-edit WQL (':journal{') is WQL intent: today's behavior (stale
+    // badge, Invalid diagnostics, no re-search, previous results retained).
+    search.mockClear()
+    fireEvent.change(findDraftInput(), { target: { value: ':journal{' } })
+
+    await screen.findByTestId('palette-stale')
+    expect(screen.getByTestId('wql-validity-badge').getAttribute('data-valid')).toBe('false')
+    expect(screen.getByText('Invalid')).toBeDefined()
+    await act(async () => {})
+    expect(search).not.toHaveBeenCalled()
+    expect(screen.getByText('Fran')).toBeDefined()
+  })
+
+  it('mode chip forces the other mode: WQL brings Invalid feedback back, Find hides it again', async () => {
+    const search = mock(async (_q: string): Promise<PaletteItem[]> => [
+      { id: 'entry:1', label: 'Fran', type: 'entry', payload: { id: 'entry:1' } },
+    ])
+    renderShell()
+    openPalette({
+      wql: { initialQuery: 'front squat', execute },
+      sources: [{ id: 'wql-search', search }],
+    })
+
+    await screen.findByText('Fran')
+    expect(screen.getByTestId('palette-mode').textContent).toBe('Find')
+    expect(screen.queryByTestId('wql-validity-badge')).toBeNull()
+
+    // Force WQL on the plain text: the Invalid feedback returns and the
+    // search is canceled again (invalid WQL-mode draft).
+    search.mockClear()
+    fireEvent.click(screen.getByTestId('palette-mode'))
+    expect(screen.getByTestId('palette-mode').textContent).toBe('WQL')
+    expect(screen.getByTestId('palette-mode').getAttribute('aria-pressed')).toBe('true')
+    await screen.findByTestId('wql-validity-badge')
+    expect(screen.getByTestId('wql-validity-badge').getAttribute('data-valid')).toBe('false')
+    await screen.findByTestId('palette-stale')
+    await act(async () => {})
+    expect(search).not.toHaveBeenCalled()
+
+    // Force Find again: Invalid hidden, the draft re-filters the list.
+    fireEvent.click(screen.getByTestId('palette-mode'))
+    expect(screen.getByTestId('palette-mode').textContent).toBe('Find')
+    expect(screen.getByTestId('palette-mode').getAttribute('aria-pressed')).toBe('false')
+    expect(screen.queryByTestId('wql-validity-badge')).toBeNull()
+    await waitFor(() => expect(search).toHaveBeenCalledWith('front squat'))
+    await screen.findByText('Fran')
   })
 })

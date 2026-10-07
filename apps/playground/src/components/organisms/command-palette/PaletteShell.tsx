@@ -35,6 +35,18 @@ function useIsDesktopViewport(): boolean {
   return isDesktop;
 }
 
+/** The composer's free-text wrap (`:scope{text:words}`) of plain typing
+ *  fails the WQL grammar once a second word lands (values need quoting), so
+ *  validity alone can't detect intent. WQL intent: the draft parses, or it
+ *  is mid-edit WQL (scope prefix / open filter block). Everything else
+ *  (plain words) is Find intent and filters through the text sources. */
+function isWqlIntent(draft: string): boolean {
+  const trimmed = draft.trim();
+  if (!trimmed) return false;
+  if (!parseQuery(trimmed).error) return true;
+  return trimmed.startsWith(':') && !/^:\w+\{text:[^}]*\}$/.test(trimmed);
+}
+
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {
   return {
@@ -57,7 +69,10 @@ function toListItem(item: PaletteItem): IListItem<PaletteItem> {
  *   if (!result.dismissed) { handle(result.item); }
  *
  * WQL mode (request.wql, issue #834): the plain text input is replaced by
- * the shared WqlComposer. ONE draft: the composer's synchronous
+ * the shared WqlComposer. Find (plain text) is the default mode per draft;
+ * WQL is opted into by parseable WQL or a ':' prefix, or forced via the
+ * mode chip (which is also how forced-WQL plain text gets Invalid feedback).
+ * ONE draft: the composer's synchronous
  * `onQueryChange` is the sole query authority (mirrored into a ref so
  * Apply/onSubmit always consume the exact visible draft, invalid included —
  * invalid drafts never apply or execute). Only the source search is
@@ -77,6 +92,11 @@ export const PaletteShell: React.FC = () => {
   const [validity, setValidity] = useState<WqlValidationState>({ valid: true });
   const validityRef = useRef(validity);
   const isDesktop = useIsDesktopViewport();
+
+  // Find (plain text) is the default; WQL is opt-in per draft. The override
+  // is the mode chip's forced state (undefined = auto-detect).
+  const [modeOverride, setModeOverride] = useState<'wql' | 'find'>();
+  const isWqlMode = modeOverride ? modeOverride === 'wql' : isWqlIntent(query);
 
   const handleQueryChange = useCallback((wql: string) => {
     queryRef.current = wql;
@@ -144,18 +164,21 @@ export const PaletteShell: React.FC = () => {
       const initialValidity: WqlValidationState = error ? { valid: false, error } : { valid: true };
       validityRef.current = initialValidity;
       setValidity(initialValidity);
+      setModeOverride(undefined);
       setResults([]);
       setIsLoading(false);
     }
   }, [isOpen, request]); // request is a new object on every open() call
 
-  // Search all sources for the current VALID draft. The composer emits the
+  // Search all sources for the current draft. The composer emits the
   // resolved draft synchronously; only this execution is debounced. An
-  // invalid draft keeps the previous results on screen, marked stale — a
-  // half-typed query must not blank the preview.
+  // invalid WQL-mode draft keeps the previous results on screen, marked
+  // stale — a half-typed query must not blank the preview. Find mode feeds
+  // the draft to the sources regardless of WQL validity (the withWqlText
+  // sources salvage the plain words, so the list filters).
   useEffect(() => {
     if (!isOpen || !request) return;
-    if (!validity.valid) {
+    if (wqlConfig && isWqlMode && !validity.valid) {
       // Invalid draft: cancel any scheduled/in-flight search and keep the
       // previous results on screen, marked stale.
       searchVersion.current += 1;
@@ -192,7 +215,7 @@ export const PaletteShell: React.FC = () => {
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query, validity.valid, isOpen, request]);
+  }, [query, validity.valid, isWqlMode, isOpen, request]);
 
   const handleSelect = useCallback(
     (item: IListItem<PaletteItem>) => {
@@ -227,20 +250,40 @@ export const PaletteShell: React.FC = () => {
 
   const searchRow = wqlConfig ? (
     <div className="border-b border-border/80 px-3 py-2">
-      <WqlComposer
-        key={requestSeqRef.current}
-        query={query}
-        onQueryChange={handleQueryChange}
-        onValidationChange={handleValidationChange}
-        showDiagnostics={wqlConfig.showDiagnostics ?? true}
-        execute={wqlConfig.execute}
-        preferredChoices={wqlConfig.preferredChoices}
-        customSlots={wqlConfig.customSlots}
-        diagnosticsPosition="top"
-        onSubmit={wqlConfig.onApply ? applyQuery : undefined}
-        autoFocus={isDesktop}
-        placeholder="Search or edit WQL…"
-      />
+      <button
+        type="button"
+        data-testid="palette-mode"
+        aria-pressed={isWqlMode}
+        aria-label={isWqlMode ? 'WQL mode. Press to switch to Find' : 'Find mode. Press to switch to WQL'}
+        onClick={() => setModeOverride(isWqlMode ? 'find' : 'wql')}
+        className={`mb-2 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
+          isWqlMode
+            ? 'border-primary/40 bg-primary/10 text-primary'
+            : 'border-border bg-muted text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        {isWqlMode ? 'WQL' : 'Find'}
+      </button>
+      {/* Find mode suppresses the composer's WQL error surfaces (the
+          fallback role="alert" shown when diagnostics are hidden, and the
+          pending-draft hint that echoes the parse error). Scoped here so
+          the shared WqlComposer API stays unchanged. */}
+      <div className={isWqlMode ? undefined : '[&_[role=alert]]:hidden [&_[data-testid=wql-composer-pending]]:hidden'}>
+        <WqlComposer
+          key={requestSeqRef.current}
+          query={query}
+          onQueryChange={handleQueryChange}
+          onValidationChange={handleValidationChange}
+          showDiagnostics={isWqlMode && (wqlConfig.showDiagnostics ?? true)}
+          execute={wqlConfig.execute}
+          preferredChoices={wqlConfig.preferredChoices}
+          customSlots={wqlConfig.customSlots}
+          diagnosticsPosition="top"
+          onSubmit={wqlConfig.onApply ? applyQuery : undefined}
+          autoFocus={isDesktop}
+          placeholder="Search or edit WQL…"
+        />
+      </div>
     </div>
   ) : undefined;
 
@@ -251,7 +294,7 @@ export const PaletteShell: React.FC = () => {
       className="flex items-center gap-2 border-t border-border/80 px-3 pt-2"
       style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
     >
-      {!validity.valid && (
+      {isWqlMode && !validity.valid && (
         <span
           data-testid="palette-stale"
           className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400"

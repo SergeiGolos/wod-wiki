@@ -200,12 +200,12 @@ function createTagDraftRow(
 ): HTMLElement {
   const row = document.createElement("div");
   row.className =
-    "flex items-center min-h-[34px] border-b border-dashed border-border/60 last:border-b-0 group hover:bg-muted/10 transition-colors";
+    "flex items-center min-h-[34px] border-b border-dashed border-border/60 last:border-b-0 group hover:bg-muted/10 transition-colors max-[479px]:flex-col max-[479px]:items-stretch";
   row.setAttribute("data-frontmatter-tag-draft", "true");
 
   const keyCol = document.createElement("div");
   keyCol.className =
-    "flex items-center gap-2 px-3 py-1.5 w-36 shrink-0 border-r border-dashed border-border/60 text-muted-foreground";
+    "flex items-center gap-2 px-3 py-1.5 w-36 shrink-0 border-r border-dashed border-border/60 text-muted-foreground max-[479px]:w-auto max-[479px]:border-r-0 max-[479px]:border-b";
   keyCol.appendChild(createTagIcon());
   const keyLabel = document.createElement("span");
   keyLabel.className = "truncate font-medium text-foreground/90";
@@ -463,13 +463,13 @@ export class DefaultFrontmatterWidget extends WidgetType {
 
       const row = document.createElement("div");
       row.className =
-        "flex items-center min-h-[34px] border-b border-dashed border-border/60 last:border-b-0 group hover:bg-muted/10 transition-colors";
+        "flex items-center min-h-[34px] border-b border-dashed border-border/60 last:border-b-0 group hover:bg-muted/10 transition-colors max-[479px]:flex-col max-[479px]:items-stretch";
       box.appendChild(row);
 
       // Key column
       const keyCol = document.createElement("div");
       keyCol.className =
-        "flex items-center gap-2 px-3 py-1.5 w-36 shrink-0 border-r border-dashed border-border/60 text-muted-foreground";
+        "flex items-center gap-2 px-3 py-1.5 w-36 shrink-0 border-r border-dashed border-border/60 text-muted-foreground max-[479px]:w-auto max-[479px]:border-r-0 max-[479px]:border-b";
       keyCol.appendChild(isTags ? createTagIcon() : createListIcon());
 
       if (this.readOnly) {

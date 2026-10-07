@@ -71,7 +71,9 @@ function freshClaimIsOther(meta: SeedMetaRecord | undefined, owner: string, now:
 
 export async function runSeedSync(deps: SeedSyncDeps = {}): Promise<SeedSyncOutcome> {
   const outcome = await runSeedSyncInner(deps);
-  console.info(`[seedSync] outcome: ${outcome}`);
+  // Debug-level: the readiness gate (seedReadiness.ts) is the UI-facing
+  // signal now — an info line here is first-load console noise.
+  console.debug(`[seedSync] outcome: ${outcome}`);
   return outcome;
 }
 

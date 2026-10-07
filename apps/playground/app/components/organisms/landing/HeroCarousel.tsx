@@ -51,13 +51,9 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     title: 'Ask questions with Wod Query Language (WQL).',
     caption: 'Aggregate volume, track TIS intensity trends, or embed live query and dashboard blocks directly in your Markdown notes.',
   },
-  {
-    src: '/images/hero/casting.png',
-    alt: 'Living room with a TV displaying the workout dashboard and a phone on the table showing the cast sender UI',
-    eyebrow: 'Cast',
-    title: 'Mirror any session to the big screen.',
-    caption: 'One tap sends the timer to any Chromecast or local tab. The room paces together — no more counting aloud.',
-  },
+  // ponytail: a 'Cast' slide lived here referencing /images/hero/casting.png,
+  // which does not exist in public/ (every load 404'd). Re-add the slide
+  // when a real casting screenshot lands in public/images/hero/.
 ];
 
 export interface HeroCarouselProps {

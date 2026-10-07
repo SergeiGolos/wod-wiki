@@ -87,6 +87,11 @@ export const indexedDbBlockStore: BlockQueryStore = {
     const types: string[] = [];
     const noteIds: string[] = [];
     for (const predicate of req.filters ?? []) {
+      // Only literal value-list clauses are served from the index. Other
+      // predicate shapes ({ field: 'text', value } and friends) have no
+      // values list and no block-index surface — fall back to the
+      // whole-store read where WQL re-applies them in JS.
+      if (!('values' in predicate)) return undefined;
       if (predicate.negate || predicate.values.length === 0) return undefined;
       if (predicate.field === 'type' && types.length === 0) types.push(...predicate.values);
       else if (predicate.field === 'noteId' && noteIds.length === 0) noteIds.push(...predicate.values);

@@ -17,6 +17,15 @@
   }
 }
 
+/* Dogfood #1: .cm-content is a flex item inside .cm-scroller and defaults to
+   min-width: auto, so wide previews (frontmatter table, fence overlays) widen
+   the line box past the phone viewport. Let it shrink to the shell; the
+   specificity also wins over the runtime-injected EditorView.theme. No-op
+   whenever content already fits (desktop unchanged). */
+.cm-note-editor .cm-scroller .cm-content {
+  min-width: 0;
+}
+
 /* Monaco Editor - WOD Block Decorations */
 .wod-block {
   background-color: hsl(var(--primary) / 0.05) !important;

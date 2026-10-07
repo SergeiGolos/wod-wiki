@@ -1,8 +1,9 @@
 'use client'
 
 import * as Headless from '@headlessui/react'
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Plus, SlidersHorizontal } from 'lucide-react'
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
 import { AppRail } from '../../app/nav/AppRail'
 import { NavigationDrawerProvider, useCloseNavigationDrawer } from '../../app/nav/NavigationDrawerContext'
@@ -185,6 +186,14 @@ export function SidebarLayout({
     setRailHasContent((railContentRef.current?.childElementCount ?? 0) > 0)
   })
 
+  // Mobile hides the facet columns behind the right drawer, so the applied
+  // where-filters get no visible state — mirror them as a dot on the trigger.
+  const { streamControls } = useNav()
+  const hasAppliedFilters = useMemo(() => {
+    const parsed = parseQuery(streamControls?.query ?? '')
+    return !parsed.error && isFindQuery(parsed) && parsed.filters.length > 0
+  }, [streamControls?.query])
+
   // No pathname auto-close: L1 selection swaps the L2 panel in place and WQL
   // facet/query updates keep the drawer open for repeated edits. Dismissal is
   // explicit only — Apply + modal/external rail flows (NavigationDrawerProvider
@@ -233,7 +242,16 @@ export function SidebarLayout({
             {railHasContent && (
               <div className="py-2.5 shrink-0">
                 <NavbarItem onClick={() => setShowRightDrawer(true)} aria-label="Open page options">
-                  <SlidersHorizontal className="size-5" />
+                  <span className="relative inline-flex">
+                    <SlidersHorizontal className="size-5" />
+                    {hasAppliedFilters && (
+                      <span
+                        data-testid="drawer-filters-active"
+                        className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </span>
                 </NavbarItem>
               </div>
             )}

@@ -120,7 +120,7 @@ export function LibraryRow({
         {/* Title first: on narrow screens the secondary badges wrap under the
             title instead of squeezing the truncated title out. */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="text-sm font-bold text-foreground truncate min-w-0 basis-full sm:basis-auto">{entry.title}</h3>
+          <h3 className="text-sm font-bold text-foreground min-w-0 basis-full sm:basis-auto sm:truncate">{entry.title}</h3>
           {entry.block && (
             <span
               className="text-[9px] font-black uppercase tracking-widest text-sky-600 border border-sky-500/40 bg-sky-500/10 rounded-full px-1.5 py-0.5"

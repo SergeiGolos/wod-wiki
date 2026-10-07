@@ -88,7 +88,7 @@ export function JournalPageShell({
           actions={actions}
         />
         {/* Main Editor Content */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0 max-w-full">
           {editor}
         </main>
       </div>

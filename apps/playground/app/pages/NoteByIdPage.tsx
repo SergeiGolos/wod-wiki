@@ -235,7 +235,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
           subtitle={noteByIdPath(noteId)}
           actions={pageActions}
           editor={
-            <div className="flex flex-col gap-4 px-4 py-6 sm:px-6">
+            <div className="flex flex-col gap-4 px-4 py-6 sm:px-6 min-w-0 max-w-full">
               <NoteContextLinks data={contextLinks} up={ownership.up} />
               {(entry.journalDate || entry.slug || entry.sourceId) && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

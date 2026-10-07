@@ -21,6 +21,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
+import { useSeedReadiness } from '@/services/seed/seedReadiness'
 import { parseQuery, isFindQuery, isPipelineQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { wqlFilterKeys, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql'
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
@@ -196,6 +197,9 @@ export function QueriableStreamView({
 }: QueriableStreamViewProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  // First-run gate: the vault query must not execute until the seed import
+  // has settled, or a fresh profile briefly commits a permanent "0 of 0".
+  const seedReadiness = useSeedReadiness()
   // Synchronize composer state with URL
   const { query, setQuery, urlQueryError } = useComposerQueryState({
     defaultQuery: () => profile.defaultWql,
@@ -346,6 +350,7 @@ export function QueriableStreamView({
   // emissions). Invalid drafts never execute — previous results stay visible
   // (stale, flagged by the query error banner), and loading never wedges.
   useEffect(() => {
+    if (seedReadiness === 'preparing') return
     if (parsed.error) {
       setLoading(false)
       return
@@ -386,7 +391,7 @@ export function QueriableStreamView({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [query, activeEngine, parsed, location.pathname])
+  }, [query, activeEngine, parsed, location.pathname, seedReadiness])
 
   // Grouping: the committed run's query `by {}` dimensions win; otherwise
   // the view setting, then the level default. The query leg is stored WITH
@@ -599,6 +604,28 @@ export function QueriableStreamView({
 
   // Invalid draft: previous results stay visible but visibly stale.
   const stale = !!parsed.error && entries.length > 0
+
+  // First-run vault gate: skeleton until the seed import settles, then the
+  // query effect above runs against the full corpus on this mount.
+  if (seedReadiness === 'preparing') {
+    return (
+      <div
+        className="bg-card flex flex-col flex-1"
+        data-testid="stream-preparing"
+        role="status"
+        aria-busy="true"
+      >
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
+          <div className="w-full max-w-2xl space-y-3" aria-hidden="true">
+            <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+          </div>
+          <span className="text-sm text-muted-foreground">Loading library…</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="queriable-stream-view">

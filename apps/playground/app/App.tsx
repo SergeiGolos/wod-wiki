@@ -43,8 +43,9 @@ import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 import { useZipProcessor } from './hooks/useZipProcessor'
 import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
 import { runSeedSync } from '@/services/seed/seedSync'
+import { markSeedSyncSettled, markSeedSyncStarted, useSeedReadiness } from '@/services/seed/seedReadiness'
 import { profileService } from '@/services/storage'
-import { initSeedContentBroadcast, invalidateSeedContent, useSeedContent } from '@/services/content/seedContent'
+import { initSeedContentBroadcast, invalidateSeedContent } from '@/services/content/seedContent'
 import { Button } from '@/components/atoms/primitives/button'
 import type { WorkoutItem } from './lib/workoutIndex'
 
@@ -86,7 +87,11 @@ function GlobalState() {
     // Profile first: rows written by the seed sync onward get stamped with
     // the membership id (best-effort — unstamped until current() resolves).
     void profileService.current().catch(console.error)
-    void runSeedSync()
+    // Cross-tab corpus refresh (idempotent); the readiness gate keeps
+    // vault-querying routes on a skeleton until the import settles.
+    initSeedContentBroadcast()
+    markSeedSyncStarted()
+    void runSeedSync().then(markSeedSyncSettled)
   }, [])
   return null
 }
@@ -96,8 +101,8 @@ function GlobalState() {
 // loading → an explicit loading route (any deep link shows it; react-router
 // never logs "No routes matched" during derivation). Seed loaded but the
 // home route still missing → a recoverable error, not an endless spinner.
-function RootUnavailable({ loaded }: { loaded: boolean }) {
-  if (!loaded) {
+function RootUnavailable({ settling }: { settling: boolean }) {
+  if (settling) {
     return (
       <div role="status" className="flex min-h-dvh items-center justify-center text-muted-foreground">
         Loading library…
@@ -130,7 +135,7 @@ export function App() {
   // Canvas routes hydrate from the seeded corpus; the nav tree and the
   // dynamic <Route> table re-derive when the seed lands or refreshes.
   const canvasRouteList = useCanvasRoutes()
-  const seedFiles = useSeedContent()
+  const seedReadiness = useSeedReadiness()
   const navTree = useMemo(
     () => buildAppNavTree(() => searchHandlerRef.current(), canvasRouteList),
     [canvasRouteList],
@@ -152,7 +157,7 @@ export function App() {
                       catch-route (loading vs recoverable error) instead of
                       unmatched-location warnings during async derivation. */}
                   {!canvasRouteList.some(({ route }) => route === ROUTE_PATTERNS.home) && (
-                    <Route path="*" element={<RootUnavailable loaded={seedFiles !== null} />} />
+                    <Route path="*" element={<RootUnavailable settling={seedReadiness === 'preparing'} />} />
                   )}
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
                   <Route path="/proto/query-block-composer" element={<QueryBlockComposerPrototypePage />} />
