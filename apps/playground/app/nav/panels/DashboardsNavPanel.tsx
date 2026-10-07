@@ -19,6 +19,7 @@ import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter } from '@/lib/frontmatter';
 import { analyticsExplorerPath, dashboardPath, dashboardViewPath } from '../../lib/routes';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
+import { useCloseNavigationDrawer } from '../NavigationDrawerContext';
 
 /** Semantic WQL comparison: parseable strings match through the serializer's
  * fixed point (empty `{}` braces drop), anything else falls back to raw. */
@@ -29,10 +30,10 @@ function sameWql(a: string | null, b: string): boolean {
   const pb = parseQuery(b);
   return !pa.error && !pb.error && serialize(pa) === serialize(pb);
 }
-
 export function DashboardsNavPanel(_props: NavPanelProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const closeDrawer = useCloseNavigationDrawer();
   const { items, loading } = useDashboardCatalog();
   const [creating, setCreating] = useState(false);
 
@@ -43,11 +44,11 @@ export function DashboardsNavPanel(_props: NavPanelProps) {
       const { meta } = parseFrontmatter(note.rawContent);
       const slug = typeof meta.slug === 'string' && meta.slug ? meta.slug : note.id;
       navigate(dashboardViewPath(slug));
+      closeDrawer();
     } finally {
       setCreating(false);
     }
   };
-
   const onExplorer = location.pathname === '/dashboards';
   const activeQ = onExplorer ? new URLSearchParams(location.search).get('q') : null;
 
@@ -56,7 +57,10 @@ export function DashboardsNavPanel(_props: NavPanelProps) {
       <NavRow
         label="Explorer"
         active={onExplorer}
-        onClick={() => navigate(dashboardPath())}
+        onClick={() => {
+          navigate(dashboardPath());
+          closeDrawer();
+        }}
       />
 
       {onExplorer ? (
@@ -70,7 +74,10 @@ export function DashboardsNavPanel(_props: NavPanelProps) {
               label={ex.label}
               title={ex.question}
               active={sameWql(activeQ, ex.query)}
-              onClick={() => navigate(analyticsExplorerPath({ q: ex.query }))}
+              onClick={() => {
+                navigate(analyticsExplorerPath({ q: ex.query }));
+                closeDrawer();
+              }}
             />
           ))}
         </>
@@ -91,11 +98,13 @@ export function DashboardsNavPanel(_props: NavPanelProps) {
                 label={d.title}
                 badge={d.editable ? undefined : 'prebuilt'}
                 active={location.pathname === `/dashboard/${d.slug}` || location.pathname === `/d/${d.slug}`}
-                onClick={() => navigate(dashboardViewPath(d.slug))}
+                onClick={() => {
+                  navigate(dashboardViewPath(d.slug));
+                  closeDrawer();
+                }}
               />
             ))
           )}
-
           <button
             type="button"
             onClick={handleNew}

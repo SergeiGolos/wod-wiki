@@ -16,6 +16,8 @@ export interface WorkoutItem {
   name: string
   category: string
   content: string
+  /** Frontmatter `date` (YYYY-MM-DD) as epoch ms (noon UTC); undefined when absent. */
+  date?: number
   /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
   searchHidden?: boolean
 }
@@ -31,6 +33,13 @@ function deriveCategory(parts: string[]): string {
 
 function deriveSearchHidden(raw: string): boolean {
   return String(getScalar(parseFrontmatter(raw).meta, 'search') ?? '').toLowerCase() === 'hidden'
+}
+
+/** `YYYY-MM-DD` frontmatter → epoch ms at noon UTC (matches SeedImporter's Note.date). */
+export function deriveDate(raw: string): number | undefined {
+  const value = getScalar(parseFrontmatter(raw).meta, 'date')
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
+  return new Date(`${value}T12:00:00Z`).getTime()
 }
 
 /**
@@ -49,6 +58,7 @@ export function buildWorkoutItems(
       name: fileName,
       category: deriveCategory(parts),
       content: raw,
+      date: deriveDate(raw),
       searchHidden: deriveSearchHidden(raw),
     }
   })

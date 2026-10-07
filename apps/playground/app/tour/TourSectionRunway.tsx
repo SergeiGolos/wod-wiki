@@ -32,11 +32,12 @@ import {
   type TourScreen,
   type RingTargetKey,
 } from './tourConstants'
-import { TourRing, useRingRef } from './TourRing'
+import { RingElementRegistrar, RingTargetsProvider, TourRing } from './TourRing'
 import { TourTvCard } from './TourTvCard'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourSessionAnalytics } from './screens/TourSessionAnalytics'
+import { TourSessionResult } from './screens/TourSessionResult'
 import { TourCaptions, type TourCaption } from './TourCaptions'
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
@@ -48,7 +49,6 @@ export interface TourSectionEditorWiring {
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
-  onShare: () => void
 }
 
 export interface TourSectionTimerWiring {
@@ -72,6 +72,11 @@ export interface TourSectionSessionWiring {
   boardSlug: string
   /** Pin the pane to one stage (e.g. the metrics section's live table). */
   fixedStage?: string
+  /**
+   * Recorded run results — when set, the pane shows the recorded $session
+   * segments (metrics section after a stop) instead of the WQL table.
+   */
+  result?: Sessions | null
 }
 
 export interface TourSectionRunwayProps {
@@ -155,16 +160,15 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
   ) {
     const runwayRef = useRef<HTMLElement | null>(null)
     const canvasInnerRef = useRef<HTMLDivElement | null>(null)
+    const [canvasEl, setCanvasEl] = useState<HTMLDivElement | null>(null)
     // The whole section window (outside the chrome) is the 'editor.window'
-    // ring target — mirrors the old single-runway framing.
-    const editorWindowRef = useRingRef('editor.window')
-    const canvasInnerRingRef = useCallback(
-      (el: HTMLDivElement | null) => {
-        canvasInnerRef.current = el
-        editorWindowRef(el)
-      },
-      [editorWindowRef],
-    )
+    // ring target. It is registered via <RingElementRegistrar> rendered
+    // INSIDE the section's RingTargetsProvider — a useRingRef in this
+    // component body would resolve to the outer (shared) provider.
+    const canvasInnerRingRef = useCallback((el: HTMLDivElement | null) => {
+      canvasInnerRef.current = el
+      setCanvasEl(el)
+    }, [])
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
 
@@ -283,9 +287,14 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                 rail stays a readable 320–400px column. Content smaller than
                 the pane centers inside it (screens own their fit). */}
             <div className="flex min-h-0 w-full flex-1 items-stretch gap-[clamp(20px,2.5vw,44px)] px-5 pb-5 lg:px-10">
-              {/* stage pane */}
+              {/* stage pane — the RingTargetsProvider scopes the ring registry
+                  to THIS section; every runway registers 'editor.window', so a
+                  shared registry lets later sections steal earlier ones' ring
+                  targets (ring drawn around an off-screen window). */}
               <div className="relative h-full min-w-0 flex-1">
                 <div ref={canvasInnerRingRef} className="absolute inset-0">
+                  <RingTargetsProvider>
+                  <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
                   <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
                     <div className="relative h-full">
                       {editor && (
@@ -295,7 +304,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                             onDocChange={editor.onDocChange}
                             onBlocksChange={editor.onBlocksChange}
                             onRun={editor.onRun}
-                            onShare={editor.onShare}
                             theme={editor.theme}
                             withRingTargets
                           />
@@ -321,12 +329,16 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                           against a zero-size box forever. */}
                       {showScreens && !timer && !editor && session && (
                         <Screen visible={activeScreen === 'analytics' || activeScreen === 'metrics'}>
-                          <TourSessionAnalytics
-                            activeStageId={session.fixedStage ?? slice.stage.id}
-                            noteId={session.noteId}
-                            queryKey={session.queryKey}
-                            boardSlug={session.boardSlug}
-                          />
+                          {session.result ? (
+                            <TourSessionResult result={session.result} />
+                          ) : (
+                            <TourSessionAnalytics
+                              activeStageId={session.fixedStage ?? slice.stage.id}
+                              noteId={session.noteId}
+                              queryKey={session.queryKey}
+                              boardSlug={session.boardSlug}
+                            />
+                          )}
                         </Screen>
                       )}
                       {toastLabel != null && (
@@ -352,6 +364,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                     accent={slice.stage.accent ?? TOUR_ACCENTS.editor}
                     canvasRef={canvasInnerRef}
                   />
+                  </RingTargetsProvider>
                 </div>
               </div>
 

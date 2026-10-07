@@ -11,16 +11,13 @@
  *  4. Hero re-entry — always resets the editor to the initial load content
  *     (shared script while active, else welcome-1.md); the initial viewport
  *     entry is arrival, not a re-entry.
- *  5. Share link — the hero Share button copies a `/load?z=…` link, prompting
- *     once for an optional name appended as `&by=`.
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
-import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
-import { decodeZip } from '../services/decodeZip'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
 
@@ -294,43 +291,5 @@ describe('HomeTour arrival & hero-reset contract', () => {
     await simulateHeroVisibility(false)
     await simulateHeroVisibility(true)
     expect(heroEditor().value).toBe(SHARED)
-  })
-
-  it('copies a /load?z= link and prompts once for the optional author name', async () => {
-    const writeText = mock(() => Promise.resolve())
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText },
-      configurable: true,
-      writable: true,
-    })
-    const promptMock = mock(() => 'serge')
-    Object.defineProperty(window, 'prompt', {
-      value: promptMock,
-      configurable: true,
-      writable: true,
-    })
-
-    await renderHomeTour()
-
-    // The hero's own share control (the editor pane carries a second share
-    // ghost, so the role query is ambiguous within the hero view).
-    const shareButton = screen.getByTestId('tour-hero-share')
-    fireEvent.click(shareButton)
-    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
-
-    const url = (writeText.mock.calls[0] as unknown as [string])[0]
-    expect(url).toStartWith(`${window.location.origin}/load?z=`)
-
-    // The copied link round-trips: its z param decodes to the current doc.
-    const z = new URL(url).searchParams.get('z')!
-    expect(await decodeZip(z)).toBe(WELCOME)
-
-    // The prompted name rides along as &by=, and the prompt fires only once.
-    expect(new URL(url).searchParams.get('by')).toBe('serge')
-    expect(window.localStorage.getItem('wodwiki.shareName.v1')).toBe('serge')
-
-    fireEvent.click(shareButton)
-    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
-    expect(promptMock).toHaveBeenCalledTimes(1)
   })
 })

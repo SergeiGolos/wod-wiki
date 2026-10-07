@@ -9,11 +9,14 @@ import type {
 } from './IStorage';
 import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import { USER_OWNED_STORES, stampUserOwned } from '@bitcobblers/wod-wiki-storage';
 
 const DB_NAME = 'wodwiki-db';
 // V24: 1b0442ed added block_efforts without bumping the version, so existing
 // V23 DBs lack the store — the guarded upgrade below recreates it.
-const DB_VERSION = 24;
+// V25: identity — adds the memberships store and a by-user ownership index
+// on every user-owned store (guards mandatory per the V24 note above).
+const DB_VERSION = 25;
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
@@ -76,20 +79,23 @@ class IDBReadWriteStore<T> extends IDBReadOnlyStore<T> implements IReadWriteStor
   constructor(
     private readonly dbPromiseRef: Promise<IDBPDatabase>,
     private readonly writeStoreName: StoreName,
-    private readonly activeTx?: IDBTx<'readwrite'>
+    private readonly activeTx?: IDBTx<'readwrite'>,
+    private readonly getUserId?: () => string
   ) {
     super(dbPromiseRef, writeStoreName, activeTx);
   }
 
   async put(value: T, key?: IDBValidKey): Promise<IDBValidKey> {
+    const userId = this.getUserId?.();
+    const stored = (userId ? stampUserOwned(this.writeStoreName, value, userId) : value) as T;
     if (this.activeTx) {
       const store = this.activeTx.objectStore(this.writeStoreName);
-      return key !== undefined ? store.put(value, key) : store.put(value);
+      return key !== undefined ? store.put(stored, key) : store.put(stored);
     }
     const db = await this.dbPromiseRef;
     return key !== undefined
-      ? db.put(this.writeStoreName, value, key)
-      : db.put(this.writeStoreName, value);
+      ? db.put(this.writeStoreName, stored, key)
+      : db.put(this.writeStoreName, stored);
   }
 
   async delete(key: IDBValidKey | IDBKeyRange): Promise<void> {
@@ -113,6 +119,8 @@ class IDBReadWriteStore<T> extends IDBReadOnlyStore<T> implements IReadWriteStor
 
 export class IndexedDBStorage implements IStorage {
   private _dbPromise: Promise<IDBPDatabase> | null = null;
+
+  constructor(private readonly options: { getUserId?: () => string } = {}) {}
 
   private get dbPromise(): Promise<IDBPDatabase> {
     if (!this._dbPromise) {
@@ -345,6 +353,21 @@ export class IndexedDBStorage implements IStorage {
           const metaStore = tx.objectStore('meta');
           await metaStore.delete('seed');
         }
+
+        // V25: identity — memberships store + by-user ownership index on every
+        // user-owned store. Guards mandatory (V24 note): mixed-state DBs exist.
+        if (oldVersion < 25) {
+          if (!db.objectStoreNames.contains('memberships')) {
+            db.createObjectStore('memberships', { keyPath: 'id' });
+          }
+          for (const name of USER_OWNED_STORES) {
+            if (!db.objectStoreNames.contains(name)) continue;
+            const store = tx.objectStore(name);
+            if (!store.indexNames.contains('by-user')) {
+              store.createIndex('by-user', 'userId');
+            }
+          }
+        }
       },
       blocked: (currentVersion, blockedVersion) => {
         console.warn(
@@ -368,7 +391,7 @@ export class IndexedDBStorage implements IStorage {
   }
 
   readwrite<K extends StoreName>(store: K): IReadWriteStore<StoreType<K>> {
-    return new IDBReadWriteStore<StoreType<K>>(this.dbPromise, store);
+    return new IDBReadWriteStore<StoreType<K>>(this.dbPromise, store, undefined, this.options.getUserId);
   }
 
   async transaction<K extends StoreName, R>(
@@ -380,7 +403,7 @@ export class IndexedDBStorage implements IStorage {
     const idbTx = db.transaction(stores, mode) as IDBTx;
     const txAdapter: IStorageTransaction = {
       readonly: (name) => new IDBReadOnlyStore(this.dbPromise, name, idbTx),
-      readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx as IDBTx<'readwrite'>),
+      readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx as IDBTx<'readwrite'>, this.options.getUserId),
     };
     const result = await fn(txAdapter);
     await idbTx.done;

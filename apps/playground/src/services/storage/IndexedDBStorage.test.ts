@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+// Auto shim installs the IDB* globals the `idb` wrapper needs even when this
+// file runs standalone (bun test co-loads otherwise).
+import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 
 import { IndexedDBStorage } from './IndexedDBStorage';
@@ -42,6 +45,22 @@ describe('IndexedDBStorage schema upgrades', () => {
     await expect(
       storage.transaction(['block_index', 'block_efforts'], 'readwrite', async () => undefined),
     ).resolves.toBeUndefined();
+    await storage.close();
+  });
+
+  it('V25 adds the memberships store and by-user indexes on user-owned stores', async () => {
+    // Legacy V24 DB: sessions exists without the by-user index.
+    await openLegacyDb(24, ['sessions']);
+
+    const storage = new IndexedDBStorage();
+    // memberships is usable (store created)…
+    const membership = { id: 'default', displayName: 'Me', createdAt: 1 };
+    await storage.readwrite('memberships').put(membership);
+    await expect(storage.readonly('memberships').get('default')).resolves.toEqual(membership);
+    // …and the existing user-owned store gained the index (fresh stores get it too).
+    await expect(
+      storage.readonly('sessions').getAllFromIndex('by-user', 'user-9'),
+    ).resolves.toEqual([]);
     await storage.close();
   });
 });

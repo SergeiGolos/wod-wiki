@@ -13,7 +13,7 @@ function structural(a: unknown): unknown {
     const keys = Object.keys(a as Record<string, unknown>).sort();
     for (const k of keys) {
       const v = (a as Record<string, unknown>)[k];
-      if (k === 'raw' || k === 'advisories' || k === 'sourceScope' || v === undefined) continue;
+      if (k === 'raw' || k === 'advisories' || k === 'sourceScope' || k === 'head' || v === undefined) continue;
       out[k] = structural(v);
     }
     if (Array.isArray(out.filters)) {

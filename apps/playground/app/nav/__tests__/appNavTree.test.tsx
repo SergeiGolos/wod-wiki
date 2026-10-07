@@ -3,6 +3,7 @@ import { render, screen, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { buildAppNavTree, appNavTree } from '../appNavTree'
+import type { CanvasRoute } from '../../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../../lib/routes'
 import { NavProvider } from '../NavContext'
 import { NavSidebar } from '../NavSidebar'
@@ -29,6 +30,7 @@ describe('appNavTree - Flattened listing zones', () => {
     expect(l1).toEqual([
       'home',
       'journal',
+      'catalogs',
       'collections',
       'playgrounds',
       'dashboards',
@@ -144,7 +146,7 @@ describe('appNavTree - Settings navigation', () => {
     cleanup()
   })
 
-  it('defines L1 settings item with L2 children for Appearance, System, and Query Defaults', () => {
+  it('defines L1 settings item with L2 children for Appearance, Profile, System, and Query Defaults', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')
 
@@ -153,13 +155,17 @@ describe('appNavTree - Settings navigation', () => {
     expect(settings?.level).toBe(1)
     expect(settings?.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
     expect(settings?.children).toBeDefined()
-    expect(settings?.children?.length).toBe(4)
+    expect(settings?.children?.length).toBe(5)
 
-    const [appearance, queries, tags, system] = settings!.children!
+    const [appearance, profile, queries, tags, system] = settings!.children!
 
     expect(appearance.id).toBe('settings-appearance')
     expect(appearance.label).toBe('Appearance')
     expect(appearance.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsAppearance })
+
+    expect(profile.id).toBe('settings-profile')
+    expect(profile.label).toBe('Profile')
+    expect(profile.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.settingsProfile })
 
     expect(queries.id).toBe('settings-queries')
     expect(queries.label).toBe('Query Defaults')
@@ -186,10 +192,13 @@ describe('appNavTree - Settings navigation', () => {
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})
     const settings = tree.find(item => item.id === 'settings')!
-    const [appearance, queries, tags, system] = settings.children!
+    const [appearance, profile, queries, tags, system] = settings.children!
 
     expect(appearance.isActive!(mockLocation('/settings'))).toBe(true)
     expect(appearance.isActive!(mockLocation('/settings/appearance'))).toBe(true)
+
+    expect(profile.isActive!(mockLocation('/settings/profile'))).toBe(true)
+    expect(profile.isActive!(mockLocation('/settings/appearance'))).toBe(false)
 
     expect(queries.isActive!(mockLocation('/settings/queries'))).toBe(true)
     expect(queries.isActive!(mockLocation('/settings/appearance'))).toBe(false)
@@ -245,4 +254,89 @@ describe('appNavTree - Buy Me a Coffee', () => {
     expect(screen.getAllByText('System')[0]).toBeDefined()
   })
 })
+describe('appNavTree - L2 notable buttons and Catalogs', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('renders top notable button and flattened guide links in Home L2', () => {
+    const dummyRoutes = [
+      {
+        route: '/guide/start',
+        page: { frontmatter: { type: 'guide' }, sections: [{ heading: 'Getting Started' }] } as unknown as CanvasRoute['page'],
+      },
+      {
+        route: '/guide/wql',
+        page: { frontmatter: { type: 'guide' }, sections: [{ heading: 'WQL Basics' }] } as unknown as CanvasRoute['page'],
+      },
+    ]
+    const tree = buildAppNavTree(() => {}, dummyRoutes)
+    const home = tree.find(i => i.id === 'home')!
+    expect(home.children?.[0]?.id).toBe('home-new-journal')
+    expect(home.children?.[0]?.variant).toBe('notable')
+    expect(home.children?.[0]?.label).toBe('New journal entry')
+    // Guide items are flattened directly under Home (no guide-group accordion)
+    expect(home.children?.find(i => i.id === 'guide-group')).toBeUndefined()
+    expect(home.children?.find(i => i.id === 'guide-/guide/start')).toBeDefined()
+  })
+
+  it('defines Catalogs on L1 above Collections doing :catalog search', () => {
+    const tree = buildAppNavTree(() => {})
+    const catalogs = tree.find(i => i.id === 'catalogs')!
+    expect(catalogs).toBeDefined()
+    expect(catalogs.label).toBe('Catalogs')
+    expect(catalogs.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.catalogs })
+  })
+
+  it('renders notable create button on Journal, Collections, Playgrounds, Efforts L2 panels', () => {
+    const tree = buildAppNavTree(() => {})
+    const journal = tree.find(i => i.id === 'journal')!
+    expect(journal.panel).toBeDefined()
+
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <NavProvider tree={tree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('journal-create-entry')).toBeDefined()
+    expect(screen.getByText('New journal entry')).toBeDefined()
+    cleanup()
+
+    render(
+      <MemoryRouter initialEntries={['/collections']}>
+        <NavProvider tree={tree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('collections-create-note')).toBeDefined()
+    expect(screen.getByText('New note')).toBeDefined()
+    expect(screen.getByText('Catalog crosswalk')).toBeDefined()
+    cleanup()
+
+    render(
+      <MemoryRouter initialEntries={['/playgrounds']}>
+        <NavProvider tree={tree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('playgrounds-create-playground')).toBeDefined()
+    expect(screen.getByText('New playground')).toBeDefined()
+    cleanup()
+
+    render(
+      <MemoryRouter initialEntries={['/efforts']}>
+        <NavProvider tree={tree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('efforts-create-effort')).toBeDefined()
+    expect(screen.getByText('New effort')).toBeDefined()
+  })
+})
+
 

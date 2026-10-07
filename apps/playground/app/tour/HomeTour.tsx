@@ -26,14 +26,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { encodeZip } from '../services/encodeZip'
-import {
-  clearHomeShared,
-  getShareName,
-  loadHomeShared,
-  setShareName,
-  type HomeSharedScript,
-} from '../services/homeSharedScript'
+import { clearHomeShared, loadHomeShared, type HomeSharedScript } from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
 import { NextEvent } from '@bitcobblers/wod-wiki-engine'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
@@ -46,11 +39,15 @@ import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { usePlaygroundRun } from '../hooks/usePlaygroundRun'
+import { useNav } from '../nav/NavContext'
+import type { NavItemL3 } from '../nav/navTypes'
 import { RingTargetsProvider } from './TourRing'
 import { TOUR_ACCENTS, SCREEN_TITLES, type TourStageId } from './tourConstants'
 import { TourHeroHeading } from './TourHero'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TourEditorScreen } from './screens/TourEditorScreen'
+import { TourTimerScreen } from './screens/TourTimerScreen'
+import { TourSessionResult } from './screens/TourSessionResult'
 import {
   buildAdventureScript,
   TOUR_CAPTIONS,
@@ -65,7 +62,7 @@ import { CelebrationBridge } from './CelebrationBridge'
 import { TourChapterPicker } from './TourChapterPicker'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
-import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
+import { HOME_EVENTS, useTelemetry, useScrollTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
 import {
   BOARD_SLUGS,
@@ -295,6 +292,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
   const track = telemetry?.track
+  useScrollTelemetry('/')
 
   // ── Editor document ──
   // Arrival contract (#882): the initial load content is the shared script
@@ -389,6 +387,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 
   // ── Session results (inline playground run) ──
   const [session, setSession] = useState<Sessions | null>(null)
+  // True while the current identity's execution is actually running — drives
+  // the L3 outline's stop-the-timer transition button on the metrics row.
+  const [runLive, setRunLive] = useState(false)
+  // True while a visitor-initiated in-place run owns the hero viewport
+  // (editor → timer → result). The tour's run section yields its timer pane
+  // for the duration so two runtimes never execute the same identity.
+  const [heroRunActive, setHeroRunActive] = useState(false)
   // Scroll-stage ids arrive as plain strings from the markdown spec; the
   // quest hook keys on the constants union.
   const markStageViewedRef = useRef<(id: TourStageId) => void>(() => {})
@@ -412,8 +417,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const externalStopRef = useRef(false)
   const pendingActionRef = useRef<
     | { kind: 'apply-doc'; doc: string }
-    | { kind: 'restart'; doc: string; block: ScriptBlock; sectionTitle: string }
-    | { kind: 'restart-unstarted'; doc: string; block: ScriptBlock; sectionTitle: string }
+    | { kind: 'restart'; doc: string; block: ScriptBlock; sectionTitle: string; glide: boolean }
+    | { kind: 'restart-unstarted'; doc: string; block: ScriptBlock; sectionTitle: string; glide: boolean }
     | { kind: 'reset' }
     | null
   >(null)
@@ -430,6 +435,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const clearSession = useCallback(() => {
     setSession(null)
     setTourRuntime(null)
+    setRunLive(false)
+    setHeroRunActive(false)
   }, [])
 
   const scrollTimerStage = useCallback(() => {
@@ -497,6 +504,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     setAutoStart(false)
     setSession(null)
     setTourRuntime(null)
+    setRunLive(false)
+    setHeroRunActive(false)
     return true
   }, [reset])
 
@@ -535,7 +544,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         break
       case 'restart': {
         const ok = await doStart(action.doc, action.block, action.sectionTitle)
-        if (ok) scrollTimerStage()
+        // The glide run now owns the section pane — the hero yields.
+        setHeroRunActive(false)
+        if (ok && action.glide) scrollTimerStage()
         break
       }
       case 'restart-unstarted':
@@ -544,7 +555,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         await end()
         {
           const ok = await doStart(action.doc, action.block, action.sectionTitle)
-          if (ok) scrollTimerStage()
+          setHeroRunActive(false)
+          if (ok && action.glide) scrollTimerStage()
         }
         break
       case 'reset':
@@ -574,7 +586,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // The initial entry (page load) is arrival, not a re-entry. ──
   const heroRef = useRef<HTMLDivElement | null>(null)
   const heroVisibleRef = useRef(true) // the hero mounts at the top of the page
+  const heroRunActiveRef = useRef(heroRunActive)
+  heroRunActiveRef.current = heroRunActive
   const resetHeroToArrival = useCallback(() => {
+    // An in-place run owns the hero viewport — re-entry shows its current
+    // state (timer/result), not a reset to the arrival document.
+    if (heroRunActiveRef.current) return
     setRunSeed((s) => s + 1)
     requestStop({ kind: 'apply-doc', doc: initialContent })
   }, [initialContent, requestStop])
@@ -640,6 +657,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     prevStageInTimerRef.current = stageInTimer
   }, [stageInTimer, everInTimer, requestStop])
 
+  // Metrics-arrival stop: scrolling into Own-the-Metrics while a run is live
+  // halts it (the section's pane shows the recorded $session segments). The
+  // run-section timer stage owns the stop while it is active — this catches
+  // the blow-past path where the run stages were never dwelled in.
+  const ownStageActive = activeStages.own != null
+  useEffect(() => {
+    if (!ownStageActive || stageInTimer) return
+    if (!runRef.current || finalizedRef.current || !runStartedRef.current) return
+    if (externalStopRef.current) return
+    requestStop(null)
+  }, [ownStageActive, stageInTimer, requestStop])
+
   // ── Quest + challenge hooks ──
   useQuickStartAutoComplete({
     pageRoute: '/',
@@ -691,24 +720,35 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // Explicit Run (hero / write-pane Run command / Try-it): persist a fresh
   // playground note, then glide onto the timer stage where the inline pane
   // auto-starts. A live unrecorded run is saved first.
+  //
+  // glide=false runs in place: the hero viewport hosts the timer/result
+  // states and the visitor is never scrolled (the tour's run section yields
+  // its pane for the duration — see heroTimerVisible below).
   const beginRun = useCallback(
-    (sectionTitle: string, doc: string, block: ScriptBlock | null, demo: boolean) => {
+    (
+      sectionTitle: string,
+      doc: string,
+      block: ScriptBlock | null,
+      demo: boolean,
+      glide = true,
+    ) => {
       if (!block) return
       track?.(HOME_EVENTS.demoRun)
       if (demo) setDemoRunning(true)
       setRunSeed((s) => s + 1)
+      if (!glide) setHeroRunActive(true)
       if (runRef.current && runStartedRef.current && !finalizedRef.current) {
-        pendingActionRef.current = { kind: 'restart', doc, block, sectionTitle }
+        pendingActionRef.current = { kind: 'restart', doc, block, sectionTitle, glide }
         setExternalStop(true)
         return
       }
       if (runRef.current && !finalizedRef.current) {
-        pendingActionRef.current = { kind: 'restart-unstarted', doc, block, sectionTitle }
+        pendingActionRef.current = { kind: 'restart-unstarted', doc, block, sectionTitle, glide }
         void performPending()
         return
       }
       void doStart(doc, block, sectionTitle).then((ok) => {
-        if (ok) scrollTimerStage()
+        if (ok && glide) scrollTimerStage()
       })
     },
     [doStart, performPending, scrollTimerStage, track],
@@ -717,6 +757,54 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   const handleRun = useCallback(() => {
     beginRun('Run', docRef.current, blocksRef.current[0], true)
   }, [beginRun])
+
+  // Explicit hero/editor Run: start in place — the hero viewport switches
+  // editor → timer → result without scrolling away from the editor context.
+  const handleHeroRun = useCallback(() => {
+    beginRun('Run', docRef.current, blocksRef.current[0], true, false)
+  }, [beginRun])
+
+  // ── L3 outline (right rail + ⋯ menu): links to the tour sections. The run
+  // row's secondary ▶ button IS the idle→running state transition — clicking
+  // it mints a fresh run identity and glides to the timer stage. The metrics
+  // row's secondary ■ button is the running→stopped transition — while a run
+  // is live it halts the execution, records the partial, and glides to the
+  // metrics section (the same bridge a natural finish takes). ──
+  const { setL3Items, scrollToSection } = useNav()
+  const handleStopToMetrics = useCallback(() => {
+    requestStop(null)
+    scrollToSection('tour-section-own')
+  }, [requestStop, scrollToSection])
+  useEffect(() => {
+    const outline: NavItemL3[] = [
+      { id: 'tour-hero', label: 'Welcome', level: 3, action: { type: 'scroll', sectionId: 'tour-hero' } },
+      { id: 'write', label: 'Write it in Markdown', level: 3, action: { type: 'scroll', sectionId: 'tour-section-write' } },
+      {
+        id: 'run',
+        label: 'Run it as a Timer',
+        level: 3,
+        action: { type: 'scroll', sectionId: 'tour-section-run' },
+        secondaryAction: { id: 'run-start', label: 'Start the run', action: { type: 'call', handler: handleRun } },
+      },
+      {
+        id: 'own',
+        label: 'Own the Metrics',
+        level: 3,
+        action: { type: 'scroll', sectionId: 'tour-section-own' },
+        // Gated on a live execution — idle has no stop transition to offer.
+        ...(runLive
+          ? {
+              secondaryAction: { id: 'run-stop', label: 'Stop the timer', action: { type: 'call' as const, handler: handleStopToMetrics } },
+              secondaryRunIcon: 'stop' as const,
+            }
+          : {}),
+      },
+      { id: 'explore', label: 'Explore your analytics', level: 3, action: { type: 'scroll', sectionId: 'tour-section-explore' } },
+      { id: 'learn', label: 'Learn the Language', level: 3, action: { type: 'scroll', sectionId: 'tour-chapter-picker' } },
+    ]
+    setL3Items(outline)
+    return () => setL3Items([])
+  }, [setL3Items, handleRun, handleStopToMetrics, runLive])
 
   // Chapter example run — scoped per chapter (#919): runs inline WITHOUT
   // firing the global run-started quest; the chapter's own lead quest is
@@ -729,57 +817,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     [beginRun, track],
   )
 
-  const shareDoc = useCallback(
-    async (content: string) => {
-      if (!content.trim()) return
-      try {
-        const encoded = await encodeZip(content)
-        // Share links land on /load?z= (#882). The first share prompts once for
-        // an optional name, persisted so later links reuse it silently.
-        let by = getShareName()
-        if (by === null) {
-          by = (window.prompt?.('Add your name to the link (shown as "shared by") — optional:') ?? '').trim()
-          setShareName(by)
-        }
-        const url = `${window.location.origin}/load?z=${encoded}${by ? `&by=${encodeURIComponent(by)}` : ''}`
-        await navigator.clipboard.writeText(url)
-        track?.(HOME_EVENTS.demoShared)
-        toast({
-          title: 'Link copied',
-          description: 'Share link copied to clipboard.',
-        })
-      } catch (err) {
-        console.error('[HomeTour] share failed:', err)
-        toast({
-          title: 'Could not copy',
-          description: err instanceof Error ? err.message : 'Failed to copy share link.',
-          variant: 'destructive',
-        })
-      }
-    },
-    [track],
-  )
-
-  const handleShare = useCallback(() => {
-    void shareDoc(docRef.current)
-  }, [shareDoc])
-
-  // Chapter picker share (#926): use the chapter's own example doc.
-  const handleChapterShare = useCallback((doc: string) => void shareDoc(doc), [shareDoc])
-
   // Stop click / metrics arrival / scroll-out: the panel reports partial or
   // completed results; finalize records them against the run's note exactly
   // once, then any parked action (reset/restart/doc swap) executes.
+  // The completion never scrolls — the result state shows in place (hero
+  // viewport for in-place runs, the finished pane for dwell runs); the
+  // Own-the-Metrics section shows the recorded segments when scrolled to.
   const handleTimerComplete = useCallback(
     (_blockId: string, results: Sessions) => {
-      if (!externalStopRef.current) {
-        // A panel-originated completion (Stop button or natural finish) slides
-        // the visitor onward to the metrics section — the bridge from the run
-        // they just saved to querying it. Host-driven stops (metrics arrival,
-        // scroll-out) never pull the visitor back.
-        if (mobileRunwayApiRef.current) mobileRunwayApiRef.current.scrollToStage('metrics-e')
-        else ownApiRef.current?.scrollToStage('metrics-e')
-      }
+      // Record-once: a duplicate report (Stop after natural complete, or a
+      // second pane's report) is absorbed unless a save is still pending.
+      if (finalizedRef.current && !unsavedRef.current) return
+      setRunLive(false)
       setSession(results)
       if ((results.logs ?? []).length === 0) {
         finalizedRef.current = true
@@ -822,10 +871,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     writeApiRef.current?.scrollToStage('editor-blank')
   }, [])
 
+  // The hero pane's ✕ never scrolls: stop the run (the partial is recorded)
+  // and let the hero settle on its result state.
+  const handleHeroClose = useCallback(() => {
+    requestStop(null)
+  }, [requestStop])
+
   // Header Reset: save the live partial, then a fresh unstarted snapshot —
-  // the dwell (still inside the timer stages) immediately re-runs it.
+  // the dwell (still inside the timer stages) immediately re-runs it. For
+  // in-place hero runs the hero returns to its editor state instead.
   const handleTimerReset = useCallback(() => {
     setRunSeed((s) => s + 1)
+    setHeroRunActive(false)
     requestStop({ kind: 'reset' })
   }, [requestStop])
 
@@ -839,9 +896,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     })
   }, [])
 
-  // First idle→running transition of the current pane's execution.
+  // First idle→running transition of the current pane's execution. The
+  // one-shot autoStart is consumed here so a later remount of the pane can
+  // never spawn a second execution of the same identity.
   const handleRunStarted = useCallback(() => {
     runStartedRef.current = true
+    setRunLive(true)
+    setAutoStart(false)
   }, [])
 
   // Caption command buttons: query presets, board picks, Try-it.
@@ -856,7 +917,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         return
       }
       if (key === 'try') {
-        beginRun('Run', docRef.current, blocksRef.current[0], true)
+        beginRun('Run', docRef.current, blocksRef.current[0], true, false)
       }
     },
     [beginRun],
@@ -907,6 +968,22 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     onRunStarted: handleRunStarted,
     onReset: handleTimerReset,
   }
+  // Hero variant: same run, but ✕ stops in place (result state) instead of
+  // scrolling away.
+  const heroTimerWiring = { ...timerWiring, onClose: handleHeroClose }
+
+  // Hero viewport state machine — one viewport hosts the whole workflow:
+  // editor (idle) → run (in-place identity) → result (recorded $session).
+  // The timer pane mounts only once the identity exists and autoStart is
+  // armed, so the pane's one-shot auto-start never misses.
+  const heroRunReady = run != null || autoStart || runLive
+  const heroState: 'editor' | 'run' | 'result' = !heroRunActive
+    ? 'editor'
+    : session
+      ? 'result'
+      : heroRunReady
+        ? 'run'
+        : 'editor'
 
   // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
   if (prefersReducedMotion) {
@@ -923,7 +1000,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           onDocChange={handleDocChange}
           onBlocksChange={handleBlocksChange}
           onRun={handleRun}
-          onShare={handleShare}
           onChoice={handleWorkoutChoice}
           onCommand={handleCaptionCommand}
           sharedBy={sharedBy}
@@ -945,13 +1021,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           chapters={chapters}
           questLabels={questLabels}
           onChapterRun={handleChapterRun}
-          onChapterShare={handleChapterShare}
           onHomeQuestClick={handleHomeQuestClick}
           doc={doc}
           onDocChange={handleDocChange}
           onBlocksChange={handleBlocksChange}
           onRun={handleRun}
-          onShare={handleShare}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
           onChoice={handleWorkoutChoice}
@@ -998,37 +1072,38 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleRun}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            data-testid="tour-hero-run"
-          >
-            Run
-          </button>
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
-            data-testid="tour-hero-share"
-          >
-            Copy share link
-          </button>
-        </div>
-        {/* The write section's sticky pane below is a second display of this
-            same shared document — no ring targets here, those belong to the
-            runway window. */}
+        {/* The hero viewport hosts the workflow states in place — editor →
+            run → result — so the demo never scrolls away from the editor
+            context. The write section's sticky pane below is a second
+            display of the same shared document. */}
         <div className="h-[62vh] min-h-[420px] w-full max-w-[1200px]">
-          <MacOSChrome title={SCREEN_TITLES.editor} className="h-full">
-            <TourEditorScreen
-              doc={doc}
-              theme={theme}
-              onDocChange={handleDocChange}
-              onBlocksChange={handleBlocksChange}
-              onRun={handleRun}
-              onShare={handleShare}
-            />
+          <MacOSChrome
+            title={
+              heroState === 'run'
+                ? SCREEN_TITLES.timer
+                : heroState === 'result'
+                  ? SCREEN_TITLES.metrics
+                  : SCREEN_TITLES.editor
+            }
+            className="h-full"
+          >
+            {heroState === 'editor' && (
+              <TourEditorScreen
+                doc={doc}
+                theme={theme}
+                onDocChange={handleDocChange}
+                onBlocksChange={handleBlocksChange}
+                onRun={handleHeroRun}
+              />
+            )}
+            {heroState === 'run' && <TourTimerScreen {...heroTimerWiring} key={timerWiring.sessionKey} />}
+            {heroState === 'result' && session && (
+              <TourSessionResult
+                result={session}
+                onDismiss={clearSession}
+                dismissLabel="Edit again"
+              />
+            )}
           </MacOSChrome>
         </div>
       </section>
@@ -1062,8 +1137,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           theme,
           onDocChange: handleDocChange,
           onBlocksChange: handleBlocksChange,
-          onRun: handleRun,
-          onShare: handleShare,
+          onRun: handleHeroRun,
         }}
       />
 
@@ -1086,7 +1160,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.run}
         onViewportChange={handleRunViewport}
-        timer={timerWiring}
+        // An in-place hero run owns the only timer pane — mounting a second
+        // one here would execute the same identity twice.
+        timer={heroRunActive ? undefined : timerWiring}
         tvRuntime={tourRuntime}
         tvStageId="timer-cast"
       />
@@ -1109,7 +1185,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         captions={sectionCaptions.own}
         onCommand={handleCaptionCommand}
         onActiveStageChange={stageHandlers.own}
-        session={{ ...sessionWiring, fixedStage: 'wql-table' }}
+        // Once a run has been recorded, the pane answers with the recorded
+        // $session segments; before that it shows the session-scoped table.
+        session={{ ...sessionWiring, fixedStage: 'wql-table', result: session }}
       />
 
       <TourSectionRunway
@@ -1148,7 +1226,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         allQuests={quests}
         theme={theme}
         onRun={handleChapterRun}
-        onShare={handleChapterShare}
       />
     </div>
   )

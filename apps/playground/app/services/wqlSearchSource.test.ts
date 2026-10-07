@@ -214,16 +214,16 @@ describe('searchPaletteQuery', () => {
   })
 
   it('is the unbounded global default (all notes, no window)', () => {
-    expect(searchPaletteQuery()).toBe(':note')
+    expect(searchPaletteQuery()).toBe(':journal')
   })
 
   it('uses the configured palette default when one is stored', () => {
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':note{source:journal} last 4w' })
-    expect(searchPaletteQuery()).toBe(':note{source:journal} last 4w')
+    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':journal{} last 4w' })
+    expect(searchPaletteQuery()).toBe(':journal{} last 4w')
   })
 
   it('falls back to the system seed when the stored default is only options', () => {
     writeRouteWqlConfig(PALETTE_ROUTE_ID, { typeOptions: ['notes'] })
-    expect(searchPaletteQuery()).toBe(':note')
+    expect(searchPaletteQuery()).toBe(':journal')
   })
 })

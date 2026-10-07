@@ -254,13 +254,18 @@ describe('ConditionsNavPanel', () => {
     expect(stateButton('tags', 'strength').dataset.state).toBe('include')
     expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy()
 
-    // …and the narrowed published result set drops the other value entirely.
+    // …and the narrowed published result set keeps empty selectors visible with count 0 and faded styling.
     publish({
       pathname: '/collections',
       query: routedQuery(),
       entries: ENTRIES.filter(e => e.id === 'n1'),
     })
-    await waitFor(() => expect(screen.queryByTestId('conditions-row-tags:barbell')).toBeNull())
+    await waitFor(() => {
+      const barbell = screen.getByTestId('conditions-row-tags:barbell')
+      expect(barbell).toBeTruthy()
+      expect(barbell.className).toContain('opacity-40')
+      expect(barbell.textContent).toContain('0')
+    })
     // The selected value stays listed (removable), not duplicated as an option.
     expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy()
 
@@ -353,32 +358,29 @@ describe('ConditionsNavPanel', () => {
     expect(stateButton('tags', 'strength').disabled).toBe(true)
     expect(stateButton('tags', 'barbell').disabled).toBe(true)
 
-    // Matching snapshot lands → controls re-enable on the fresh counts.
+    // Matching snapshot lands → controls re-enable on the fresh counts (empty selectors stay with count 0).
     publish({
       pathname: '/collections',
       query: routedQuery(),
       entries: ENTRIES.filter(e => e.id === 'n1'),
     })
     await waitFor(() => expect(stateButton('tags', 'strength').disabled).toBe(false))
-    expect(screen.queryByTestId('conditions-row-tags:barbell')).toBeNull()
+    const barbell = screen.getByTestId('conditions-row-tags:barbell')
+    expect(barbell).toBeTruthy()
+    expect(barbell.textContent).toContain('0')
   })
 
-  it('adds freeform values through the visible add button into an included row', async () => {
-    renderPanel()
-    // Matching baseline first: the panel is legitimately pending (controls
-    // disabled) until the route's query has executed at least once.
+  it('renders a jump to WQL link for text search and adds freeform values for identifiers', async () => {
+    let closed = 0
+    renderPanel('/collections', () => {
+      closed += 1
+    })
     publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
-    const input = screen.getByTestId('conditions-input-text') as HTMLInputElement
-    fireEvent.change(input, { target: { value: 'fran' } })
-    fireEvent.click(screen.getByTestId('conditions-add-text'))
-    await waitFor(() => expect(routedQuery()).toContain('text:fran'))
-    // The authored value integrates as a tri-state row, included.
-    expect(screen.getByTestId('conditions-row-text:fran')).toBeTruthy()
-    expect(stateButton('text', 'fran').dataset.state).toBe('include')
-    expect((screen.getByTestId('conditions-input-text') as HTMLInputElement).value).toBe('')
+    expect(screen.getByTestId('conditions-jump-wql-text')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('conditions-jump-wql-text'))
+    expect(closed).toBe(1)
   })
-
-  it('closes the drawer on full-query shortcuts only, never on facet or group-by edits', async () => {
+  it('closes the drawer on full-query shortcuts only, never on facet edits', async () => {
     let closed = 0
     renderPanel('/collections', () => {
       closed += 1
@@ -390,20 +392,15 @@ describe('ConditionsNavPanel', () => {
     fireEvent.click(stateButton('tags', 'strength'))
     await waitFor(() => expect(tagsValues(findOf(parseQuery(routedQuery()))!)).toEqual(['strength']))
     expect(closed).toBe(0)
-
-    // The header Group-by checkbox is a query edit too: it rewrites `by {}`
-    // in place, keeps the drawer open AND the section expanded (never a
-    // DisclosureButton toggle), while the shortcut/Custom match re-derives.
-    const groupToggle = screen.getByTestId('conditions-groupby-tags') as HTMLInputElement
-    expect(groupToggle.checked).toBe(true) // DEFAULT_Q groups by {tag}
-    fireEvent.click(groupToggle)
-    await waitFor(() => expect(findOf(parseQuery(routedQuery()))!.groupBy).toBeUndefined())
-    expect(closed).toBe(0)
     expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy()
-    expect((screen.getByTestId('conditions-groupby-tags') as HTMLInputElement).checked).toBe(false)
 
-    // Landing row (route-default query) closes too.
-    fireEvent.click(screen.getByText('All collections'))
+    // Custom query row now renders at the top with save and clear buttons
+    expect(screen.getByTestId('conditions-nav-custom')).toBeTruthy()
+    expect(screen.getByTestId('conditions-nav-custom-save')).toBeTruthy()
+    expect(screen.getByTestId('conditions-nav-custom-clear')).toBeTruthy()
+
+    // Clear button resets the query to all entries
+    fireEvent.click(screen.getByTestId('conditions-nav-custom-clear'))
     expect(closed).toBe(1)
   })
 

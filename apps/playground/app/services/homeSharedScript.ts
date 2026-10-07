@@ -7,9 +7,6 @@
  * the editor header's Reset button. Re-following the original link stores it
  * again.
  *
- * Sharer side: the name attached to your own links, prompted once on the
- * first share (empty string = asked, declined — don't re-prompt).
- *
  * Preference-scale and disposable, so localStorage — same tier as
  * playgroundProfile, but deliberately separate keys: the received script is
  * resettable content, not a preference.
@@ -34,7 +31,6 @@ export interface HomeSharedScript {
 }
 
 const SHARED_KEY = 'wodwiki.homeShared.v1'
-const SHARE_NAME_KEY = 'wodwiki.shareName.v1'
 
 function storage(): Storage | null {
   return typeof window !== 'undefined' && window.localStorage ? window.localStorage : null
@@ -66,23 +62,6 @@ export function loadHomeShared(): HomeSharedScript | null {
 export function clearHomeShared(): void {
   try {
     storage()?.removeItem(SHARED_KEY)
-  } catch {
-    // Non-fatal.
-  }
-}
-
-/** The name the local user attaches to their own share links. Null = never asked. */
-export function getShareName(): string | null {
-  try {
-    return storage()?.getItem(SHARE_NAME_KEY) ?? null
-  } catch {
-    return null
-  }
-}
-
-export function setShareName(name: string): void {
-  try {
-    storage()?.setItem(SHARE_NAME_KEY, name)
   } catch {
     // Non-fatal.
   }

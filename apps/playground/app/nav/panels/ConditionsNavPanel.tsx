@@ -25,11 +25,11 @@
  * landing row) stay plain routes.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import clsx from 'clsx'
-import { BookmarkPlus, CheckSquare, MinusSquare, Plus, Square } from 'lucide-react'
+import { BookmarkPlus, CheckSquare, MinusSquare, Plus, Square, X } from 'lucide-react'
 
 import { isFindQuery, parseQuery, WQL_TYPED_TAG_KEYS, type ParsedFindQuery } from '@bitcobblers/wod-wiki-wql'
 import { wqlFilterKeys, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql'
@@ -50,6 +50,7 @@ import type { Entry } from '../../lib/entryMapper'
 import type { NavItem, NavPanelProps } from '../navTypes'
 import { executeNavAction } from '../navTypes'
 import { useCloseNavigationDrawer } from '../NavigationDrawerContext'
+import { useNav } from '../NavContext'
 import {
   clauseTypeFor,
   facetOptions,
@@ -77,6 +78,11 @@ export interface ConditionsPanelSpec {
   extraChildren?: NavItem[]
   /** Whole zone route family (drives landing-row + L1 activation). */
   familyActive: (loc: Location) => boolean
+  createAction?: {
+    label: string
+    testId?: string
+    onClick: (deps: { navigate: (to: string) => void; openCreateJournal: (opts?: { mode?: 'blank' | 'source' }) => void }) => void
+  }
 }
 
 /** Stable identity for the no-data facet feed — a fresh `[]` per render
@@ -93,12 +99,21 @@ async function loadTagMembership(): Promise<TagMembership> {
     staticNoteStore.getAllNotes(),
   ])
   for (const note of staticNotes) {
+    const cat = (note.id.startsWith('feeds/') ? note.id.slice('feeds/'.length) : note.id).split('/')[0]
     for (const label of note.tags ?? []) {
       const rows = byNote.get(note.id)
       if (rows) {
         if (!rows.some(row => row.label === label)) rows.push({ label })
       } else {
         byNote.set(note.id, [{ label }])
+      }
+      if (cat && cat !== note.id) {
+        const catRows = byNote.get(cat)
+        if (catRows) {
+          if (!catRows.some(row => row.label === label)) catRows.push({ label })
+        } else {
+          byNote.set(cat, [{ label }])
+        }
       }
     }
   }
@@ -121,6 +136,7 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
     const location = useLocation()
     const navigate = useNavigate()
     const published = useStreamResults()
+    const { openCreateJournal } = useNav()
 
     // Exact host parity: the URL `q` rides verbatim (whitespace included)
     // when it parses; absent or invalid falls back to the profile default —
@@ -192,7 +208,14 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
       () => ({ entries: facetEntries, tagMembership: memberships.tags, effortMembership: memberships.efforts }),
       [facetEntries, memberships],
     )
+    const knownOptionsRef = useRef<Map<string, Map<string, Map<string, FacetOption>>>>(new Map())
+    let routeKnownOptions = knownOptionsRef.current.get(location.pathname)
+    if (!routeKnownOptions) {
+      routeKnownOptions = new Map()
+      knownOptionsRef.current.set(location.pathname, routeKnownOptions)
+    }
 
+    const hasEverPublished = entries !== null || committed !== null
     const apply = (wql: string) => navigateToQuery(location, navigate, wql)
     // Full-query shortcuts (landing row, grouping presets, page actions)
     // replace the whole query/page — the drawer closes after navigating.
@@ -235,24 +258,88 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
     return (
       <div className="-mx-4 flex flex-col gap-1 py-3" data-testid="conditions-nav-panel">
         <SidebarSection className="px-6">
-          <SidebarItem
-            onClick={() => {
-              if (landingWql) {
-                apply(landingWql)
-              } else {
-                navigate(spec.route)
+          {spec.createAction && (
+            <div className="mb-2">
+              <button
+                type="button"
+                data-testid={spec.createAction.testId ?? 'conditions-nav-create'}
+                onClick={() => {
+                  spec.createAction!.onClick({
+                    navigate,
+                    openCreateJournal: (opts) => openCreateJournal?.(opts),
+                  })
+                  closeNavigationDrawer()
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+              >
+                <Plus className="size-4 shrink-0" />
+                <span>{spec.createAction.label}</span>
+              </button>
+            </div>
+          )}
+          {customQuery ? (
+            <div className="flex items-center gap-1" data-testid="conditions-nav-custom">
+              <SidebarItem
+                current
+                className="min-w-0 flex-1"
+                title={customQuery}
+                aria-label={`Custom query: ${customQuery}`}
+                onClick={() => {
+                  apply(customQuery)
+                  closeNavigationDrawer()
+                }}
+              >
+                {LandingIcon && <LandingIcon data-slot="icon" />}
+                <SidebarLabel>Custom</SidebarLabel>
+              </SidebarItem>
+              <button
+                type="button"
+                onClick={() => setShortcutEditorOpen(true)}
+                aria-label="Save shortcut"
+                title="Save shortcut"
+                data-testid="conditions-nav-custom-save"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                <BookmarkPlus className="size-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (landingWql) {
+                    apply(landingWql)
+                  } else {
+                    navigate(spec.route)
+                  }
+                  closeNavigationDrawer()
+                }}
+                aria-label="Clear query"
+                title="Clear to all entries"
+                data-testid="conditions-nav-custom-clear"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <SidebarItem
+              onClick={() => {
+                if (landingWql) {
+                  apply(landingWql)
+                } else {
+                  navigate(spec.route)
+                }
+                closeNavigationDrawer()
+              }}
+              current={
+                landingWql && allShortcut
+                  ? shortcutMatches(allShortcut, matchCtx)
+                  : spec.familyActive(location) && urlQuery(location).trim() === ''
               }
-              closeNavigationDrawer()
-            }}
-            current={
-              landingWql && allShortcut
-                ? shortcutMatches(allShortcut, matchCtx)
-                : spec.familyActive(location) && urlQuery(location).trim() === ''
-            }
-          >
-            {LandingIcon && <LandingIcon data-slot="icon" />}
-            <SidebarLabel>{landingLabel}</SidebarLabel>
-          </SidebarItem>
+            >
+              {LandingIcon && <LandingIcon data-slot="icon" />}
+              <SidebarLabel>{landingLabel}</SidebarLabel>
+            </SidebarItem>
+          )}
           {userShortcuts.map(s => {
             const Icon = SHORTCUT_ICONS[s.icon]!
             return (
@@ -271,31 +358,6 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
               </SidebarItem>
             )
           })}
-          {customQuery && (
-            <div className="flex items-center gap-1" data-testid="conditions-nav-custom">
-              <SidebarItem current className="min-w-0 flex-1" title={customQuery} aria-label={`Custom query: ${customQuery}`}>
-                <SidebarLabel>Custom</SidebarLabel>
-              </SidebarItem>
-              <button
-                type="button"
-                onClick={() => setShortcutEditorOpen(true)}
-                aria-label="Save shortcut"
-                title="Save shortcut"
-                data-testid="conditions-nav-custom-save"
-                className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-              >
-                <BookmarkPlus className="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          )}
-          <SidebarItem
-            onClick={() => setShortcutEditorOpen(true)}
-            aria-label="New shortcut"
-            data-testid="conditions-nav-shortcut-create"
-          >
-            <Plus data-slot="icon" />
-            <SidebarLabel>New shortcut</SidebarLabel>
-          </SidebarItem>
           {(spec.extraChildren ?? []).map(child => {
             const target = child.action.type === 'route' ? child.action.to : null
             const override = target ? shortcuts.find(s => s.to === target) : null
@@ -331,6 +393,8 @@ export function createConditionsNavPanel(spec: ConditionsPanelSpec) {
                   labels={identifierLabels(parsedFind.target, key, facetEntries)}
                   headScope={key === 'source' ? headScope : null}
                   pending={pending}
+                  hasEverPublished={hasEverPublished}
+                  routeKnownOptions={routeKnownOptions}
                   onApply={apply}
                 />
               </div>
@@ -401,6 +465,8 @@ function ConditionSection({
   labels,
   headScope,
   pending,
+  hasEverPublished,
+  routeKnownOptions,
   onApply,
 }: {
   query: string
@@ -410,6 +476,8 @@ function ConditionSection({
   labels: Map<string, string>
   headScope: string | null
   pending: boolean
+  hasEverPublished: boolean
+  routeKnownOptions: Map<string, Map<string, FacetOption>>
   onApply: (wql: string) => void
 }) {
   const config = conditionSectionConfig(entryKey)
@@ -419,6 +487,17 @@ function ConditionSection({
 
   const selected = selectedValuesFor(parsed, entryKey, labels)
   const options = facetOptions(parsed.target, entryKey, facetContext)
+
+  let keyMap = routeKnownOptions.get(entryKey)
+  if (!keyMap) {
+    keyMap = new Map()
+    routeKnownOptions.set(entryKey, keyMap)
+  }
+  for (const opt of options) {
+    if (!keyMap.has(opt.value)) {
+      keyMap.set(opt.value, { value: opt.value, label: opt.label, count: 0 })
+    }
+  }
 
   const selectedByDisplay = new Map(selected.map(row => [row.display, row] as const))
   const optionByValue = new Map(options.map(option => [option.value, option] as const))
@@ -431,18 +510,22 @@ function ConditionSection({
     rows.push({
       value,
       label: labelOverride ?? option?.label ?? selectedByDisplay.get(value)?.label ?? value,
-      count: option ? option.count : null,
+      count: option ? option.count : 0,
       state: filterValueState(query, entryKey, value),
     })
   }
-  // Expected values constrain + relabel the CURRENT options; an expected
-  // value with no support here (and no active selection) is never invented.
-  for (const spec of expected ?? []) {
-    const option = optionByValue.get(spec.value)
-    if (option || selectedByDisplay.has(spec.value)) addRow(spec.value, option, spec.label)
+  if (hasEverPublished) {
+    for (const spec of expected ?? []) {
+      const option = optionByValue.get(spec.value)
+      addRow(spec.value, option, spec.label)
+    }
+    if (!expected) {
+      for (const option of options) addRow(option.value, option)
+      for (const known of keyMap.values()) {
+        addRow(known.value, optionByValue.get(known.value), known.label)
+      }
+    }
   }
-  if (!expected) for (const option of options) addRow(option.value, option)
-  // Active selections always render — even absent from the narrowed results.
   for (const row of selected) addRow(row.display, optionByValue.get(row.display))
   if (entryKey === 'source' && headScope) addRow(headScope, optionByValue.get(headScope))
   // Configured order first, then label — never count ranking.
@@ -453,13 +536,6 @@ function ConditionSection({
   )
 
   if (rows.length === 0 && !freeform) return null
-  // Group-by header checkbox: gated on the section key mapping to a supported
-  // content grouping dimension (wqlGroupingDimensions — tags→tag, source→
-  // source, type→type, discipline/origin on the effort plane); dims `by {}`
-  // rejects (catalog, intensity, plane, …) get no checkbox.
-  const groupDim = clauseTypeFor(entryKey)
-  const groupSupported = wqlGroupingDimensions(parsed.target, 'find').includes(groupDim)
-  const groupOn = !!parsed.groupBy?.some(dim => dim.toLowerCase() === groupDim.toLowerCase())
   return (
     <SidebarAccordion
       title={config.label ?? meta.label}
@@ -468,23 +544,6 @@ function ConditionSection({
       sticky
       buttonClassName="gap-1.5 py-1.5 text-[11px] font-semibold normal-case tracking-normal [&>span:last-child]:h-auto [&>span:last-child]:w-auto [&>span:last-child]:min-w-0 [&>span:last-child]:rounded-sm [&>span:last-child]:px-1 [&>span:last-child]:bg-transparent [&>span:last-child]:text-[10px] [&>span:last-child]:font-semibold [&>span:last-child]:text-muted-foreground"
       bodyClassName="px-6"
-      trailing={groupSupported ? (
-        <label
-          className="flex shrink-0 cursor-pointer items-center gap-1 pr-2 text-[10px] font-semibold text-muted-foreground"
-          title={`Group by ${meta.label}`}
-        >
-          <input
-            type="checkbox"
-            data-testid={`conditions-groupby-${entryKey}`}
-            aria-label={`Group by ${meta.label}`}
-            checked={groupOn}
-            disabled={pending}
-            onChange={() => onApply(toggleGroupDimension(query, groupDim, !groupOn))}
-            className="size-3.5 cursor-pointer accent-primary disabled:cursor-default"
-          />
-          Group
-        </label>
-      ) : undefined}
     >
       {/* Every current-result value renders — long lists flow through the
           shared SidebarBody scroller, never a per-section viewport. */}
@@ -532,10 +591,11 @@ function ConditionRow({
   const next = TRI_STATES[(TRI_STATES.indexOf(row.state) + 1) % TRI_STATES.length]!
   const Icon = STATE_ICON[row.state]
   const cycleLabel = `${STATE_TITLE[next]} “${row.label}” (currently ${STATE_TITLE[row.state]})`
+  const isZero = row.count === 0 && row.state === 'off'
   return (
-    <li data-testid={`conditions-row-${entryKey}:${row.value}`} className={clsx('px-1 py-0.5', pending && 'opacity-60')}>
+    <li data-testid={`conditions-row-${entryKey}:${row.value}`} className={clsx('px-1 py-0.5', pending && 'opacity-60', isZero && 'opacity-40')}>
       <div className="flex h-11 items-center gap-1.5">
-        <span className="min-w-0 flex-1 truncate text-xs leading-4 text-foreground">{row.label}</span>
+        <span className={clsx('min-w-0 flex-1 truncate text-xs leading-4', isZero ? 'text-muted-foreground' : 'text-foreground')}>{row.label}</span>
         {row.count !== null && (
           <span className="text-[10px] leading-4 tabular-nums text-muted-foreground">{row.count}</span>
         )}
@@ -576,7 +636,36 @@ function FreeformRow({
   pending: boolean
   onApply: (value: string) => void
 }) {
+  const closeNavigationDrawer = useCloseNavigationDrawer()
   const [text, setText] = useState('')
+
+  if (entryKey === 'text') {
+    const handleJumpToWql = () => {
+      closeNavigationDrawer()
+      const el = document.querySelector<HTMLElement>('[data-testid="wql-text-input"]')
+      if (el) {
+        el.focus()
+      } else {
+        const streamBarBtn = document.querySelector<HTMLButtonElement>('[data-testid="stream-query-bar"]')
+        streamBarBtn?.click()
+      }
+    }
+
+    return (
+      <div className="px-1 py-1.5">
+        <button
+          type="button"
+          onClick={handleJumpToWql}
+          data-testid="conditions-jump-wql-text"
+          className="flex w-full items-center justify-between rounded-md border border-dashed border-border/80 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40 hover:text-foreground"
+        >
+          <span>Type in search / WQL bar…</span>
+          <span className="font-mono text-[10px] text-primary">text:…</span>
+        </button>
+      </div>
+    )
+  }
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const value = text.trim()

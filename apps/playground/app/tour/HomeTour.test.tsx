@@ -287,6 +287,8 @@ mock.module('../canvas/useScrollRunway', () => {
 })
 
 import { HomeTour } from './HomeTour'
+import { NavContext, initialNavState } from '../nav/NavContext'
+import type { NavItemL3 } from '../nav/navTypes'
 
 // jsdom lacks ResizeObserver; Headless UI's combobox machine touches it when
 // the option list closes after a selection.
@@ -518,6 +520,46 @@ describe('HomeTour', () => {
     expect(runControl.starts).toBe(1)
   })
 
+  it('publishes a stop-the-timer outline button on the metrics row only while a run is live', async () => {
+    const published: NavItemL3[][] = []
+    render(
+      <MemoryRouter>
+        <NuqsAdapter>
+          <NavContext.Provider
+            value={{
+              tree: [],
+              navState: initialNavState,
+              dispatch: () => {},
+              l3Items: [],
+              setL3Items: (items) => {
+                published.push(items)
+              },
+              secondarySpec: undefined,
+              setSecondarySpec: () => {},
+              scrollToSection: () => {},
+              registerScrollFn: () => {},
+            }}
+          >
+            <HomeTour wodFiles={wodFiles} theme="light" quests={homeQuests} chapters={chapters} />
+          </NavContext.Provider>
+        </NuqsAdapter>
+      </MemoryRouter>,
+    )
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const lastOutline = () => published[published.length - 1] ?? []
+    expect(lastOutline().find((i) => i.id === 'own')?.secondaryAction).toBeUndefined()
+
+    await driveToTimerStageAndAutostart()
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const own = lastOutline().find((i) => i.id === 'own')
+    expect(own?.secondaryAction?.id).toBe('run-stop')
+    expect(own?.secondaryRunIcon).toBe('stop')
+  })
+
   it('does not start a hidden run when the visitor blows past the timer stages', async () => {
     // Stub IntersectionObserver: leaving the run section's viewport before
     // the dwell completes must clear the pending autostart — no hidden run.
@@ -566,41 +608,51 @@ describe('HomeTour', () => {
     }
   })
 
-  it('hero Run persists a fresh note and glides onto the timer stage', async () => {
+  it('hero Run persists a fresh note and runs in place — no scrolling', async () => {
     await renderHomeTour()
-    const runButton = await screen.findByTestId('tour-hero-run')
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: 'Run' })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
     })
 
-    // Fresh identity minted BEFORE the scroll — save-first contract.
+    // Fresh identity minted in place — save-first contract, no glide.
     expect(runControl.starts).toBe(1)
     expect(runControl.run?.noteId).toBe('note-1')
-    // The tour scrolls the visitor onto the inline timer stage.
-    await waitFor(() => expect(scrollRunwayToCallCount()).toBeGreaterThan(0))
-    expect(screen.getByTestId('mock-timer-panel')).toBeTruthy()
+    expect(scrollRunwayToCallCount()).toBe(0)
+    // The timer pane mounts in the hero viewport; the run section yields
+    // its pane so the identity never executes twice.
+    expect(within(screen.getByTestId('tour-hero')).getByTestId('mock-timer-panel')).toBeTruthy()
+    expect(screen.getAllByTestId('mock-timer-panel')).toHaveLength(1)
   })
 
   it('every explicit Run after a recorded run mints a NEW note', async () => {
     await renderHomeTour()
-    const runButton = await screen.findByTestId('tour-hero-run')
+    const hero = () => screen.getByTestId('tour-hero')
+    const runButton = await within(hero()).findByRole('button', { name: 'Run' })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
     })
     expect(runControl.starts).toBe(1)
 
-    // The first run completes and is recorded…
+    // The first run completes and is recorded — the hero settles on the
+    // in-place result view…
     await act(async () => {
       timerPanelControl().fireTimerComplete?.(completedResults())
       await Promise.resolve()
     })
     expect(runControl.finalizes).toHaveLength(1)
+    expect(within(hero()).getByTestId('tour-session-result')).toBeTruthy()
 
-    // …and the next Run mints a fresh identity (second note), not a reuse.
+    // …and after dismissing back to the editor, the next Run mints a fresh
+    // identity (second note), not a reuse.
     await act(async () => {
-      fireEvent.click(runButton)
+      fireEvent.click(within(hero()).getByTestId('tour-session-result-dismiss'))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      fireEvent.click(within(hero()).getByRole('button', { name: 'Run' }))
       await Promise.resolve()
     })
     expect(runControl.starts).toBe(2)
@@ -627,7 +679,7 @@ describe('HomeTour', () => {
   it('aborts the run with a toast when the note cannot be persisted', async () => {
     runControl.failStarts = true
     await renderHomeTour()
-    const runButton = await screen.findByTestId('tour-hero-run')
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: 'Run' })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -781,7 +833,7 @@ describe('HomeTour', () => {
     }
   })
 
-  it('carries the visitor to the Own-the-Metrics section when the run completes', async () => {
+  it('records completion in place — the visitor is never pulled elsewhere', async () => {
     await renderHomeTour()
     await driveToTimerStageAndAutostart()
     await screen.findByTestId('mock-timer-panel')
@@ -791,9 +843,65 @@ describe('HomeTour', () => {
       timerPanelControl().fireTimerComplete?.(completedResults())
       await Promise.resolve()
     })
-    // The completion slides onward via the metrics section's scrollToStage.
-    expect(scrollRunwayToCallCount()).toBe(1)
+    // No slide to the metrics section; the result settles where the run ran.
+    expect(scrollRunwayToCallCount()).toBe(0)
     expect(runControl.finalizes).toHaveLength(1)
+  })
+
+  it('stops a live hero run on metrics arrival and shows the recorded $session segments', async () => {
+    // Stub IntersectionObserver so the test can toggle the run section's
+    // viewport signal — leaving it is what "arriving at Own-the-Metrics"
+    // means on the real page.
+    type MockEntry = { el: Element; fire: (v: boolean) => void }
+    const observers: MockEntry[] = []
+    class MockIO {
+      cb: IntersectionObserverCallback
+      constructor(cb: IntersectionObserverCallback) {
+        this.cb = cb
+      }
+      observe(el: Element) {
+        const entry = {
+          el,
+          fire: (v: boolean) =>
+            this.cb([{ isIntersecting: v } as unknown as IntersectionObserverEntry], this as unknown as IntersectionObserver),
+        }
+        observers.push(entry)
+        entry.fire(true)
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    const globalScope = globalThis as unknown as Record<string, unknown>
+    globalScope.IntersectionObserver = MockIO
+
+    try {
+      await renderHomeTour()
+      const hero = () => screen.getByTestId('tour-hero')
+      await act(async () => {
+        fireEvent.click(within(hero()).getByRole('button', { name: 'Run' }))
+        await Promise.resolve()
+      })
+      expect(within(hero()).getByTestId('mock-timer-panel')).toBeTruthy()
+
+      // Scroll past the run section into Own-the-Metrics — the live runtime
+      // is stopped and its partial recorded.
+      await act(async () => {
+        for (const o of observers) {
+          if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(false)
+        }
+        setTestTourProgress(0.90)
+        await Promise.resolve()
+      })
+      await waitFor(() => expect(runControl.finalizes).toHaveLength(1))
+      // The hero settles on the in-place result view…
+      expect(within(hero()).getByTestId('tour-session-result')).toBeTruthy()
+      // …and the metrics section pane answers with the recorded segments
+      // instead of the WQL table.
+      const own = screen.getByTestId('tour-section-own')
+      expect(within(own).getByTestId('tour-session-result')).toBeTruthy()
+    } finally {
+      delete globalScope.IntersectionObserver
+    }
   })
 
   it('scopes the explore WQL table to the current run note', async () => {

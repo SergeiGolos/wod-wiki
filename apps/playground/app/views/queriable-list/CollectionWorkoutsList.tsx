@@ -4,6 +4,7 @@ import { ChevronRightIcon, DumbbellIcon } from 'lucide-react';
 import type { WorkoutItem } from '../../App';
 import { cn } from '@/lib/utils';
 import { stripFrontmatter } from '@/lib/frontmatter';
+import { formatDateShort } from '@/lib/dateFormat';
 import {
   TextFilterStrip,
   TEXT_FILTER_NAVIGATION_EVENT,
@@ -57,6 +58,20 @@ function stripInlineMarkdown(line: string): string {
   return text.trim()
 }
 
+/** `YYYY-MM-DD` for an item date (noon UTC epoch → no timezone drift). */
+export function workoutDateKey(epochMs: number): string {
+  return new Date(epochMs).toISOString().slice(0, 10);
+}
+
+/** Text filter: matches name, content, or the item's date key — so `2009-12` filters December 2009. */
+export function matchesCollectionQuery(item: WorkoutItem, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return item.name.toLowerCase().includes(q)
+    || item.content.toLowerCase().includes(q)
+    || (item.date !== undefined && workoutDateKey(item.date).includes(q));
+}
+
 export function getWorkoutPreview(content?: string): string | null {
   if (!content) return null;
 
@@ -87,12 +102,7 @@ export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({
   const collectionItems = useMemo(
     () => workoutItems
       .filter(item => item.category === category && item.name.toLowerCase() !== 'readme')
-      .filter(item => {
-        if (!queryText.trim()) return true;
-        const normalizedQuery = queryText.toLowerCase();
-        return item.name.toLowerCase().includes(normalizedQuery)
-          || item.content.toLowerCase().includes(normalizedQuery);
-      }),
+      .filter(item => matchesCollectionQuery(item, queryText)),
     [workoutItems, category, queryText],
   );
 
@@ -272,6 +282,12 @@ export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({
                               </p>
                             ) : null}
                           </div>
+
+                          {entry.item.date !== undefined ? (
+                            <span className="shrink-0 self-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              {formatDateShort(new Date(entry.item.date))}
+                            </span>
+                          ) : null}
 
                           <ChevronRightIcon className="size-4 text-muted-foreground shrink-0 transition-opacity" />
                         </>

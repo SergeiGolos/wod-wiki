@@ -22,9 +22,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
 import { parseQuery, isFindQuery, isPipelineQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
-import { wqlFilterKeys } from '@bitcobblers/wod-wiki-wql'
+import { wqlFilterKeys, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql'
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { CONTENT_GROUPING_DIMENSIONS } from '@bitcobblers/wod-wiki-ui'
+import { toggleGroupDimension } from '../../nav/panels/conditionsFacets'
 import { createPortal } from 'react-dom'
 import {
   StickyPageHeader,
@@ -61,6 +62,17 @@ import { startEntryRun } from '../../lib/entryRun'
 import { playgroundPath } from '../../lib/routes'
 import type { StreamProfile } from './streamProfile'
 
+const ALL_STREAM_GROUP_DIMS: readonly { id: string; label: string }[] = [
+  { id: 'date', label: 'Date' },
+  { id: 'week', label: 'Week' },
+  { id: 'month', label: 'Month' },
+  { id: 'year', label: 'Year' },
+  { id: 'tag', label: 'Tags' },
+  { id: 'type', label: 'Type' },
+  { id: 'discipline', label: 'Discipline' },
+  { id: 'source', label: 'Source' },
+  { id: 'origin', label: 'Origin' },
+]
 function BatchingSentinel({
   batch,
   testId = 'stream-load-more',
@@ -430,8 +442,8 @@ export function QueriableStreamView({
   )
   const groupCountMap = useMemo(() => new Map(allGroups.map(g => [g.id, g.entries.length])), [allGroups])
 
-  // Publish dynamic section links to NavContext
-  const { setL3Items, scrollToSection, navState } = useNav()
+  // Publish dynamic section links and L3 stream controls to NavContext
+  const { setL3Items, scrollToSection, navState, setStreamControls } = useNav()
   useEffect(() => {
     if (allGroups.length === 0) {
       setL3Items([])
@@ -446,6 +458,45 @@ export function QueriableStreamView({
     setL3Items(sectionLinks)
     return () => setL3Items([])
   }, [allGroups, setL3Items])
+
+  const availableGroupDims = useMemo(() => {
+    const target = parsed.error || !isFindQuery(parsed) ? (profile.level === 'effort' ? 'effort' : 'note') : parsed.target
+    const supported = wqlGroupingDimensions(target, 'find')
+    return ALL_STREAM_GROUP_DIMS.filter(d => supported.includes(d.id))
+  }, [parsed, profile.level])
+
+  const handleGroupByChange = useCallback(
+    (newGroup: string) => {
+      const next = withGroupBy(query, newGroup)
+      if (next !== query) setQuery(next)
+      else setGroupBy(newGroup)
+    },
+    [query, setQuery, setGroupBy],
+  )
+
+  const handleToggleGroupDim = useCallback(
+    (dim: string) => {
+      const isCurrentlyActive = groupDims.some(d => d.toLowerCase() === dim.toLowerCase())
+      const next = toggleGroupDimension(query, dim, !isCurrentlyActive)
+      setQuery(next)
+      const nextParsed = parseQuery(next)
+      if (!nextParsed.error && isFindQuery(nextParsed)) {
+        handleGroupByChange(nextParsed.groupBy?.[0] ?? '')
+      }
+    },
+    [groupDims, query, setQuery, handleGroupByChange],
+  )
+
+  useEffect(() => {
+    setStreamControls?.({
+      query,
+      onQueryChange: setQuery,
+      groupDims,
+      onToggleGroupDim: handleToggleGroupDim,
+      availableGroupDims,
+    })
+    return () => setStreamControls?.(null)
+  }, [query, setQuery, groupDims, handleToggleGroupDim, availableGroupDims, setStreamControls])
 
   // Progressive anchor reachability: the L3 index covers ALL groups, but only
   // the rendered prefix has DOM anchors (progressive batching). A click on a
@@ -476,18 +527,6 @@ export function QueriableStreamView({
     scrollToSection(id)
   }, [visibleGroups, scrollToSection])
 
-  const handleGroupByChange = useCallback(
-    (newGroup: string) => {
-      // View ▸ Arrange-by writes through to the query line (`by {…}`) so the
-      // composer, URL `?q=` and grid share one grouping source. An
-      // unparseable draft can't take the edit — the per-route view setting
-      // still applies as the fallback.
-      const next = withGroupBy(query, newGroup)
-      if (next !== query) setQuery(next)
-      else setGroupBy(newGroup)
-    },
-    [query, setQuery, setGroupBy],
-  )
   const stickyOffset = useStickyBoundaryOffset(104)
 
   // Query error detection (composed query is the default fallback and has nothing to flag unless edited or invalid from URL)

@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
 // react-router-dom mock that useJournalZipProcessor.test.ts leaks
 // process-wide (see tests/helpers/repair-react-router-dom.ts).
 import '../../../tests/helpers/repair-react-router-dom';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { NavigationDrawerProvider } from '../NavigationDrawerContext';
 
 mock.module('../../hooks/useDashboards', () => ({
   useDashboardCatalog: () => ({
@@ -42,5 +43,18 @@ describe('DashboardsNavPanel', () => {
     expect(screen.getByText('PR Board')).toBeDefined();
     expect(screen.getByTestId('dashboards-nav-new')).toBeDefined();
     expect(screen.queryByText('TIS by round')).toBeNull();
+  });
+
+  it('closes mobile drawer on navigation click', () => {
+    let closed = 0;
+    render(
+      <MemoryRouter initialEntries={['/dashboards']}>
+        <NavigationDrawerProvider close={() => { closed += 1; }}>
+          <DashboardsNavPanel />
+        </NavigationDrawerProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByText('TIS by round'));
+    expect(closed).toBe(1);
   });
 });

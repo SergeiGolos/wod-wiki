@@ -23,7 +23,6 @@ export interface TourMobileStackProps {
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
-  onShare: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank caption card. */
   onChoice?: (wod: string) => void
   /** Caption command buttons (Try it / query presets / board picks). */
@@ -45,8 +44,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
     <div data-testid="tour-mobile-stack" className="flex flex-col gap-6">
       <TourHero
         doc={props.doc}
-        onRun={props.onRun}
-        onShare={props.onShare}
         sharedBy={props.sharedBy}
         onResetShared={props.onResetShared}
       />
@@ -71,7 +68,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
             onDocChange={props.onDocChange}
             onBlocksChange={props.onBlocksChange}
             onRun={props.onRun}
-            onShare={props.onShare}
             theme={props.theme}
           />
         </div>

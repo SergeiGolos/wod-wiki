@@ -22,15 +22,15 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag } from 'lucide-react'
+import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag, Library, Plus, UserRound } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 import { scopeOfQuery } from '../lib/wqlEdits'
-import { JOURNAL_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
+import { JOURNAL_STREAM_PROFILE, CATALOGS_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
 import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
-import { createConditionsNavPanel } from './panels/ConditionsNavPanel'
+import { createConditionsNavPanel, type ConditionsPanelSpec } from './panels/ConditionsNavPanel'
 import type { CanvasRoute } from '../canvas/canvasRoutes'
 
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../components/atoms/BuyMeACoffee'
@@ -69,14 +69,15 @@ function guideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
 function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
   return [
     {
-      id: 'guide-group',
-      label: 'Guide',
+      id: 'home-new-journal',
+      label: 'New journal entry',
       level: 2,
-      icon: CodeBracketIcon,
-      action: { type: 'route', to: '/guide/start' },
-      isActive: (loc: Location) => loc.pathname.startsWith('/guide/'),
-      children: guideChildrenFrom(routes),
+      icon: Plus,
+      variant: 'notable',
+      action: { type: 'route', to: '/journal?create=1' },
+      isActive: () => false,
     },
+    ...guideChildrenFrom(routes),
   ]
 }
 
@@ -101,6 +102,7 @@ interface ListingZoneSpec {
   familyActive: (loc: Location) => boolean
   /** The legacy `/library` alias lights this zone for its `?q=` scope. */
   aliasActive?: (loc: Location) => boolean
+  createAction?: ConditionsPanelSpec['createAction']
 }
 
 /** The `/library` alias route resolves to the zone its `?q=` scope names;
@@ -130,6 +132,7 @@ function listingZone(spec: ListingZoneSpec): NavItem {
       profile: spec.profile,
       extraChildren: spec.extraChildren,
       familyActive: spec.familyActive,
+      createAction: spec.createAction,
     }),
   }
 }
@@ -143,6 +146,14 @@ const feedsChild: NavItem = {
   isActive: (loc: Location) => startsWithAny(loc.pathname, '/feeds', '/feed'),
 }
 
+const catalogCrosswalkChild: NavItem = {
+  id: 'collections-catalog-crosswalk',
+  label: 'Catalog crosswalk',
+  level: 2,
+  icon: Library,
+  action: { type: 'route', to: ROUTE_PATTERNS.catalogs },
+  isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.catalogs,
+}
 const listingZones: ListingZoneSpec[] = [
   {
     id: 'journal',
@@ -153,6 +164,23 @@ const listingZones: ListingZoneSpec[] = [
     profile: JOURNAL_STREAM_PROFILE,
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/journal'),
     aliasActive: (loc: Location) => libraryScope(loc) === 'journal',
+    createAction: {
+      label: 'New journal entry',
+      testId: 'journal-create-entry',
+      onClick: ({ openCreateJournal, navigate }) => {
+        if (openCreateJournal) openCreateJournal({ mode: 'blank' })
+        else navigate('/journal?create=1')
+      },
+    },
+  },
+  {
+    id: 'catalogs',
+    label: 'Catalogs',
+    landingLabel: 'All catalogs',
+    icon: Library,
+    route: ROUTE_PATTERNS.catalogs,
+    profile: CATALOGS_STREAM_PROFILE,
+    familyActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.catalogs,
   },
   {
     id: 'collections',
@@ -161,13 +189,23 @@ const listingZones: ListingZoneSpec[] = [
     icon: Folder,
     route: ROUTE_PATTERNS.collections,
     profile: COLLECTIONS_STREAM_PROFILE,
-    familyActive: (loc: Location) => startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed'),
+    familyActive: (loc: Location) =>
+      startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed') &&
+      loc.pathname !== ROUTE_PATTERNS.catalogs,
     aliasActive: (loc: Location) => {
       if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return false
       const scope = libraryScope(loc)
       return scope !== 'journal' && scope !== 'playground'
     },
-    extraChildren: [feedsChild],
+    extraChildren: [feedsChild, catalogCrosswalkChild],
+    createAction: {
+      label: 'New note',
+      testId: 'collections-create-note',
+      onClick: ({ openCreateJournal, navigate }) => {
+        if (openCreateJournal) openCreateJournal({ mode: 'source' })
+        else navigate('/collections?create=1&mode=source')
+      },
+    },
   },
   {
     id: 'playgrounds',
@@ -178,6 +216,13 @@ const listingZones: ListingZoneSpec[] = [
     profile: PLAYGROUNDS_STREAM_PROFILE,
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/playgrounds', '/playground'),
     aliasActive: (loc: Location) => libraryScope(loc) === 'playground',
+    createAction: {
+      label: 'New playground',
+      testId: 'playgrounds-create-playground',
+      onClick: ({ navigate }) => {
+        navigate('/playground')
+      },
+    },
   },
 ]
 // ─── App nav tree ─────────────────────────────────────────────────────────────
@@ -237,6 +282,13 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
         route: ROUTE_PATTERNS.efforts,
         profile: EFFORTS_STREAM_PROFILE,
         familyActive: (loc: Location) => isEffortsPath(loc.pathname),
+        createAction: {
+          label: 'New effort',
+          testId: 'efforts-create-effort',
+          onClick: ({ navigate }) => {
+            navigate('/e/new?mode=create')
+          },
+        },
       }),
     },
 
@@ -279,6 +331,14 @@ export function buildAppNavTree(_openSearch: () => void, canvasRoutes: CanvasRou
           isActive: (loc: Location) =>
             loc.pathname === ROUTE_PATTERNS.settings ||
             loc.pathname === ROUTE_PATTERNS.settingsAppearance,
+        },
+        {
+          id: 'settings-profile',
+          label: 'Profile',
+          level: 2,
+          icon: UserRound,
+          action: { type: 'route', to: ROUTE_PATTERNS.settingsProfile },
+          isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.settingsProfile,
         },
         {
           id: 'settings-queries',

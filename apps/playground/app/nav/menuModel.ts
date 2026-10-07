@@ -27,7 +27,7 @@ export interface MenuLink {
   /** Custom action (e.g. start a workout block); wins over to/sectionId. */
   onRun?: () => void
   /** Icon for the run affordance rendered at the row's right edge. */
-  runIcon?: 'play' | 'link'
+  runIcon?: 'play' | 'stop' | 'link'
   /** Muted mono prefix (e.g. '08:30' timestamps). */
   timestamp?: string
   /** Trivial count/marker badge. */
@@ -81,7 +81,7 @@ export function l3ToMenuEntries(items: NavItemL3[]): MenuLink[] {
     }
     if (run && run.type === 'call') {
       base.onRun = run.handler
-      base.runIcon = 'play'
+      base.runIcon = item.secondaryRunIcon ?? 'play'
     }
     if (action.type === 'route') return { ...base, to: action.to }
     if (action.type === 'scroll') return { ...base, sectionId: action.sectionId }

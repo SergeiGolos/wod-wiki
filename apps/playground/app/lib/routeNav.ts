@@ -43,19 +43,11 @@ export function deriveNav(pathname: string, deps: RouteNavDeps): PageNavLink[] {
     const collectionSlug = isCollection ? pathname.split('/').pop() ?? null : null
 
     if (pathname === '/') {
-      const homeQuests = canvasPage.quests.filter(q => q.id.startsWith('qs-'))
-      const sectionMap: Record<string, string> = {
-        'qs-arrive': 'tour-hero',
-        'qs-edit': 'tour-hero',
-        'qs-tour-timer': 'run',
-        'qs-run': 'run',
-        'qs-tour-analytics': 'explore',
-      }
-      return homeQuests.map(q => ({
-        id: sectionMap[q.id] ?? q.id,
-        label: q.label,
-        type: 'heading' as const,
-      }))
+      // The home tour owns its L3 outline (HomeTour publishes section links,
+      // incl. the run-transition button). An empty index keeps the shell's
+      // publish-on-mount effect from clobbering it (skip-empty convention,
+      // same as usePageScrollSync).
+      return []
     }
 
     const links: PageNavLink[] = []

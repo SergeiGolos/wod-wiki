@@ -5,8 +5,9 @@
  * gzip+base64 URL (/load?zip=<encoded>). useZipProcessor (GlobalState) picks
  * up the param, creates a new playground page in IndexedDB, and redirects.
  *
- * - openBlockInPlayground  → navigate to /load?zip=... in the same tab
- * - shareBlock             → copy that URL to the clipboard + show toast
+ * - openBlockInPlayground        → navigate to /load?zip=... in the same tab
+ * - openBlockInPlaygroundNewTab  → open /load?zip=... in a new tab
+ * - shareBlock                   → copy that URL to the clipboard + show toast
  */
 
 import type { NavigateFunction } from 'react-router-dom'
@@ -17,7 +18,7 @@ import { toast } from '@/hooks/use-toast'
 
 /** Build the /load?zip= URL for a time/log block. `src` (the current page
  *  path) rides along so the spawned playground note carries provenance. */
-async function buildZipUrl(block: ScriptBlock, src?: string): Promise<string> {
+export async function buildZipUrl(block: ScriptBlock, src?: string): Promise<string> {
   const dialect = block.dialect || 'time'
   const fenceTag = block.sport ? `${dialect}:${block.sport}` : dialect
   const markdown = `\`\`\`${fenceTag}\n${block.content.trimEnd()}\n\`\`\`\n`
@@ -40,6 +41,16 @@ export async function openBlockInPlayground(
   const { pathname, search } = new URL(url)
   navigate(`${pathname}${search}`)
 }
+/**
+ * Open the /load?zip= URL for the time/log block in a new browser tab.
+ */
+export async function openBlockInPlaygroundNewTab(
+  block: ScriptBlock,
+): Promise<void> {
+  const url = await buildZipUrl(block, window.location.pathname)
+  window.open(url, '_blank')
+}
+
 
 /**
  * Copy the /load?zip= URL for the time/log block to the clipboard and show a

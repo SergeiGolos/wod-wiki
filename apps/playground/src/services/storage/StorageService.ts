@@ -304,6 +304,15 @@ export class StorageService implements NotePersistenceStorage {
       } else {
         byNote.set(row.noteId, [row.effortSlug]);
       }
+      const cat = (row.noteId.startsWith('feeds/') ? row.noteId.slice('feeds/'.length) : row.noteId).split('/')[0];
+      if (cat && cat !== row.noteId) {
+        const catSlugs = byNote.get(cat);
+        if (catSlugs) {
+          if (!catSlugs.includes(row.effortSlug)) catSlugs.push(row.effortSlug);
+        } else {
+          byNote.set(cat, [row.effortSlug]);
+        }
+      }
     }
     return byNote;
   }

@@ -82,9 +82,14 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
       const textClause = text ? (/\s/.test(text) ? `text:"${text}"` : `text:${text}`) : null
       const tagsClause = tags ? `tags:${tags}` : null
 
-      const filters = [sourceFilter, textClause, tagsClause].filter(Boolean)
-      const braces = filters.length ? `{${filters.join(',')}}` : ''
-      return [`:note${braces}`, window].filter(Boolean).join(' ')
+      let head = ':note'
+      const otherFilters = [textClause, tagsClause].filter(Boolean)
+      if (sourceFilter === 'source:journal') head = ':journal'
+      else if (sourceFilter === 'source:collections') head = ':catalog'
+      else if (sourceFilter === 'source:playground') head = ':playground'
+      else if (sourceFilter) otherFilters.unshift(sourceFilter)
+      const braces = otherFilters.length ? `{${otherFilters.join(',')}}` : ''
+      return [`${head}${braces}`, window].filter(Boolean).join(' ')
     },
   }
 }
@@ -96,7 +101,7 @@ const RECENT_ENTRIES_MENU: MenuSpec = [
     kind: 'wql',
     id: 'recent-entries',
     label: 'Recent entries',
-    query: ':note{}',
+    query: ':journal{}',
     limit: 6,
     filterEntry: e => !!e.date,
     toEntry: e => noteByIdPath(e.id),
@@ -112,6 +117,18 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
   scopeOptions: ['journal'],
   secondary: RECENT_ENTRIES_MENU,
   legacy: createContentLegacyConfig('journal'),
+}
+
+export const CATALOGS_STREAM_PROFILE: StreamProfile = {
+  route: '/catalogs',
+  title: 'Catalogs',
+  defaultWql: ':catalog',
+  level: 'session',
+  target: 'note',
+  scopeOptions: ['collections'],
+  shelfVisible: false,
+  secondary: RECENT_ENTRIES_MENU,
+  legacy: createContentLegacyConfig('collections'),
 }
 
 export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
@@ -131,7 +148,7 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   title: 'Feeds',
   // Feeds is excised from WQL storage scopes: the route keeps reading feed
   // notes, but its query uses the generic note head (no feed scope filter).
-  defaultWql: ':note{} last 2w',
+  defaultWql: ':catalog{} last 2w',
   level: 'note',
   target: 'note',
   scopeOptions: ['collections'],
@@ -235,6 +252,7 @@ export function createResultDetailProfile(resultId: string): StreamProfile {
 
 const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
   '/journal': JOURNAL_STREAM_PROFILE,
+  '/catalogs': CATALOGS_STREAM_PROFILE,
   '/collections': COLLECTIONS_STREAM_PROFILE,
   '/feeds': FEEDS_STREAM_PROFILE,
   '/feed': FEEDS_STREAM_PROFILE,

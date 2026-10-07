@@ -4,10 +4,9 @@
  * Headline + a compact preview of the welcome script. The hero hosts NO
  * editor: the single NoteEditor for the page lives in the write section's
  * sticky stage (one mounted editor through hero → write). The preview keeps
- * the arrival contract visible (#882: /load?z= shared script + attribution)
- * and the Run/Share actions operate on the same shared run document.
+ * the arrival contract visible (#882: /load?z= shared script + attribution).
  */
-import { Pencil, Play, Share2 } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { TOUR_ACCENTS } from './tourConstants'
 
 const ROWS: Array<{
@@ -26,10 +25,6 @@ const ROWS: Array<{
 export interface TourHeroProps {
   /** The shared run document — previewed read-only; edits happen in the write stage. */
   doc: string
-  /** Runs the first block of the shared document (inline timer stage). */
-  onRun: () => void
-  /** Copies a /load?z= share link for the shared document (#882). */
-  onShare: () => void
   /** Shared-script attribution + reset, shown when a /load?z= script is loaded. */
   sharedBy?: string
   onResetShared?: () => void
@@ -86,8 +81,6 @@ export function TourHeroHeading({ onNavigateSection }: { onNavigateSection?: Tou
 
 export function TourHero({
   doc,
-  onRun,
-  onShare,
   sharedBy,
   onResetShared,
   onNavigateSection,
@@ -127,26 +120,6 @@ export function TourHero({
           >
             {doc}
           </pre>
-          <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-2.5">
-            <button
-              type="button"
-              onClick={onShare}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
-              data-testid="tour-hero-share"
-            >
-              <Share2 className="size-3.5" />
-              Copy share link
-            </button>
-            <button
-              type="button"
-              onClick={onRun}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              data-testid="tour-hero-run"
-            >
-              <Play className="size-3.5" />
-              Run
-            </button>
-          </div>
         </div>
       </div>
     </section>

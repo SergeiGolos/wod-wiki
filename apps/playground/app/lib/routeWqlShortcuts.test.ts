@@ -81,16 +81,39 @@ describe('routeWqlShortcuts — built-in library-group links', () => {
     ])
   })
 
-  it('resolve to built-ins until stored, then the stored list is authoritative (delete-all included)', () => {
+  it('resolve to built-ins until stored, then the stored list is authoritative for user links', () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
     expect(resolveRouteShortcuts('/journal', store)).toEqual(builtinShortcuts('/journal'))
 
+    // Even a delete-all stored list keeps the permanent landing link.
     expect(writeRouteShortcuts('/journal', [], store)).toBe(true)
-    expect(resolveRouteShortcuts('/journal', store)).toEqual([])
+    expect(resolveRouteShortcuts('/journal', store)).toEqual([defaultLandingShortcut('All entries', 'calendar')])
 
     resetRouteShortcuts('/journal', store)
     expect(resolveRouteShortcuts('/journal', store)).toEqual(builtinShortcuts('/journal'))
+  })
+
+  it('the landing link cannot be dropped: a stored list without it gets the built-in re-added at the front', () => {
+    const backend = new InMemoryBackend()
+    const store = storeOn(backend)
+    // Legacy list written before the landing was protected.
+    writeRouteShortcuts('/journal', [SC], store)
+    expect(resolveRouteShortcuts('/journal', store).map(s => s.id)).toEqual([ALL_SHORTCUT_ID, SC.id])
+    expect(resolveRouteShortcuts('/journal', store)[0]).toEqual({
+      id: ALL_SHORTCUT_ID,
+      label: 'All entries',
+      icon: 'calendar',
+      wql: '',
+    })
+  })
+
+  it('a stored landing row with a customized label/icon/wql is kept as stored', () => {
+    const backend = new InMemoryBackend()
+    const store = storeOn(backend)
+    const customized = { id: ALL_SHORTCUT_ID, label: 'This month', icon: 'star', wql: ':note{} last 4w' }
+    writeRouteShortcuts('/journal', [customized, SC], store)
+    expect(resolveRouteShortcuts('/journal', store)).toEqual([customized, SC])
   })
 
   it('a first user save keeps the built-ins (resolve feeds the upsert)', () => {

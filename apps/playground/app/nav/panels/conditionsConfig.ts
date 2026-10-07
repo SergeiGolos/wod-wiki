@@ -34,8 +34,8 @@ const capitalized = (values: readonly string[]): ConditionValueSpec[] =>
  *  typed tags, effort slugs, note/result/block/note ids, session planes)
  *  stay result-ranked with no expectation list. */
 const SECTION_CONFIG: Record<string, ConditionSectionConfig> = {
-  source: { expectedValues: capitalized(WQL_SOURCE_VALUES) },
-  page: { expectedValues: [{ value: 'true', label: 'Pages' }, { value: 'false', label: 'Non-pages' }] },
+  source: { enabled: false, expectedValues: capitalized(WQL_SOURCE_VALUES) },
+  page: { enabled: false, expectedValues: [{ value: 'true', label: 'Pages' }, { value: 'false', label: 'Non-pages' }] },
   intensity: { expectedValues: capitalized(WQL_INTENSITY_TIERS) },
   discipline: { expectedValues: capitalized(EFFORT_DISCIPLINES) },
 }

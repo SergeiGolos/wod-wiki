@@ -202,7 +202,9 @@ export class StreamQueryEngine {
 
       // When free-text is present — or the caller asked for note block info —
       // also run :block to search body text / collect per-note previews.
-      const blockParsed: ParsedFindQuery | null = (hasText || this.noteBlockInfo) && parsed.target === 'note'
+      const isCatalogSearch = parsed.target === 'note'
+        && parsed.filters.some(f => f.key === 'type' && !f.negate && f.values.some(v => v.value === 'collection'));
+      const blockParsed: ParsedFindQuery | null = (hasText || this.noteBlockInfo) && parsed.target === 'note' && !isCatalogSearch
         ? (typeof input === 'string'
             ? (parseQuery(input.replace(/^:note/, ':block')) as ParsedFindQuery)
             : {

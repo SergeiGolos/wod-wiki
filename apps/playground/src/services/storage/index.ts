@@ -10,6 +10,7 @@ import { IndexedDBStorage } from './IndexedDBStorage';
 import { InMemoryStorage } from './InMemoryStorage';
 import { StorageService } from './StorageService';
 import { ApiStorage } from '@bitcobblers/wod-wiki-storage';
+import { createProfileService } from '../profile';
 
 import { LocalStore, InMemoryBackend, browserLocalStorageBackend, type StorageBackend } from './LocalStore';
 export type {
@@ -31,10 +32,15 @@ export type { StorageBackend };
 export const storageBackend: 'api' | 'indexed-db' =
   import.meta.env.VITE_STORAGE === 'api' ? 'api' : 'indexed-db';
 
+// Identity getter is a lazy closure: resolved at put-time, after the profile
+// bootstrap ran (currentSync() undefined until then → rows stored unstamped).
+export const profileService = createProfileService(storageBackend);
+
 function createDefaultStorage(): IStorage {
+  const options = { getUserId: () => profileService.currentSync()?.id };
   return storageBackend === 'api'
-    ? new ApiStorage(import.meta.env.VITE_API_URL ?? '/api')
-    : new IndexedDBStorage();
+    ? new ApiStorage(import.meta.env.VITE_API_URL ?? '/api', undefined, options)
+    : new IndexedDBStorage(options);
 }
 
 let currentStorage: IStorage = createDefaultStorage();

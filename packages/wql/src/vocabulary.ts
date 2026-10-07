@@ -116,7 +116,7 @@ export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
  *  `source:` filter). */
 export const WQL_SOURCE_HEADS = [
   'note', 'block', 'effort', 'session', 'segment', 'event',
-  'journal', 'collection', 'collections', 'playground',
+  'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
 ] as const;
 export type WqlSourceHead = (typeof WQL_SOURCE_HEADS)[number];
 
@@ -125,6 +125,8 @@ export const WQL_SOURCE_HEAD_SCOPES: Readonly<Record<string, WqlSourceValue>> = 
   journal: 'journal',
   collection: 'collections',
   collections: 'collections',
+  catalog: 'collections',
+  catalogs: 'collections',
   playground: 'playground',
 };
 

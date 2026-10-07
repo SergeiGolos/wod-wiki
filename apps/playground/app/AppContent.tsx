@@ -81,7 +81,11 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
 
   // Global new-journal-note dialog; prefilled from /journal/YYYY-MM-DD routes.
   const [journalCreateOpen, setJournalCreateOpen] = useState(false)
-  const openJournalCreate = useCallback(() => setJournalCreateOpen(true), [])
+  const [journalCreateMode, setJournalCreateMode] = useState<'blank' | 'template' | 'source'>('blank')
+  const openJournalCreate = useCallback((opts?: { mode?: 'blank' | 'template' | 'source' }) => {
+    setJournalCreateMode(opts?.mode ?? 'blank')
+    setJournalCreateOpen(true)
+  }, [])
   const journalCreateDate = useMemo(
     () => /^\/journal\/(\d{4}-\d{2}-\d{2})\/?$/.exec(location.pathname)?.[1],
     [location.pathname],
@@ -96,9 +100,9 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   // General layout shell state: breadcrumb (active L1 › page identity) and
   // the L3 index channel (canvas pages publish here; note pages publish via
   // useNotePageNav — bare shells, so the writers never overlap).
-  const { tree: l1Items, navState, setL3Items, setSecondarySpec } = useNav()
-  const activeL1Id = (navState as { activeL1Id?: string | null }).activeL1Id ?? null
-  const activeL1 = l1Items.find(item => item.id === activeL1Id) ?? null
+  const { tree: l1Items, navState, setL3Items, setSecondarySpec, registerCreateJournal } = useNav()
+  const activeL1Id = (navState as { activeL1Id?: string | null })?.activeL1Id ?? null
+  const activeL1 = (l1Items ?? []).find(item => item?.id === activeL1Id) ?? null
   // Shell title first; bare pages fall back to the route-derived workout name
   // (journal date, workout/effort/feed/dashboard slug) — on mobile the navbar
   // crumb is the ONLY page identity, since the page header is hidden below lg.
@@ -117,7 +121,25 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
   }, [secondarySpec, setSecondarySpec])
 
   useEffect(() => {
-    if (!view.shell.withIndex) return
+    return registerCreateJournal(openJournalCreate)
+  }, [registerCreateJournal, openJournalCreate])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('create') === '1' || params.get('new') === '1') {
+      const mode = params.get('mode') === 'source' ? 'source' : 'blank'
+      openJournalCreate({ mode })
+      params.delete('create')
+      params.delete('new')
+      params.delete('mode')
+      const search = params.toString() ? `?${params.toString()}` : ''
+      navigate(`${location.pathname}${search}`, { replace: true })
+    }
+  }, [location.pathname, location.search, openJournalCreate, navigate])
+  useEffect(() => {
+    // Skip empty indexes: pages that own their L3 (home tour, streams, date
+    // groups) publish directly — writing [] here would clobber their links.
+    if (!view.shell.withIndex || currentNavLinks.length === 0) return
     setL3Items(mapIndexToL3(currentNavLinks))
     return () => setL3Items([])
   }, [view.shell.withIndex, currentNavLinks, setL3Items])
@@ -331,7 +353,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
             {activeL1 && (
               <button
                 type="button"
-                onClick={() => activeL1.action.type === 'route' && navigate(activeL1.action.to)}
+                onClick={() => activeL1?.action?.type === 'route' && navigate(activeL1.action.to)}
                 className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               >
                 {activeL1.label}
@@ -375,6 +397,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         open={journalCreateOpen}
         onOpenChange={setJournalCreateOpen}
         defaultDate={journalCreateDate}
+        defaultMode={journalCreateMode}
         onCreated={handleJournalNoteCreated}
       />
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">

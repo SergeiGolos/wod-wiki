@@ -46,7 +46,6 @@ const baseProps = {
   onDocChange: () => {},
   onBlocksChange: () => {},
   onRun: () => {},
-  onShare: () => {},
   timer: {
     sessionKey: 0,
     block: null,

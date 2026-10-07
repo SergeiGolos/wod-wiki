@@ -398,13 +398,15 @@ export function OutputStatementsTable({
             <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider whitespace-nowrap">
               <th className="p-2 w-12 text-center">Type</th>
               <th className="p-2 min-w-[110px]">Time</th>
-            <th className="p-2 font-sans min-w-[70px]">💪 Load</th>
-            <th className="p-2 font-sans min-w-[80px]">🔄 Rounds</th>
-            <th className="p-2 font-sans min-w-[70px]">⏱️ Target</th>
-            <th className="p-2 font-sans min-w-[70px]">📏 Distance</th>
-            <th className="p-2 font-sans min-w-[110px]">🏷️ Hints</th>
-          </tr>
-        </thead>
+              <th className="p-2 font-sans min-w-[140px]">🏃 Movement</th>
+              <th className="p-2 font-sans min-w-[60px]">🔢 Reps</th>
+              <th className="p-2 font-sans min-w-[70px]">💪 Load</th>
+              <th className="p-2 font-sans min-w-[80px]">🔄 Rounds</th>
+              <th className="p-2 font-sans min-w-[70px]">⏱️ Target</th>
+              <th className="p-2 font-sans min-w-[70px]">📏 Distance</th>
+              <th className="p-2 font-sans min-w-[110px]">🏷️ Hints</th>
+            </tr>
+          </thead>
         <tbody className="divide-y divide-border/40">
           {rows.length === 0 ? (
             <tr>

@@ -286,7 +286,8 @@ export function setSourceScopeValue(query: string, scope: string | null): string
     })
     return serialize({ ...parsed, sourceScope: undefined, filters })
   }
-  const authored = parseQuery(`:note{source:${scope}}`)
+  const scopeHead = scope === 'journal' ? ':journal' : scope === 'collections' ? ':catalog' : scope === 'playground' ? ':playground' : `:note{source:${scope}}`
+  const authored = parseQuery(scopeHead.startsWith(':note') ? scopeHead : `${scopeHead}{}`)
   if (authored.error || !isFindQuery(authored) || !authored.filters.length) return query
   const firstPositive = normalized.findIndex(f => f.key === 'source' && !f.negate)
   const filters = firstPositive >= 0
@@ -428,12 +429,13 @@ export function facetOptions(target: string, key: string, ctx: FacetContext): Fa
         // they are not among the five stream routes; add row-value facets
         // (metric/unit/tag columns) when a table route needs them.
         if (tagKey) {
-          const rows = ctx.tagMembership!.get(entry.noteId ?? entry.id) ?? []
+          const rows = ctx.tagMembership!.get(entry.catalog ?? entry.noteId ?? entry.id) ?? ctx.tagMembership!.get(entry.noteId ?? entry.id) ?? []
           for (const row of rows) {
             if (tagKey === 'tags' || row.type === tagKey) bump(row.label)
           }
         } else if (effortNoteKey) {
-          for (const slug of ctx.effortMembership!.get(entry.noteId ?? entry.id) ?? []) bump(slug)
+          const slugs = ctx.effortMembership!.get(entry.catalog ?? entry.noteId ?? entry.id) ?? ctx.effortMembership!.get(entry.noteId ?? entry.id) ?? []
+          for (const slug of slugs) bump(slug)
         }
     }
   }

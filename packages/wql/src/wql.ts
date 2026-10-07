@@ -928,6 +928,13 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
       negate: false,
       values: [{ value: scope, wildcard: false }],
     });
+    if (headName === 'catalog' || headName === 'catalogs') {
+      result.filters.push({
+        key: 'type',
+        negate: false,
+        values: [{ value: 'collection', wildcard: false }],
+      });
+    }
   }
   // Colon heads treat a trailing non-unit `in <word>` as the legacy scope
   // clause (the suffix layer files it under display-unit for non-find text).

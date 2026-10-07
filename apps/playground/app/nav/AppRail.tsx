@@ -7,7 +7,7 @@
  * only constant chrome across sections.
  */
 
-import { Dumbbell, Plus, Settings } from 'lucide-react'
+import { Dumbbell, Settings } from 'lucide-react'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
@@ -38,9 +38,9 @@ export function AppRail({ onSearch, onCreate }: { onSearch: () => void; onCreate
 
   // buy-me-a-coffee rides the tree for the mobile drawer but renders as a
   // dedicated bottom icon here, not in the primary loop.
-  const items = tree.filter(
+  const items = (tree ?? []).filter(
     (item): item is NavItem =>
-      item.icon != null && item.id !== 'settings' && item.id !== 'buy-me-a-coffee',
+      item != null && item.icon != null && item.id !== 'settings' && item.id !== 'buy-me-a-coffee',
   )
   const isSettingsActive = location.pathname.startsWith('/settings')
 
@@ -87,18 +87,6 @@ export function AppRail({ onSearch, onCreate }: { onSearch: () => void; onCreate
         })}
       </nav>
 
-      {onCreate && (
-        <button
-          type="button"
-          onClick={onCreate}
-          title="New journal note"
-          aria-label="New journal note"
-          data-testid="app-rail-create"
-          className="mt-1.5 grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-        >
-          <Plus className="size-5" />
-        </button>
-      )}
 
       <div className="flex-1" />
 

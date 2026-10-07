@@ -158,14 +158,19 @@ export function readRouteShortcuts(routeId: string, store: LocalStore = routeSho
 }
 
 /**
- * The route's live link list: the stored list once anything was stored
- * (delete-all included — the built-ins then stay gone), the built-ins
- * before that. Every consumer (panel rows, dialog upsert, Settings) reads
- * through this so a first save never silently drops built-in links.
+ * The route's live link list: the stored list once anything was stored,
+ * the built-ins before that. The landing link is permanent — a stored
+ * list without it (legacy rows written before it was protected) gets the
+ * built-in landing re-added at the front, so no consumer (panel rows,
+ * dialog upsert, Settings) can ever drop the default All link.
  */
 export function resolveRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): WqlShortcut[] {
   const id = normalizeRouteId(routeId)
-  if (store.getRaw(id) != null) return readRouteShortcuts(routeId, store)
+  if (store.getRaw(id) != null) {
+    const stored = readRouteShortcuts(routeId, store)
+    if (stored.some(s => s.id === ALL_SHORTCUT_ID)) return stored
+    return [builtinShortcuts(routeId)[0]!, ...stored]
+  }
   return builtinShortcuts(routeId)
 }
 

@@ -22,7 +22,7 @@ const MAX_RESULTS = 20;
 
 /** The palette's in-code system default query — the single source of truth;
  *  the Settings palette card displays it as the read-only fallback. */
-export const PALETTE_SEED_QUERY = ':note';
+export const PALETTE_SEED_QUERY = ':journal';
 const KIND_CATEGORY: Record<EntryKind, string> = {
   note: 'Journal',
   session: 'Collections',

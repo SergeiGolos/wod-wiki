@@ -12,6 +12,7 @@ import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { resolveRouteView, type RouteViewDeps } from './routeView'
 import {
   JOURNAL_STREAM_PROFILE,
+  CATALOGS_STREAM_PROFILE,
   COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
   LIBRARY_STREAM_PROFILE,
@@ -86,8 +87,11 @@ describe('Route-aware stream profile resolution', () => {
     expect(resolveStreamProfile('/collections')).toBe(COLLECTIONS_STREAM_PROFILE)
     expect(resolveStreamProfile('/collections').defaultWql).toBe(':collection{} by {tag}')
 
+    expect(resolveStreamProfile('/catalogs')).toBe(CATALOGS_STREAM_PROFILE)
+    expect(resolveStreamProfile('/catalogs').defaultWql).toBe(':catalog')
+
     expect(resolveStreamProfile('/feeds')).toBe(FEEDS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':note{} last 2w')
+    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':catalog{} last 2w')
 
     expect(resolveStreamProfile('/library')).toBe(LIBRARY_STREAM_PROFILE)
     expect(resolveStreamProfile('/library').defaultWql).toBe(':collection{} last 4w')
@@ -100,15 +104,15 @@ describe('Route-aware stream profile resolution', () => {
 describe('Legacy parameter migration across unified stream routes', () => {
   it('migrates legacy bookmarks on /journal into canonical WQL queries', () => {
     const legacy = JOURNAL_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('mode=plan'))).toBe(':note{source:journal} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('mode=plan&s=2026-07-15&tags=pr'))).toBe(':note{source:journal,tags:pr} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':note{source:journal,text:snatch} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('mode=plan'))).toBe(':journal last 2w')
+    expect(legacy.toQuery(new URLSearchParams('mode=plan&s=2026-07-15&tags=pr'))).toBe(':journal{tags:pr} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':journal{text:snatch} last 2w')
   })
 
   it('migrates legacy bookmarks on /collections into canonical WQL queries', () => {
     const legacy = COLLECTIONS_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('text=fran'))).toBe(':note{source:collections,text:fran} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':note{source:collections}')
+    expect(legacy.toQuery(new URLSearchParams('text=fran'))).toBe(':catalog{text:fran} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':catalog')
   })
 
   it('migrates legacy bookmarks on /feeds into canonical WQL queries', () => {
@@ -125,8 +129,8 @@ describe('Legacy parameter migration across unified stream routes', () => {
 
   it('migrates legacy tri-state parameters on /library', () => {
     const legacy = LIBRARY_STREAM_PROFILE.legacy!
-    expect(legacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':note{source:journal} last 2w')
-    expect(legacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':note{source:collections} last 2w')
+    expect(legacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
+    expect(legacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
     // post=on mapped to the now-excised feeds scope: unscoped, same window.
     const postOnly = parseQuery(legacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on')) ?? '')
     expect(isFindQuery(postOnly)).toBe(true)

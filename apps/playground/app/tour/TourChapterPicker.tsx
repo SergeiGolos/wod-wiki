@@ -50,7 +50,6 @@ export interface TourChapterPickerProps {
   theme: string
   wodFiles?: Record<string, string>
   onRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
-  onShare?: (doc: string) => void
 }
 
 export function TourChapterPicker({
@@ -59,7 +58,6 @@ export function TourChapterPicker({
   theme,
   wodFiles = {},
   onRun,
-  onShare,
 }: TourChapterPickerProps) {
   const languageChapters = useMemo(() => {
     const list = (chapters ?? []).filter((c) => c.id !== 'home-tour')
@@ -117,12 +115,8 @@ export function TourChapterPicker({
     onRun?.(chapterId, blocksRef.current[0] ?? null, doc)
   }, [doc, markComplete, onRun])
 
-  const handleShare = useCallback(() => {
-    onShare?.(doc)
-  }, [doc, onShare])
-
   return (
-    <div data-testid="tour-chapter-picker" className="py-8">
+    <div id="tour-chapter-picker" data-testid="tour-chapter-picker" className="py-8">
       {/* Section header — "Learn the Language" CTAs + per-chapter badge chips. */}
       <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -235,7 +229,6 @@ export function TourChapterPicker({
                   onDocChange={setDoc}
                   onBlocksChange={handleBlocksChange}
                   onRun={handleRun}
-                  onShare={handleShare}
                   theme={theme}
                   withRingTargets={false}
                 />

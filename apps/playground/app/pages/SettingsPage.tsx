@@ -1,5 +1,5 @@
 /**
- * SettingsPage — /settings, /settings/appearance, /settings/system
+ * SettingsPage — /settings, /settings/appearance, /settings/profile, /settings/system
  *
  * Dedicated settings surface for Wod Wiki, replacing the header "…" dropdown
  * configuration options.
@@ -7,6 +7,8 @@
  *   - /settings/appearance (default): Interface theme (System / Light / Dark),
  *     mobile actions button position (Bottom left / Bottom right), and startup
  *     page (Home / Journal).
+ *   - /settings/profile: avatar, display name, birth date, and body metrics
+ *     (weight/height with unit toggles) for the single local membership.
  *   - /settings/system: Audio feedback (sound effects & test chime), developer
  *     debug mode toggle, and "Reset & Clear Cache" danger zone.
  *   - /settings/queries: per-surface landing query and source / Group-By
@@ -48,6 +50,7 @@ import { readSeedStatus, runSeedSync, type SeedStatus } from '@/services/seed/se
 import { toast } from '@/hooks/use-toast'
 import { resetUserData } from '../services/resetUserData'
 import { QueryDefaultsSection } from './QueryDefaultsSection'
+import { ProfileSection } from './ProfileSection'
 import { Switch } from '@/components/atoms/primitives/switch'
 import { Button } from '@/components/atoms/primitives/button'
 import { cn } from '@/lib/utils'
@@ -57,6 +60,7 @@ import type { Tag, TagTypeRecord } from '@/types/storage'
 // Subroute switching lives in the left L2 nav (appNavTree); no in-page tab bar.
 const SETTINGS_SECTIONS = [
   { id: 'appearance', content: <AppearanceSection /> },
+  { id: 'profile', content: <ProfileSection /> },
   { id: 'queries', content: <QueryDefaultsSection /> },
   { id: 'tags', content: <TagsSettingsSection /> },
   { id: 'routes', content: <RoutesSection /> },
@@ -71,19 +75,21 @@ export function SettingsPage() {
   // Determine active tab based on route; default to appearance
   const activeTab: SettingsTab = location.pathname.endsWith('/system')
     ? 'system'
-    : location.pathname.endsWith('/queries')
-      ? 'queries'
-      : location.pathname.endsWith('/tags')
-        ? 'tags'
-        : location.pathname.endsWith('/routes')
-          ? 'routes'
-          : 'appearance'
+    : location.pathname.endsWith('/profile')
+      ? 'profile'
+      : location.pathname.endsWith('/queries')
+        ? 'queries'
+        : location.pathname.endsWith('/tags')
+          ? 'tags'
+          : location.pathname.endsWith('/routes')
+            ? 'routes'
+            : 'appearance'
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background">
       <StickyPageHeader
         title="Settings"
-        subtitle="Manage appearance, audio, and system preferences"
+        subtitle="Manage profile, appearance, audio, and system preferences"
       />
 
       {/* Page Content */}

@@ -42,11 +42,12 @@ import { TaglineHeader } from './HomeTour'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourSessionAnalytics, DEFAULT_TABLE_QUERY_KEY, DEFAULT_BOARD_SLUG } from './screens/TourSessionAnalytics'
+import { TourSessionResult } from './screens/TourSessionResult'
 import type { TourSectionTimerWiring, TourSectionSessionWiring } from './TourSectionRunway'
 import { TOUR_CAPTIONS, CaptionBody, type TourCaption } from './TourCaptions'
 import { TourChapterPicker } from './TourChapterPicker'
 import { TourLearnSection } from './TourLearnSection'
-import { TourRing, useRingRef } from './TourRing'
+import { RingElementRegistrar, RingTargetsProvider, TourRing } from './TourRing'
 
 const CARD_SLOT_MIN_HEIGHT = '70vh'
 /** Bounded sticky stage window: full width, 40vh tall under the app nav. */
@@ -73,13 +74,11 @@ export interface TourMobileRunwayProps {
   onHomeQuestClick?: (questId: string) => void
   /** Chapter example run — runs inline in the pinned timer window. */
   onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
-  onChapterShare?: (doc: string) => void
   /** The single shared editor document (hero + write window display it). */
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
-  onShare: () => void
   /** Shared-script attribution + reset, forwarded to the editor (#882). */
   sharedBy?: string
   onResetShared?: () => void
@@ -125,12 +124,10 @@ export function TourMobileRunway({
   questLabels,
   onHomeQuestClick,
   onChapterRun,
-  onChapterShare,
   doc,
   onDocChange,
   onBlocksChange,
   onRun,
-  onShare,
   onChoice,
   onCommand,
   session,
@@ -146,16 +143,9 @@ export function TourMobileRunway({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   // Ring canvases: the write window keeps the registered `editor.window`
-  // target; the other windows measure their own canvas without registering.
+  // target (registered inside its ChapterWindow's own RingTargetsProvider);
+  // the other windows measure their own canvas without registering.
   const writeCanvasRef = useRef<HTMLDivElement | null>(null)
-  const editorWindowRef = useRingRef('editor.window')
-  const writeCanvasRingRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      writeCanvasRef.current = el
-      editorWindowRef(el)
-    },
-    [editorWindowRef],
-  )
   const runCanvasRef = useRef<HTMLDivElement | null>(null)
   const ownCanvasRef = useRef<HTMLDivElement | null>(null)
   const exploreCanvasRef = useRef<HTMLDivElement | null>(null)
@@ -324,7 +314,6 @@ export function TourMobileRunway({
             onDocChange={onDocChange}
             onBlocksChange={onBlocksChange}
             onRun={onRun}
-            onShare={onShare}
             theme={theme}
           />
         </div>
@@ -350,7 +339,7 @@ export function TourMobileRunway({
             id="write"
             height={STAGE_WINDOW_HEIGHT}
             canvasRef={writeCanvasRef}
-            innerRef={writeCanvasRingRef}
+            windowRingKey="editor.window"
             ringTarget={ringFor('write')}
             accent={accentFor('write')}
           >
@@ -360,7 +349,6 @@ export function TourMobileRunway({
                 onDocChange={onDocChange}
                 onBlocksChange={onBlocksChange}
                 onRun={onRun}
-                onShare={onShare}
                 theme={theme}
                 withRingTargets
               />
@@ -427,12 +415,16 @@ export function TourMobileRunway({
             accent={accentFor('own')}
           >
             {reached.own && (
-              <TourSessionAnalytics
-                activeStageId="wql-table"
-                noteId={session?.noteId ?? null}
-                queryKey={session?.queryKey ?? DEFAULT_TABLE_QUERY_KEY}
-                boardSlug={session?.boardSlug ?? DEFAULT_BOARD_SLUG}
-              />
+              session?.result ? (
+                <TourSessionResult result={session.result} />
+              ) : (
+                <TourSessionAnalytics
+                  activeStageId="wql-table"
+                  noteId={session?.noteId ?? null}
+                  queryKey={session?.queryKey ?? DEFAULT_TABLE_QUERY_KEY}
+                  boardSlug={session?.boardSlug ?? DEFAULT_BOARD_SLUG}
+                />
+              )
             )}
           </ChapterWindow>
           {ownCaptions.map((cap) => renderCard(cap))}
@@ -470,8 +462,8 @@ export function TourMobileRunway({
         </div>
       </section>
 
-      {/* Syntax chapter picker — single slide with shared editor & dual buttons */}
-      <TourChapterPicker wodFiles={wodFiles} theme={theme} onRun={onChapterRun} onShare={onChapterShare} />
+      {/* Syntax chapter picker — single slide with shared editor */}
+      <TourChapterPicker wodFiles={wodFiles} theme={theme} onRun={onChapterRun} />
 
       {/* High-level learn & quest progress */}
       <TourLearnSection
@@ -493,7 +485,7 @@ function ChapterWindow({
   id,
   height,
   canvasRef,
-  innerRef,
+  windowRingKey,
   ringTarget,
   accent,
   children,
@@ -502,13 +494,23 @@ function ChapterWindow({
   height: string
   /** Ring measuring surface (plain ref, shared with the canvas div). */
   canvasRef: React.RefObject<HTMLDivElement | null>
-  /** The canvas div's ref — the write window passes its ring-registering
-      callback; other windows leave it off and reuse `canvasRef`. */
-  innerRef?: React.Ref<HTMLDivElement>
+  /** Ring key under which the canvas div itself is registered — only the
+      write window registers ('editor.window'), inside its own
+      RingTargetsProvider (a useRingRef here would reach the outer
+      provider). */
+  windowRingKey?: RingTargetKey
   ringTarget: { key: RingTargetKey; tag?: string } | null
   accent: string
   children: React.ReactNode
 }) {
+  const [innerEl, setInnerEl] = useState<HTMLDivElement | null>(null)
+  const setDivRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setInnerEl(el)
+      canvasRef.current = el
+    },
+    [canvasRef],
+  )
   return (
     <div
       data-testid={`tour-mobile-runway-window-${id}`}
@@ -516,11 +518,17 @@ function ChapterWindow({
       style={{ top: `${MOBILE_STICKY_TOP}px`, height }}
     >
       <div
-        ref={innerRef ?? canvasRef}
+        ref={setDivRef}
         className="relative h-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
       >
-        <div className="relative h-full">{children}</div>
-        <TourRing target={ringTarget} accent={accent} canvasRef={canvasRef} />
+        {/* Private ring registry per window — several chapter windows mount
+            concurrently and would otherwise overwrite each other's
+            'editor.window' registration under a shared provider. */}
+        <RingTargetsProvider>
+          {windowRingKey && <RingElementRegistrar ringKey={windowRingKey} el={innerEl} />}
+          <div className="relative h-full">{children}</div>
+          <TourRing target={ringTarget} accent={accent} canvasRef={canvasRef} />
+        </RingTargetsProvider>
       </div>
     </div>
   )

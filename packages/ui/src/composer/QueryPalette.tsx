@@ -47,7 +47,7 @@ export function TokenSlotPill({
         aria-pressed={isActive || undefined}
         title={invalid ? invalidReason : undefined}
         className={cn(
-          'inline-flex items-center gap-1 rounded-full text-xs font-mono transition-colors cursor-pointer select-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'inline-flex items-center gap-1 rounded-full text-xs font-mono transition-all cursor-pointer select-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:font-bold hover:scale-[1.02]',
           // Whole pill is a touch target too: 44px minimum at every width.
           'min-h-11 min-w-11',
           invalid
