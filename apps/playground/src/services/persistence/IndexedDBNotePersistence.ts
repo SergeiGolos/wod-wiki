@@ -307,12 +307,11 @@ export class IndexedDBNotePersistence implements INotePersistence {
     const derivedLogs = replayResultAnalytics(block, events);
 
     // Event rows are the authoritative store (V21): purge the previous
-    // projection, then write the replayed rows so the result converges to
-    // exactly one row set — re-running this is idempotent.
+    // projection and write the replayed rows so the result converges to
+    // exactly one row set — re-running this is idempotent. Purge + rewrite
+    // commit as ONE events transaction: a failed write rolls the delete back
+    // too (the old warn-and-return lost the previous projection outright).
     if (this.storage.appendEvents && this.storage.finalizeSummaries) {
-      if (this.storage.deleteEvents && events.length > 0) {
-        await this.storage.deleteEvents(events.map((row) => row.id));
-      }
       const identity = {
         noteId: result.noteId,
         resultId: result.id,
@@ -323,12 +322,13 @@ export class IndexedDBNotePersistence implements INotePersistence {
         pageId: result.pageId,
         workoutTimestamp: result.createdAt,
       };
-      try {
-        await this.storage.appendEvents(toEventRows(derivedLogs, identity));
-        await this.storage.finalizeSummaries(result.id, toSummaryEventRows(derivedLogs, identity));
-      } catch (err) {
-        console.warn(`[IndexedDBNotePersistence] event re-derivation failed for result ${result.id}`, err);
-      }
+      await this.storage.withTransaction(['events'], async scoped => {
+        if (events.length > 0) {
+          await scoped.deleteEvents(events.map((row) => row.id));
+        }
+        await scoped.appendEvents(toEventRows(derivedLogs, identity));
+        await scoped.finalizeSummaries(result.id, toSummaryEventRows(derivedLogs, identity));
+      });
     }
 
     return result;

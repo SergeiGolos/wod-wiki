@@ -19,10 +19,12 @@ const DB_NAME = 'wodwiki-db';
 // on every user-owned store (guards mandatory per the V24 note above).
 // V26: results store dropped (rows migrated into sessions first); unique
 // by-note-tag pair on note_tags (duplicates resolved deterministically);
-// notes by-created index (createdAt-fallback half of complete date-window
-// candidate reads); seed schema v6 rebuild maps static block rows onto
-// imported note UUIDs. Index/data guards key on presence, not oldVersion,
-// so partially-mixed databases are always repaired.
+// notes by-created + block_index by-source indexes; seed schema v6 rebuild
+// maps static block rows onto imported note UUIDs.
+// V27: repair bump — the first V26 cut shipped without by-source/by-created/
+// by-note-tag on real databases, so version 26 became ambiguous. Every index
+// addition is presence-guarded (not oldVersion-gated), so a 26→27 upgrade
+// repairs exactly the missing pieces and a fresh DB is built complete.
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
@@ -78,6 +80,19 @@ class IDBReadOnlyStore<T> implements IReadOnlyStore<T> {
     }
     const db = await this.dbPromise;
     return query !== undefined ? db.count(this.storeName, query) : db.count(this.storeName);
+  }
+
+  /** Index-scoped count without row hydration — the local sourceFence
+   *  block-count baseline. Mirrors IReadOnlyStore.countFromIndex (contract
+   *  addition landed by root). */
+  async countFromIndex(indexName: string, query?: IDBValidKey | IDBKeyRange): Promise<number> {
+    if (this.existingTx) {
+      return this.existingTx.objectStore(this.storeName).index(indexName).count(query);
+    }
+    const db = await this.dbPromise;
+    return query !== undefined
+      ? db.countFromIndex(this.storeName, indexName, query)
+      : db.countFromIndex(this.storeName, indexName);
   }
 }
 
@@ -279,6 +294,7 @@ export class IndexedDBStorage implements IStorage {
           store.createIndex('by-note', 'noteId');
           store.createIndex('by-content', 'blockContentId');
           store.createIndex('by-type', 'dataType');
+          store.createIndex('by-source', 'sourceId');
         }
 
         // 13. block_efforts
@@ -427,6 +443,14 @@ export class IndexedDBStorage implements IStorage {
             });
           }
           db.deleteObjectStore('results');
+        }
+
+        // V26: block_index gains the by-source index — the sourceFence count
+        // reads source vocabulary families without row hydration.
+        // Presence-guarded like by-created for partially-mixed databases.
+        if (db.objectStoreNames.contains('block_index')
+            && !tx.objectStore('block_index').indexNames.contains('by-source')) {
+          tx.objectStore('block_index').createIndex('by-source', 'sourceId');
         }
 
         // V26: notes gain the by-created index — the createdAt-fallback

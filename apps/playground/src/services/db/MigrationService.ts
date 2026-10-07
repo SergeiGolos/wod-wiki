@@ -1,16 +1,8 @@
-/**
- * Migration Service
- * 
- * Handles one-time migration from LocalStorage to IndexedDB V4.
- * Legacy script records are converted to NoteSegments.
- */
-
 import { v7 as uuidv7 } from 'uuid';
 import { storageService } from '@/services/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import type { StoredOutputStatement } from '@/components/Editor/types';
-import { Note, NoteSegment, Session } from '../../types/storage';
-import { HistoryEntry } from '../../types/history';
+import type { Note, NoteSegment, Session } from '../../types/storage';
+import type { HistoryEntry } from '../../types/history';
 
 const KEY_PREFIX = 'wodwiki:history:';
 const MIGRATION_FLAG = 'wodwiki:migrated-to-idb-v4';
@@ -30,91 +22,53 @@ function legacySourceId(entry: unknown): string | undefined {
 
 export const migrationService = {
     async runMigration() {
-        if (localStorage.getItem(MIGRATION_FLAG)) {
-            console.log('[Migration] Already migrated to V4.');
-            return;
-        }
-
-        console.log('[Migration] Starting migration to IndexedDB V4...');
-        let count = 0;
-
-        try {
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (!key || !key.startsWith(KEY_PREFIX)) continue;
-
-                try {
-                    const raw = localStorage.getItem(key);
-                    if (!raw) continue;
-
-                    const entry = JSON.parse(raw) as HistoryEntry;
-                    if (!entry.id || !entry.rawContent) continue;
-
-                    // 1. Create a single whole-document segment
-                    const segmentId = uuidv7();
-                    const segment: NoteSegment = {
-                        id: segmentId,
-                        version: 1,
-                        noteId: entry.id,
-                        dataType: 'markdown',
-                        data: null,
-                        rawContent: entry.rawContent,
-                        createdAt: entry.updatedAt || Date.now(),
-                    };
-
-                    // 2. Create Note
-                    const note: Note = {
-                        id: entry.id, // Preserve ID
-                        title: entry.title || 'Untitled',
-                        createdAt: entry.createdAt || Date.now(),
-                        sourceId: legacySourceId(entry),
-                    };
-
-                    // 3. Migrate Result (if exists) — the legacy inline
-                    // `entry.results` logs become a flattened Session row
-                    // plus unified event rows (detail + summary), exactly
-                    // what the results→sessions V26 store migration does.
-                    if (entry.results) {
-                        const logs = entry.results as unknown as StoredOutputStatement[];
-                        const startedAt = entry.createdAt || Date.now();
-                        const result: Session = {
-                            id: uuidv7(),
-                            blockContentId: segmentId,
-                            noteId: entry.id,
-                            segmentId,
-                            segmentVersion: 1,
-                            startTime: startedAt,
-                            endTime: entry.updatedAt || startedAt,
-                            duration: (entry.updatedAt || startedAt) - startedAt,
-                            completed: true,
-                            createdAt: entry.updatedAt || startedAt,
-                        };
-                        await storageService.saveSession(result);
-                        const identity = {
-                            noteId: entry.id,
-                            resultId: result.id,
-                            segmentId,
-                            segmentVersion: 1,
-                            blockContentId: segmentId,
-                            workoutTimestamp: result.endTime,
-                        };
-                        await storageService.appendEvents?.(toEventRows(logs, identity));
-                        await storageService.finalizeSummaries?.(result.id, toSummaryEventRows(logs, identity));
-                    }
-
-                    await storageService.saveNote(note);
-                    await storageService.saveSegment(segment as NoteSegment);
-                    count++;
-
-                } catch (err) {
-                    console.error('[Migration] Failed to migrate entry:', key, err);
-                }
+        if (localStorage.getItem(MIGRATION_FLAG)) return;
+        const failures: unknown[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key?.startsWith(KEY_PREFIX)) continue;
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            try {
+            const entry = JSON.parse(raw) as HistoryEntry;
+            if (!entry.id || !entry.rawContent) continue;
+            const segmentId = uuidv7();
+            const segment: NoteSegment = {
+                id: segmentId, version: 1, noteId: entry.id,
+                dataType: 'markdown', data: null, rawContent: entry.rawContent,
+                createdAt: entry.updatedAt ?? Date.now(),
+            };
+            const note: Note = {
+                id: entry.id, title: entry.title || 'Untitled',
+                createdAt: entry.createdAt ?? Date.now(), sourceId: legacySourceId(entry),
+            };
+            await storageService.withTransaction(['notes', 'segments', 'sessions', 'events'], async scoped => {
+                if (await scoped.getNote(entry.id)) return;
+                await scoped.saveNote(note);
+                await scoped.saveSegment(segment);
+                if (!entry.results) return;
+                const logs = entry.results.logs ?? [];
+                const session: Session = {
+                    id: uuidv7(), blockContentId: segmentId, noteId: entry.id,
+                    segmentId, segmentVersion: 1,
+                    startTime: entry.results.startTime, endTime: entry.results.endTime,
+                    duration: entry.results.duration, completed: entry.results.completed,
+                    createdAt: entry.updatedAt ?? entry.results.endTime,
+                };
+                await scoped.saveSession(session);
+                const identity = {
+                    noteId: entry.id, resultId: session.id, segmentId,
+                    segmentVersion: 1, blockContentId: segmentId,
+                    workoutTimestamp: session.endTime,
+                };
+                await scoped.appendEvents(toEventRows(logs, identity));
+                await scoped.finalizeSummaries(session.id, toSummaryEventRows(logs, identity));
+            });
+            } catch (error) {
+                failures.push(error);
             }
-
-            localStorage.setItem(MIGRATION_FLAG, 'true');
-            console.log(`[Migration] Completed. Migrated ${count} entries to V4.`);
-        } catch (err) {
-            console.error('[Migration] Fatal error during migration:', err);
         }
-    }
+        if (failures.length) throw new AggregateError(failures, 'Legacy migration could not save every entry');
+        localStorage.setItem(MIGRATION_FLAG, 'true');
+    },
 };

@@ -419,10 +419,11 @@ describe('window module (C1) execution', () => {
     calls.length = 0;
     await service.runQuery('sum:totalVolume{} last 1w', { rangeStart: 0, rangeEnd: 10 });
     expect(calls).not.toEqual(['by-timestamp:0-10']);
-    // Host range applies when the query has no window.
-    calls.length = 0;
-    await service.runQuery('sum:totalVolume{}', { rangeStart: 0, rangeEnd: 10 });
-    expect(calls).toEqual(['by-timestamp:0-10']);
+    // Host range applies when the query has none: the window is a membership
+    // bound on the result — an empty window selects nothing, whatever fetch
+    // (by-timestamp or complete scan) served it.
+    const ranged = await service.runQuery('sum:totalVolume{}', { rangeStart: 0, rangeEnd: 10 });
+    expect(ranged.matched).toEqual([]);
   });
 
   it('by {day} buckets points on LOCAL civil days with gap domain (ticket 12)', async () => {

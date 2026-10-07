@@ -1,6 +1,5 @@
 import type {
   Attachment,
-  BlockEffort,
   BlockIndexRow,
   EventRecord,
   Note,
@@ -741,6 +740,22 @@ export class StorageService implements NotePersistenceStorage {
   /** Total block row count (clean-read count forwarding). */
   async countBlockIndex(): Promise<number> {
     return this.storage.readonly('block_index').count();
+  }
+
+  async countBlockIndexInDomain(): Promise<number> {
+    const store = this.storage.readonly('block_index');
+    const [total, indexed, empty, collections, pageCollections, guides, playground, journal] = await Promise.all([
+      store.count(),
+      store.countFromIndex('by-source'),
+      store.countFromIndex('by-source', ''),
+      store.countFromIndex('by-source', IDBKeyRange.bound('collection:', 'collection;', false, true)),
+      store.countFromIndex('by-source', IDBKeyRange.bound('page:collection:', 'page:collection;', false, true)),
+      store.countFromIndex('by-source', IDBKeyRange.bound('guides:', 'guides;', false, true)),
+      store.countFromIndex('by-source', 'playground'),
+      store.getAllFromIndex('by-source', 'journal'),
+    ]);
+    return total - indexed + empty + collections + pageCollections + guides + playground
+      + journal.filter(row => !row.id.startsWith('pg-') && !row.noteId.startsWith('pg-')).length;
   }
 
   async rebuildBlockIndexForNote(noteId: string): Promise<void> {

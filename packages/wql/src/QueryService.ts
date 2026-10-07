@@ -161,13 +161,19 @@ const DOMAIN_SOURCE_KINDS: Record<string, true> = {
   playground: true,
 };
 
+/** Note kinds the default :note exclusion treats as page-like — the isPage
+ *  composite's type half (its sourceId half is the WQL `page` source kind). */
+const PAGE_LIKE_NOTE_TYPES = ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'];
+
 /** Compiled domain candidate read for a content plane. `selection` carries
  *  the pre-count stages the wire performs before selectedCount (source
- *  clauses + the explicit WQL source fence); `filters` carries the
- *  post-count clauses (positive literal type / exact id). `residual` is true
- *  when ANY authored filter must still be applied in JS — a residual read is
- *  never server-ordered or server-limited, because limiting before a
- *  residual filter would drop rows the pipeline would have kept. */
+ *  clauses + the :note defaultNotes exclusion + the explicit WQL source
+ *  fence); `filters` carries the post-count clauses (positive literal type /
+ *  exact id / literal text substring — the wire's case-insensitive text is
+ *  exactly the JS stage's lowercase-includes).
+ *  `residual` is true when ANY authored filter must still be
+ *  applied in JS — a residual read is never server-limited, because limiting
+ *  before a residual filter would drop rows the pipeline would have kept. */
 interface CompiledContentRead {
   selection: WqlDomainPredicate[];
   filters: WqlDomainPredicate[];
@@ -176,18 +182,24 @@ interface CompiledContentRead {
 
 /** Compile a plane's content filters for the domain candidate read — only
  *  clauses whose semantics match the storage wire exactly. Wildcards,
- *  negations, tags/effort/catalog/date/page/text, `journal`/`all` source
- *  kinds, and a :note `note:` clause without an authored type (the default
- *  page-exclusion stage is active there) all stay residual JS filters. The
- *  candidate read is a SUPERSET either way; the JS pipeline re-applies every
- *  stage and owns selected/matched counts and the final slice. */
-function compileContentRead(filters: TagFilter[], plane: 'note' | 'block'): CompiledContentRead {
+ *  negations, tags/effort/catalog/date/page, and `journal`/`all` source
+ *  kinds stay residual JS filters. The candidate read is a SUPERSET either
+ *  way; the JS pipeline re-applies every stage and owns the final slice. */
+function compileContentRead(filters: TagFilter[], plane: 'note' | 'block', sourceScope?: string[]): CompiledContentRead {
   const selection: WqlDomainPredicate[] = [];
   const compiled: WqlDomainPredicate[] = [];
   let residual = false;
+  let hasTypeFilter = false;
+  let hasCollectionSource = false;
   for (const filter of filters) {
     const literal = !filter.negate && filter.values.every((v) => !v.wildcard);
+    if (filter.key === 'type') hasTypeFilter = true;
     const values = literal ? filter.values.map((v) => v.value) : [];
+    // Mirrors applyNoteSelectionStages' branch predicate verbatim — any
+    // collection(s) value, any polarity, switches the defaultNotes variant.
+    if (filter.key === 'source' && filter.values.some(v => v.value === 'collection' || v.value === 'collections')) {
+      hasCollectionSource = true;
+    }
     if (filter.key === 'source' && literal && filter.values.every((v) => DOMAIN_SOURCE_KINDS[v.value] === true)) {
       selection.push({ field: 'source', values });
       continue;
@@ -196,15 +208,33 @@ function compileContentRead(filters: TagFilter[], plane: 'note' | 'block'): Comp
       compiled.push({ field: 'type', values });
       continue;
     }
-    // :note's exact-id clause compiles only beside an authored type clause:
-    // without one the default page-exclusion stage is active before the
-    // selected count, and the wire's pre-filter selectedCount would
-    // overstate the historical baseline.
-    if (filter.key === 'note' && literal && (plane === 'block' || compiled.some((p) => p.field === 'type'))) {
+    if (filter.key === 'page') {
+      // A page filter (any polarity) deactivates the default exclusion stage.
+      hasTypeFilter = true;
+      residual = true;
+      continue;
+    }
+    if (filter.key === 'text' && literal) {
+      // Wire text = case-insensitive substring on the plane's text column
+      // (block rawContent / note title) — the same space-joined needle the
+      // JS stage applies, so the JS filter stays as the exact mirror.
+      compiled.push({ field: 'text', value: values.join(' ') });
+      continue;
+    }
+    if (filter.key === 'note' && literal) {
       compiled.push({ field: plane === 'block' ? 'noteId' : 'id', values });
       continue;
     }
     residual = true;
+  }
+  if (plane === 'note' && sourceScope?.length) {
+    selection.push({ field: 'source', values: sourceScope });
+  }
+  // :note default page exclusion — active whenever no authored type/page
+  // filter exists, exactly the wire's defaultNotes clause (collections=true
+  // when an authored collection source clause rides along).
+  if (plane === 'note' && !hasTypeFilter) {
+    selection.push({ field: 'defaultNotes', collections: hasCollectionSource });
   }
   selection.push({ field: 'sourceFence' });
   return { selection, filters: compiled, residual };
@@ -226,7 +256,7 @@ function applyNoteSelectionStages(notes: Note[], parsed: ParsedFindQuery): Note[
   rows = rows.filter((n) => !n.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(n, k)));
   const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
   const hasCollectionSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'collection' || v.value === 'collections'));
-  const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
+  const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || PAGE_LIKE_NOTE_TYPES.includes(n.type ?? ''));
   if (!hasTypeFilter) {
     if (hasCollectionSource) {
       rows = rows.filter(n => n.type !== 'page');
@@ -237,21 +267,22 @@ function applyNoteSelectionStages(notes: Note[], parsed: ParsedFindQuery): Note[
   return rows;
 }
 
-/** Server order/page clauses for a candidate read — only when NO residual
- *  filter, window, join, or authored order precedes the slice, so limiting
- *  cannot drop rows the pipeline would keep, and natural id order is exactly
- *  the historical whole-store iteration order (entity ids sort identically
- *  under JS UTF-16 and server binary collation). Authored `| order` always
- *  sorts in JS over the complete candidate set instead. */
+/** Server order/page clauses for a candidate read. Natural id order rides
+ *  EVERY read: the server's default row order is unspecified, and id order
+ *  is exactly the historical whole-store iteration order the JS pipeline
+ *  surfaces when no `| order` pipe exists. offset/limit ride only when NO
+ *  residual filter, window, join, or authored order precedes the slice, so
+ *  limiting cannot drop rows the pipeline would keep. Authored `| order`
+ *  always sorts in JS over the complete candidate set instead. */
 function domainPaging(
   parsed: ParsedFindQuery,
   options: FindOptions,
   residual: boolean,
-): { order?: WqlDomainOrder[]; offset?: number; limit?: number; paged: boolean } {
+): { order: WqlDomainOrder[]; offset?: number; limit?: number; paged: boolean } {
   const pipes = parsed.pipes;
   const wantsPage = pipes?.limit !== undefined || (pipes?.offset ?? 0) > 0;
   if (residual || parsed.join || parsed.window || options.range || pipes?.order || !wantsPage) {
-    return { paged: false };
+    return { order: [{ field: 'id', direction: 'asc' }], paged: false };
   }
   return {
     order: [{ field: 'id', direction: 'asc' }],
@@ -1195,8 +1226,12 @@ export class QueryService {
     // so the wire count baselines the historical pre-filter stages.selected.
     // The static plane is never domain-read: it is pre-selected through the
     // SAME JS stages and its count composes onto the baseline.
-    const read = compileContentRead(parsed.filters, 'note');
-    const paging = domainPaging(parsed, options, read.residual);
+    const read = compileContentRead(parsed.filters, 'note', parsed.sourceScope);
+    // Server paging composes exactly only when the merged population is the
+    // paged one — a static plane unions AFTER the user plane and the
+    // historical slice cuts the MERGED array, so static-backed queries take
+    // the complete fetch and slice in JS.
+    const paging = domainPaging(parsed, options, read.residual || !!this.staticNoteStore);
     const fetchedNotes = (read.filters.length > 0 || read.selection.length > 1 || paging.paged) && this.noteStore.queryDomain
       ? await this.noteStore.queryDomain({
           plan: 'notes',

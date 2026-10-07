@@ -87,9 +87,10 @@ async function remoteList<T>(
   return (await res.json()) as T[];
 }
 
-async function remoteCount(http: Http, store: StoreName, range: RangeDTO | undefined): Promise<number> {
+async function remoteCount(http: Http, store: StoreName, range: RangeDTO | undefined, indexName?: string): Promise<number> {
   const params = new URLSearchParams();
   if (range) params.set('range', JSON.stringify(range));
+  if (indexName !== undefined) params.set('index', indexName);
   const res = await request(http, 'GET', `/${store}/count`, { params });
   return ((await res.json()) as { count: number }).count;
 }
@@ -258,6 +259,12 @@ class ApiStore<T> implements IReadWriteStore<T> {
     const range = rangeFromIDB(query);
     if (!this.dirty()) return remoteCount(this.http, this.store, range);
     return this.overlay(await this.serverRows('all', range), undefined, range).length;
+  }
+
+  async countFromIndex(indexName: string, query?: QueryArg): Promise<number> {
+    const range = rangeFromIDB(query);
+    if (!this.dirty()) return remoteCount(this.http, this.store, range, indexName);
+    return this.overlay(await this.serverRows(`index/${encodeURIComponent(indexName)}`, range), undefined, range, indexName).length;
   }
 
   /** Server rows for a list path, or none when this tx cleared the store. */

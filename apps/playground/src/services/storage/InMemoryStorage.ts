@@ -132,6 +132,7 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
       'by-note': { keyPath: 'noteId' },
       'by-content': { keyPath: 'blockContentId' },
       'by-type': { keyPath: 'dataType' },
+      'by-source': { keyPath: 'sourceId' },
     },
   },
   block_efforts: {
@@ -271,6 +272,9 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
     const results: T[] = [];
     for (const val of this.records.values()) {
       const indexValue = extractKey(val, indexDef.keyPath);
+      // Native IDB parity: rows whose keyPath is absent are NOT in the index
+      // and never match — not even an undefined-query getAllFromIndex.
+      if (indexValue === undefined) continue;
       let matched = false;
 
       if (indexDef.multiEntry && Array.isArray(indexValue)) {
@@ -292,6 +296,13 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
       return this.records.size;
     }
     const all = await this.getAll(query);
+    return all.length;
+  }
+
+  /** Index-scoped count without row hydration (index filtering + length).
+   *  Mirrors IReadOnlyStore.countFromIndex (contract addition landed by root). */
+  async countFromIndex(indexName: string, query?: IDBValidKey | IDBKeyRange): Promise<number> {
+    const all = await this.getAllFromIndex(indexName, query);
     return all.length;
   }
 

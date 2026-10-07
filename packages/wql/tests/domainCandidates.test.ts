@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { QueryService } from '../src/QueryService';
+import { QueryService, sourceMatches } from '../src/QueryService';
+import { WQL_SOURCE_VALUES } from '../src/vocabulary';
 import type { BlockIndexRow, Note } from '@bitcobblers/wod-wiki-core';
 import type {
   BlockQueryStore,
   NoteQueryStore,
   QueryServiceStores,
+  WqlDomainOrder,
   WqlDomainPredicate,
   WqlDomainReadResult,
 } from '../src/stores';
@@ -25,7 +27,7 @@ const T0 = 1_700_000_000_000;
 const userNotes: Note[] = [
   { id: 'n1', title: 'one', createdAt: T0, type: 'note' },
   { id: 'n2', title: 'two', createdAt: T0 + 1, type: 'note' },
-  { id: 'npage', title: 'guide', createdAt: T0 + 2, type: 'page', sourceId: 'page:guide-x' },
+  { id: 'npage', title: 'guide', createdAt: T0 + 2, type: 'page', sourceId: 'guides:my-guide' },
   { id: 'scol', title: 'cats', createdAt: T0 + 3, type: 'collection', sourceId: 'page:collection:cats', catalog: 'cats' },
 ] as Note[];
 
@@ -34,60 +36,64 @@ const staticNotes: Note[] = [
 ] as Note[];
 
 const blocks: BlockIndexRow[] = [
+  { id: 'b0', noteId: 'n1', segmentId: 's', segmentVersion: 1, dataType: 'wod', rawContent: 'fran-seeded', noteTitle: 'one', createdAt: T0 - 1, sourceId: 'page:collection:cats' },
   { id: 'b1', noteId: 'n1', segmentId: 's', segmentVersion: 1, dataType: 'wod', rawContent: 'fran', noteTitle: 'one', createdAt: T0 },
   { id: 'b2', noteId: 'n2', segmentId: 's', segmentVersion: 1, dataType: 'wod', rawContent: 'diane', noteTitle: 'two', createdAt: T0 + 1 },
-  { id: 'b3', noteId: 'scol', segmentId: 's', segmentVersion: 1, dataType: 'prose', rawContent: 'about', noteTitle: 'cats', createdAt: T0 + 2 },
-  { id: 'b4', noteId: 'n2', segmentId: 't', segmentVersion: 1, dataType: 'wod', rawContent: 'annie', noteTitle: 'two', createdAt: T0 + 3 },
+  { id: 'b3', noteId: 'scol', segmentId: 's', segmentVersion: 1, dataType: 'prose', rawContent: 'squat notes', noteTitle: 'cats', createdAt: T0 + 2 },
+  { id: 'b4', noteId: 'n2', segmentId: 't', segmentVersion: 1, dataType: 'wod', rawContent: 'annie squat clean', noteTitle: 'two', createdAt: T0 + 3 },
 ] as BlockIndexRow[];
 
 type AnyRow = Note | BlockIndexRow;
 
-/** Mirror of the exact WQL fence the JS pipeline applies. */
-function fencePasses(row: AnyRow): boolean {
-  return !row.sourceId
-    || ['collection:', 'page:', 'guides:', 'playground'].some((p) => row.sourceId!.startsWith(p));
+/** Page-like kinds — the isPage composite's type half. */
+const PAGE_LIKE = ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'];
+
+function isPageRow(row: AnyRow): boolean {
+  if ('dataType' in row) return false;
+  return row.type !== 'note'
+    && ((!!row.sourceId && (row.sourceId.startsWith('page:') || row.sourceId.startsWith('guides:')))
+      || PAGE_LIKE.includes(row.type ?? ''));
 }
 
-/** Mirror of sourceMatches for the kinds the fixtures compile. */
-function sourceKindMatch(row: AnyRow, kind: string): boolean {
-  if (kind === 'collections' || kind === 'collection') {
-    return !!row.sourceId && (row.sourceId.startsWith('collection:') || row.sourceId.startsWith('page:collection:'));
-  }
-  if (kind === 'playground') return row.sourceId === 'playground';
-  return false;
-}
-
-function predicateValues(p: WqlDomainPredicate): string[] {
-  return 'values' in p ? p.values : [];
-}
-
-function rowMatches(row: AnyRow, p: WqlDomainPredicate): boolean {
-  const values = predicateValues(p);
+function predicateHit(row: AnyRow, p: WqlDomainPredicate): boolean {
+  const values = 'values' in p ? p.values : [];
   switch (p.field) {
-    case 'sourceFence': return fencePasses(row);
-    case 'source': return values.some((k) => sourceKindMatch(row, k));
-    case 'type': return 'dataType' in row ? values.includes(row.dataType) : values.includes(row.type ?? '');
-    case 'id': return values.includes(row.id);
-    case 'noteId': return 'noteId' in row && values.includes(row.noteId);
-    default: return true;
+    case 'sourceFence':
+      return !row.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(row, k));
+    case 'source':
+      return values.some((k) => sourceMatches(row, k));
+    case 'defaultNotes':
+      return p.collections ? row.type !== 'page' : !isPageRow(row);
+    case 'text': {
+      // Wire text = case-insensitive substring on the plane's text column.
+      const needle = p.value.toLowerCase();
+      const hay = 'dataType' in row ? row.rawContent : row.title;
+      return hay.toLowerCase().includes(needle);
+    }
+    case 'type':
+      return 'dataType' in row ? values.includes(row.dataType) : values.includes(row.type ?? '');
+    case 'id':
+      return values.includes(row.id);
+    case 'noteId':
+      return 'noteId' in row && values.includes(row.noteId);
+    default:
+      return true;
   }
+}
+
+function clauseHolds(row: AnyRow, p: WqlDomainPredicate): boolean {
+  const hit = predicateHit(row, p);
+  return p.negate ? !hit : hit;
 }
 
 /** Domain-backed store fake for one plane: wire contract verbatim —
  *  selectedCount after selection before filters, matchedCount after filters
  *  before limit, rows the paged page. */
-function makeDomainRead(all: AnyRow[], captured: Array<Record<string, unknown>>) {
-  return async (req: {
-    plan: 'notes' | 'blocks';
-    selection?: WqlDomainPredicate[];
-    filters?: WqlDomainPredicate[];
-    order?: Array<{ field: string; direction: string }>;
-    offset?: number;
-    limit?: number;
-  }): Promise<WqlDomainReadResult> => {
+function makeDomainRead(all: AnyRow[], captured: Array<Record<string, unknown>>): DomainRead {
+  return async (req: DomainRequest): Promise<WqlDomainReadResult> => {
     captured.push({ ...req });
-    const selectedRows = all.filter((row) => (req.selection ?? []).every((p) => rowMatches(row, p)));
-    const filtered = selectedRows.filter((row) => (req.filters ?? []).every((p) => rowMatches(row, p)));
+    const selectedRows = all.filter((row) => (req.selection ?? []).every((p) => clauseHolds(row, p)));
+    const filtered = selectedRows.filter((row) => (req.filters ?? []).every((p) => clauseHolds(row, p)));
     let rows = [...filtered].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     const offset = req.offset ?? 0;
     rows = req.limit !== undefined ? rows.slice(offset, offset + req.limit) : rows.slice(offset);
@@ -106,7 +112,7 @@ function makeDomainRead(all: AnyRow[], captured: Array<Record<string, unknown>>)
   };
 }
 
-function makeNoteStore(all: Note[], domainRead?: ReturnType<typeof makeDomainRead>): NoteQueryStore {
+function makeNoteStore(all: Note[], domainRead?: DomainRead): NoteQueryStore {
   return {
     getAllNotes: async () => all,
     getNoteIdsForTag: async () => new Set<string>(),
@@ -115,7 +121,7 @@ function makeNoteStore(all: Note[], domainRead?: ReturnType<typeof makeDomainRea
   };
 }
 
-function makeBlockStore(all: BlockIndexRow[], domainRead?: ReturnType<typeof makeDomainRead>): BlockQueryStore {
+function makeBlockStore(all: BlockIndexRow[], domainRead?: DomainRead): BlockQueryStore {
   return {
     getAllBlocks: async () => all,
     ...(domainRead ? { queryDomain: domainRead } : {}),
@@ -132,10 +138,12 @@ function staticStore(): NoteQueryStore {
 
 function makeService(withDomain: boolean): { service: QueryService; captured: Array<Record<string, unknown>> } {
   const captured: Array<Record<string, unknown>> = [];
-  const read = makeDomainRead([...userNotes, ...staticNotes], captured);
+  // Each plane gets its OWN domain read over its OWN rows — the domain read
+  // serves the user plane's notes and the block index respectively; the
+  // static plane is a separate bundled store never behind IStorage.
   const stores: QueryServiceStores = {
-    noteStore: makeNoteStore(userNotes, withDomain ? read : undefined),
-    blockStore: makeBlockStore(blocks, withDomain ? read : undefined),
+    noteStore: makeNoteStore(userNotes, withDomain ? makeDomainRead([...userNotes], captured) : undefined),
+    blockStore: makeBlockStore(blocks, withDomain ? makeDomainRead([...blocks], captured) : undefined),
     staticNoteStore: staticStore(),
   };
   return { service: new QueryService(stores), captured };
@@ -157,6 +165,40 @@ async function outcome(service: QueryService, parsed: ParsedFindQuery) {
 }
 
 describe('domain candidate reads — parity with the whole-store path', () => {
+  it('applies the parser source scope before counts and paging', async () => {
+    const rows: Note[] = [
+      { id: 'a-guide', title: 'bench', type: 'note', sourceId: 'guides:bench', createdAt: T0 },
+      { id: 'b-user', title: 'bench', type: 'note', sourceId: 'journal', createdAt: T0 },
+      { id: 'c-user', title: 'bench', type: 'note', sourceId: 'journal', createdAt: T0 },
+    ];
+    const parsed = { ...find('note', [{ key: 'text', negate: false, values: [val('bench')] }], { limit: 1 }),
+      sourceScope: ['journal', 'collections', 'playground'] };
+    const plain = new QueryService({ noteStore: makeNoteStore(rows) });
+    const domain = new QueryService({ noteStore: makeNoteStore(rows, makeDomainRead(rows, [])) });
+    const result = await outcome(domain, parsed);
+    expect(result).toEqual(await outcome(plain, parsed));
+    expect(result.noteIds).toEqual(['b-user']);
+    expect(result.stages.selected).toBe(2);
+  });
+
+  it('preserves page-like notes when negated or wildcard type clauses disable default exclusion', async () => {
+    const rows: Note[] = [
+      { id: 'n', title: 'note', type: 'note', createdAt: T0 },
+      { id: 's', title: 'syntax', type: 'syntax', createdAt: T0 },
+    ];
+    for (const filter of [
+      { key: 'type', negate: true, values: [val('page')] },
+      { key: 'type', negate: false, values: [{ value: 'syntax', wildcard: true }] },
+    ]) {
+      const parsed = find('note', [filter]);
+      const plain = new QueryService({ noteStore: makeNoteStore(rows) });
+      const domain = new QueryService({ noteStore: makeNoteStore(rows, makeDomainRead(rows, [])) });
+      const result = await outcome(domain, parsed);
+      expect(result).toEqual(await outcome(plain, parsed));
+      expect(result.noteIds).toEqual(filter.negate ? ['n', 's'] : ['s']);
+    }
+  });
+
   it(':block{type:wod} | limit 2 — server paging bounds the payload, counts stay baselined', async () => {
     const plain = makeService(false);
     const domain = makeService(true);
@@ -178,8 +220,11 @@ describe('domain candidate reads — parity with the whole-store path', () => {
     ], { limit: 2 });
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
     expect(domain.captured[0]).toMatchObject({ plan: 'blocks' });
+    // Residual tags filter: no server offset/limit — the JS pipeline owns
+    // the slice. Natural id order still rides the read.
     expect(domain.captured[0].limit).toBeUndefined();
-    expect(domain.captured[0].order).toBeUndefined();
+    expect(domain.captured[0].offset).toBeUndefined();
+    expect(domain.captured[0].order).toEqual([{ field: 'id', direction: 'asc' }]);
   });
 
   it(':block{note:n2} — exact-id filter rides as a post-count filter, baseline preserved', async () => {
@@ -206,12 +251,43 @@ describe('domain candidate reads — parity with the whole-store path', () => {
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
   });
 
-  it(':note | limit 2 — nonselective query keeps the whole-store path (no domain request)', async () => {
+  it(':note | limit 2 — default exclusion compiles; static plane keeps the JS slice', async () => {
     const plain = makeService(false);
     const domain = makeService(true);
     const parsed = find('note', [], { limit: 2 });
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
-    expect(domain.captured).toHaveLength(0);
+    expect(domain.captured).toHaveLength(1);
+    expect(domain.captured[0]).toMatchObject({
+      plan: 'notes',
+      selection: [
+        { field: 'defaultNotes', collections: false },
+        { field: 'sourceFence' },
+      ],
+    });
+    // Static plane unions after the user plane and the historical slice cuts
+    // the merged array — no server paging for static-backed deployments.
+    expect(domain.captured[0].limit).toBeUndefined();
+    // Baseline = defaultNotes-selected user plane + JS-selected static rows.
+    expect((await outcome(domain.service, parsed)).stages.selected).toBe(3);
+    expect((await outcome(domain.service, parsed)).stages.matched).toBe(2);
+  });
+
+  it(':block{text:squat,type:wod} | limit 2 — literal text compiles as the wire text filter and pages', async () => {
+    const plain = makeService(false);
+    const domain = makeService(true);
+    const parsed = find('block', [
+      { key: 'text', negate: false, values: [val('squat')] },
+      { key: 'type', negate: false, values: [val('wod')] },
+    ], { limit: 2 });
+    expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
+    expect(domain.captured[0]).toMatchObject({
+      plan: 'blocks',
+      filters: [{ field: 'text', value: 'squat' }, { field: 'type', values: ['wod'] }],
+      limit: 2,
+    });
+    // The prose 'squat notes' block matches the text but not the type; the
+    // wod block survives both — one match, paged payload.
+    expect((await outcome(domain.service, parsed)).stages.matched).toBe(1);
   });
 
   it('source:collections compiles into selection and counts before filters', async () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import type { Note, NoteSegment } from '../../../types/storage';
+import type { DomainEntry } from '@bitcobblers/wod-wiki-storage';
 import { parseDocumentSections } from '@bitcobblers/wod-wiki-core';
 import { parseDashboardNote, buildDashboardDocument, isDashboardMeta } from '@bitcobblers/wod-wiki-wql';
 
@@ -44,6 +45,25 @@ storageService.getLatestSegmentsForNote = async (noteId: string) => {
   return [...latest.values()]
     .filter(s => !s.isHistory)
     .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt));
+};
+// Same fixture store as the stubs above: MAX-before-history segments, tags
+// from the last setNoteTags, no pages (getNotePages stubs []). Real getEntryBatches
+// would read the (empty) backing store behind the singleton.
+storageService.getEntryBatches = async (noteIds: readonly string[]) => {
+  const out = new Map<string, DomainEntry>();
+  for (const noteId of noteIds) {
+    const note = notes.find(n => n.id === noteId) ?? savedNotes.find(n => n.id === noteId);
+    if (!note) continue;
+    const segments = await storageService.getLatestSegmentsForNote(noteId);
+    out.set(noteId, {
+      note,
+      segments,
+      tags: await storageService.getTagsForNote(noteId),
+      links: [],
+      pages: [],
+    });
+  }
+  return out;
 };
 
 const providerModule = import('../IndexedDBContentProvider');

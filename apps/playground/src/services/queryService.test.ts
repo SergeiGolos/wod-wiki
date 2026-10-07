@@ -1,9 +1,10 @@
 import 'fake-indexeddb/auto';
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
-import { queryService } from './queryService';
+import { queryService, indexedDbBlockStore } from './queryService';
 import { storage } from '@/services/storage';
 import type { BlockIndexRow } from '@/types/storage';
+import { QueryService } from '@bitcobblers/wod-wiki-wql';
 
 function parseFindQuery(raw: string) {
   const parsed = parseQuery(raw);
@@ -43,6 +44,31 @@ beforeAll(async () => {
 });
 
 describe('queryService with the seeded corpus', () => {
+  it('intersects repeated type and note clauses on the offline block adapter', async () => {
+    const service = new QueryService({ blockStore: indexedDbBlockStore });
+    for (const raw of [
+      ':block{type:markdown,type:frontmatter} | limit 1',
+      ':block{note:"crossfit-girls/fran",note:missing} | limit 1',
+    ]) {
+      const result = await service.runFind(parseFindQuery(raw));
+      expect(result.blocks).toEqual([]);
+      expect(result.stages.matched).toBe(0);
+    }
+  });
+  it('does not duplicate rows when a block clause repeats', async () => {
+    const service = new QueryService({ blockStore: indexedDbBlockStore });
+    for (const raw of [
+      ':block{type:markdown,type:markdown}',
+      ':block{note:"crossfit-girls/fran",note:"crossfit-girls/fran"}',
+    ]) {
+      const result = await service.runFind(parseFindQuery(raw));
+      expect(result.blocks.map(row => row.id)).toEqual(raw.includes('type:')
+        ? ['static:crossfit-girls/fran:body:1']
+        : ['static:crossfit-girls/fran:body:1', 'static:crossfit-girls/fran:front:1']);
+    }
+  });
+
+
   it('discovers collections when querying scope collections', async () => {
     const query = parseFindQuery(':note in collections');
     const result = await queryService.runFind(query);

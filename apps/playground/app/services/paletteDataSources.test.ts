@@ -442,11 +442,11 @@ describe('globalSearchSource', () => {
   });
 
   beforeEach(() => {
-    mockGetRecentResults.mockResolvedValue([]);
+    mockGetRecentSessions.mockResolvedValue([]);
   });
 
   it('excludes playground results by default', async () => {
-    mockGetRecentResults.mockResolvedValue([
+    mockGetRecentSessions.mockResolvedValue([
       createResult({
         id: 'r-journal',
         noteId: 'journal/2024-01-15',
@@ -467,7 +467,7 @@ describe('globalSearchSource', () => {
   });
 
   it('includes playground results when showPlaygrounds is true', async () => {
-    mockGetRecentResults.mockResolvedValue([
+    mockGetRecentSessions.mockResolvedValue([
       createResult({
         id: 'r-playground',
         noteId: 'playground/abc-123',
@@ -482,7 +482,7 @@ describe('globalSearchSource', () => {
   });
 
   it('treats legacy bare UUID noteIds as journal, not playground', async () => {
-    mockGetRecentResults.mockResolvedValue([
+    mockGetRecentSessions.mockResolvedValue([
       createResult({
         id: 'r-legacy',
         noteId: '00000000-0000-4000-8000-000000000001',
@@ -497,7 +497,7 @@ describe('globalSearchSource', () => {
   });
 
   it('respects the explicit origin field over noteId prefix', async () => {
-    mockGetRecentResults.mockResolvedValue([
+    mockGetRecentSessions.mockResolvedValue([
       createResult({
         id: 'r-journal-origin',
         noteId: 'playground/abc-123',

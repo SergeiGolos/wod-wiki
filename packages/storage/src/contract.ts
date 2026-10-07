@@ -58,6 +58,7 @@ export interface IReadOnlyStore<T> {
   getAll(query?: IDBValidKey | IDBKeyRange, count?: number): Promise<T[]>;
   getAllFromIndex(indexName: string, query?: IDBValidKey | IDBKeyRange, count?: number): Promise<T[]>;
   count(query?: IDBValidKey | IDBKeyRange): Promise<number>;
+  countFromIndex(indexName: string, query?: IDBValidKey | IDBKeyRange): Promise<number>;
 }
 
 export interface IReadWriteStore<T> extends IReadOnlyStore<T> {

@@ -18,7 +18,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { IDBFactory } from 'fake-indexeddb';
 
-import type { Note, Session } from '@/types/storage';
+import type { EventRecord, Note, Session } from '@/types/storage';
 import type { IReadWriteStore, IStorage, IStorageTransaction, StoreName, StoreType } from '@bitcobblers/wod-wiki-storage';
 import type { NoteMutation } from './types';
 import { IndexedDBNotePersistence } from './IndexedDBNotePersistence';
@@ -42,6 +42,7 @@ function failingEventsPut<K extends StoreName>(rw: IReadWriteStore<StoreType<K>>
     getAll: (query, count) => rw.getAll(query, count),
     getAllFromIndex: (index, query, count) => rw.getAllFromIndex(index, query, count),
     count: query => rw.count(query),
+    countFromIndex: (index, query) => rw.countFromIndex(index, query),
     put: async () => {
       throw new Error('event store write failed');
     },
@@ -346,6 +347,64 @@ describe('IndexedDBNotePersistence.mutateNote atomicity (real backends)', () => 
 
         expect(await verify.getAllNotes()).toEqual([]);
         expect(await verify.scanAll()).toEqual([]);
+      });
+    });
+
+    it(`preserves the previous event row set when re-derivation write fails (${kind})`, async () => {
+      await withBackend(kind, async inner => {
+        const failing = new StorageService(failingEventsStorage(inner));
+        const verify = new StorageService(inner);
+        const persistence = makePersistence(failing);
+        const note = await seedNote(failing);
+
+        const scriptBlock = {
+          id: 'sec-wod', contentId: 'bc-fran', dialect: 'time' as const,
+          startLine: 2, endLine: 5, content: '21 Deadlift 60kg',
+          state: 'idle' as const, version: 1, createdAt: 0, widgetIds: {},
+        };
+        await failing.saveSegment({
+          id: `${note.id}:sec-wod`, version: 1, noteId: note.id, position: 0,
+          dataType: 'wod', data: scriptBlock, rawContent: '21 Deadlift 60kg',
+          createdAt: T0, updatedAt: T0, isHistory: false,
+        });
+        const staleResult: Session = {
+          id: 'result-replay', noteId: note.id, segmentId: `${note.id}:sec-wod`,
+          segmentVersion: 1, blockContentId: 'bc-fran', origin: 'journal',
+          startTime: T0, endTime: T0 + 60_000, duration: 60_000, completed: true,
+          createdAt: T0 + 60_000,
+        };
+        await failing.saveSession(staleResult);
+        const initialEvents: EventRecord[] = [
+          {
+            id: 'result-replay:0', resultId: 'result-replay', noteId: note.id,
+            blockContentId: 'bc-fran', timestamp: T0, grain: 'event',
+            outputType: 'segment',
+            metrics: [{ type: 'rep', value: 21, image: '21', origin: 'runtime' }],
+            sourceBlockKey: 'block-1', stackLevel: 0,
+          },
+          {
+            id: 'result-replay:99', resultId: 'result-replay', noteId: note.id,
+            blockContentId: 'bc-fran', timestamp: T0, grain: 'summary',
+            outputType: 'analytics',
+            metrics: [{ type: 'label', value: 'Stale', image: 'Stale', origin: 'analyzed' }],
+            sourceBlockKey: 'analytics-summary', stackLevel: 0,
+          },
+        ];
+        // Seed events through the NON-failing view of the same inner store —
+        // the decorated service rejects every events put, including this seed.
+        await verify.appendEvents(initialEvents);
+        // The pre-rederive row set, cloned so later in-place mutations of
+        // fetched rows cannot alias the expectation.
+        const previousRows = structuredClone(initialEvents);
+
+        // The purge (deleteEvents) previously ran BEFORE the rewrite with a
+        // warn-only catch — a failed append lost the old projection. The
+        // failure must now reject AND roll the delete back.
+        await expect(persistence.rederiveResultAnalytics('result-replay'))
+          .rejects.toThrow('event store write failed');
+
+        expect(await verify.scanAll()).toEqual(previousRows);
+        expect(await verify.getSessionById('result-replay')).toEqual(staleResult);
       });
     });
   }

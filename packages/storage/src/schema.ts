@@ -25,8 +25,13 @@ import type { StoreName } from './contract';
  * imports it), so store/index drift between the app and this spec is a type
  * error, not a runtime surprise. Bump on every store/index change and add
  * the matching guarded upgrade step.
+ *
+ * 27 supersedes 26: real databases already upgraded to the first 26 cut
+ * (before by-source / by-created / the unique note-tag pair) exist in the
+ * wild, so "version 26" is ambiguous — 27's presence-guarded repairs bring
+ * every mixed DB to the same shape.
  */
-export const DB_VERSION = 26;
+export const DB_VERSION = 27;
 
 /**
  * Typed field metadata — column type per extracted field path, shared with
@@ -207,6 +212,7 @@ export const STORE_DEFS: StoreDef[] = [
     { name: 'by-note', keyPath: ['noteId'] },
     { name: 'by-content', keyPath: ['blockContentId'] },
     { name: 'by-type', keyPath: ['dataType'] },
+    { name: 'by-source', keyPath: ['sourceId'] },
     { name: 'by-user', keyPath: ['userId'] },
   ] },
   // 13. block_efforts

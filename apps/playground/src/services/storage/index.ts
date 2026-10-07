@@ -10,6 +10,7 @@ import { IndexedDBStorage } from './IndexedDBStorage';
 import { InMemoryStorage } from './InMemoryStorage';
 import { StorageService } from './StorageService';
 import { ApiStorage } from '@bitcobblers/wod-wiki-storage';
+import type { DomainQuery, DomainQueryResult } from '@bitcobblers/wod-wiki-storage';
 import { createProfileService } from '../profile';
 
 import { LocalStore, InMemoryBackend, browserLocalStorageBackend, type StorageBackend } from './LocalStore';
@@ -58,6 +59,12 @@ export const storage: IStorage = {
     fn: (tx: IStorageTransaction) => Promise<R>
   ): Promise<R> {
     return currentStorage.transaction(stores, mode, fn);
+  },
+  /** Remote domain-query pass-through — undefined on local backends
+   *  (IStorage.queryDomain is optional and local adapters don't implement
+   *  it), the API result on ApiStorage. */
+  async queryDomain(query: DomainQuery): Promise<DomainQueryResult | undefined> {
+    return currentStorage.queryDomain?.(query);
   },
   wipe(): Promise<void> {
     return currentStorage.wipe();
