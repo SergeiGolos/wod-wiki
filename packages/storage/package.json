@@ -1,6 +1,6 @@
 {
   "name": "@bitcobblers/wod-wiki-storage",
-  "version": "0.12.0",
+  "version": "0.11.0",
   "description": "Storage contract for WOD Wiki — entity types, IStorage, IndexedDB schema spec, wire DTOs, and the HTTP ApiStorage backend",
   "type": "module",
   "main": "./dist/index.cjs",
