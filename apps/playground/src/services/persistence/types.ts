@@ -1,6 +1,8 @@
 import type { Sessions } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment, AnalyticsDataPoint, Note, NoteKind, NoteSegment, ResultOrigin, EventRecord, Session } from '@/types/storage';
+import type { StoreName } from '@bitcobblers/wod-wiki-storage';
+import type { StorageService } from '@/services/storage/StorageService';
 
 export type NoteLocator =
   | string
@@ -146,21 +148,21 @@ export interface NotePersistenceStorage {
   getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined>;
   /** Compound-key read: the exact segment incarnation recorded for a result. */
   getSegment?(segmentId: string, version: number): Promise<NoteSegment | undefined>;
-  getResultsForNote(noteId: string): Promise<Session[]>;
-  saveResult(result: Session): Promise<string>;
-  /** V6 — cross-note collection aggregation: every result for one blockContentId, across all notes. */
-  getResultsByContentId(blockContentId: string): Promise<Session[]>;
-  /** Preferred session-row source for getSimilarSessions when the backend has it. */
-  getSessionsByContentId?(blockContentId: string): Promise<Session[]>;
-  getResultsForSection(noteId: string, sectionId: string): Promise<Session[]>;
-  getResultById(resultId: string): Promise<Session | undefined>;
+  getSessionsForNote(noteId: string): Promise<Session[]>;
+  saveSession(session: Session): Promise<string>;
+  /** V6 — cross-note collection aggregation: every session for one blockContentId, across all notes. */
+  getSessionsByContentId(blockContentId: string): Promise<Session[]>;
+  getSessionsForSection(noteId: string, sectionId: string): Promise<Session[]>;
+  getSessionById(sessionId: string): Promise<Session | undefined>;
   getAttachmentsForNote(noteId: string): Promise<Attachment[]>;
   saveAttachment(attachment: Attachment): Promise<string>;
   deleteAttachment(id: string): Promise<void>;
   /**
    * V16 unified event store write surface (engine `EventStore`,
-   * tickets 003/005). Event rows are non-load-bearing — data.logs stays
-   * canonical — so narrow test fakes may omit these and skip event capture.
+   * tickets 003/005). On real backends these are load-bearing: a projection
+   * failure rejects the mutation and rolls back all source writes. The
+   * optional typing exists only so read-only test fakes can omit the
+   * surface — omitting it SKIPS capture, it does not tolerate failures.
    */
   appendEvents?(rows: EventRecord[]): Promise<void>;
   /** Atomic finalize: clear the result's engine-authored summaries, write finals. */
@@ -171,6 +173,16 @@ export interface NotePersistenceStorage {
   getEventsForNote?(noteId: string): Promise<EventRecord[]>;
   /** Session-scoped event reads for RPE capture and review. */
   getEventsByResult?(resultId: string): Promise<EventRecord[]>;
+  /**
+   * Atomic mutation scope: fn receives a storage whose EVERY method routes
+   * through one underlying readwrite transaction — any rejection rolls back
+   * all source writes. mutateNote depends on this for its all-or-nothing
+   * contract; queryDomain is unavailable on the scoped instance.
+   */
+  withTransaction<K extends StoreName, R>(
+    stores: K[],
+    fn: (scoped: StorageService) => Promise<R>,
+  ): Promise<R>;
 }
 
 export type { HistoryEntry, Attachment, AnalyticsDataPoint, Session, EventRecord };

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import type { HistoryEntry } from '@/types/history';
 import type { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import type { Note, NoteSegment, EventRecord, Session } from '@/types/storage';
+import type { Attachment, Note, NoteSegment, EventRecord, Session } from '@/types/storage';
 import { normalizeSummaryFacts } from '@/services/analytics/workoutDerivation';
 
 const persistenceModule = import('./IndexedDBNotePersistence');
@@ -48,7 +48,7 @@ const otherResult: Session = {
 function createHarness(latestSegments: NoteSegment[] = []) {
   const results = [olderSectionResult, latestSectionResult, otherResult];
   const savedNotes: Note[] = [];
-  const savedAttachments: import('@/types/storage').Attachment[] = [];
+  const savedAttachments: Attachment[] = [];
   const appendedEvents: EventRecord[][] = [];
   const finalizedSummaries: { resultId: string; rows: EventRecord[] }[] = [];
   const deletedEventIds: string[] = [];
@@ -58,14 +58,14 @@ function createHarness(latestSegments: NoteSegment[] = []) {
     getAllNotes: async () => [note],
     getLatestSegmentVersion: async (segmentId: string) =>
       latestSegments.find(segment => segment.id === segmentId),
-    getResultsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
-    getResultsByContentId: async (blockContentId: string) => results.filter(result => result.blockContentId === blockContentId),
-    saveResult: async (result: Session) => result.id,
-    getResultsForSection: async (_noteId: string, blockContentId: string) =>
+    getSessionsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
+    getSessionsByContentId: async (blockContentId: string) => results.filter(result => result.blockContentId === blockContentId),
+    saveSession: async (result: Session) => result.id,
+    getSessionsForSection: async (_noteId: string, blockContentId: string) =>
       results.filter(result => result.blockContentId === blockContentId),
-    getResultById: async (resultId: string) => results.find(result => result.id === resultId),
+    getSessionById: async (resultId: string) => results.find(result => result.id === resultId),
     getAttachmentsForNote: async () => [],
-    saveAttachment: async (attachment: import('@/types/storage').Attachment) => {
+    saveAttachment: async (attachment: Attachment) => {
       savedAttachments.push(attachment);
       return attachment.id;
     },
@@ -81,6 +81,11 @@ function createHarness(latestSegments: NoteSegment[] = []) {
     },
     getEventsForNote: async (_noteId: string) => [],
     getEventsByResult: async (_resultId: string) => [],
+    // Read-orchestration harness: mutations run through unscoped here; the
+    // atomic contract is covered against real backends in
+    // IndexedDBNotePersistence.atomic.test.ts.
+    withTransaction: async <R>(_stores: unknown[], fn: (scoped: never) => Promise<R>) =>
+      fn(storage as never),
   };
   const contentProvider = {
     getEntry: async (): Promise<HistoryEntry> => ({
@@ -134,86 +139,6 @@ describe('IndexedDBNotePersistence', () => {
     expect(points.every(p => p.noteId === note.id)).toBe(true);
     expect(points.every(p => p.resultId === 'result-a')).toBe(true);
     expect(points[0]).toMatchObject({ value: 90, unit: 'reps', label: 'Total Reps' });
-  });
-
-  it('projects event rows with the block identity from workoutResult', async () => {
-    const { IndexedDBNotePersistence } = await persistenceModule;
-    const latestSegment: NoteSegment = {
-      id: 'wod-a',
-      version: 7,
-      noteId: note.id,
-      dataType: 'wod',
-      data: null,
-      rawContent: '21-15-9',
-      createdAt: 456,
-    };
-    const { storage, contentProvider, appendedEvents, finalizedSummaries } = createHarness([latestSegment]);
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
-
-    await persistence.mutateNote(note.id, {
-      workoutResult: {
-        id: 'result-a',
-        blockId: 'wod-a',
-        blockContentId: 'bc-a',
-        segmentId: 'wod-a',
-        origin: 'playground',
-        data: {
-          startTime: 0, endTime: 1000, duration: 1000, completed: true,
-          logs: [
-            {
-              id: 1, outputType: 'segment', timeSpan: { started: 0, ended: 1000 },
-              metrics: [{ type: 'rep', value: 21, origin: 'runtime' }],
-              sourceBlockKey: 'block-1', stackLevel: 0,
-            },
-            {
-              id: 2, outputType: 'analytics', timeSpan: { started: 1000, ended: 1000 },
-              metrics: [
-                { type: 'label', value: 'Total Reps', image: 'Total Reps', origin: 'analyzed' },
-                { type: 'rep', value: 45, unit: 'reps', origin: 'analyzed' },
-              ],
-              sourceBlockKey: 'analytics-summary', stackLevel: 0,
-            },
-          ],
-        } as never,
-        createdAt: 1000,
-      },
-    });
-
-    const eventRows = appendedEvents.flat();
-    const summaryRows = finalizedSummaries.flatMap(f => f.rows);
-
-    expect(eventRows.some(r => r.grain === 'event')).toBe(true);
-    expect(summaryRows.some(r => r.grain === 'summary')).toBe(true);
-
-    for (const row of [...eventRows, ...summaryRows]) {
-      expect(row.blockContentId).toBe('bc-a');
-      expect(row.noteId).toBe(note.id);
-      expect(row.resultId).toBe('result-a');
-      expect(row.segmentId).toBe('wod-a');
-      expect(row.segmentVersion).toBe(7);
-      expect(row.origin).toBe('playground');
-    }
-  });
-
-  it('preserves attachment descriptor ids and time spans', async () => {
-    const { IndexedDBNotePersistence } = await persistenceModule;
-    const { storage, contentProvider, savedAttachments } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
-
-    await persistence.mutateNote(note.id, {
-      attachments: {
-        add: [{
-          id: 'attachment-1',
-          label: 'GPS',
-          mimeType: 'application/gpx+xml',
-          data: '<gpx />',
-          timeSpan: { start: 10, end: 20 },
-        }],
-      },
-    });
-
-    expect(savedAttachments[0].id).toBe('attachment-1');
-    expect(savedAttachments[0].timeSpan).toEqual({ start: 10, end: 20 });
   });
 
   it('selects an exact review result by result id', async () => {
@@ -282,74 +207,6 @@ describe('IndexedDBNotePersistence', () => {
     expect(entries[0].extendedResults!.map(r => r.id)).toEqual(['other', 'latest', 'older']);
   });
 
-  it('mutateNote lazily creates the note when recording a result onto a missing note', async () => {
-    const { IndexedDBNotePersistence } = await persistenceModule;
-    const { storage, contentProvider, savedNotes } = createHarness();
-    // Make the freshly-created note resolvable on the read-back getNote call.
-    storage.getNote = async (id: string) =>
-      id === note.id ? note : savedNotes.find(n => n.id === id);
-    const updated: { id: string; blockContentId?: string }[] = [];
-    contentProvider.updateEntry = async (id: string, patch: unknown) => {
-      updated.push({ id, blockContentId: patch.blockContentId });
-      return {} as HistoryEntry;
-    };
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
-
-    // 'canvas:home' has no note row — a static surface whose body is
-    // file-backed. Recording a result must still succeed.
-    await persistence.mutateNote('canvas:home', {
-      workoutResult: {
-        id: 'r1', blockId: 'wod-1-x', blockContentId: 'bc-x', version: 1,
-        data: { startTime: 0, endTime: 1000, duration: 1000, completed: true },
-        createdAt: 1000,
-      },
-    });
-
-    // A minimal note was created so the result has a home…
-    expect(savedNotes).toHaveLength(1);
-    expect(savedNotes[0].id).toBe('canvas:home');
-    // …and the result write proceeded against it.
-    expect(updated).toHaveLength(1);
-    expect(updated[0]).toMatchObject({ id: 'canvas:home', blockContentId: 'bc-x' });
-  });
-
-  it('mutateNote still throws NOTE_NOT_FOUND for content mutations on a missing note', async () => {
-    const { IndexedDBNotePersistence } = await persistenceModule;
-    const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
-
-    await expect(
-      persistence.mutateNote('ghost-note', { rawContent: '# hi' }),
-    ).rejects.toMatchObject({ code: 'NOTE_NOT_FOUND' });
-  });
-
-  it('mutateNote resolves a note by its page slug (journal route) instead of creating a duplicate', async () => {
-    const { IndexedDBNotePersistence } = await persistenceModule;
-    const { storage, contentProvider, savedNotes } = createHarness();
-    // A real journal note: UUID id, resolvable by its route slug.
-    const journalNote: Note = { ...note, id: 'uuid-journal-1', title: '2026-06-29' };
-    storage.getNote = async (id: string) => id === journalNote.id ? journalNote : undefined;
-    storage.getAllNotes = async () => [journalNote];
-    storage.getNoteBySlug = async (slug: string) => slug === 'journal/2026-06-29' ? journalNote : undefined;
-    const updated: { id: string }[] = [];
-    contentProvider.updateEntry = async (id: string) => { updated.push({ id }); return {} as HistoryEntry; };
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
-
-    // The recorder addresses the note by its route slug, not its UUID.
-    await persistence.mutateNote('journal/2026-06-29', {
-      workoutResult: {
-        id: 'r1', blockId: 'wod-1-x', blockContentId: 'bc-x', version: 1,
-        data: { startTime: 0, endTime: 1000, duration: 1000, completed: true },
-        createdAt: 1000,
-      },
-    });
-
-    // Resolved to the existing note by slug — no duplicate created, write went to the UUID.
-    expect(savedNotes).toHaveLength(0);
-    expect(updated[0]?.id).toBe('uuid-journal-1');
-  });
-
-  // V6 — by-content stamp
   // V6 — by-content stamp
   it('normalizeSummaryFacts stamps block identity on every fact row', async () => {
     const points = normalizeSummaryFacts(
@@ -375,42 +232,6 @@ describe('IndexedDBNotePersistence', () => {
     }
   });
 
-  it('mutateNote threads workoutResult identity into event rows', async () => {
-    const { IndexedDBNotePersistence } = await persistenceModule;
-    const { storage, contentProvider, appendedEvents, finalizedSummaries } = createHarness();
-    // Partial harness double — satisfies the constructor's structural needs;
-    // the full IndexedDBContentProvider surface isn't exercised here.
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as unknown as IndexedDBContentProvider);
-
-    await persistence.mutateNote(note.id, {
-      workoutResult: {
-        id: 'result-threading',
-        blockId: 'wod-a',
-        blockContentId: 'bc-threaded',
-        version: 1,
-        data: {
-          startTime: 0, endTime: 1000, duration: 1000, completed: true,
-          logs: [{
-            id: 2, outputType: 'analytics', timeSpan: { started: 1000 },
-            metrics: [
-              { type: 'label', value: 'Total Distance', image: 'Total Distance', origin: 'analyzed' },
-              { type: 'distance', value: 5000, unit: 'm', origin: 'analyzed' },
-            ],
-            sourceBlockKey: 'analytics-summary', stackLevel: 0,
-          }],
-        } as never,
-        createdAt: 1000,
-      },
-    });
-
-    const allRows = [...appendedEvents.flat(), ...finalizedSummaries.flatMap(f => f.rows)];
-    expect(allRows.length).toBeGreaterThan(0);
-    for (const row of allRows) {
-      expect(row.blockContentId).toBe('bc-threaded');
-      expect(row.noteId).toBe(note.id);
-    }
-  });
-
   it('getSimilarSessions filters by note and origin, sorts newest first', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
@@ -422,7 +243,7 @@ describe('IndexedDBNotePersistence', () => {
     ];
     const harnessStorage = {
       ...storage,
-      getResultsByContentId: async (bcid: string) => crossNote.filter(r => r.blockContentId === bcid),
+      getSessionsByContentId: async (bcid: string) => crossNote.filter(r => r.blockContentId === bcid),
     };
     const persistence = new IndexedDBNotePersistence(harnessStorage, contentProvider as unknown as IndexedDBContentProvider);
 
@@ -517,10 +338,10 @@ describe('IndexedDBNotePersistence', () => {
     const deletedEventIds: string[] = [];
     const storage = {
       getNote: async () => note,
-      getResultById: async () => staleResult,
+      getSessionById: async () => staleResult,
       getSegment: async () => segment,
       getLatestSegmentVersion: async () => segment,
-      saveResult: async (r: Session) => { savedResults.push(r); return r.id; },
+      saveSession: async (r: Session) => { savedResults.push(r); return r.id; },
       appendEvents: async (rows: EventRecord[]) => { appendedEvents.push(rows); },
       finalizeSummaries: async (resultId: string, rows: EventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
       deleteEvents: async (ids: string[]) => { deletedEventIds.push(...ids); },
@@ -557,7 +378,7 @@ describe('IndexedDBNotePersistence', () => {
   it('rederiveResultAnalytics rejects results with no recoverable segment context', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const storage = {
-      getResultById: async () => ({
+      getSessionById: async () => ({
         id: 'orphan',
         noteId: note.id,
         data: { startTime: 0, endTime: 1, duration: 1, completed: true, logs: [] },

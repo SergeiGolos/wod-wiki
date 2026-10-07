@@ -383,7 +383,7 @@ export async function loadSampleData(): Promise<{ facts: number }> {
       workoutTimestamp: session.timestamp,
     };
 
-    await service.saveResult(result);
+    await service.saveSession(result);
     await service.appendEvents(toEventRows(logs, identity));
     const summaries = toSummaryEventRows(logs, identity);
     await service.finalizeSummaries(result.id, summaries);

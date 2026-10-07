@@ -178,7 +178,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     if (noteIds.length === 0) return;
     let cancelled = false;
     for (const id of noteIds) {
-      storageService.getResultsForNote(id).then((rows) => {
+      storageService.getSessionsForNote(id).then((rows) => {
         if (!cancelled) setResultsByNote((prev) => ({ ...prev, [id]: rows }));
       }).catch(() => {});
     }

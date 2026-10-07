@@ -42,8 +42,8 @@ global.indexedDB = {
 } as any;
 
 import { storageService } from '@/services/storage';
-const mockGetRecentResults = mock((): Promise<Session[]> => Promise.resolve([]));
-storageService.getRecentResults = mockGetRecentResults;
+const mockGetRecentSessions = mock((): Promise<Session[]> => Promise.resolve([]));
+storageService.getRecentSessions = mockGetRecentSessions;
 
 mock.module('./playgroundContent', () => ({
   pageId: (category: string, name: string) => `${category}/${name}`,

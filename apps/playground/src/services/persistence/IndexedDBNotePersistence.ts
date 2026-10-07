@@ -13,7 +13,6 @@ import {
   replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
 import { captureWellnessFacts } from '@/services/analytics/wellness';
-import type { WellnessEventStore } from '@/services/analytics/wellness';
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import type { ScriptBlock, Sessions } from '@/components/Editor/types';
@@ -134,25 +133,18 @@ export class IndexedDBNotePersistence implements INotePersistence {
   }
 
   async mutateNote(locator: NoteLocator, mutation: NoteMutation): Promise<HistoryEntry> {
-    let note = await this.resolveNote(locator);
-    if (!note) {
-      // Recording a result onto a note that has no row yet (e.g. a static
-      // canvas surface whose body is file-backed, never written to the store):
-      // lazily create a minimal note so the result has a home. Without this,
-      // mutateNote threw NOTE_NOT_FOUND and the recorder's .catch swallowed it,
-      // so the result was never persisted and nothing hydrated on reload.
-      // Scoped to result writes — content/attachment mutations still require an
-      // existing note.
-      if (mutation.workoutResult) {
-        const id = this.locatorToId(locator);
-        const now = Date.now();
-        const fallbackTitle = mutation.metadata?.title ?? (id.startsWith('journal/') ? 'Journal Note' : 'Workout Note');
-        note = { id, title: fallbackTitle, createdAt: now, type: mutation.noteType ?? mutation.metadata?.type };
-        await this.storage.saveNote(note);
-      } else {
-        throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
-      }
+    const note = await this.resolveNote(locator);
+    if (!note && !mutation.workoutResult) {
+      throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
     }
+
+    // Attachment inputs may read external data (File.arrayBuffer). IndexedDB
+    // transactions deactivate when the event loop drains with no pending
+    // requests, so unbounded external reads resolve BEFORE the one
+    // transaction below opens.
+    const resolvedAttachments = mutation.attachments?.add
+      ? await Promise.all(mutation.attachments.add.map(input => resolveAttachmentInput(input)))
+      : [];
 
     const resultId = mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv7() : undefined);
     const patch = {
@@ -167,74 +159,94 @@ export class IndexedDBNotePersistence implements INotePersistence {
       resultId,
     };
 
-    if (Object.values(patch).some(value => value !== undefined)) {
-      await this.contentProvider.updateEntry(note.id, patch);
-    }
+    // Content edits, wellness capture, session save, and event/detail/summary
+    // projection commit or roll back as ONE transaction: any failure rejects
+    // and leaves no source write behind — no warn-only swallows.
+    await this.storage.withTransaction(
+      ['notes', 'page', 'page_notes', 'tags', 'note_tags', 'tag_types', 'segments', 'sessions', 'events', 'attachments', 'block_index', 'block_efforts'],
+      async scoped => {
+        const provider = new IndexedDBContentProvider(scoped);
 
-    // Wellness capture: ```wellness fences in the note body become day-grain
-    // user facts (soreness/sleep/hrv/weight/hang/hr/planned) — the raw inputs
-    // the wellness `calc.*` seeds derive from. Reconciles on every save:
-    // changed values upsert in place, removed keys delete their rows.
-    if (mutation.rawContent !== undefined && this.storage.appendEvents && this.storage.deleteEvents && this.storage.getEventsForNote) {
-      // Journal day comes from the entry's targetDate (calendar page); other
-      // notes stamp the current day.
-      const entry = await this.contentProvider.getEntry(note.id).catch(() => null);
-      await captureWellnessFacts(note.id, mutation.rawContent, this.storage as WellnessEventStore, {
-        targetDate: entry?.targetDate,
-      }).catch(() => undefined);
-    }
+        let txNote = note;
+        if (!txNote) {
+          // Recording a result onto a note that has no row yet (e.g. a static
+          // canvas surface whose body is file-backed, never written to the
+          // store): lazily create a minimal note so the result has a home.
+          // Inside the tx — a later failure rolls the row back too.
+          const id = this.locatorToId(locator);
+          const fallbackTitle = mutation.metadata?.title ?? (id.startsWith('journal/') ? 'Journal Note' : 'Workout Note');
+          txNote = { id, title: fallbackTitle, createdAt: Date.now(), type: mutation.noteType ?? mutation.metadata?.type };
+          await scoped.saveNote(txNote);
+        }
 
-    // Summary facts: extracted from Tier-2 ('analytics') outputs already in
-    // the result's logs — no separate analytics channel (CONTEXT.md 2026-07-20).
-    const resultLogs = mutation.workoutResult?.data.logs;
-    if (resultId && resultLogs?.length && this.storage.appendEvents && this.storage.finalizeSummaries) {
-      // Resolve AFTER updateEntry so a same-mutation content edit is reflected
-      // in the segment version stamped on event rows.
-      const segmentId = mutation.workoutResult?.segmentId;
-      const resolvedSegment = await resolveLatestSegment(this.storage, note.id, segmentId);
-      const segmentVersion = resolvedSegment?.version;
-      const identity = {
-        noteId: note.id,
-        resultId,
-        segmentId: resolvedSegment?.id ?? segmentId,
-        segmentVersion,
-        blockContentId: mutation.workoutResult?.blockContentId,
-        origin: mutation.workoutResult?.origin,
-        pageId: undefined,
-        // Canonical workout time — mirrors updateEntry's result createdAt
-        // (resultData.endTime || now), so event rows and the result agree.
-        workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
-      };
-      // Event rows are the authoritative projection for the event store (V21).
-      try {
-        await this.storage.appendEvents(toEventRows(resultLogs, identity));
-        await this.storage.finalizeSummaries(resultId, toSummaryEventRows(resultLogs, identity));
-      } catch (err) {
-        console.warn(`[IndexedDBNotePersistence] event projection failed for result ${resultId}`, err);
-      }
-    }
+        if (Object.values(patch).some(value => value !== undefined)) {
+          await provider.updateEntry(txNote.id, patch);
+        }
 
-    if (mutation.attachments?.add) {
-      for (const input of mutation.attachments.add) {
-        const attachment = await resolveAttachmentInput(input);
-        await this.storage.saveAttachment({
-          id: attachment.id ?? uuidv7(),
-          noteId: note.id,
-          pageId: undefined,
-          resultId,
-          label: attachment.label,
-          mimeType: attachment.mimeType,
-          data: attachment.data,
-          timeSpan: attachment.timeSpan,
-          createdAt: Date.now(),
-        } satisfies Attachment);
-      }
-    }
-    if (mutation.attachments?.remove) {
-      await Promise.all(mutation.attachments.remove.map(id => this.storage.deleteAttachment(id)));
-    }
+        // Wellness capture: ```wellness fences in the note body become day-grain
+        // user facts (soreness/sleep/hrv/weight/hang/hr/planned) — the raw inputs
+        // the wellness `calc.*` seeds derive from. Reconciles on every save:
+        // changed values upsert in place, removed keys delete their rows.
+        if (mutation.rawContent !== undefined && scoped.appendEvents && scoped.deleteEvents && scoped.getEventsForNote) {
+          // Journal day comes from the entry's targetDate (calendar page); other
+          // notes stamp the current day. The read-back is expected to succeed
+          // right after the source write — a miss means corrupted projection
+          // state, so it fails the transaction instead of stamping a wrong day.
+          const entry = await provider.getEntry(txNote.id);
+          await captureWellnessFacts(txNote.id, mutation.rawContent, scoped, {
+            targetDate: entry?.targetDate,
+          });
+        }
 
-    return this.getNote(note.id, {
+        // Summary facts: extracted from Tier-2 ('analytics') outputs already in
+        // the result's logs — no separate analytics channel (CONTEXT.md 2026-07-20).
+        const resultLogs = mutation.workoutResult?.data.logs;
+        if (resultId && resultLogs?.length && scoped.appendEvents && scoped.finalizeSummaries) {
+          // Resolve AFTER updateEntry so a same-mutation content edit is reflected
+          // in the segment version stamped on event rows.
+          const segmentId = mutation.workoutResult?.segmentId;
+          const resolvedSegment = await resolveLatestSegment(scoped, txNote.id, segmentId);
+          const segmentVersion = resolvedSegment?.version;
+          const identity = {
+            noteId: txNote.id,
+            resultId,
+            segmentId: resolvedSegment?.id ?? segmentId,
+            segmentVersion,
+            blockContentId: mutation.workoutResult?.blockContentId,
+            origin: mutation.workoutResult?.origin,
+            pageId: undefined,
+            // Canonical workout time — mirrors updateEntry's result createdAt
+            // (resultData.endTime || now), so event rows and the result agree.
+            workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
+          };
+          // Event rows are the authoritative projection for the event store (V21).
+          await scoped.appendEvents(toEventRows(resultLogs, identity));
+          await scoped.finalizeSummaries(resultId, toSummaryEventRows(resultLogs, identity));
+        }
+
+        for (const attachment of resolvedAttachments) {
+          await scoped.saveAttachment({
+            id: attachment.id ?? uuidv7(),
+            noteId: txNote.id,
+            pageId: undefined,
+            resultId,
+            label: attachment.label,
+            mimeType: attachment.mimeType,
+            data: attachment.data,
+            timeSpan: attachment.timeSpan,
+            createdAt: Date.now(),
+          } satisfies Attachment);
+        }
+        if (mutation.attachments?.remove) {
+          await Promise.all(mutation.attachments.remove.map(id => scoped.deleteAttachment(id)));
+        }
+      },
+    );
+
+    // Post-commit read through the unscoped service: the returned entry
+    // proves durable state, not an in-transaction view.
+    const noteId = note?.id ?? this.locatorToId(locator);
+    return this.getNote(noteId, {
       projection: 'workbench',
       resultSelection: { mode: 'latest' },
       includeAttachments: Boolean(mutation.attachments),
@@ -248,8 +260,8 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
     await this.contentProvider.deleteEntry(note.id);
   }
-  async getResultById(resultId: string): Promise<Session | undefined> {
-    return this.storage.getResultById(resultId);
+  async getSessionById(sessionId: string): Promise<Session | undefined> {
+    return this.storage.getSessionById(sessionId);
   }
 
   /**
@@ -266,7 +278,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
    * adapter has no direct store access to drive the cascade.
    */
   async rederiveResultAnalytics(resultId: string): Promise<Session> {
-    const result = await this.storage.getResultById(resultId);
+    const result = await this.storage.getSessionById(resultId);
     if (!result) {
       throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${resultId}`);
     }
@@ -373,9 +385,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     blockContentId: string,
     options: { excludeNoteId?: string; includePlayground?: boolean; limit?: number } = {},
   ): Promise<Session[]> {
-    let results = typeof this.storage.getSessionsByContentId === 'function'
-      ? await this.storage.getSessionsByContentId(blockContentId)
-      : await this.storage.getResultsByContentId(blockContentId);
+    let results = await this.storage.getSessionsByContentId(blockContentId);
     if (options.excludeNoteId) {
       results = results.filter(r => r.noteId !== options.excludeNoteId);
     }
@@ -392,7 +402,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     };
 
     if (selection.mode === 'by-result-id') {
-      const result = await this.storage.getResultById(selection.resultId);
+      const result = await this.storage.getSessionById(selection.resultId);
       if (!result) {
         throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${selection.resultId}`);
       }
@@ -406,7 +416,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
 
     if (selection.mode === 'latest-for-section' || selection.mode === 'all-for-section') {
-      const results = sortNewest(await this.storage.getResultsForSection(note.id, selection.blockContentId));
+      const results = sortNewest(await this.storage.getSessionsForSection(note.id, selection.blockContentId));
       if (selection.mode === 'all-for-section') {
         const extendedResults = limitResults(results, selection.limit);
         return { results: await this.payloadOf(extendedResults[0]), extendedResults };
@@ -414,7 +424,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       return { results: await this.payloadOf(results[0]) };
     }
 
-    const results = sortNewest(await this.storage.getResultsForNote(note.id));
+    const results = sortNewest(await this.storage.getSessionsForNote(note.id));
     if (selection.mode === 'all-for-note') {
       const extendedResults = limitResults(results, selection.limit);
       return { results: await this.payloadOf(extendedResults[0]), extendedResults };

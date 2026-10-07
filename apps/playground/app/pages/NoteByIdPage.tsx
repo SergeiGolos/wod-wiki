@@ -119,7 +119,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
     setScriptBlocks([])
     if (!noteKey) return
     let cancelled = false
-    storageService.getResultsForNote(noteKey).then((rows) => {
+    storageService.getSessionsForNote(noteKey).then((rows) => {
       if (!cancelled) setResults(rows)
     }).catch(() => {})
     return () => {

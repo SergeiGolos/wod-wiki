@@ -79,15 +79,15 @@ function createHarness(result: Session, initialEvents: EventRecord[] = [], segme
     getAllNotes: async () => [],
     getLatestSegmentVersion: async (id) => (segment && segment.id === id ? segment : undefined),
     getSegment: async (id, version) => (segment && segment.id === id && segment.version === version ? segment : undefined),
-    getResultsForNote: async () => [currentResult],
-    saveResult: async (r) => {
+    getSessionsForNote: async () => [currentResult],
+    saveSession: async (r) => {
       currentResult = r;
       savedResults.push(r);
       return r.id;
     },
-    getResultsByContentId: async () => [],
-    getResultsForSection: async () => [],
-    getResultById: async (id) => (id === currentResult.id ? currentResult : undefined),
+    getSessionsByContentId: async () => [],
+    getSessionsForSection: async () => [],
+    getSessionById: async (id) => (id === currentResult.id ? currentResult : undefined),
     getAttachmentsForNote: async () => [],
     saveAttachment: async () => 'att-1',
     deleteAttachment: async () => {},
@@ -127,15 +127,15 @@ function findUserRpeEvents(events: EventRecord[]) {
 describe('captureSessionRpe', () => {
   it('returns not-found when the result does not exist', async () => {
     const storage: NotePersistenceStorage = {
-      getResultById: async () => undefined,
-      saveResult: async () => '',
+      getSessionById: async () => undefined,
+      saveSession: async () => '',
       getNote: async () => undefined,
       saveNote: async () => '',
       getAllNotes: async () => [],
       getLatestSegmentVersion: async () => undefined,
-      getResultsForNote: async () => [],
-      getResultsByContentId: async () => [],
-      getResultsForSection: async () => [],
+      getSessionsForNote: async () => [],
+      getSessionsByContentId: async () => [],
+      getSessionsForSection: async () => [],
       getAttachmentsForNote: async () => [],
       saveAttachment: async () => '',
       deleteAttachment: async () => {},

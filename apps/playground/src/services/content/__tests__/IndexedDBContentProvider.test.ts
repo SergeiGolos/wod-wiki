@@ -22,7 +22,7 @@ storageService.getNotePages = async () => [];
 storageService.getAllPageNotes = async () => [];
 storageService.getAllTagTypes = async () => [];
 storageService.getAllSegments = async () => savedSegments;
-storageService.getResultsForNote = async () => [];
+storageService.getSessionsForNote = async () => [];
 storageService.getAttachmentsForNote = async () => [];
 storageService.rebuildBlockIndexForNote = async () => {};
 storageService.saveNote = async (note: Note) => {
@@ -41,9 +41,9 @@ storageService.getLatestSegmentsForNote = async (noteId: string) => {
     const current = latest.get(segment.id);
     if (!current || segment.version > current.version) latest.set(segment.id, segment);
   }
-  return [...latest.values()].sort(
-    (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
-  );
+  return [...latest.values()]
+    .filter(s => !s.isHistory)
+    .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt));
 };
 
 const providerModule = import('../IndexedDBContentProvider');

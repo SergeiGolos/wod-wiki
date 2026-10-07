@@ -7,8 +7,8 @@
  *
  * Signature extension over IStorage: query/delete args also accept plain
  * RangeDTO literals so non-IDB runtimes (Bun, node, tests) can drive this
- * client without an IDBKeyRange global. Range deletes have no TxOp on the
- * pinned wire — they travel as DELETE /v1/:store?key=<RangeDTO> calls.
+ * client without an IDBKeyRange global. Transactional range deletes expand
+ * matching primary keys into scalar delete ops on the existing /tx wire.
  */
 
 import type {
@@ -21,9 +21,12 @@ import type {
 } from './contract';
 import { STORE_DEFS, type StoreDef } from './schema';
 import { stampUserOwned } from './membership';
+import { parseDomainQueryResult, type DomainQuery, type DomainQueryResult } from './domain';
 import {
   encodeKey,
   isRange,
+  compareKeys,
+  extractKeyPart,
   keyFromValue,
   keyInRange,
   rangeFromIDB,
@@ -37,8 +40,7 @@ type QueryArg = IDBValidKey | IDBKeyRange | RangeDTO;
 
 interface BufferedPut { kind: 'put'; value: unknown }
 interface BufferedDelete { kind: 'delete'; key: KeyDTO }
-interface BufferedRangeDelete { kind: 'deleteRange'; range: RangeDTO }
-type BufferEntry = BufferedPut | BufferedDelete | BufferedRangeDelete;
+type BufferEntry = BufferedPut | BufferedDelete;
 
 interface Http { baseUrl: string; fetchImpl: typeof fetch }
 
@@ -135,6 +137,20 @@ export class ApiStorage implements IStorage {
   readwrite<K extends StoreName>(store: K): IReadWriteStore<StoreType<K>> {
     return this.makeView(store);
   }
+  async queryDomain(query: DomainQuery): Promise<DomainQueryResult | undefined> {
+    const res = await this.http.fetchImpl(`${this.http.baseUrl}/v1/query`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(query),
+    });
+    if (res.status === 409) {
+      const error: unknown = await res.json();
+      if (typeof error === 'object' && error !== null && 'code' in error
+        && error.code === 'domain_projection_unavailable') return undefined;
+    }
+    if (!res.ok) throw new Error(`ApiStorage: POST /v1/query → ${res.status}`);
+    return parseDomainQueryResult(await res.json(), query.plan);
+  }
 
   async transaction<K extends StoreName, R>(
     _stores: K[],
@@ -155,19 +171,13 @@ export class ApiStorage implements IStorage {
   /** Sends buffered ops as one server-side SQL transaction. */
   private async flush(buffer: Map<string, BufferEntry>, cleared: Set<StoreName>): Promise<void> {
     const ops: TxOp[] = [];
-    const rangeDeletes: Array<{ store: StoreName; range: RangeDTO }> = [];
     for (const store of cleared) ops.push({ op: 'clear', store });
     for (const [slot, entry] of buffer) {
       const sep = slot.indexOf('\u0000');
       const store = slot.slice(0, sep) as StoreName;
       if (entry.kind === 'put') ops.push({ op: 'put', store, value: entry.value });
       else if (entry.kind === 'delete') ops.push({ op: 'delete', store, key: JSON.parse(slot.slice(sep + 1)) as KeyDTO });
-      else rangeDeletes.push({ store, range: entry.range });
     }
-    // ponytail: the pinned TxOp has no range-delete variant, so range deletes
-    // flush as DELETE calls ahead of the tx POST; add a wire op if tx-atomic
-    // range deletes are ever needed.
-    for (const { store, range } of rangeDeletes) await remoteDelete(this.http, store, range);
     if (ops.length > 0) await request(this.http, 'POST', '/tx', { body: { ops } });
   }
 
@@ -207,23 +217,13 @@ class ApiStore<T> implements IReadWriteStore<T> {
   }
 
   /**
-   * Point lookup against the buffer, replaying entries in op order: an exact
-   * put/delete or a covering range delete wins; undefined = consult server.
+   * Point lookup against the buffer; undefined means consult the server.
    */
   private bufferedGet(key: KeyDTO): { hit: true; value: T } | { hit: false } | undefined {
     if (!this.buffer) return undefined;
-    const slotFor = bufferSlot(this.store, key);
-    const prefix = `${this.store}\u0000`;
-    let state: { hit: true; value: T } | { hit: false } | undefined;
-    for (const [slot, entry] of this.buffer) {
-      if (!slot.startsWith(prefix)) continue;
-      if (entry.kind === 'deleteRange') {
-        if (keyInRange(key, entry.range)) state = { hit: false };
-      } else if (slot === slotFor) {
-        state = entry.kind === 'put' ? { hit: true, value: entry.value as T } : { hit: false };
-      }
-    }
-    return state;
+    const entry = this.buffer.get(bufferSlot(this.store, key));
+    if (!entry) return undefined;
+    return entry.kind === 'put' ? { hit: true, value: entry.value as T } : { hit: false };
   }
 
   async get(key: IDBValidKey | RangeDTO): Promise<T | undefined> {
@@ -245,17 +245,19 @@ class ApiStore<T> implements IReadWriteStore<T> {
   }
 
   async getAll(query?: QueryArg, count?: number): Promise<T[]> {
-    return this.overlay(await this.serverRows('all', rangeFromIDB(query)), count);
+    const range = rangeFromIDB(query);
+    return this.overlay(await this.serverRows('all', range, this.dirty() ? undefined : count), count, range);
   }
 
   async getAllFromIndex(indexName: string, query?: QueryArg, count?: number): Promise<T[]> {
-    return this.overlay(await this.serverRows(`index/${encodeURIComponent(indexName)}`, rangeFromIDB(query)), count);
+    const range = rangeFromIDB(query);
+    return this.overlay(await this.serverRows(`index/${encodeURIComponent(indexName)}`, range, this.dirty() ? undefined : count), count, range, indexName);
   }
 
   async count(query?: QueryArg): Promise<number> {
     const range = rangeFromIDB(query);
     if (!this.dirty()) return remoteCount(this.http, this.store, range);
-    return this.overlay(await this.serverRows('all', range)).length;
+    return this.overlay(await this.serverRows('all', range), undefined, range).length;
   }
 
   /** Server rows for a list path, or none when this tx cleared the store. */
@@ -264,8 +266,8 @@ class ApiStore<T> implements IReadWriteStore<T> {
     return remoteList<T>(this.http, this.store, path, range, count);
   }
 
-  /** Applies the write buffer to server rows in op order: put upsert, delete removes, range delete wipes. */
-  private overlay(rows: T[], count?: number): T[] {
+  /** Applies buffered puts and deletes before range filtering, ordering and paging. */
+  private overlay(rows: T[], count?: number, range?: RangeDTO, indexName?: string): T[] {
     if (!this.buffer || !this.dirty()) return count !== undefined ? rows.slice(0, count) : rows;
     const out = new Map<string, T>();
     if (!this.cleared?.has(this.store)) {
@@ -276,13 +278,39 @@ class ApiStore<T> implements IReadWriteStore<T> {
     for (const [slot, entry] of this.buffer) {
       if (!slot.startsWith(prefix)) continue;
       if (entry.kind === 'put') out.set(slot.slice(prefix.length), entry.value as T);
-      else if (entry.kind === 'delete') out.delete(slot.slice(prefix.length));
-      else for (const keyJson of [...out.keys()]) {
-        const parsed = JSON.parse(keyJson) as KeyDTO; // our own encodeKey output
-        if (keyInRange(parsed, entry.range)) out.delete(keyJson);
-      }
+      else out.delete(slot.slice(prefix.length));
     }
-    const merged = [...out.values()];
+    // Dirty reads fetch the complete candidate range: buffered deletes can
+    // remove the remote head, and puts can change index membership or order.
+    const index = indexName ? this.def.indexes.find(i => i.name === indexName) : undefined;
+    if (indexName && !index) throw new Error(`ApiStorage: unknown index '${indexName}'`);
+    const keyOf = (row: T): KeyDTO | undefined => {
+      if (!index) return keyFromValue(this.def, row);
+      const parts = index.keyPath.map(path => extractKeyPart(row, path));
+      if (parts.some(part => part === undefined)) return undefined;
+      const keys = parts.filter((part): part is string | number => part !== undefined);
+      return keys.length === 1 ? keys[0] : keys;
+    };
+    const matches = (row: T): boolean => {
+      if (index?.multiEntry) {
+        let values: unknown = row;
+        for (const part of index.keyPath[0].split('.')) {
+          if (values === null || typeof values !== 'object' || !(part in values)) return false;
+          values = Reflect.get(values, part);
+        }
+        return Array.isArray(values) && values.some(value =>
+          (typeof value === 'string' || typeof value === 'number') && (!range || keyInRange(value, range)));
+      }
+      const key = keyOf(row);
+      return key !== undefined && (!range || keyInRange(key, range));
+    };
+    const merged = [...out.values()].filter(matches);
+    merged.sort((a, b) => {
+      const primary = compareKeys(keyFromValue(this.def, a), keyFromValue(this.def, b));
+      if (index?.multiEntry) return primary;
+      const ak = keyOf(a), bk = keyOf(b);
+      return ak !== undefined && bk !== undefined ? compareKeys(ak, bk) || primary : primary;
+    });
     return count !== undefined ? merged.slice(0, count) : merged;
   }
 
@@ -302,7 +330,11 @@ class ApiStore<T> implements IReadWriteStore<T> {
     const range = isRange(key) ? key : undefined;
     if (range) {
       if (this.buffer) {
-        this.buffer.set(`${this.store}\u0000${JSON.stringify(range)}`, { kind: 'deleteRange', range });
+        const rows = await this.getAll(range);
+        for (const row of rows) {
+          const key = keyFromValue(this.def, row);
+          this.buffer.set(bufferSlot(this.store, key), { kind: 'delete', key });
+        }
         return;
       }
       await remoteDelete(this.http, this.store, range);

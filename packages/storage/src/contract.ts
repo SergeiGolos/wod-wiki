@@ -26,6 +26,7 @@ import type {
   FieldValueRecord,
 } from '@bitcobblers/wod-wiki-core';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
+import type { DomainQuery, DomainQueryResult } from './domain';
 
 export interface StorageSchema {
   notes: Note;
@@ -35,7 +36,6 @@ export interface StorageSchema {
   tag_types: TagTypeRecord;
   note_tags: NoteTag;
   segments: NoteSegment;
-  results: Session;
   sessions: Session;
   attachments: Attachment;
   events: EventRecord;
@@ -72,6 +72,7 @@ export interface IStorageTransaction {
 }
 
 export interface IStorage {
+  queryDomain?(query: DomainQuery): Promise<DomainQueryResult | undefined>;
   readonly<K extends StoreName>(store: K): IReadOnlyStore<StoreType<K>>;
   readwrite<K extends StoreName>(store: K): IReadWriteStore<StoreType<K>>;
   transaction<K extends StoreName, R>(

@@ -7,6 +7,8 @@
 
 import { v7 as uuidv7 } from 'uuid';
 import { storageService } from '@/services/storage';
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import type { StoredOutputStatement } from '@/components/Editor/types';
 import { Note, NoteSegment, Session } from '../../types/storage';
 import { HistoryEntry } from '../../types/history';
 
@@ -68,19 +70,36 @@ export const migrationService = {
                         sourceId: legacySourceId(entry),
                     };
 
-                    // 3. Migrate Result (if exists)
+                    // 3. Migrate Result (if exists) — the legacy inline
+                    // `entry.results` logs become a flattened Session row
+                    // plus unified event rows (detail + summary), exactly
+                    // what the results→sessions V26 store migration does.
                     if (entry.results) {
-                        // @ts-ignore - Handle potential type mismatch during migration
-                        const legacyResult = entry.results as unknown as Session[];
-
+                        const logs = entry.results as unknown as StoredOutputStatement[];
+                        const startedAt = entry.createdAt || Date.now();
                         const result: Session = {
                             id: uuidv7(),
                             blockContentId: segmentId,
                             noteId: entry.id,
-                            data: legacyResult,
-                            createdAt: legacyResult.createdAt || legacyResult.endTime || Date.now()
+                            segmentId,
+                            segmentVersion: 1,
+                            startTime: startedAt,
+                            endTime: entry.updatedAt || startedAt,
+                            duration: (entry.updatedAt || startedAt) - startedAt,
+                            completed: true,
+                            createdAt: entry.updatedAt || startedAt,
                         };
-                        await storageService.saveResult(result);
+                        await storageService.saveSession(result);
+                        const identity = {
+                            noteId: entry.id,
+                            resultId: result.id,
+                            segmentId,
+                            segmentVersion: 1,
+                            blockContentId: segmentId,
+                            workoutTimestamp: result.endTime,
+                        };
+                        await storageService.appendEvents?.(toEventRows(logs, identity));
+                        await storageService.finalizeSummaries?.(result.id, toSummaryEventRows(logs, identity));
                     }
 
                     await storageService.saveNote(note);

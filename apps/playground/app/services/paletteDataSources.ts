@@ -90,9 +90,9 @@ export function globalSearchSource(
           });
         });
 
-      // Recent IndexedDB results. IndexedDB failures propagate to the
+      // Recent IndexedDB sessions. IndexedDB failures propagate to the
       // palette shell, which already handles and reports search errors.
-      const recent = await storageService.getRecentResults(50);
+      const recent = await storageService.getRecentSessions(50);
       const noteIds = [...new Set(recent.map(r => r.noteId))];
       const notes = noteIds.length > 0
         ? await notePersistence.listNotes({ ids: noteIds, projection: 'summary' }).catch(() => [])

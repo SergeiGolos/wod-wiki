@@ -94,7 +94,7 @@ export function PlaygroundNotePage({
   const [results, setResults] = useState<Session[]>([])
 
   const refreshResults = useCallback(() => {
-    storageService.getResultsForNote(runtimeNoteId)
+    storageService.getSessionsForNote(runtimeNoteId)
       .then(results => setResults(results))
       .catch(() => {})
   }, [runtimeNoteId])

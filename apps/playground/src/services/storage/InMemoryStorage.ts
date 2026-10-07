@@ -18,6 +18,7 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
     keyPath: 'id',
     indexes: {
       'by-date': { keyPath: 'date' },
+      'by-created': { keyPath: 'createdAt' },
     },
   },
   page: {
@@ -53,6 +54,7 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
     indexes: {
       'by-note': { keyPath: 'noteId' },
       'by-tag': { keyPath: 'tagId' },
+      'by-note-tag': { keyPath: ['noteId', 'tagId'] },
     },
   },
   segments: {
@@ -62,18 +64,6 @@ const STORE_CONFIGS: Record<StoreName, { keyPath: string | string[]; indexes: Re
       'by-type': { keyPath: 'dataType' },
       'by-page': { keyPath: 'pageId' },
       'by-history': { keyPath: 'isHistory' },
-    },
-  },
-  results: {
-    keyPath: 'id',
-    indexes: {
-      'by-segment': { keyPath: 'segmentId' },
-      'by-note': { keyPath: 'noteId' },
-      'by-completed': { keyPath: 'createdAt' },
-      'by-content': { keyPath: 'blockContentId' },
-      'by-block': { keyPath: 'blockId' },
-      'by-page': { keyPath: 'pageId' },
-      'by-origin': { keyPath: 'origin' },
     },
   },
   sessions: {
@@ -196,13 +186,17 @@ function matchKeyOrRange(actual: unknown, query: unknown): boolean {
 
   if (query && typeof query === 'object' && ('lower' in query || 'upper' in query)) {
     const range = query as { lower?: unknown; upper?: unknown; lowerOpen?: boolean; upperOpen?: boolean };
+    // IDB key total order (subset): numbers < strings < arrays, compared by
+    // value / element-wise. Compound index bounds are arrays, so the range
+    // check must compare keys the way IndexedDB does — a numeric coercion
+    // would turn every compound bound into NaN comparisons.
     if (range.lower !== undefined) {
-      const satisfiesLower = range.lowerOpen ? (actual as number) > (range.lower as number) : (actual as number) >= (range.lower as number);
-      if (!satisfiesLower) return false;
+      const c = compareKeys(actual, range.lower);
+      if (range.lowerOpen ? c <= 0 : c < 0) return false;
     }
     if (range.upper !== undefined) {
-      const satisfiesUpper = range.upperOpen ? (actual as number) < (range.upper as number) : (actual as number) <= (range.upper as number);
-      if (!satisfiesUpper) return false;
+      const c = compareKeys(actual, range.upper);
+      if (range.upperOpen ? c >= 0 : c > 0) return false;
     }
     return true;
   }
@@ -217,6 +211,24 @@ function matchKeyOrRange(actual: unknown, query: unknown): boolean {
   }
 
   return actual === query;
+}
+
+function compareKeys(a: unknown, b: unknown): number {
+  const typeRank = (v: unknown): number =>
+    typeof v === 'number' ? 0 : typeof v === 'string' ? 1 : Array.isArray(v) ? 2 : 3;
+  const rankA = typeRank(a);
+  const rankB = typeRank(b);
+  if (rankA !== rankB) return rankA - rankB;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    const shared = Math.min(a.length, b.length);
+    for (let i = 0; i < shared; i++) {
+      const c = compareKeys(a[i], b[i]);
+      if (c !== 0) return c;
+    }
+    return a.length - b.length;
+  }
+  if (a === b) return 0;
+  return (a as number | string) < (b as number | string) ? -1 : 1;
 }
 
 export class InMemoryStore<T> implements IReadWriteStore<T> {
@@ -315,6 +327,23 @@ export class InMemoryStore<T> implements IReadWriteStore<T> {
   async clear(): Promise<void> {
     this.records.clear();
   }
+
+  /** Transaction-rollback seam: an owned (deep) copy of the live rows for
+   *  snapshotting. Paired with restoreRows — the two must stay in lockstep.
+   *  Rows are cloned so an fn that mutates a stored object in place cannot
+   *  leak through the rollback. */
+  snapshotRows(): Map<string, T> {
+    const copy = new Map<string, T>();
+    for (const [key, value] of this.records) copy.set(key, structuredClone(value));
+    return copy;
+  }
+
+  /** Transaction-rollback seam: swap back to a snapshotRows() copy, cloned
+   *  again so the snapshot stays pristine for a future rollback. */
+  restoreRows(rows: Map<string, T> | undefined): void {
+    this.records.clear();
+    if (rows) for (const [key, value] of rows) this.records.set(key, structuredClone(value));
+  }
 }
 
 export class InMemoryStorage implements IStorage {
@@ -344,11 +373,26 @@ export class InMemoryStorage implements IStorage {
     _mode: 'readonly' | 'readwrite',
     fn: (tx: IStorageTransaction) => Promise<R>
   ): Promise<R> {
+    // Snapshot every live store before fn: on rejection the pre-tx maps are
+    // restored, so a failed transaction rolls back instead of half-committing.
+    // Stores never mutate row objects in place (put stores the reference it
+    // is given), so restoring the maps returns byte-identical rows.
+    const snapshots = new Map<StoreName, Map<string, unknown>>();
+    for (const [name, store] of this.stores) {
+      snapshots.set(name, store.snapshotRows());
+    }
     const tx: IStorageTransaction = {
       readonly: (name) => this.readonly(name),
       readwrite: (name) => this.readwrite(name),
     };
-    return fn(tx);
+    try {
+      return await fn(tx);
+    } catch (err) {
+      for (const [name, store] of this.stores) {
+        store.restoreRows(snapshots.get(name));
+      }
+      throw err;
+    }
   }
 
   async wipe(): Promise<void> {

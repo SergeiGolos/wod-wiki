@@ -42,7 +42,7 @@ export async function captureSessionRpe(
   const storage = deps.storage ?? storageService;
   const persistence = deps.persistence ?? new IndexedDBNotePersistence(storage);
 
-  const result = await storage.getResultById(resultId);
+  const result = await storage.getSessionById(resultId);
   if (!result) {
     return 'not-found';
   }

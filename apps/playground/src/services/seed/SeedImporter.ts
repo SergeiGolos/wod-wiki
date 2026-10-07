@@ -25,7 +25,7 @@
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
 import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
-import type { BlockEffort, Note, NoteSegment, Page, PageNote } from '@/types/storage';
+import type { BlockEffort, BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
 import { extractTypedFrontmatterTags, parseFrontmatter } from '@/lib/frontmatter';
 import { DEFAULT_TAG_TYPES } from '@/services/storage/StorageService';
@@ -159,6 +159,30 @@ export class SeedImporter {
   ) {}
 
   /**
+   * Rewrite a compiled static row onto the imported note UUID through the
+   * row's full sourcePath (exact `Note.sourcePath` identity, never a path
+   * trim or guess); the compiler's path-stem noteId is preserved as
+   * `routeId` route sugar on block rows. A missing or ambiguous parent
+   * mapping throws BEFORE the chunk transaction opens — storage keeps its
+   * prior rows and the cutover fails loudly instead of half-migrating.
+   */
+  private mapStaticRow(row: BlockIndexRow, bySourcePath: Map<string, string>): BlockIndexRow;
+  private mapStaticRow(row: BlockEffort, bySourcePath: Map<string, string>): BlockEffort;
+  private mapStaticRow(
+    row: BlockIndexRow | BlockEffort,
+    bySourcePath: Map<string, string>,
+  ): BlockIndexRow | BlockEffort {
+    const noteId = row.sourcePath ? bySourcePath.get(row.sourcePath) : undefined;
+    if (!noteId) {
+      throw new Error(
+        `[SeedImporter] static row ${row.id}: sourcePath "${row.sourcePath ?? ''}" has no imported note — chunk aborted, storage untouched`,
+      );
+    }
+    if ('effortSlug' in row) return { ...row, noteId };
+    return { ...row, noteId, routeId: row.noteId };
+  }
+
+  /**
    * `onFirstPaintApplied` fires once the first-paint chunk (canvas — the
    * home page + every canvas route) is committed, before the rest of the
    * library is applied: content consumers refresh for first paint while
@@ -208,7 +232,10 @@ export class SeedImporter {
       // ── Block-index chunks: precomputed rows straight into `block_index` ──
       if ((chunk.kind ?? 'notes') === 'block-index') {
         const rows = assertBlockRows(payload);
-        const written = rows.filter((row) => row.isStatic === true);
+        const bySourcePath = await this.storage.getSourcePathMap();
+        const written = rows
+          .filter((row) => row.isStatic === true)
+          .map((row) => this.mapStaticRow(row, bySourcePath));
         const priorIds = meta.chunks[chunk.id]?.blockIds ?? [];
         const writtenIds = new Set(written.map((row) => row.id));
         // Derived corpus rows are the importer's to replace; a stale id is
@@ -240,7 +267,10 @@ export class SeedImporter {
       // ── Block-efforts chunks: precomputed exercise containment rows ──
       if ((chunk.kind ?? 'notes') === 'block-efforts') {
         const rows = assertBlockEffortRows(payload);
-        const written = rows.filter((row) => row.isStatic === true);
+        const bySourcePath = await this.storage.getSourcePathMap();
+        const written = rows
+          .filter((row) => row.isStatic === true)
+          .map((row) => this.mapStaticRow(row, bySourcePath));
         const priorIds = meta.chunks[chunk.id]?.blockIds ?? [];
         const writtenIds = new Set(written.map((row) => row.id));
         const gone: string[] = [];

@@ -48,11 +48,68 @@ export interface NoteQueryStore {
   /** Note-tags label set of one note (moved here from FactQueryStore — it
    *  reads note tags, not facts). */
   getNoteTagLabels(noteId: string): Promise<string[]>;
+  /** Indexed/domain candidate read for :note — `selection` carries only
+   *  exact-semantics predicates, so rows are a SUPERSET of the matches and
+   *  QueryService re-applies every residual filter in JS. `undefined` =
+   *  capability unavailable (no domain projection / scoped transaction) →
+   *  the caller falls back to getAllNotes(). Server order/offset/limit ride
+   *  only when no residual filter, window, or join precedes the slice. */
+  queryDomain?(request: {
+    plan: 'notes';
+    selection?: WqlDomainPredicate[];
+    filters?: WqlDomainPredicate[];
+    order?: WqlDomainOrder[];
+    offset?: number;
+    limit?: number;
+  }): Promise<WqlDomainReadResult | undefined>;
 }
+
+/**
+ * Candidate/domain read wire — a structural mirror of packages/storage/src/
+ * domain.ts (root-owned). WQL stays DB-independent: no storage-package
+ * dependency; the app adapter bridges these shapes 1:1 to
+ * IStorage.queryDomain. Keep field-by-field compatible with that file.
+ *
+ * Clause algebra (identical to the wire): clauses AND; a clause's value list
+ * ORs; `negate` excludes any row matching any value.
+ */
+export type WqlDomainPredicate =
+  | { field: 'id' | 'noteId' | 'type' | 'catalog' | 'source' | 'tags' | 'effort'; values: string[]; negate?: boolean }
+  | { field: 'text'; value: string }
+  | { field: 'date'; start: number; end: number; endExclusive?: boolean }
+  | { field: 'page'; value: boolean }
+  | { field: 'sourceFence' };
+
+/** Server order clause — structural mirror of the storage wire's
+ *  DomainOrder. Only exact-parity orderings are ever sent (natural id order
+ *  matches the historical whole-store iteration order). */
+export type WqlDomainOrder = {
+  field: 'id' | 'createdAt' | 'date' | 'title' | 'noteTitle' | 'dataType' | 'position';
+  direction: 'asc' | 'desc';
+};
+
+/** Candidate read result for the plans WQL consumes. `rows` are original
+ *  entity payloads; the counts follow the wire contract (selected before
+ *  filters, matched before limit) — selectedCount baselines the historical
+ *  pre-filter `stages.selected`, matchedCount is informational (WQL
+ *  recounts after its own residual pipeline and slice). */
+export type WqlDomainReadResult =
+  | { plan: 'notes'; projectionVersion: number; selectedCount: number; matchedCount: number; rows: Note[] }
+  | { plan: 'blocks'; projectionVersion: number; selectedCount: number; matchedCount: number; rows: BlockIndexRow[] };
 
 /** Store surface for block-index queries (`:block`). */
 export interface BlockQueryStore {
   getAllBlocks(): Promise<BlockIndexRow[]>;
+  /** Indexed/domain candidate read for :block — same superset contract as
+   *  the note seam; `undefined` falls back to getAllBlocks(). */
+  queryDomain?(request: {
+    plan: 'blocks';
+    selection?: WqlDomainPredicate[];
+    filters?: WqlDomainPredicate[];
+    order?: WqlDomainOrder[];
+    offset?: number;
+    limit?: number;
+  }): Promise<WqlDomainReadResult | undefined>;
 }
 
 /** Pure effort model interface for `:effort` queries. */

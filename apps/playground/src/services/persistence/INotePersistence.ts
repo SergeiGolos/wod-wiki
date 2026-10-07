@@ -17,5 +17,4 @@ export interface INotePersistence {
     options?: { excludeNoteId?: string; includePlayground?: boolean; limit?: number },
   ): Promise<Session[]>;
   getSessionById?(sessionId: string): Promise<Session | undefined>;
-  getResultById?(resultId: string): Promise<Session | undefined>;
 }

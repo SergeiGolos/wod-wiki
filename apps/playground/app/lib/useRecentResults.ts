@@ -16,7 +16,7 @@ export function useRecentResults(limit = 20): Session[] {
 
   const refresh = useCallback(() => {
     storageService
-      .getRecentResults(limit)
+      .getRecentSessions(limit)
       .then(setResults)
       .catch(() => {})
   }, [limit])

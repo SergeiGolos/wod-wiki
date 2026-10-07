@@ -64,8 +64,9 @@ export interface SeedMetaRecord {
   claim?: { owner: string; at: number } | null;
 }
 
-/** v5 — V22 Note.sourcePath + Page junction derivation; forces one re-apply. */
-export const SEED_SCHEMA = 5;
+/** v6 — static block rows carry sourcePath + routeId; forces one re-apply so
+ *  existing static block rows are rebuilt mapped onto imported note UUIDs. */
+export const SEED_SCHEMA = 6;
 /** The `meta`-store key holding the import checkpoint record. */
 export const SEED_META_KEY = 'seed';
 /**

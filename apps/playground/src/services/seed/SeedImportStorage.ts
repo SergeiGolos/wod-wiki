@@ -44,6 +44,10 @@ export interface SeedImportStorage {
   putSeedMeta(meta: SeedMetaRecord): Promise<void>;
   getNote(id: string): Promise<Note | undefined>;
   getEffort(slug: string): Promise<IEffort | undefined>;
+  /** sourcePath → note UUID for every stored note carrying a sourcePath —
+   *  the exact identity map static block rows resolve through. Two notes
+   *  claiming the same sourcePath is ambiguous identity and must throw. */
+  getSourcePathMap(): Promise<Map<string, string>>;
   /** Atomic per-chunk apply: upserts + deletions + checkpoint in one transaction. */
   applyChunk(write: SeedChunkWrite): Promise<void>;
 }
@@ -66,6 +70,21 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
 
   async getEffort(slug: string): Promise<IEffort | undefined> {
     return this.storageInstance.readonly('efforts').get(slug);
+  }
+
+  async getSourcePathMap(): Promise<Map<string, string>> {
+    const bySourcePath = new Map<string, string>();
+    for (const note of await this.storageInstance.readonly('notes').getAll()) {
+      if (!note.sourcePath) continue;
+      const existing = bySourcePath.get(note.sourcePath);
+      if (existing && existing !== note.id) {
+        throw new Error(
+          `[SeedImportStorage] ambiguous sourcePath "${note.sourcePath}" maps to both ${existing} and ${note.id}`,
+        );
+      }
+      bySourcePath.set(note.sourcePath, note.id);
+    }
+    return bySourcePath;
   }
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {
@@ -174,6 +193,21 @@ export class InMemorySeedStorage implements SeedImportStorage {
 
   getEffort(slug: string): Promise<IEffort | undefined> {
     return Promise.resolve(this.effortsBySlug.get(slug));
+  }
+
+  getSourcePathMap(): Promise<Map<string, string>> {
+    const bySourcePath = new Map<string, string>();
+    for (const note of this.notes.values()) {
+      if (!note.sourcePath) continue;
+      const existing = bySourcePath.get(note.sourcePath);
+      if (existing && existing !== note.id) {
+        return Promise.reject(new Error(
+          `[SeedImportStorage] ambiguous sourcePath "${note.sourcePath}" maps to both ${existing} and ${note.id}`,
+        ));
+      }
+      bySourcePath.set(note.sourcePath, note.id);
+    }
+    return Promise.resolve(bySourcePath);
   }
 
   async applyChunk(write: SeedChunkWrite): Promise<void> {

@@ -256,6 +256,7 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
         createdAt,
         isStatic: true,
         sourceId: isReadme ? `collection:${dirName}` : `collection:${noteId}`,
+        sourcePath: rel,
       });
     }
   }
@@ -293,6 +294,7 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
         createdAt: feedDateToCreatedAt(dateKey),
         isStatic: true,
         sourceId: `feed:${noteId}`,
+        sourcePath: rel,
       });
     }
   }
@@ -331,6 +333,7 @@ export function buildBlockIndexRows(markdownDir: string, corpusRoot: string): Bl
         createdAt,
         isStatic: true,
         sourceId: `guides:${noteId}`,
+        sourcePath: rel,
       });
     }
   }
@@ -500,11 +503,33 @@ export function buildBlockEffortRows(markdownDir: string, corpusRoot: string): B
         blockContentId: block.blockContentId,
         effortSlug: canonicalSlug,
         isStatic: block.isStatic,
+        sourcePath: block.sourcePath,
         createdAt: block.createdAt,
       });
     }
   }
   return efforts;
+}
+
+/**
+ * legacy route parent id → canonical corpus source path. The API migration
+ * (and the runtime importer's noteId mapping) reconcile legacy static block
+ * rows — whose noteId is a path stem — onto imported notes through the full
+ * sourcePath; ambiguity here is a generation bug and fails the build.
+ */
+export function buildStaticParentMap(blockRows: BlockIndexRow[]): Record<string, { sourcePath: string; sourceId?: string }> {
+  const map: Record<string, { sourcePath: string; sourceId?: string }> = {};
+  for (const row of blockRows) {
+    if (!row.sourcePath) continue;
+    const prev = map[row.noteId];
+    if (prev && prev.sourcePath !== row.sourcePath) {
+      throw new Error(
+        `[generate-seed] ambiguous static parent '${row.noteId}' maps to both '${prev.sourcePath}' and '${row.sourcePath}'`,
+      );
+    }
+    map[row.noteId] = { sourcePath: row.sourcePath, sourceId: row.sourceId };
+  }
+  return map;
 }
 
 // ── Generation ────────────────────────────────────────────────────────────
@@ -555,6 +580,12 @@ export function generateSeed(options: GenerateSeedOptions = {}): GenerateSeedRes
 
   // ── Block-index chunks: precomputed corpus rows for the `block_index` store ──
   const blockRows = buildBlockIndexRows(markdownDir, corpusRoot);
+  // Legacy parent → sourcePath canonical map, for API-side migration of real
+  // snapshots whose static rows predate the sourcePath field.
+  writeFileSync(
+    join(outDir, 'block-parent-map.json'),
+    JSON.stringify(buildStaticParentMap(blockRows), null, 2) + '\n',
+  );
   for (let i = 0; blockRows.length > 0 && i * BLOCK_INDEX_ROWS_PER_CHUNK < blockRows.length; i++) {
     const part = blockRows.slice(i * BLOCK_INDEX_ROWS_PER_CHUNK, (i + 1) * BLOCK_INDEX_ROWS_PER_CHUNK);
     if (part.length === 0) break;

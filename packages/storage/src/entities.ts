@@ -177,6 +177,15 @@ export interface BlockIndexRow {
     isStatic?: boolean;
     /** Original source identifier for static files. */
     sourceId?: string;
+    /** Full corpus source path (e.g. `markdown/collections/girls/fran.md`) —
+     *  the exact join key to `Note.sourcePath`. The seed importer maps
+     *  `noteId` to the imported note UUID through it; missing or ambiguous
+     *  mappings abort the import. */
+    sourcePath?: string;
+    /** Legacy route identity the compiler used before noteId became a real
+     *  note UUID (path stem, feed route, canvas route). Retained as route
+     *  sugar for deep links — never a storage join key. */
+    routeId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +209,9 @@ export interface BlockEffort {
     effortSlug: string;
     /** True for bundled static content (collections, feeds); false for user journal. */
     isStatic?: boolean;
+    /** Full corpus source path of the containing block's file — the seed
+     *  importer maps `noteId` to the imported note UUID through it. */
+    sourcePath?: string;
     /** When the row was saved. */
     createdAt: number;
 }

@@ -17,7 +17,7 @@ import type { ParsedCanvasPage } from './parseCanvasMarkdown'
 
 const editorSnapshots: Array<{ noteId?: string; resultCount: number; source?: string }> = []
 const storedResults: Session[] = []
-const saveResultCalls: Session[] = []
+const savedSessionCalls: Session[] = []
 const editorFocusCalls: string[] = []
 
 const playgroundNoteId = '01990e80-0000-7000-8000-000000000001'
@@ -89,7 +89,7 @@ const fakeNotePersistence: INotePersistence = {
         noteId,
         segmentId: workoutResult.segmentId ?? noteId,
       }
-      saveResultCalls.push(saved)
+      savedSessionCalls.push(saved)
       storedResults.unshift(saved)
     }
     return fakeEntry(typeof locator === 'string' ? locator : locator.id)
@@ -303,7 +303,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     })
     editorSnapshots.length = 0
     storedResults.length = 0
-    saveResultCalls.length = 0
+    savedSessionCalls.length = 0
     editorFocusCalls.length = 0
     Object.defineProperty(window, 'scrollY', {
       value: 0,
@@ -344,8 +344,8 @@ describe('MarkdownCanvasPage result persistence', () => {
       getRenderedRuntimeButtons()[0].click()
     })
 
-    await waitFor(() => expect(saveResultCalls).toHaveLength(1))
-    expect(saveResultCalls[0]).toMatchObject({
+    await waitFor(() => expect(savedSessionCalls).toHaveLength(1))
+    expect(savedSessionCalls[0]).toMatchObject({
       noteId: playgroundNoteId,
       blockContentId: 'block-1',
       data: sampleSessions,

@@ -11,6 +11,7 @@ import { resolve } from 'node:path';
 // Vitest 4); ui keeps its own config for jsdom + testing-library setup.
 const workspaceAliases = {
   '@bitcobblers/wod-wiki-core': resolve(import.meta.dirname, 'packages/core/src'),
+  '@bitcobblers/wod-wiki-storage': resolve(import.meta.dirname, 'packages/storage/src'),
   '@bitcobblers/wod-wiki-lang': resolve(import.meta.dirname, 'packages/lang/src'),
   '@bitcobblers/wod-wiki-wql': resolve(import.meta.dirname, 'packages/wql/src'),
   '@bitcobblers/wod-wiki-engine': resolve(import.meta.dirname, 'packages/engine/src'),
@@ -31,6 +32,7 @@ export default defineConfig({
     projects: [
       sourceProject('core', 'packages/core'),
       sourceProject('lang', 'packages/lang'),
+      sourceProject('storage', 'packages/storage'),
       sourceProject('wql', 'packages/wql'),
       sourceProject('engine', 'packages/engine'),
       'packages/ui',

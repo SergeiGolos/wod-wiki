@@ -21,7 +21,7 @@ storageService.getTagsForNote = async () => [];
 storageService.getPage = async () => undefined;
 storageService.getNotePages = async () => [];
 storageService.getAllSegments = async () => [];
-storageService.getResultsForNote = async () => [];
+storageService.getSessionsForNote = async () => [];
 storageService.saveNote = async (note: Note) => note.id;
 storageService.saveSegment = async (segment: NoteSegment) => {
   const index = savedSegments.findIndex(

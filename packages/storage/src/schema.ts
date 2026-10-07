@@ -15,6 +15,84 @@
 
 import type { StoreName } from './contract';
 
+// DOMAIN_PROJECTION_VERSION lives in ./domain (re-exported by the package
+// index) — deliberately not re-exported here to avoid a star-export
+// ambiguity between ./schema and ./domain.
+
+/**
+ * Shared IndexedDB schema version — the browser database opens at exactly
+ * this version (apps/playground/src/services/storage/IndexedDBStorage.ts
+ * imports it), so store/index drift between the app and this spec is a type
+ * error, not a runtime surprise. Bump on every store/index change and add
+ * the matching guarded upgrade step.
+ */
+export const DB_VERSION = 26;
+
+/**
+ * Typed field metadata — column type per extracted field path, shared with
+ * the API so its SQL DDL derives DOUBLE PRECISION / INTEGER / BOOLEAN /
+ * TEXT from this table instead of a hardcoded per-index allowlist.
+ *
+ * Extraction rule (API side): a primary-key column `k<i>` takes the type of
+ * STORE_DEFS store's keyPath[i]; an index column `i_<index>_<part>` takes the
+ * type of that index's keyPath[part] here. Anything absent defaults to TEXT.
+ * Civil-date strings stay TEXT on purpose (page.date is 'YYYY-MM-DD');
+ * instants are epoch-ms numbers (notes.date, createdAt, timestamp).
+ */
+export type StorageColumnType = 'number' | 'text' | 'boolean';
+
+export const COLUMN_TYPES: Record<StoreName, Record<string, StorageColumnType>> = {
+  notes: { date: 'number', createdAt: 'number' },
+  page: { createdAt: 'number' }, // page.date is a civil 'YYYY-MM-DD' string → TEXT
+  page_notes: { position: 'number', createdAt: 'number' },
+  tags: { createdAt: 'number' },
+  tag_types: { createdAt: 'number' },
+  note_tags: {},
+  segments: {
+    version: 'number',
+    position: 'number',
+    createdAt: 'number',
+    updatedAt: 'number',
+    isHistory: 'boolean',
+  },
+  sessions: {
+    segmentVersion: 'number',
+    version: 'number',
+    startTime: 'number',
+    endTime: 'number',
+    duration: 'number',
+    roundsCompleted: 'number',
+    totalRounds: 'number',
+    repsCompleted: 'number',
+    completed: 'boolean',
+    createdAt: 'number',
+  },
+  attachments: { createdAt: 'number' },
+  events: {
+    timestamp: 'number',
+    segmentVersion: 'number',
+    line: 'number',
+    sourceStatementId: 'number',
+    stackLevel: 'number',
+    'timeSpan.started': 'number',
+    'timeSpan.ended': 'number',
+  },
+  field_catalog: {},
+  field_sources: {},
+  field_values: {},
+  field_catalog_meta: {},
+  efforts: { 'baseAttributes.met': 'number' },
+  block_index: {
+    segmentVersion: 'number',
+    position: 'number',
+    createdAt: 'number',
+    isStatic: 'boolean',
+  },
+  block_efforts: { createdAt: 'number', isStatic: 'boolean' },
+  meta: {},
+  memberships: { createdAt: 'number' },
+};
+
 export interface IndexDef {
   name: string;
   keyPath: string[];
@@ -34,6 +112,7 @@ export const STORE_DEFS: StoreDef[] = [
   // 1. notes
   { name: 'notes', keyPath: ['id'], indexes: [
     { name: 'by-date', keyPath: ['date'] },
+    { name: 'by-created', keyPath: ['createdAt'] },
     { name: 'by-user', keyPath: ['userId'] },
   ] },
   // 2. page
@@ -64,6 +143,7 @@ export const STORE_DEFS: StoreDef[] = [
   { name: 'note_tags', keyPath: ['id'], indexes: [
     { name: 'by-note', keyPath: ['noteId'] },
     { name: 'by-tag', keyPath: ['tagId'] },
+    { name: 'by-note-tag', keyPath: ['noteId', 'tagId'], unique: true },
     { name: 'by-user', keyPath: ['userId'] },
   ] },
   // 5. segments
@@ -85,17 +165,9 @@ export const STORE_DEFS: StoreDef[] = [
     { name: 'by-origin', keyPath: ['origin'] },
     { name: 'by-user', keyPath: ['userId'] },
   ] },
-  // 7. results (legacy alias of sessions)
-  { name: 'results', keyPath: ['id'], indexes: [
-    { name: 'by-segment', keyPath: ['segmentId'] },
-    { name: 'by-note', keyPath: ['noteId'] },
-    { name: 'by-completed', keyPath: ['createdAt'] },
-    { name: 'by-content', keyPath: ['blockContentId'] },
-    { name: 'by-block', keyPath: ['blockId'] },
-    { name: 'by-page', keyPath: ['pageId'] },
-    { name: 'by-origin', keyPath: ['origin'] },
-    { name: 'by-user', keyPath: ['userId'] },
-  ] },
+  // 7. results — removed in V26: legacy alias of sessions. The V26 upgrade
+  // migrates any residual rows into `sessions` (projecting pre-V21 data.logs
+  // into event rows) before dropping the store; no compatibility alias.
   // 8. attachments
   { name: 'attachments', keyPath: ['id'], indexes: [
     { name: 'by-note', keyPath: ['noteId'] },

@@ -15,14 +15,10 @@ describe('StorageService sessions operations', () => {
       id: 'session-123',
       noteId: 'note-abc',
       createdAt: 1000,
-      status: 'completed',
-      data: {
-        startTime: 1000,
-        endTime: 2000,
-        duration: 1000,
-        completed: true,
-        logs: [],
-      },
+      startTime: 1000,
+      endTime: 2000,
+      duration: 1000,
+      completed: true,
     };
 
     await service.saveSession(session);
@@ -31,10 +27,6 @@ describe('StorageService sessions operations', () => {
     expect(fetched).toBeDefined();
     expect(fetched?.id).toBe('session-123');
     expect(fetched?.noteId).toBe('note-abc');
-
-    // Verify alias methods also retrieve from sessions
-    const fetchedLegacy = await service.getResultById('session-123');
-    expect(fetchedLegacy?.id).toBe('session-123');
 
     const list = await service.getSessionsForNote('note-abc');
     expect(list.length).toBe(1);

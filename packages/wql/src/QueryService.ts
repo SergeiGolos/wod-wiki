@@ -54,6 +54,7 @@ import {
   inRange,
   resolveWindowRange,
   zonedNoon,
+  zonedStartOfDay,
   type ExecutionContext,
   type ResolvedRange,
 } from './calendar';
@@ -64,6 +65,8 @@ import type {
   EffortQueryStore,
   IEffort,
   QueryServiceStores,
+  WqlDomainOrder,
+  WqlDomainPredicate,
 } from './stores';
 
 export type {
@@ -142,6 +145,120 @@ function applySourceFilter<T extends { sourceId?: string; type?: string }>(items
     });
   }
   return items;
+}
+
+/** Source kinds whose matching is pure sourceId-shape logic on both planes.
+ *  `journal` additionally excludes legacy pg-* rows in JS and `all` spans the
+ *  whole WQL domain — queries naming them stay fully residual so the JS
+ *  predicate stays the sole decider. */
+const DOMAIN_SOURCE_KINDS: Record<string, true> = {
+  collection: true,
+  collections: true,
+  page: true,
+  pages: true,
+  guide: true,
+  guides: true,
+  playground: true,
+};
+
+/** Compiled domain candidate read for a content plane. `selection` carries
+ *  the pre-count stages the wire performs before selectedCount (source
+ *  clauses + the explicit WQL source fence); `filters` carries the
+ *  post-count clauses (positive literal type / exact id). `residual` is true
+ *  when ANY authored filter must still be applied in JS — a residual read is
+ *  never server-ordered or server-limited, because limiting before a
+ *  residual filter would drop rows the pipeline would have kept. */
+interface CompiledContentRead {
+  selection: WqlDomainPredicate[];
+  filters: WqlDomainPredicate[];
+  residual: boolean;
+}
+
+/** Compile a plane's content filters for the domain candidate read — only
+ *  clauses whose semantics match the storage wire exactly. Wildcards,
+ *  negations, tags/effort/catalog/date/page/text, `journal`/`all` source
+ *  kinds, and a :note `note:` clause without an authored type (the default
+ *  page-exclusion stage is active there) all stay residual JS filters. The
+ *  candidate read is a SUPERSET either way; the JS pipeline re-applies every
+ *  stage and owns selected/matched counts and the final slice. */
+function compileContentRead(filters: TagFilter[], plane: 'note' | 'block'): CompiledContentRead {
+  const selection: WqlDomainPredicate[] = [];
+  const compiled: WqlDomainPredicate[] = [];
+  let residual = false;
+  for (const filter of filters) {
+    const literal = !filter.negate && filter.values.every((v) => !v.wildcard);
+    const values = literal ? filter.values.map((v) => v.value) : [];
+    if (filter.key === 'source' && literal && filter.values.every((v) => DOMAIN_SOURCE_KINDS[v.value] === true)) {
+      selection.push({ field: 'source', values });
+      continue;
+    }
+    if (filter.key === 'type' && literal) {
+      compiled.push({ field: 'type', values });
+      continue;
+    }
+    // :note's exact-id clause compiles only beside an authored type clause:
+    // without one the default page-exclusion stage is active before the
+    // selected count, and the wire's pre-filter selectedCount would
+    // overstate the historical baseline.
+    if (filter.key === 'note' && literal && (plane === 'block' || compiled.some((p) => p.field === 'type'))) {
+      compiled.push({ field: plane === 'block' ? 'noteId' : 'id', values });
+      continue;
+    }
+    residual = true;
+  }
+  selection.push({ field: 'sourceFence' });
+  return { selection, filters: compiled, residual };
+}
+
+/** :note pre-count selection stages — source clauses, parse-authored
+ *  sourceScope, the WQL source fence, and the default page exclusion. Shared
+ *  verbatim by the merged pipeline and the static-plane selected count so a
+ *  domain-selected user plane and the JS static plane count identically. */
+function applyNoteSelectionStages(notes: Note[], parsed: ParsedFindQuery): Note[] {
+  let rows = applySourceFilter(notes, parsed.filters);
+  if (parsed.sourceScope?.length) {
+    const scope = parsed.sourceScope;
+    rows = rows.filter((n) => scope.some((k) => sourceMatches(n, k)));
+  }
+  // WQL boundary: candidates come from the WQL source domain (feeds
+  // excised at the vocabulary); sourceless rows predate the sourceId
+  // convention and stay reachable — no legacy-marker classification here.
+  rows = rows.filter((n) => !n.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(n, k)));
+  const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
+  const hasCollectionSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'collection' || v.value === 'collections'));
+  const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
+  if (!hasTypeFilter) {
+    if (hasCollectionSource) {
+      rows = rows.filter(n => n.type !== 'page');
+    } else {
+      rows = rows.filter(n => !isPage(n));
+    }
+  }
+  return rows;
+}
+
+/** Server order/page clauses for a candidate read — only when NO residual
+ *  filter, window, join, or authored order precedes the slice, so limiting
+ *  cannot drop rows the pipeline would keep, and natural id order is exactly
+ *  the historical whole-store iteration order (entity ids sort identically
+ *  under JS UTF-16 and server binary collation). Authored `| order` always
+ *  sorts in JS over the complete candidate set instead. */
+function domainPaging(
+  parsed: ParsedFindQuery,
+  options: FindOptions,
+  residual: boolean,
+): { order?: WqlDomainOrder[]; offset?: number; limit?: number; paged: boolean } {
+  const pipes = parsed.pipes;
+  const wantsPage = pipes?.limit !== undefined || (pipes?.offset ?? 0) > 0;
+  if (residual || parsed.join || parsed.window || options.range || pipes?.order || !wantsPage) {
+    return { paged: false };
+  }
+  return {
+    order: [{ field: 'id', direction: 'asc' }],
+    ...(pipes?.offset ? { offset: pipes.offset } : {}),
+    ...(pipes?.limit !== undefined ? { limit: pipes.limit } : {}),
+    paged: true,
+  };
 }
 
 /** Resolve the single execution context for a run: the caller's captured
@@ -333,36 +450,29 @@ export interface TabularColumn {
 
 /** Civil dates (YYYY-MM-DD, `timeZone`-local) whose [local midnight,
  * next local midnight) windows intersect `[start, end)` — the by-metric-date
- * candidate set for the complete fetch (ticket 12/14). Bounded callers cap
- * the list before calling the store. */
+ * candidate set for the complete fetch (ticket 12/14). Callers pass bounded
+ * ranges only: an unbounded side uses the all-store scan as the complete
+ * fetch instead of enumerating an open horizon. */
 export function civilDatesCoveredByRange(start: number, end: number, timeZone: string): string[] {
     const dates: string[] = [];
     let cursor = start;
-    for (let i = 0; i < 400; i++) {
+    while (cursor < end) {
         const iso = civilDateOf(cursor, timeZone);
-        if (!dates.includes(iso)) dates.push(iso);
-        const nextMidnight = Number.isNaN(Date.parse(`${iso}T00:00:00Z`)) ? cursor + 86_400_000 : nextLocalMidnight(iso, timeZone);
-        if (nextMidnight >= end) break;
+        // Cursor is monotone, so civil dates are non-decreasing — the
+        // last-element check dedupes the mid-day start boundary.
+        if (dates[dates.length - 1] !== iso) dates.push(iso);
+        // Local midnight of the day AFTER `iso` — component math via
+        // zonedStartOfDay: 23h/25h DST days still start at their own 00:00,
+        // and nonexistent-midnight zones start the day at the transition
+        // instant. Every covered civil date is enumerated, including the
+        // end boundary's own (possibly partial) day.
+        const nextMidnight = zonedStartOfDay(civilDateAdd(iso, 1), timeZone);
+        // Progress guard: a stalled or backwards midnight must never loop
+        // forever (NaN instants fail the `cursor < end` test and exit).
+        if (nextMidnight <= cursor) break;
         cursor = nextMidnight;
     }
     return dates;
-}
-
-function nextLocalMidnight(iso: string, timeZone: string): number {
-    // Local midnight of the day AFTER `iso` — one civil day added, then the
-    // zoned offset applied (component math, never 86 400 000 multiplication).
-    const { y, m, d } = (() => {
-        const [yy, mm, dd] = iso.split('-').map(Number);
-        return { y: yy!, m: mm!, d: dd! };
-    })();
-    const nextUtc = Date.UTC(y, m - 1, d + 1);
-    // Offset at that UTC instant, applied forward: midnight local == that
-    // civil date 00:00 in zone. Approximate via the formatter offset at
-    // nextUtc: exact DST handling is delegated to civilDateOf rounding.
-    const guess = nextUtc;
-    const isoGuess = civilDateOf(guess, timeZone);
-    if (isoGuess > iso) return guess;
-    return guess + 3_600_000;
 }
 
 /** The stable tabular shape consumed by table widgets (ticket 19 wires
@@ -847,14 +957,18 @@ export class QueryService {
     let eventRows: EventRecord[] = [];
     if (resultIds.length + blockIds.length + noteIds.length === 0) {
       const range = parsed.window ? resolveWindowRange(parsed.window, ctx) : (options.range ? options.range : undefined);
-      if (range) {
-        eventRows = await this.store.getEventsByTimeRange(range.start, range.end);
-        // Mirror run(): the fetch-hint timestamp alone misses rows whose
-        // CIVIL metric date is in range — union by-metric-date candidates;
-        // the anchorTs membership filter below keeps it exact.
+      // Complete fetch mirrors run(): bounded windows fetch through
+      // by-timestamp and union by-metric-date candidates over EVERY covered
+      // civil date; an unbounded side (sentinel bounds) scans — the all-store
+      // scan IS the complete fetch. The anchorTs membership filter below
+      // keeps either fetch exact.
+      const boundedRange =
+        range && range.start > 0 && range.end < Number.MAX_SAFE_INTEGER ? range : undefined;
+      if (boundedRange) {
+        eventRows = await this.store.getEventsByTimeRange(boundedRange.start, boundedRange.end);
         if (this.store.getEventsByMetricDates) {
-          const civilDates = civilDatesCoveredByRange(range.start, range.end, ctx.timeZone);
-          if (civilDates.length > 0 && civilDates.length <= 400) {
+          const civilDates = civilDatesCoveredByRange(boundedRange.start, boundedRange.end, ctx.timeZone);
+          if (civilDates.length > 0) {
             const byDate = await this.store.getEventsByMetricDates(civilDates);
             if (byDate.length > 0) {
               const seen = new Set(eventRows.map((r) => r.id));
@@ -1065,43 +1179,45 @@ export class QueryService {
     if (parsed.target === 'segment' || parsed.target === 'event') {
       return this.runFindTable(parsed, options);
     }
-    let notes: Note[] = [];
-    notes = notes.concat(await this.noteStore.getAllNotes());
-    if (this.staticNoteStore) {
-      notes = notes.concat(await this.staticNoteStore.getAllNotes());
-    }
     const isCatalogHead = parsed.target === 'note'
       && parsed.filters.some(f => f.key === 'type' && !f.negate && f.values.some(v => v.value === 'collection'))
       && (parsed.filters.some(f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'collection' || v.value === 'collections'))
           || parsed.sourceScope?.includes('collections'));
     if (isCatalogHead) {
+      const notes = (await this.noteStore.getAllNotes()).concat(
+        this.staticNoteStore ? await this.staticNoteStore.getAllNotes() : [],
+      );
       return this.runFindCatalog(parsed, options, notes);
     }
-    notes = applySourceFilter(notes, parsed.filters);
-    // :note scope (parse-authored sourceScope) — an AND-restriction applied
-    // whenever present, INCLUDING alongside an authored source: filter, so a
-    // conflicting scope/head pair intersects to empty rather than letting
-    // the explicit filter win alone (`in all` suppresses the default at
-    // parse time by omitting sourceScope).
-    if (parsed.target === 'note' && parsed.sourceScope?.length) {
-      const scope = parsed.sourceScope;
-      notes = notes.filter((n) => scope.some((k) => sourceMatches(n, k)));
+    // Domain candidate read: selection (source clauses + the explicit source
+    // fence) narrows before the wire's selectedCount; compiled positive
+    // literal type/id clauses ride as post-count FILTERS — never selection —
+    // so the wire count baselines the historical pre-filter stages.selected.
+    // The static plane is never domain-read: it is pre-selected through the
+    // SAME JS stages and its count composes onto the baseline.
+    const read = compileContentRead(parsed.filters, 'note');
+    const paging = domainPaging(parsed, options, read.residual);
+    const fetchedNotes = (read.filters.length > 0 || read.selection.length > 1 || paging.paged) && this.noteStore.queryDomain
+      ? await this.noteStore.queryDomain({
+          plan: 'notes',
+          selection: read.selection,
+          ...(read.filters.length ? { filters: read.filters } : {}),
+          ...(paging.order ? { order: paging.order } : {}),
+          ...(paging.offset !== undefined ? { offset: paging.offset } : {}),
+          ...(paging.limit !== undefined ? { limit: paging.limit } : {}),
+        })
+      : undefined;
+    const domainNotes = fetchedNotes && fetchedNotes.plan === 'notes' ? fetchedNotes : undefined;
+    let notes = domainNotes ? domainNotes.rows : await this.noteStore.getAllNotes();
+    let selectedFromDomain = domainNotes ? domainNotes.selectedCount : undefined;
+    const notesPaged = !!domainNotes && paging.paged;
+    if (this.staticNoteStore) {
+      const staticRows = applyNoteSelectionStages(await this.staticNoteStore.getAllNotes(), parsed);
+      notes = notes.concat(staticRows);
+      if (selectedFromDomain !== undefined) selectedFromDomain += staticRows.length;
     }
-    // WQL boundary: candidates come from the WQL source domain (feeds
-    // excised at the vocabulary); sourceless rows predate the sourceId
-    // convention and stay reachable — no legacy-marker classification here.
-    notes = notes.filter((n) => !n.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(n, k)));
-    const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
-    const hasCollectionSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'collection' || v.value === 'collections'));
-    const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'].includes(n.type ?? ''));
-    if (parsed.target === 'note' && !hasTypeFilter) {
-      if (hasCollectionSource) {
-        notes = notes.filter(n => n.type !== 'page');
-      } else {
-        notes = notes.filter(n => !isPage(n));
-      }
-    }
-    const selectedCount = notes.length;
+    notes = applyNoteSelectionStages(notes, parsed);
+    const selectedCount = selectedFromDomain ?? notes.length;
     const ctx = runContext(options);
     // Tag filters — intersect note IDs across OR'd values within a key.
     // Handles general 'tags' plus dynamic typed tags (domain, format, equipment, quality, intent)
@@ -1209,7 +1325,9 @@ export class QueryService {
       }
     }
     const pipes = parsed.pipes;
-    if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
+    // Server-paged reads already applied offset/limit in natural id order —
+    // re-slicing a pre-sliced page would skip rows (slice(offset) again).
+    if (!notesPaged && pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
       const offset = pipes.offset ?? 0;
       notes = pipes.limit !== undefined ? notes.slice(offset, offset + pipes.limit) : notes.slice(offset);
     }
@@ -1250,14 +1368,33 @@ export class QueryService {
    * Execute a :block query against the derived block_index store.
    */
   async runFindBlock(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
-    let blocks: BlockIndexRow[] = [];
     // One store: the seed importer materializes corpus rows next to user rows.
-    blocks = blocks.concat(await this.blockStore.getAllBlocks());
+    // Domain candidate read — selection (source clauses + fence) narrows
+    // before the wire's selectedCount; compiled positive literal type/noteId
+    // clauses ride as post-count FILTERS so the count baselines the
+    // historical pre-filter stages.selected. All remaining stages re-run in
+    // JS and own the result.
+    const read = compileContentRead(parsed.filters, 'block');
+    const paging = domainPaging(parsed, options, read.residual);
+    const fetchedBlocks = (read.filters.length > 0 || read.selection.length > 1 || paging.paged) && this.blockStore.queryDomain
+      ? await this.blockStore.queryDomain({
+          plan: 'blocks',
+          selection: read.selection,
+          ...(read.filters.length ? { filters: read.filters } : {}),
+          ...(paging.order ? { order: paging.order } : {}),
+          ...(paging.offset !== undefined ? { offset: paging.offset } : {}),
+          ...(paging.limit !== undefined ? { limit: paging.limit } : {}),
+        })
+      : undefined;
+    const domainBlocks = fetchedBlocks && fetchedBlocks.plan === 'blocks' ? fetchedBlocks : undefined;
+    let blocks = domainBlocks ? domainBlocks.rows : await this.blockStore.getAllBlocks();
+    const selectedFromDomain = domainBlocks ? domainBlocks.selectedCount : undefined;
+    const blocksPaged = !!domainBlocks && paging.paged;
     blocks = applySourceFilter(blocks, parsed.filters);
     // WQL boundary (same as notes): the four allowed kinds plus sourceless
     // legacy rows — feeds excised at the vocabulary never enter results.
     blocks = blocks.filter((b) => !b.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(b, k)));
-    const selectedCount = blocks.length;
+    const selectedCount = selectedFromDomain ?? blocks.length;
     const ctx = runContext(options);
     // Text filter — substring on rawContent
     for (const filter of parsed.filters) {
@@ -1347,7 +1484,9 @@ export class QueryService {
       }
     }
     const pipes = parsed.pipes;
-    if (pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
+    // Server-paged reads already applied offset/limit in natural id order —
+    // re-slicing a pre-sliced page would skip rows.
+    if (!blocksPaged && pipes && (pipes.limit !== undefined || (pipes.offset ?? 0) > 0)) {
       const offset = pipes.offset ?? 0;
       blocks = pipes.limit !== undefined ? blocks.slice(offset, offset + pipes.limit) : blocks.slice(offset);
     }
@@ -1453,15 +1592,20 @@ export class QueryService {
     // pass the resolved end through unchanged (MAX_SAFE_INTEGER for the
     // unbounded side).
     const fetchRange = range ? { start: range.start, end: range.end } : undefined;
-    let eventRows = fetchRange
-      ? await this.store.getEventsByTimeRange(fetchRange.start, fetchRange.end)
+    // Complete fetch (ticket 12/14): a bounded window fetches through
+    // by-timestamp and unions by-metric-date candidates over EVERY covered
+    // civil date — no cap, DST-safe enumeration. An unbounded side (the 0 /
+    // MAX_SAFE_INTEGER sentinels, or a negative open bound) has no finite
+    // date horizon to enumerate — the all-store scan IS the complete fetch;
+    // membership filtering below stays exact either way.
+    const boundedRange =
+      fetchRange && fetchRange.start > 0 && fetchRange.end < Number.MAX_SAFE_INTEGER ? fetchRange : undefined;
+    let eventRows = boundedRange
+      ? await this.store.getEventsByTimeRange(boundedRange.start, boundedRange.end)
       : await this.store.scanAll();
-    // Ticket 12/14 complete fetch: a timestamp window alone misses rows
-    // whose METRIC date is in range but whose fetch-hint timestamp is not.
-    // Union by-metric-date candidates over the covered civil dates.
-    if (fetchRange && this.store.getEventsByMetricDates) {
-      const civilDates = civilDatesCoveredByRange(fetchRange.start, fetchRange.end, ctx.timeZone);
-      if (civilDates.length > 0 && civilDates.length <= 400) {
+    if (boundedRange && this.store.getEventsByMetricDates) {
+      const civilDates = civilDatesCoveredByRange(boundedRange.start, boundedRange.end, ctx.timeZone);
+      if (civilDates.length > 0) {
         const byDate = await this.store.getEventsByMetricDates(civilDates);
         if (byDate.length > 0) {
           const seen = new Set(eventRows.map((r) => r.id));

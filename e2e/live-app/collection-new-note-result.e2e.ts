@@ -6,7 +6,7 @@
  *   2. Clicks "Now" → appendWorkoutToJournal creates today's journal entry
  *      and navigates to /journal/YYYY-MM-DD?autoStart=<uuid>
  *   3. JournalPage picks up autoStart → FullscreenTimer opens
- *   4. Workout completes → result saved to wodwiki-db via indexedDBService
+ *   4. Workout completes → session saved to wodwiki-db via storageService
  *      with noteId = 'journal/YYYY-MM-DD' (the full key, NOT just the date)
  *   5. After closing the review, the result badge appears on the note page
  *
@@ -116,7 +116,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     const fullNoteId = `journal/${dateKey}`;
 
     // Seed a result as if JournalPage.handleTimerComplete fired correctly
-    // (simulates the fixed code path: indexedDBService.saveResult with fullNoteId)
+    // (simulates the fixed code path: storageService.saveSession with fullNoteId)
     await clearResults(page, fullNoteId);
 
     await page.goto(`/journal/${dateKey}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
@@ -173,7 +173,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
   test('completing a workout on JournalPage does not throw NOTE_NOT_FOUND', async ({ page }, testInfo) => {
     // This test verifies the regression fix:
     //   BEFORE: notePersistence.mutateNote('2024-01-15') → NOTE_NOT_FOUND
-    //   AFTER:  indexedDBService.saveResult({ noteId: 'journal/2024-01-15' }) → OK
+    //   AFTER:  storageService.saveSession({ noteId: 'journal/2024-01-15' }) → OK
     //
     // We navigate to a journal page that does NOT exist in wodwiki-db (normal state
     // for new notes created via appendWorkoutToJournal) and assert no errors fire.

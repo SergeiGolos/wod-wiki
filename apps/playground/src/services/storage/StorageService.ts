@@ -14,8 +14,42 @@ import type {
 import { parseScript } from '@bitcobblers/wod-wiki-lang';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
-import type { IStorage } from './IStorage';
+import type { DomainEntry, DomainQuery, DomainQueryResult } from '@bitcobblers/wod-wiki-storage';
+import type { IStorage, IStorageTransaction } from './IStorage';
 import type { NotePersistenceStorage } from '../persistence/types';
+
+/**
+ * IStorage view over one open transaction. Every StorageService method called
+ * on a scoped instance (including its internal this.storage.transaction(...)
+ * calls) joins the enclosing transaction instead of opening a backend one —
+ * native IndexedDB would auto-commit/deadlock on nested transactions.
+ */
+class TransactionScopedStorage implements IStorage {
+  constructor(private readonly tx: IStorageTransaction) {}
+
+  readonly<K extends StoreName>(store: K) { return this.tx.readonly(store); }
+  readwrite<K extends StoreName>(store: K) { return this.tx.readwrite(store); }
+  transaction<K extends StoreName, R>(
+    _stores: K[],
+    _mode: 'readonly' | 'readwrite',
+    fn: (tx: IStorageTransaction) => Promise<R>
+  ): Promise<R> {
+    return fn(this.tx);
+  }
+  wipe(): Promise<void> {
+    return Promise.reject(new Error('wipe() is not available inside a transaction scope'));
+  }
+  close(): Promise<void> {
+    return Promise.reject(new Error('close() is not available inside a transaction scope'));
+  }
+}
+
+/** All event/summary grains for one resultId on the compound by-result-grain
+ *  (and by-content-grain) index: `''` is the lowest string, `[]` the highest
+ *  key value, so the bound covers every grain string exactly. */
+function grainRange(parentId: string): IDBKeyRange {
+  return IDBKeyRange.bound([parentId, ''], [parentId, []]);
+}
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -51,7 +85,37 @@ export function extractEffortSlugs(statements: ICodeStatement[]): string[] {
 }
 
 export class StorageService implements NotePersistenceStorage {
-  constructor(private readonly storage: IStorage) {}
+  /**
+   * @param scopedTx true on instances created by {@link withTransaction} —
+   *   they route every call through the enclosing transaction and must not
+   *   expose the remote queryDomain capability (stale remote reads).
+   */
+  constructor(private readonly storage: IStorage, private readonly scopedTx = false) {}
+
+  /**
+   * One mutation transaction across note/segment/tag/page/session/event/
+   * block relations: `fn` receives a scoped StorageService whose every call
+   * (including nested appendEvents/setNoteTags/... transactions) joins the
+   * single enclosing readwrite transaction. IndexedDB commits on scope exit;
+   * a rejection rolls back every write (IDB aborts, InMemory restores).
+   */
+  async withTransaction<K extends StoreName, R>(
+    stores: K[],
+    fn: (scoped: StorageService) => Promise<R>,
+  ): Promise<R> {
+    return this.storage.transaction(stores, 'readwrite', (tx) =>
+      fn(new StorageService(new TransactionScopedStorage(tx), true)));
+  }
+
+  /**
+   * Optional remote domain-query capability (API backend). Undefined when
+   * the backing IStorage lacks IStorage.queryDomain (local IndexedDB /
+   * InMemory builds) or on transaction-scoped instances.
+   */
+  async queryDomain(query: DomainQuery): Promise<DomainQueryResult | undefined> {
+    if (this.scopedTx) return undefined;
+    return this.storage.queryDomain?.(query);
+  }
 
   // ---------------------------------------------------------------------------
   // Notes
@@ -73,6 +137,91 @@ export class StorageService implements NotePersistenceStorage {
     return this.storage.readonly('notes').getAll();
   }
 
+  /**
+   * Complete note date candidates for [start, end] (epoch ms), inclusive
+   * unless `endExclusive`. Indexed union: the by-date range (explicit domain
+   * date) plus by-created rows with no explicit date (createdAt fallback) —
+   * a note can never be missed by a date-windowed candidate fetch, and both
+   * branches are index reads. Result order is primary-key order, matching
+   * the previous full-read.
+   */
+  async getNotesByDateRange(start: number, end: number, opts?: { endExclusive?: boolean }): Promise<Note[]> {
+    const range = opts?.endExclusive === true
+      ? IDBKeyRange.bound(start, end, false, true)
+      : IDBKeyRange.bound(start, end);
+    const notes = this.storage.readonly('notes');
+    const [dated, undated] = await Promise.all([
+      notes.getAllFromIndex('by-date', range),
+      notes.getAllFromIndex('by-created', range),
+    ]);
+    const out = new Map<string, Note>();
+    for (const note of dated) out.set(note.id, note);
+    for (const note of undated) {
+      if (note.date === undefined) out.set(note.id, note);
+    }
+    return Array.from(out.values()).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  }
+
+  async getNotesByIds(ids: readonly string[]): Promise<Note[]> {
+    if (ids.length === 0) return [];
+    return this.storage.transaction(['notes'], 'readonly', async (tx) => {
+      const notes = tx.readonly('notes');
+      const out: Note[] = [];
+      for (const id of ids) {
+        const note = await notes.get(id);
+        if (note) out.push(note);
+      }
+      return out;
+    });
+  }
+
+  /**
+   * Batch note metadata bundles for the domain `entries` plan: the note, its
+   * latest active segments (max version per segment id, history flag applied
+   * after — the MAX-before-history rule), tag rows, page links and pages.
+   * One readonly transaction over the joined stores.
+   */
+  async getEntryBatches(noteIds: readonly string[]): Promise<Map<string, DomainEntry>> {
+    const out = new Map<string, DomainEntry>();
+    if (noteIds.length === 0) return out;
+    return this.storage.transaction(
+      ['notes', 'segments', 'note_tags', 'tags', 'page_notes', 'page'],
+      'readonly',
+      async (tx) => {
+        for (const noteId of noteIds) {
+          const note = await tx.readonly('notes').get(noteId);
+          if (!note) continue;
+
+          const latest = new Map<string, NoteSegment>();
+          for (const segment of await tx.readonly('segments').getAllFromIndex('by-note', noteId)) {
+            const current = latest.get(segment.id);
+            if (!current || segment.version > current.version) latest.set(segment.id, segment);
+          }
+          const segments = Array.from(latest.values())
+            .filter((segment) => !segment.isHistory)
+            .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt));
+
+          const links = await tx.readonly('page_notes').getAllFromIndex('by-note', noteId);
+          const tagsStore = tx.readonly('tags');
+          const tags: Tag[] = [];
+          for (const link of await tx.readonly('note_tags').getAllFromIndex('by-note', noteId)) {
+            const tag = await tagsStore.get(link.tagId);
+            if (tag) tags.push(tag);
+          }
+          const pagesStore = tx.readonly('page');
+          const pages: Page[] = [];
+          for (const link of links) {
+            const page = await pagesStore.get(link.pageId);
+            if (page) pages.push(page);
+          }
+
+          out.set(noteId, { note, segments, tags, links, pages });
+        }
+        return out;
+      },
+    );
+  }
+
   async saveNote(note: Note): Promise<string> {
     await this.storage.readwrite('notes').put(note);
     return note.id;
@@ -80,40 +229,60 @@ export class StorageService implements NotePersistenceStorage {
 
   async deleteNote(id: string): Promise<void> {
     await this.storage.transaction(
-      ['notes', 'segments', 'results', 'sessions', 'attachments', 'events', 'note_tags', 'block_index', 'page_notes'],
+      ['notes', 'segments', 'sessions', 'attachments', 'events', 'note_tags', 'block_index', 'block_efforts', 'page_notes'],
       'readwrite',
       async (tx) => {
+        // Session ids first — they key the event cascade below.
+        const sessionIds = (await tx.readonly('sessions').getAllFromIndex('by-note', id))
+          .map((session) => session.id);
+        sessionIds.push(`wellness:${id}`);
+
         await tx.readwrite('notes').delete(id);
 
-        const deleteFromStoreByIndex = async (
-          storeName: 'segments' | 'results' | 'sessions' | 'attachments' | 'note_tags' | 'block_index' | 'page_notes'
-        ) => {
-          const store = tx.readwrite(storeName);
-          const rows = await store.getAllFromIndex('by-note', id);
-          for (const row of rows) {
-            if (row && typeof row === 'object' && 'id' in row) {
-              const key = row.id as IDBValidKey;
-              if (key !== undefined) {
-                await store.delete(key);
-              }
-            }
-          }
-        };
+        const segments = tx.readwrite('segments');
+        for (const segment of await segments.getAllFromIndex('by-note', id)) {
+          // Compound key (id, version): deleting by row.id alone would miss
+          // every row.
+          await segments.delete([segment.id, segment.version]);
+        }
 
-        await deleteFromStoreByIndex('segments');
-        await deleteFromStoreByIndex('results');
-        await deleteFromStoreByIndex('sessions');
-        await deleteFromStoreByIndex('attachments');
-        await deleteFromStoreByIndex('note_tags');
-        await deleteFromStoreByIndex('block_index');
-        await deleteFromStoreByIndex('page_notes');
+        const sessions = tx.readwrite('sessions');
+        for (const session of await sessions.getAllFromIndex('by-note', id)) {
+          await sessions.delete(session.id);
+        }
 
-        // Delete events by result
-        const eventsStore = tx.readwrite('events');
-        const eventRows = await eventsStore.getAll();
-        for (const ev of eventRows) {
-          if (ev.noteId === id) {
-            await eventsStore.delete(ev.id);
+        const attachments = tx.readwrite('attachments');
+        for (const attachment of await attachments.getAllFromIndex('by-note', id)) {
+          await attachments.delete(attachment.id);
+        }
+
+        const noteTags = tx.readwrite('note_tags');
+        for (const link of await noteTags.getAllFromIndex('by-note', id)) {
+          await noteTags.delete(link.id);
+        }
+
+        const blockIndex = tx.readwrite('block_index');
+        for (const row of await blockIndex.getAllFromIndex('by-note', id)) {
+          await blockIndex.delete(row.id);
+        }
+
+        const blockEfforts = tx.readwrite('block_efforts');
+        for (const row of await blockEfforts.getAllFromIndex('by-note', id)) {
+          await blockEfforts.delete(row.id);
+        }
+
+        const pageNotes = tx.readwrite('page_notes');
+        for (const link of await pageNotes.getAllFromIndex('by-note', id)) {
+          await pageNotes.delete(link.id);
+        }
+
+        // Delete events by result grain range: this note's sessions plus its
+        // wellness pseudo-result cover every event row (each event carries a
+        // resultId), without scanning the whole events store.
+        const events = tx.readwrite('events');
+        for (const resultId of sessionIds) {
+          for (const ev of await events.getAllFromIndex('by-result-grain', grainRange(resultId))) {
+            await events.delete(ev.id);
           }
         }
       }
@@ -424,32 +593,16 @@ export class StorageService implements NotePersistenceStorage {
     return session.id;
   }
 
-  async saveResult(result: Session): Promise<string> {
-    return this.saveSession(result);
-  }
-
   async getSessionById(sessionId: string): Promise<Session | undefined> {
     return this.storage.readonly('sessions').get(sessionId);
-  }
-
-  async getResultById(resultId: string): Promise<Session | undefined> {
-    return this.getSessionById(resultId);
   }
 
   async getSessionsForNote(noteId: string): Promise<Session[]> {
     return this.storage.readonly('sessions').getAllFromIndex('by-note', noteId);
   }
 
-  async getResultsForNote(noteId: string): Promise<Session[]> {
-    return this.getSessionsForNote(noteId);
-  }
-
   async getSessionsByContentId(blockContentId: string): Promise<Session[]> {
     return this.storage.readonly('sessions').getAllFromIndex('by-content', blockContentId);
-  }
-
-  async getResultsByContentId(blockContentId: string): Promise<Session[]> {
-    return this.getSessionsByContentId(blockContentId);
   }
 
   async getSessionsForSection(noteId: string, sectionId: string): Promise<Session[]> {
@@ -457,17 +610,9 @@ export class StorageService implements NotePersistenceStorage {
     return sessions.filter((s) => s.blockContentId === sectionId);
   }
 
-  async getResultsForSection(noteId: string, sectionId: string): Promise<Session[]> {
-    return this.getSessionsForSection(noteId, sectionId);
-  }
-
   async getRecentSessions(limit = 20): Promise<Session[]> {
     const all = await this.storage.readonly('sessions').getAll();
     return all.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
-  }
-
-  async getRecentResults(limit = 20): Promise<Session[]> {
-    return this.getRecentSessions(limit);
   }
 
   // ---------------------------------------------------------------------------
@@ -525,37 +670,46 @@ export class StorageService implements NotePersistenceStorage {
   }
 
   async getEventsForNote(noteId: string): Promise<EventRecord[]> {
-    const sessions = await this.getResultsForNote(noteId);
+    const sessions = await this.getSessionsForNote(noteId);
+    // Every session's rows across ALL grains (event + summary) plus the
+    // note's wellness pseudo-result rows.
     const resultIds = new Set(sessions.map((s) => s.id));
     resultIds.add(`wellness:${noteId}`);
-    const events: EventRecord[] = [];
     const store = this.storage.readonly('events');
+    const events: EventRecord[] = [];
     for (const resultId of resultIds) {
-      const forResult = await store.getAllFromIndex('by-result-grain', [resultId, 'summary']);
-      events.push(...forResult);
+      events.push(...await store.getAllFromIndex('by-result-grain', grainRange(resultId)));
     }
     return events;
   }
 
   async getEventsByResult(resultId: string): Promise<EventRecord[]> {
-    const all = await this.storage.readonly('events').getAll();
-    return all.filter((ev) => ev.resultId === resultId);
+    return this.storage.readonly('events').getAllFromIndex('by-result-grain', grainRange(resultId));
   }
 
   async getEventsByTimeRange(start: number, end: number): Promise<EventRecord[]> {
-    const all = await this.storage.readonly('events').getAll();
-    return all.filter((ev) => ev.timestamp >= start && ev.timestamp <= end);
+    // Inclusive bounds — same >= start && <= end semantics as before, via the
+    // by-timestamp index instead of a full-store scan.
+    return this.storage.readonly('events')
+      .getAllFromIndex('by-timestamp', IDBKeyRange.bound(start, end));
   }
 
   async getEventsByMetricDates(dates: readonly string[]): Promise<EventRecord[]> {
-    const dateSet = new Set(dates);
-    const all = await this.storage.readonly('events').getAll();
-    return all.filter((ev) => ev.metricDateKeys?.some((d) => dateSet.has(d)));
+    // Union of exact matches on the multiEntry by-metric-date index; deduped
+    // by row id (a row can carry several of the requested dates).
+    const store = this.storage.readonly('events');
+    const byId = new Map<string, EventRecord>();
+    for (const date of dates) {
+      for (const row of await store.getAllFromIndex('by-metric-date', date)) {
+        byId.set(row.id, row);
+      }
+    }
+    return Array.from(byId.values());
   }
 
   async getEventsByContent(blockContentId: string): Promise<EventRecord[]> {
-    const all = await this.storage.readonly('events').getAll();
-    return all.filter((ev) => ev.blockContentId === blockContentId);
+    return this.storage.readonly('events')
+      .getAllFromIndex('by-content-grain', grainRange(blockContentId));
   }
 
   async scanAll(): Promise<EventRecord[]> {
@@ -572,6 +726,21 @@ export class StorageService implements NotePersistenceStorage {
 
   async getAllBlockIndex(): Promise<BlockIndexRow[]> {
     return this.storage.readonly('block_index').getAll();
+  }
+
+  /** Selective block candidates by segment data type — indexed, no scan. */
+  async getBlockIndexByType(dataType: string): Promise<BlockIndexRow[]> {
+    return this.storage.readonly('block_index').getAllFromIndex('by-type', dataType);
+  }
+
+  /** Block candidates for one note — indexed. */
+  async getBlockIndexByNote(noteId: string): Promise<BlockIndexRow[]> {
+    return this.storage.readonly('block_index').getAllFromIndex('by-note', noteId);
+  }
+
+  /** Total block row count (clean-read count forwarding). */
+  async countBlockIndex(): Promise<number> {
+    return this.storage.readonly('block_index').count();
   }
 
   async rebuildBlockIndexForNote(noteId: string): Promise<void> {

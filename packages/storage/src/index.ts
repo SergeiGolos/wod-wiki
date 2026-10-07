@@ -12,3 +12,4 @@ export * from './schema';
 export * from './membership';
 export * from './wire';
 export * from './api';
+export * from './domain';

@@ -9,14 +9,20 @@ import type {
 } from './IStorage';
 import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import { USER_OWNED_STORES, stampUserOwned } from '@bitcobblers/wod-wiki-storage';
+import { DB_VERSION, USER_OWNED_STORES, stampUserOwned } from '@bitcobblers/wod-wiki-storage';
 
 const DB_NAME = 'wodwiki-db';
+
 // V24: 1b0442ed added block_efforts without bumping the version, so existing
 // V23 DBs lack the store — the guarded upgrade below recreates it.
 // V25: identity — adds the memberships store and a by-user ownership index
 // on every user-owned store (guards mandatory per the V24 note above).
-const DB_VERSION = 25;
+// V26: results store dropped (rows migrated into sessions first); unique
+// by-note-tag pair on note_tags (duplicates resolved deterministically);
+// notes by-created index (createdAt-fallback half of complete date-window
+// candidate reads); seed schema v6 rebuild maps static block rows onto
+// imported note UUIDs. Index/data guards key on presence, not oldVersion,
+// so partially-mixed databases are always repaired.
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
@@ -152,6 +158,7 @@ export class IndexedDBStorage implements IStorage {
         if (!db.objectStoreNames.contains('notes')) {
           const store = db.createObjectStore('notes', { keyPath: 'id' });
           store.createIndex('by-date', 'date');
+          store.createIndex('by-created', 'createdAt');
         }
 
         // 2. page
@@ -195,6 +202,7 @@ export class IndexedDBStorage implements IStorage {
           const store = db.createObjectStore('note_tags', { keyPath: 'id' });
           store.createIndex('by-note', 'noteId');
           store.createIndex('by-tag', 'tagId');
+          store.createIndex('by-note-tag', ['noteId', 'tagId'], { unique: true });
         }
 
         // 5. segments
@@ -218,17 +226,8 @@ export class IndexedDBStorage implements IStorage {
           store.createIndex('by-origin', 'origin');
         }
 
-        // 7. results (legacy alias)
-        if (!db.objectStoreNames.contains('results')) {
-          const store = db.createObjectStore('results', { keyPath: 'id' });
-          store.createIndex('by-segment', 'segmentId');
-          store.createIndex('by-note', 'noteId');
-          store.createIndex('by-completed', 'createdAt');
-          store.createIndex('by-content', 'blockContentId');
-          store.createIndex('by-block', 'blockId');
-          store.createIndex('by-page', 'pageId');
-          store.createIndex('by-origin', 'origin');
-        }
+        // 7. results — removed in V26; the upgrade below migrates residual
+        // rows into `sessions` before dropping the store.
 
         // 8. attachments
         if (!db.objectStoreNames.contains('attachments')) {
@@ -368,6 +367,112 @@ export class IndexedDBStorage implements IStorage {
             }
           }
         }
+
+        // V26: results → sessions. Read every residual legacy row BEFORE the
+        // store disappears. A session row already existing under the same id
+        // does NOT prove its inline logs were ever projected, and "some
+        // events exist" does not prove all were: every projected row is
+        // merged per deterministic id — existing rows are never overwritten,
+        // absent detail/summary rows are added, so no log blob is dropped
+        // without projection. The row is flattened to scalar fields (no
+        // `data` blob) and the legacy store is dropped last.
+        if (db.objectStoreNames.contains('results')) {
+          const sessionsStore = tx.objectStore('sessions');
+          const resultsStore = tx.objectStore('results');
+          const eventsStore = tx.objectStore('events');
+          for await (const cursor of resultsStore) {
+            const { data: legacyData, ...legacyRow } = cursor.value as Session & {
+              data?: {
+                logs?: unknown[];
+                startTime?: number;
+                endTime?: number;
+                duration?: number;
+                completed?: boolean;
+                roundsCompleted?: number;
+                totalRounds?: number;
+                repsCompleted?: number;
+              };
+            };
+            const logs = legacyData?.logs ?? [];
+            if (logs.length > 0) {
+              const identity = {
+                noteId: legacyRow.noteId,
+                resultId: legacyRow.id,
+                segmentId: legacyRow.segmentId,
+                segmentVersion: legacyRow.segmentVersion,
+                blockContentId: legacyRow.blockContentId,
+                origin: legacyRow.origin,
+                pageId: legacyRow.pageId,
+                workoutTimestamp: legacyData?.endTime ?? legacyRow.createdAt,
+              };
+              for (const row of toEventRows(logs as never, identity)) {
+                if ((await eventsStore.get(row.id)) === undefined) await eventsStore.put(row);
+              }
+              for (const row of toSummaryEventRows(logs as never, identity)) {
+                if ((await eventsStore.get(row.id)) === undefined) await eventsStore.put(row);
+              }
+            }
+            // The canonical flattened session row already exists — keep it,
+            // the legacy duplicate is discarded with the store.
+            if ((await sessionsStore.getKey(legacyRow.id)) !== undefined) continue;
+            await sessionsStore.put({
+              ...legacyRow,
+              startTime: legacyData?.startTime ?? legacyRow.startTime ?? legacyRow.createdAt,
+              endTime: legacyData?.endTime ?? legacyRow.endTime ?? legacyRow.createdAt,
+              duration: legacyData?.duration ?? legacyRow.duration ?? 0,
+              completed: legacyData?.completed ?? legacyRow.completed ?? true,
+              roundsCompleted: legacyData?.roundsCompleted ?? legacyRow.roundsCompleted,
+              totalRounds: legacyData?.totalRounds ?? legacyRow.totalRounds,
+              repsCompleted: legacyData?.repsCompleted ?? legacyRow.repsCompleted,
+            });
+          }
+          db.deleteObjectStore('results');
+        }
+
+        // V26: notes gain the by-created index — the createdAt-fallback
+        // half of complete date-window candidate reads (union with by-date).
+        // Presence-guarded: a partially-mixed database without the index is
+        // repaired on the next upgrade run.
+        if (db.objectStoreNames.contains('notes')
+            && !tx.objectStore('notes').indexNames.contains('by-created')) {
+          tx.objectStore('notes').createIndex('by-created', 'createdAt');
+        }
+
+        // V26: unique (noteId, tagId) pair on note_tags. Deterministic cleanup
+        // first — duplicate links keep the lexicographically smallest row id —
+        // because a unique index cannot be created over existing duplicates.
+        if (db.objectStoreNames.contains('note_tags')
+            && !tx.objectStore('note_tags').indexNames.contains('by-note-tag')) {
+          const store = tx.objectStore('note_tags');
+          // Persisted rows come back untyped through the loose tx handle —
+          // every note_tags row carries the pair fields by schema contract.
+          type NoteTagPairRow = { id: string; noteId: string; tagId: string };
+          const winnerByPair = new Map<string, string>();
+          const dupes: string[] = [];
+          for await (const cursor of store) {
+            const row = cursor.value as NoteTagPairRow;
+            const pair = `${row.noteId}\u0000${row.tagId}`;
+            const winner = winnerByPair.get(pair);
+            if (winner === undefined || row.id < winner) {
+              winnerByPair.set(pair, row.id);
+              if (winner !== undefined) dupes.push(winner);
+            } else {
+              dupes.push(row.id);
+            }
+          }
+          for (const id of dupes) await store.delete(id);
+          store.createIndex('by-note-tag', ['noteId', 'tagId'], { unique: true });
+        }
+
+        // V26: static block_index / block_efforts rows are NOT purged here —
+        // they are rebuildable seed output, but deleting them before a seed
+        // sync has actually succeeded would break the offline path. The seed
+        // schema bump (v6) forces a full re-apply: the importer rewrites each
+        // static row in place (legacy row ids are stable) mapped onto the
+        // imported note UUID via full sourcePath, deletes vanished ids via
+        // its per-chunk checkpoints, and throws before mutating when a row's
+        // sourcePath has no (ambiguous/missing) imported note — prior rows
+        // stay untouched on failure. Journal history is never touched.
       },
       blocked: (currentVersion, blockedVersion) => {
         console.warn(
@@ -405,7 +510,19 @@ export class IndexedDBStorage implements IStorage {
       readonly: (name) => new IDBReadOnlyStore(this.dbPromise, name, idbTx),
       readwrite: (name) => new IDBReadWriteStore(this.dbPromise, name, idbTx as IDBTx<'readwrite'>, this.options.getUserId),
     };
-    const result = await fn(txAdapter);
+    let result: R;
+    try {
+      result = await fn(txAdapter);
+    } catch (err) {
+      // Without an explicit abort, the IDB transaction auto-commits every
+      // already-queued write once fn rejects — "rollback" would silently
+      // become commit. Abort flips the outcome to a real rollback; its
+      // rejection of `done` is consumed here so it cannot surface as an
+      // unhandled rejection on top of the original error.
+      idbTx.abort();
+      await idbTx.done.catch(() => {});
+      throw err;
+    }
     await idbTx.done;
     return result;
   }

@@ -81,7 +81,7 @@ describe('result identity (real IndexedDB stack)', () => {
     });
 
     // ── Result row: full identity stamped and readable via indexes ────────
-    const results = await service.getResultsForNote(noteId);
+    const results = await service.getSessionsForNote(noteId);
     expect(results).toHaveLength(1);
     const result = results[0]!;
     // segmentId is an opaque persisted key — assert it resolves to a real
@@ -93,7 +93,7 @@ describe('result identity (real IndexedDB stack)', () => {
     expect(result.origin).toBe('playground');
     expect(result.blockContentId).toBe(section!.contentId);
 
-    const byContent = await service.getResultsByContentId(section!.contentId!);
+    const byContent = await service.getSessionsByContentId(section!.contentId!);
     expect(byContent.some(r => r.id === result.id)).toBe(true);
 
     // ── Event rows: summary + event rows with block identity, queryable by content ─
@@ -139,7 +139,7 @@ describe('result identity (real IndexedDB stack)', () => {
         createdAt: 160_000,
       },
     });
-    const all = await service.getResultsForNote(noteId);
+    const all = await service.getSessionsForNote(noteId);
     const second = all.find(r => r.id === `result-2-${noteId}`)!;
     expect(second.segmentVersion).toBe(2);
     expect(second.origin).toBe('journal');

@@ -16,7 +16,7 @@
  *
  * Identity contract (CONTEXT.md): a WorkoutResult is keyed by runtimeId;
  * the Result Recorder stamps `noteId` and `blockContentId`. /review/:id reads
- * it via `indexedDBService.getResultById(runtimeId)`.
+ * it via `storageService.getSessionById(runtimeId)`.
  */
 
 import { test, expect, type Page } from '@playwright/test';

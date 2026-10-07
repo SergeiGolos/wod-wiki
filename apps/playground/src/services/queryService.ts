@@ -58,10 +58,23 @@ export const indexedDbNoteStore: NoteQueryStore = {
     new Set((await storageService.getNotesForTag(label)).map((n) => n.id)),
   getNoteTagLabels: async (noteId: string) =>
     (await storageService.getTagsForNote(noteId)).map((tag) => tag.label),
+  // Indexed/domain candidate read — undefined capability (or scoped tx)
+  // falls back to getAllNotes inside the engine; candidates are a superset,
+  // WQL re-applies every residual filter in JS and never server-limits.
+  queryDomain: async (req) => {
+    if (!storageService.queryDomain) return undefined;
+    const res = await storageService.queryDomain({ ...req, plan: 'notes' });
+    return res && res.plan === 'notes' ? res : undefined;
+  },
 };
 
 export const indexedDbBlockStore: BlockQueryStore = {
   getAllBlocks: () => storageService.getAllBlockIndex(),
+  queryDomain: async (req) => {
+    if (!storageService.queryDomain) return undefined;
+    const res = await storageService.queryDomain({ ...req, plan: 'blocks' });
+    return res && res.plan === 'blocks' ? res : undefined;
+  },
 };
 
 /**

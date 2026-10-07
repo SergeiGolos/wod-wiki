@@ -14,6 +14,7 @@ import { Note, NoteSegment, Session, SegmentDataType, Attachment, ResultOrigin, 
 import { parseDocumentSections, type Section, type SectionType, type ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { extractFrontmatterTags, extractTypedFrontmatterTags, type TypedTagItem, parseFrontmatter, serializeFrontmatter } from '../../lib/frontmatter';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import type { DomainEntry, DomainPredicate } from '@bitcobblers/wod-wiki-storage';
 import { sessionToPayload } from '../persistence/sessionPayload';
 
 const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
@@ -30,22 +31,94 @@ function linkOrder(a: PageNote, b: PageNote): number {
 }
 
 /**
- * pageId/journalDate/slug resolve independently: primary link, first calendar
- * page, first named page — a note may sit on both page flavors at once.
+ * Map a domain entries-plan row to the list projection. Same metadata as the
+ * local path: junction-ordered page projection (pageId/journalDate/slug
+ * independent), tags as labels, and the plan's segments are already
+ * latest-MAX-before-history, position-ordered — reconstruction input matches
+ * getLatestSegmentsForNote exactly.
  */
-async function projectNotePages(db: StorageService, noteId: string): Promise<{ pageId?: string; journalDate?: string; slug?: string }> {
-    const links = [...(await db.getNotePages(noteId))].sort(linkOrder);
+function entryFromDomainRow(row: DomainEntry): HistoryEntry {
+    const pagesById = new Map(row.pages.map(page => [page.id, page]));
+    const projection = projectNoteLinks(row.links, pagesById);
+    const labels = row.tags.map(t => t.label);
+    return {
+        id: row.note.id,
+        title: row.note.title,
+        slug: projection.slug,
+        pageId: projection.pageId,
+        createdAt: row.note.createdAt,
+        updatedAt: row.note.createdAt,
+        targetDate: row.note.date ?? row.note.createdAt,
+        journalDate: projection.journalDate,
+        rawContent: segmentsToRawContent(row.segments, labels),
+        tags: labels,
+        type: row.note.type || 'note',
+        sourceId: row.note.sourceId,
+        catalog: row.note.catalog,
+        schemaVersion: 1,
+    };
+}
+
+/**
+ * The exact window the targetDate filter enforces. Shared by candidate
+ * selection and the entry filter so the two can never disagree.
+ */
+function entryDateWindow(query?: EntryQuery): { start: number; end: number } | undefined {
+    if (query?.dateRange) return query.dateRange;
+    if (query?.daysBack != null) {
+        const now = Date.now();
+        return { start: now - query.daysBack * 86_400_000, end: now };
+    }
+    return undefined;
+}
+
+/** Tag conjunction, inclusive targetDate window, then targetDate desc. */
+function applyEntryFilters(entries: HistoryEntry[], query?: EntryQuery): HistoryEntry[] {
+    let filtered = entries;
+    if (query?.tags && query.tags.length > 0) {
+        filtered = filtered.filter(e => query.tags!.every(t => e.tags.includes(t)));
+    }
+    const window = entryDateWindow(query);
+    if (window) {
+        filtered = filtered.filter(
+            e => e.targetDate >= window.start && e.targetDate <= window.end,
+        );
+    }
+    filtered.sort((a, b) => b.targetDate - a.targetDate);
+    return filtered;
+}
+
+/**
+ * pageId/journalDate/slug resolve independently from junction links: primary
+ * link by position then earliest createdAt, first calendar page, first named
+ * page — a note may sit on both page flavors at once. Pure core shared by the
+ * single-note and list projections.
+ */
+function projectNoteLinks(links: PageNote[], pagesById: Map<string, Page | undefined>): { pageId?: string; journalDate?: string; slug?: string } {
     let pageId: string | undefined;
     let journalDate: string | undefined;
     let slug: string | undefined;
-    for (const link of links) {
-        const page = await db.getPage(link.pageId);
+    for (const pn of [...links].sort(linkOrder)) {
+        const page = pagesById.get(pn.pageId);
         if (!page) continue;
         if (!pageId) pageId = page.id;
         if (!journalDate && page.date) journalDate = page.date;
         if (!slug && page.slug && !page.date) slug = page.slug;
     }
     return { pageId, journalDate, slug };
+}
+
+/**
+ * pageId/journalDate/slug resolve independently: primary link, first calendar
+ * page, first named page — a note may sit on both page flavors at once.
+ */
+async function projectNotePages(db: StorageService, noteId: string): Promise<{ pageId?: string; journalDate?: string; slug?: string }> {
+    const links = await db.getNotePages(noteId);
+    const pagesById = new Map<string, Page | undefined>();
+    await Promise.all(links.map(async link => {
+        pagesById.set(link.pageId, await db.getPage(link.pageId));
+    }));
+    return projectNoteLinks(links, pagesById);
 }
 
 /**
@@ -167,103 +240,50 @@ export class IndexedDBContentProvider implements IContentProvider {
     };
 
     async getEntries(query?: EntryQuery): Promise<HistoryEntry[]> {
-        const notes = await this.db.getAllNotes();
+        const window = entryDateWindow(query);
 
-        // Batch the derived-field lookups (V22): journalDate and slug come
-        // from the pages via the page_notes junction (resolved independently —
-        // a note may sit on both flavors), tags from note_tags + tags, content
-        // from segments (one getAll, grouped client-side).
-        const allPageNotes = await this.db.getAllPageNotes();
-        const linksByNote = new Map<string, PageNote[]>();
-        for (const pn of allPageNotes) {
-            const links = linksByNote.get(pn.noteId);
-            if (links) links.push(pn);
-            else linksByNote.set(pn.noteId, [pn]);
+        // Domain entries-plan backends (API) return the equivalent metadata
+        // and payload — segments arrive latest-MAX-before-history and
+        // position-ordered, so reconstruction matches the local path. The
+        // date window and each required tag go down as predicates (per-tag
+        // predicates AND; a single predicate's values OR) so selective reads
+        // never hydrate the corpus; identical client-side filters re-apply
+        // as the residual guard so the date fallback (`date ?? createdAt`),
+        // tag conjunction, and inclusive bounds cannot drift.
+        const selection: DomainPredicate[] = [];
+        if (window) {
+            selection.push({ field: 'date', start: window.start, end: window.end });
         }
-        for (const links of linksByNote.values()) links.sort(linkOrder);
-        const pageIds = Array.from(new Set(allPageNotes.map(pn => pn.pageId)));
-        const pages = new Map<string, Page | undefined>();
-        await Promise.all(pageIds.map(async id => {
-            pages.set(id, await this.db.getPage(id));
-        }));
-        const tagsByNote = new Map<string, string[]>();
-        await Promise.all(notes.map(async note => {
-            tagsByNote.set(note.id, (await this.db.getTagsForNote(note.id)).map(t => t.label));
-        }));
-
-        const allSegments = await this.db.getAllSegments();
-        const latestByNote = new Map<string, Map<string, NoteSegment>>();
-        for (const segment of allSegments) {
-            let byId = latestByNote.get(segment.noteId);
-            if (!byId) { byId = new Map(); latestByNote.set(segment.noteId, byId); }
-            const current = byId.get(segment.id);
-            if (!current || segment.version > current.version) byId.set(segment.id, segment);
+        for (const tag of query?.tags ?? []) {
+            selection.push({ field: 'tags', values: [tag] });
         }
-        const rawContentFor = (noteId: string): string => {
-            const byId = latestByNote.get(noteId);
-            if (!byId) return '';
-            const segments = [...byId.values()]
-                .filter((s) => !s.isHistory)
-                .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt));
-            return segmentsToRawContent(segments, tagsByNote.get(noteId) ?? []);
-        };
-
-        const resolved = notes.map(note => {
-            // Primary page (pageId): first link by position, or earliest
-            // createdAt; journalDate/slug resolve independently per flavor.
-            let pageId: string | undefined;
-            let journalDate: string | undefined;
-            let slug: string | undefined;
-            for (const pn of linksByNote.get(note.id) ?? []) {
-                const page = pages.get(pn.pageId);
-                if (!page) continue;
-                if (!pageId) pageId = page.id;
-                if (!journalDate && page.date) journalDate = page.date;
-                if (!slug && page.slug && !page.date) slug = page.slug;
-            }
-            return {
-                id: note.id,
-                title: note.title,
-                slug,
-                pageId,
-                createdAt: note.createdAt,
-                updatedAt: note.createdAt,
-                targetDate: note.date ?? note.createdAt,
-                journalDate,
-                rawContent: rawContentFor(note.id),
-                tags: tagsByNote.get(note.id) ?? [],
-                type: note.type || 'note',
-                sourceId: note.sourceId,
-                catalog: note.catalog,
-                schemaVersion: 1,
-            } as HistoryEntry;
-        });
-
-        // Client-side filtering (IndexedDB indexes are used for getAll, but complex filtering is here)
-        let filtered = resolved;
-
-        if (query) {
-            if (query.tags && query.tags.length > 0) {
-                filtered = filtered.filter(e => query.tags!.every(t => e.tags.includes(t)));
-            }
-
-            // Date range filtering
-            let dateRange = query.dateRange;
-            if (!dateRange && query.daysBack != null) {
-                const now = Date.now();
-                dateRange = { start: now - query.daysBack * 86_400_000, end: now };
-            }
-            if (dateRange) {
-                filtered = filtered.filter(
-                    e => e.targetDate >= dateRange!.start && e.targetDate <= dateRange!.end
-                );
-            }
+        const domainResult = await this.db.queryDomain(
+            selection.length > 0 ? { plan: 'entries', selection } : { plan: 'entries' },
+        );
+        if (domainResult?.plan === 'entries') {
+            return applyEntryFilters(domainResult.rows.map(entryFromDomainRow), query);
         }
 
-        // Sort by targetDate desc
-        filtered.sort((a, b) => b.targetDate - a.targetDate);
+        // Local path — select note candidates by the targetDate window FIRST
+        // (indexed `date ?? createdAt` union when a window exists; slim note
+        // rows only), then load each candidate's full metadata bundle —
+        // latest-MAX-before-history segments, tags, links, pages — in one
+        // readonly transaction. No whole segments/page_notes scans, and no
+        // fetches for out-of-window notes.
+        const candidates = window
+            ? await this.db.getNotesByDateRange(window.start, window.end)
+            : await this.db.getAllNotes();
+        const bundles = await this.db.getEntryBatches(candidates.map(note => note.id));
 
-        return filtered;
+        const resolved: HistoryEntry[] = [];
+        for (const note of candidates) {
+            const bundle = bundles.get(note.id);
+            if (bundle) resolved.push(entryFromDomainRow(bundle));
+        }
+
+        // Candidate selection only narrows work; the shared tail re-applies
+        // the exact filters so list output never depends on the fast path.
+        return applyEntryFilters(resolved, query);
     }
 
     async getEntry(id: string): Promise<HistoryEntry | null> {
@@ -293,7 +313,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         const rawContent = segmentsToRawContent(segments, tags.map(t => t.label));
 
         // Fetch latest result for this note
-        const latestResults = await this.db.getResultsForNote(note.id);
+        const latestResults = await this.db.getSessionsForNote(note.id);
         const latestResult = latestResults.length > 0
             ? latestResults.sort((a, b) => b.createdAt - a.createdAt)[0]
             : undefined;
@@ -742,12 +762,12 @@ export class IndexedDBContentProvider implements IContentProvider {
                     pageId: newSession.pageId,
                     workoutTimestamp: newSession.endTime || now,
                 };
-                try {
-                    await this.db.appendEvents(toEventRows(resultData.logs, identity));
-                    await this.db.finalizeSummaries(newSession.id, toSummaryEventRows(resultData.logs, identity));
-                } catch (err) {
-                    console.warn(`[IndexedDBContentProvider] event projection failed for session ${newSession.id}`, err);
-                }
+                // Event projection failures must reject the whole mutation —
+                // when updateEntry runs inside a scoped transaction the
+                // caller's rollback removes the session/segment writes with
+                // it; a warn-only swallow left results without event rows.
+                await this.db.appendEvents(toEventRows(resultData.logs, identity));
+                await this.db.finalizeSummaries(newSession.id, toSummaryEventRows(resultData.logs, identity));
             }
         }
 
