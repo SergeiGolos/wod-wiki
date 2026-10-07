@@ -21,7 +21,8 @@
  */
 export function buildSharedScript(content: string, by?: string): string {
   if (content.startsWith('# 👋')) return content
-  const heading = by ? `# 👋 ${by} sent you this workout` : '# 👋 Edit Me'
+  const clean = by?.replace(/^shared by:?\s*/i, '').trim()
+  const heading = clean ? `# 👋 ${clean} sent you this workout` : '# 👋 Edit Me'
   return `${heading}\n\nChange the reps, distance, or load below — this is live.\n\n${content}\n\n> Press **Run** ↑ to start the Clock.\n`
 }
 

@@ -95,6 +95,13 @@ describe('StartPageGate', () => {
     expect(screen.getByTestId('journal-page')).toBeDefined()
     expect(screen.queryByTestId('home-page')).toBeNull()
   })
+  it('does not redirect / to the journal when ?z= share param is present', () => {
+    setStartPage('journal')
+    renderRoutes('/?z=abc')
+    expect(screen.getByTestId('home-page')).toBeDefined()
+    expect(screen.queryByTestId('journal-page')).toBeNull()
+  })
+
 
   it('leaves in-session visits to / on Home (nav clicks, not just boot)', () => {
     setStartPage('journal')

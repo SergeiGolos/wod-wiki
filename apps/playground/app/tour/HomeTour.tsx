@@ -1066,27 +1066,14 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         data-testid="tour-hero"
         className="relative flex min-h-[calc(100vh-104px)] flex-col items-center justify-center gap-5 px-5 pt-10 pb-16 text-center lg:px-10"
       >
-        <div className="w-full">
+        <div className="w-full pb-3 sm:pb-5">
           <TourHeroHeading />
-        </div>
-        <div className="flex w-full max-w-3xl items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-          <span>{sharedBy ? `shared by: ${sharedBy}` : 'welcome-1.md'}</span>
-          {sharedBy && (
-            <button
-              type="button"
-              onClick={handleClearShared}
-              title="Reset"
-              className="rounded-md border border-border px-2 py-1 text-[10px] transition-colors hover:bg-accent"
-              data-testid="tour-hero-reset-shared"
-            >
-              Reset
-            </button>
-          )}
         </div>
         {/* The hero viewport hosts the workflow states in place — editor →
             run → result — so the demo never scrolls away from the editor
             context. The write section's sticky pane below is a second
-            display of the same shared document. */}
+            display of the same shared document. The chrome title names the
+            loaded doc (shared attribution or the default welcome note). */}
         <div className="h-[62vh] min-h-[420px] w-full max-w-[1200px]">
           <MacOSChrome
             title={
@@ -1094,7 +1081,22 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
                 ? SCREEN_TITLES.timer
                 : heroState === 'result'
                   ? SCREEN_TITLES.metrics
-                  : SCREEN_TITLES.editor
+                  : sharedBy
+                    ? (sharedBy.toLowerCase().startsWith('shared by') ? sharedBy : `shared by: ${sharedBy}`)
+                    : 'welcome-1.md'
+            }
+            headerActions={
+              sharedBy && (
+                <button
+                  type="button"
+                  onClick={handleClearShared}
+                  title="Reset"
+                  className="rounded-md border border-border px-2 py-1 text-[10px] transition-colors hover:bg-accent"
+                  data-testid="tour-hero-reset-shared"
+                >
+                  Reset
+                </button>
+              )
             }
             className="h-full"
           >

@@ -15,6 +15,7 @@
 import React, { useCallback, useState } from 'react';
 import { ExternalLink, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getProfileDisplayName } from '@/services/profile';
 
 // ---------------------------------------------------------------------------
 // Encoding helpers
@@ -76,7 +77,8 @@ export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
 export async function buildHomeShareUrl(wodContent: string): Promise<string> {
   const markdown = `\`\`\`time\n${wodContent.trimEnd()}\n\`\`\`\n`;
   const encoded = await gzipBase64(markdown);
-  return `${window.location.origin}/?z=${encoded}`;
+  const by = `shared by ${getProfileDisplayName()}`;
+  return `${window.location.origin}/?z=${encoded}&by=${encodeURIComponent(by)}`;
 }
 
 // ---------------------------------------------------------------------------

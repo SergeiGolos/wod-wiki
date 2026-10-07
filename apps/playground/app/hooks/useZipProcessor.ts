@@ -69,7 +69,9 @@ export function useZipProcessor() {
           }
         }
         if (!cancelled) {
-          if (getStartPage() === 'journal' && entry) {
+          if (location.pathname === '/') {
+            navigate('/', { replace: true });
+          } else if (getStartPage() === 'journal' && entry) {
             navigate(playgroundPath(entry.routeId.replace(/^playground\//, '')), { replace: true });
           } else {
             navigate('/', { replace: true });

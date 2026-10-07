@@ -24,6 +24,21 @@ export interface ProfileService {
 }
 
 const MEMBERSHIP_KEY = 'wodwiki.membership';
+export function getProfileDisplayName(): string {
+  try {
+    const raw = typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(MEMBERSHIP_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<Membership> | null;
+      if (typeof parsed?.displayName === 'string' && parsed.displayName.trim()) {
+        return parsed.displayName.trim();
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+  return 'Anonymous';
+}
+
 
 export class LocalStorageProfileService implements ProfileService {
   private cache: Membership | undefined;

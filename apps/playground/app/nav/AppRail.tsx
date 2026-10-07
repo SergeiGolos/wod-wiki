@@ -7,7 +7,7 @@
  * only constant chrome across sections.
  */
 
-import { Dumbbell, Settings } from 'lucide-react'
+import { Dumbbell, Settings, UserRound } from 'lucide-react'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
@@ -110,6 +110,30 @@ export function AppRail({ onSearch, onCreate }: { onSearch: () => void; onCreate
       >
         <BuyMeACoffeeIcon className="size-5" />
       </a>
+
+      {/* Profile — between the coffee link and Settings. */}
+      <button
+        type="button"
+        onClick={() => {
+          closeDrawer()
+          navigate('/settings/profile')
+        }}
+        title="Profile"
+        aria-label="Profile"
+        aria-current={location.pathname.startsWith('/settings/profile') ? 'page' : undefined}
+        data-testid="nav-profile"
+        className={cn(
+          'relative grid size-9 place-items-center rounded-lg transition-colors mt-1.5',
+          location.pathname.startsWith('/settings/profile')
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+        )}
+      >
+        {location.pathname.startsWith('/settings/profile') && (
+          <span className="absolute -left-[14px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+        )}
+        <UserRound className="size-5" />
+      </button>
 
       <button
         type="button"

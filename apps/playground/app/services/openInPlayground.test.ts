@@ -37,7 +37,7 @@ describe('openInPlayground', () => {
     expect(openedUrl).toContain('/load?zip=')
   })
 
-  it('shareBlock copies the home-page share URL to the clipboard', async () => {
+  it('shareBlock copies the home-page share URL to the clipboard with default Anonymous', async () => {
     const writeTextMock = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, {
       clipboard: {
@@ -50,6 +50,24 @@ describe('openInPlayground', () => {
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledTimes(1)
       expect(writeTextMock.mock.calls[0][0]).toContain('/?z=')
+      expect(writeTextMock.mock.calls[0][0]).toContain('&by=shared%20by%20Anonymous')
+    })
+  })
+
+  it('shareBlock encodes custom profile name into the share link', async () => {
+    window.localStorage.setItem('wodwiki.membership', JSON.stringify({ displayName: 'Coach Dan' }))
+    const writeTextMock = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    })
+
+    shareBlock(mockBlock)
+
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenCalledTimes(1)
+      expect(writeTextMock.mock.calls[0][0]).toContain('&by=shared%20by%20Coach%20Dan')
     })
   })
 })

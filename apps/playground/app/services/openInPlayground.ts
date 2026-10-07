@@ -15,6 +15,7 @@ import type { ScriptBlock } from '@/components/Editor/types'
 import { encodeZip } from './encodeZip'
 import { buildPlaygroundLoadUrl } from '../lib/routes'
 import { toast } from '@/hooks/use-toast'
+import { getProfileDisplayName } from '@/services/profile'
 
 /** Build the /load?zip= URL for a time/log block. `src` (the current page
  *  path) rides along so the spawned playground note carries provenance. */
@@ -58,7 +59,8 @@ export async function buildHomeShareUrl(block: ScriptBlock): Promise<string> {
   const fenceTag = block.sport ? `${dialect}:${block.sport}` : dialect
   const markdown = `\`\`\`${fenceTag}\n${block.content.trimEnd()}\n\`\`\`\n`
   const encoded = await encodeZip(markdown)
-  return `${window.location.origin}/?z=${encoded}`
+  const by = `shared by ${getProfileDisplayName()}`
+  return `${window.location.origin}/?z=${encoded}&by=${encodeURIComponent(by)}`
 }
 
 /**

@@ -102,7 +102,8 @@ export function StartPageGate({ children }: { children: ReactNode }): ReactNode 
   if (
     startPage === 'journal' &&
     location.pathname === ROUTE_PATTERNS.home &&
-    location.key === 'default'
+    location.key === 'default' &&
+    !new URLSearchParams(location.search).has('z')
   ) {
     return <Navigate to={ROUTE_PATTERNS.journal} replace />
   }

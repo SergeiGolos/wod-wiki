@@ -81,7 +81,7 @@ export function ProfileSection() {
   useEffect(() => {
     if (!membership) return
     setDraft({
-      displayName: membership.displayName ?? '',
+      displayName: membership.displayName?.trim() || 'Anonymous',
       birthDate: membership.birthDate ?? '',
       weight: membership.weight != null ? String(membership.weight) : '',
       height: membership.height != null ? String(membership.height) : '',
@@ -183,7 +183,7 @@ export function ProfileSection() {
               id="profile-display-name"
               data-testid="profile-display-name"
               className={inputClass}
-              placeholder="Your name"
+              placeholder="Anonymous"
               value={draft.displayName}
               onChange={(e) => {
                 setDraft((d) => ({ ...d, displayName: e.target.value }))

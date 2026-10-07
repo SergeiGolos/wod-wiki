@@ -52,7 +52,7 @@ export function TourHeroHeading({ onNavigateSection }: { onNavigateSection?: Tou
       <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/60">
         A plain-text fitness scripting language
       </div>
-      <h1 className="text-[clamp(30px,5vw,64px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
+      <h1 className="text-[clamp(30px,5vw,64px)] font-extrabold leading-[0.98] tracking-[-0.045em] pb-3 sm:pb-4">
         {ROWS.map((row) => (
           <span key={row.accentText} className="block">
             {row.before}
@@ -100,7 +100,7 @@ export function TourHero({
             <Pencil className="size-3" />
             Editable playground — below
           </span>
-          <span>{sharedBy ? `shared by: ${sharedBy}` : 'welcome-1.md'}</span>
+          <span>{sharedBy ? (sharedBy.toLowerCase().startsWith('shared by') ? sharedBy : `shared by: ${sharedBy}`) : 'welcome-1.md'}</span>
         </div>
         <div className="relative rounded-xl border border-border bg-card shadow-2xl">
           {sharedBy && onResetShared && (

@@ -7,6 +7,7 @@ import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { shareBlock, openBlockInPlaygroundNewTab } from '../../services/openInPlayground'
 import { encodeZip } from '../../services/encodeZip'
 import { toast } from '@/hooks/use-toast'
+import { getProfileDisplayName } from '@/services/profile'
 import { useRingRef } from '../TourRing'
 import { TEST_IDS } from '@/testing/contracts/TestIdContract'
 export interface TourEditorScreenProps {
@@ -161,7 +162,8 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       return
     }
     encodeZip(doc).then((encoded) => {
-      const url = `${window.location.origin}/?z=${encoded}`
+      const by = `shared by ${getProfileDisplayName()}`
+      const url = `${window.location.origin}/?z=${encoded}&by=${encodeURIComponent(by)}`
       navigator.clipboard.writeText(url).then(() => {
         toast({ title: 'Link copied', description: 'Share link copied to clipboard.' })
       }).catch(() => {

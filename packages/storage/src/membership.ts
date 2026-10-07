@@ -14,7 +14,7 @@ import type { Membership } from './entities';
 export const DEFAULT_MEMBERSHIP_ID = 'default';
 
 export function createDefaultMembership(now: number = Date.now()): Membership {
-  return { id: DEFAULT_MEMBERSHIP_ID, displayName: '', createdAt: now };
+  return { id: DEFAULT_MEMBERSHIP_ID, displayName: 'Anonymous', createdAt: now };
 }
 
 /** Stores that can hold user-created rows. Excluded: the pure seed catalog
