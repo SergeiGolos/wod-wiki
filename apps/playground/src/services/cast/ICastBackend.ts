@@ -84,6 +84,24 @@ export interface ICastBackend {
     startSession(): Promise<IRpcTransport>;
 
     /**
+     * Adopt an already-active platform session without a user gesture.
+     *
+     * The platform session can outlive the button that started it: SPA
+     * navigation unmounts the button (its transport is disposed locally,
+     * returning the receiver to its waiting screen) while the CAF session
+     * itself keeps running, and a full page reload re-creates it via
+     * `resumeSavedSession`. In both cases the new button mount sees
+     * `state === 'session-active'` with no local transport — calling
+     * `resumeSession()` rebuilds the transport against the live session so
+     * casting continues instead of requiring a disconnect + re-pick.
+     *
+     * Optional: adapters without a resumable platform session (local tab)
+     * omit it and the button skips adoption. Implementations should throw
+     * when no platform session exists.
+     */
+    resumeSession?(): Promise<IRpcTransport>;
+
+    /**
      * Tear down the active session. Idempotent — safe to call when no
      * session is active. Does not throw.
      */

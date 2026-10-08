@@ -105,8 +105,9 @@ jobs:
       s3-prefix: ${{ needs.slug.outputs.slug }}/storybook
       cloudfront-prefix: /${{ needs.slug.outputs.slug }}/storybook*
   # Preview deploy — downloads the deploy-shaped playground bundle the verify
-  # job already built (no second playground build), adds the receiver build,
-  # and syncs to S3 in one job. Storybook previews are the engine repo's.
+  # job already built (receiver included — verify builds it with the dedicated
+  # chrome92 receiver pipeline) and syncs to S3 in one job. Storybook previews
+  # are the engine repo's.
   preview:
     name: Deploy preview
     runs-on: ubuntu-22.04

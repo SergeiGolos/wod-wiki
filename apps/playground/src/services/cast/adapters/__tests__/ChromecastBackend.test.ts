@@ -12,7 +12,7 @@ const sdk = {
     state: 'not-loaded' as SdkState,
     loadImpl: null as null | (() => Promise<void>),
     requestSessionImpl: null as null | (() => Promise<void>),
-    session: { sendMessage: async () => {} } as SessionStub,
+    session: { sendMessage: async () => {} } as SessionStub | null,
     listeners: new Map<string, Set<Listener>>(),
     reset() {
         this.state = 'not-loaded';
@@ -148,6 +148,58 @@ describe('ChromecastBackend failure recovery', () => {
         // CAF emits NO_SESSION (SDK maps it to 'ready') when the launch fails.
         sdk.emit('state-changed', 'ready');
         expect(backend.state).toBe('ready');
+        backend.dispose();
+    });
+});
+
+describe('ChromecastBackend resumeSession (adopt surviving platform session)', () => {
+    beforeEach(() => {
+        sdk.reset();
+        transport = new TransportStub();
+    });
+
+    it('adopts the live session without opening the picker', async () => {
+        // Post-reload / post-navigation state: SDK already has a session and
+        // requestSession is intentionally NOT stubbed — if resumeSession
+        // touched the picker this would reject with 'requestSession not stubbed'.
+        sdk.state = 'session-active';
+        sdk.loadImpl = async () => {};
+        const backend = new ChromecastBackend();
+
+        await expect(backend.resumeSession()).resolves.toBeDefined();
+        expect(backend.state).toBe('session-active');
+        backend.dispose();
+    });
+
+    it('returns the existing transport on repeat adoption', async () => {
+        sdk.state = 'session-active';
+        sdk.loadImpl = async () => {};
+        const backend = new ChromecastBackend();
+
+        const first = await backend.resumeSession();
+        const second = await backend.resumeSession();
+        expect(second).toBe(first);
+        backend.dispose();
+    });
+
+    it('throws when there is no platform session to resume', async () => {
+        sdk.state = 'session-active';
+        sdk.loadImpl = async () => {};
+        sdk.session = null;
+        const backend = new ChromecastBackend();
+
+        await expect(backend.resumeSession()).rejects.toThrow('no Cast session to resume');
+        backend.dispose();
+    });
+
+    it('disposes the half-built transport when the handshake fails', async () => {
+        sdk.state = 'session-active';
+        sdk.loadImpl = async () => {};
+        transport.connectImpl = () => Promise.reject(new Error('TIMEOUT after 15000ms'));
+        const backend = new ChromecastBackend();
+
+        await expect(backend.resumeSession()).rejects.toThrow('TIMEOUT');
+        expect(transport.disposed).toBe(1);
         backend.dispose();
     });
 });

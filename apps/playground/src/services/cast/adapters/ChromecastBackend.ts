@@ -55,6 +55,9 @@ export class ChromecastBackend implements ICastBackend {
     constructor() {
         this._state = sdkToBackend[ChromecastSdk.getState()];
         this.subscribeToSdk();
+        if (hasCustomCastAppId && typeof window !== 'undefined') {
+            void ChromecastSdk.load(CAST_APP_ID).catch(() => {});
+        }
     }
 
     get state(): ICastBackendState {
@@ -162,6 +165,44 @@ export class ChromecastBackend implements ICastBackend {
             if (!this.disposed && this._state === 'connecting') {
                 this.setState('ready');
             }
+            throw err;
+        }
+
+        this.activeTransport = transport;
+        transport.onDisconnected(() => {
+            if (this._state === 'session-active') {
+                this.activeTransport = null;
+                this.setState('session-ended');
+            }
+        });
+        this.setState('session-active');
+        return transport;
+    }
+
+    async resumeSession(): Promise<IRpcTransport> {
+        if (this.disposed) {
+            throw new Error('ChromecastBackend: resumeSession after dispose');
+        }
+        if (this.activeTransport) {
+            return this.activeTransport;
+        }
+
+        await ChromecastSdk.load(CAST_APP_ID);
+
+        const castSession = ChromecastSdk.getSession();
+        if (!castSession) {
+            throw new Error('ChromecastBackend: no Cast session to resume');
+        }
+
+        // The receiver returned to its waiting screen when the previous
+        // transport's datachannel closed (page nav / reload). A fresh offer
+        // re-claims it; the 15s connect timeout throws if it is gone.
+        const signaling = new SenderCastSignaling(castSession);
+        const transport = new WebRtcRpcTransport('offerer', signaling);
+        try {
+            await transport.connect();
+        } catch (err) {
+            transport.dispose();
             throw err;
         }
 
