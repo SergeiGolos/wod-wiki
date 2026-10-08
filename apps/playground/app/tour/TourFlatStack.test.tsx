@@ -1,5 +1,5 @@
 /**
- * TourMobileStack.test.tsx — mobile static-card layout assertions.
+ * TourFlatStack.test.tsx — reduced-motion flat-card layout assertions.
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
@@ -7,7 +7,7 @@ import { render, screen, cleanup, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
-import type { TourMobileStackProps } from './TourMobileStack'
+import type { TourFlatStackProps } from './TourFlatStack'
 import type { ScriptBlock } from '@/components/Editor/types'
 
 // ── Heavy dependencies ───────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
 }))
 
 
-import { TourMobileStack } from './TourMobileStack'
+import { TourFlatStack } from './TourFlatStack'
 
 // ── Test data ────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ const baseProps = {
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
-describe('TourMobileStack', () => {
+describe('TourFlatStack', () => {
   let recorded: Array<{ name: string; payload?: Record<string, unknown> }> = []
   let unsubscribe: () => void = () => {}
 
@@ -73,10 +73,10 @@ describe('TourMobileStack', () => {
     cleanup()
   })
 
-  async function renderStack(props: Partial<TourMobileStackProps> = {}) {
+  async function renderStack(props: Partial<TourFlatStackProps> = {}) {
     const result = render(
       <MemoryRouter>
-        <TourMobileStack {...baseProps} {...props} />
+        <TourFlatStack {...baseProps} {...props} />
       </MemoryRouter>,
     )
     await act(async () => {

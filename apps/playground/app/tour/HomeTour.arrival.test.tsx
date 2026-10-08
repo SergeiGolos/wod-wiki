@@ -97,10 +97,6 @@ mock.module('../services/journalNotes', () => ({
   journalNotes: { create: async () => ({ id: 'note-new' }) },
 }))
 
-mock.module('../hooks/useIsMobile', () => ({
-  useIsMobile: () => false,
-}))
-
 // Scroll driver held at the first editor stage; subscribers never fire so the
 // typewriter scrub does not clobber the doc under test.
 mock.module('../canvas/useScrollRunway', () => ({
@@ -128,13 +124,15 @@ import { HomeTour } from './HomeTour'
 
 // ── IntersectionObserver stub — the test drives hero visibility ─────────────
 
-type IOCallback = (entries: Array<{ isIntersecting: boolean }>) => void
-let ioCallbacks: IOCallback[] = []
+type IOCallback = (entries: Array<{ isIntersecting: boolean; target: Element }>) => void
+let ioCallbacks: Array<{ callback: IOCallback; target: Element }> = []
 
 async function simulateHeroVisibility(visible: boolean) {
   await act(async () => {
-    for (const cb of ioCallbacks) {
-      cb([{ isIntersecting: visible } as IntersectionObserverEntry])
+    for (const { callback, target } of ioCallbacks) {
+      if (target.parentElement?.dataset.testid === 'home-tour' && target.getAttribute('aria-hidden') === 'true') {
+        callback([{ isIntersecting: visible, target }])
+      }
     }
   })
 }
@@ -171,12 +169,16 @@ describe('HomeTour arrival & hero-reset contract', () => {
     window.localStorage.clear()
 
     class MockIntersectionObserver {
-      constructor(cb: IOCallback) {
-        ioCallbacks.push(cb)
+      constructor(private callback: IOCallback) {}
+      observe(target: Element) {
+        ioCallbacks.push({ callback: this.callback, target })
       }
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      unobserve(target: Element) {
+        ioCallbacks = ioCallbacks.filter((entry) => entry.callback !== this.callback || entry.target !== target)
+      }
+      disconnect() {
+        ioCallbacks = ioCallbacks.filter((entry) => entry.callback !== this.callback)
+      }
     }
     Object.defineProperty(globalThis, 'IntersectionObserver', {
       writable: true,

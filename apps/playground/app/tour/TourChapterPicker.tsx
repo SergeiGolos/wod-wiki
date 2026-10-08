@@ -1,14 +1,11 @@
 /**
- * TourChapterPicker.tsx — the collapsed Learn-the-Language section.
+ * TourChapterPicker.tsx — Learning with Examples / Learn the Language.
  *
- * Replaces the old six-slide ```scroll:chapters runway (too long for the
- * page): one sticky slide where every syntax chapter renders as a stylized
- * dual-button row — the primary button loads that chapter's runnable example
- * into the ONE shared editor beside the list (typewriter fill), and a smaller
- * link-out button opens the chapter's guide page for the full walkthrough.
- *
- * Chapter quest badges and lead-quest completion on Run are preserved from
- * the retired ChapterScrollTour (#919/#926 contracts).
+ * Sticky editor runway with one scroll section per chapter / lesson group.
+ * As each chapter section scrolls into view:
+ *   - The sticky editor window updates with the runnable example code
+ *   - The caption rail displays the chapter's title, explanation, badge progress,
+ *     and action links (Start Lesson, Guide, Try/Run).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -23,9 +20,10 @@ import { chapterIcon } from '../components/ChallengeBadges'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { CHAPTER_GUIDE_ROUTES, CHAPTER_GUIDE_DEFAULT_ROUTE } from './tourConstants'
+import { TaglineHeader } from './HomeTour'
 import { cn } from '@/lib/utils'
 
-/** Chapter id → its home-page example asset (the retired runway's sources). */
+/** Chapter id → its home-page example asset (the canonical syntax examples). */
 const CHAPTER_EXAMPLE_SOURCES: Record<string, string> = {
   basics: 'wods/examples/syntax/single-movement.md',
   protocols: 'wods/examples/syntax/timers-rest.md',
@@ -35,13 +33,40 @@ const CHAPTER_EXAMPLE_SOURCES: Record<string, string> = {
   complex: 'wods/examples/syntax/complex-swimming.md',
 }
 
+const CHAPTER_DESCRIPTIONS: Record<string, { summary: string; bullets: string[] }> = {
+  basics: {
+    summary: 'Statements and metrics — how a workout line reads, from movement names to reps, loads, and timed rests.',
+    bullets: ['Freeform Markdown + fenced ```time blocks', 'Single movements: 10 Pushups, 15 Air Squats', 'Inline resistance: 225lb, 100kg, 24kg'],
+  },
+  protocols: {
+    summary: 'Time-capped and paced protocols: AMRAP, EMOM, Tabata intervals, and required rest that paces the room.',
+    bullets: ['20:00 AMRAP (As Many Rounds As Possible)', '(10) :60 EMOM (Every Minute on the Minute)', '*:30 Rest (required, unskippable recovery)'],
+  },
+  structure: {
+    summary: 'Rounds, rep ladders, and nested grouping — how blocks compose into multi-part workout schemes.',
+    bullets: ['(3 Rounds) and (5 Sets) block repetition', 'Ladders & schemes: 21-15-9, 10-8-6-4-2', 'Section labels: (Warmup) and // Strength'],
+  },
+  'custom-metrics': {
+    summary: 'Capture typed data points right inline: effort intensity, heart rate, RPE, and custom JSON metrics.',
+    bullets: ['Inline JSON metrics: {"intensity": 80}', 'Capture prompts: :? time, ? reps, ?lb load', 'Session-level RPE & custom dimensions'],
+  },
+  dialects: {
+    summary: 'Dialect fences for specialized domains: workout, log, plan, and climbing session notes.',
+    bullets: ['```time for workouts, ```log for recorded efforts', 'Sport dialect suffixes like ```log:climbing', 'Discipline tags and session intent'],
+  },
+  complex: {
+    summary: 'Multi-set training sessions that chain intervals, strength, and conditioning into one complete program.',
+    bullets: ['Multi-set swimming and track intervals', 'Strength blocks paired with conditioned finishers', 'Full training session flow'],
+  },
+}
+
 const DEFAULT_CHAPTERS: Chapter[] = [
   { id: 'basics', title: 'Basics', label: 'Basics', source: 'wods/examples/syntax/basics.md', questIds: [] },
   { id: 'protocols', title: 'Protocols', label: 'Protocols', source: 'wods/examples/syntax/protocols.md', questIds: [] },
-  { id: 'custom-timers', title: 'Custom Timers', label: 'Custom Timers', source: 'wods/examples/syntax/custom-timers.md', questIds: [] },
-  { id: 'intervals', title: 'Intervals', label: 'Intervals', source: 'wods/examples/syntax/intervals.md', questIds: [] },
-  { id: 'syntax-formatting', title: 'Formatting', label: 'Formatting', source: 'wods/examples/syntax/formatting.md', questIds: [] },
-  { id: 'comments', title: 'Comments', label: 'Comments', source: 'wods/examples/syntax/comments.md', questIds: [] },
+  { id: 'structure', title: 'Structure', label: 'Structure', source: 'wods/examples/syntax/structure.md', questIds: [] },
+  { id: 'custom-metrics', title: 'Custom Metrics', label: 'Custom Metrics', source: 'wods/syntax/custom-metrics.md', questIds: [] },
+  { id: 'dialects', title: 'Dialects', label: 'Dialects', source: 'wods/examples/syntax/dialects.md', questIds: [] },
+  { id: 'complex', title: 'Complex Workouts', label: 'Complex Workouts', source: 'wods/examples/syntax/complex.md', questIds: [] },
 ] as unknown as Chapter[]
 
 export interface TourChapterPickerProps {
@@ -63,6 +88,7 @@ export function TourChapterPicker({
     const list = (chapters ?? []).filter((c) => c.id !== 'home-tour')
     return list.length > 0 ? list : DEFAULT_CHAPTERS
   }, [chapters])
+
   const { markComplete } = usePageQuests('/', allQuests)
   const { chapters: chapterProgress } = useChapterProgress(languageChapters)
 
@@ -79,8 +105,7 @@ export function TourChapterPicker({
         : false
   }, [])
 
-  // Resolve the newly selected chapter's example into the shared editor with
-  // a typewriter fill; an empty pick resets to blank.
+  // Resolve chapter source into editor
   const selectedIdRef = useRef(selectedId)
   useEffect(() => {
     selectedIdRef.current = selectedId
@@ -115,111 +140,50 @@ export function TourChapterPicker({
     onRun?.(chapterId, blocksRef.current[0] ?? null, doc)
   }, [doc, markComplete, onRun])
 
+  // Observer to update active chapter as the user scrolls into each lesson section
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('data-chapter-id')
+            if (id) {
+              setSelectedId(id)
+            }
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -40% 0px', threshold: 0.2 },
+    )
+
+    itemRefs.current.forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [languageChapters])
+
   return (
-    <div id="tour-chapter-picker" data-testid="tour-chapter-picker" className="py-8 xl:py-16 2xl:py-20">
-      {/* Section header — "Learn the Language" CTAs + per-chapter badge chips. */}
-      <div className="mx-auto max-w-6xl xl:max-w-7xl 2xl:max-w-[1500px] px-4 sm:px-6 xl:px-12 pb-6 xl:pb-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl xl:text-4xl">Learn the Language</h2>
-            <p className="mt-2 max-w-xl xl:max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base xl:text-lg">
-              Six chapters, each with a runnable example — load one into the editor, or read the full walkthrough in the guides.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/guide/start"
-              onClick={() => telemetry.record(HOME_EVENTS.lessonStarted)}
-              className="inline-flex items-center rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-            >
-              Start Lesson 1
-            </Link>
-            <Link
-              to="/guide/start?h=reference"
-              onClick={() => telemetry.record(HOME_EVENTS.cheatsheetOpened)}
-              className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
-            >
-              Cheat sheet →
-            </Link>
-          </div>
-        </div>
-      </div>
+    <section id="tour-chapter-picker" data-testid="tour-chapter-picker" className="flex flex-col">
+      {/* Tagline header for section 05 */}
+      <TaglineHeader
+        index="05"
+        before="Learning with "
+        accentText="Examples"
+        after=""
+        accent="hsl(var(--primary))"
+        blurb="Six chapters on the syntax, each with a runnable example and quests to earn. Scroll into each section to load its example code into the editor."
+      />
 
-      {/* Main content: Responsive Stacked on Mobile, Side-by-Side on Desktop */}
-      <div className="mx-auto max-w-6xl xl:max-w-7xl 2xl:max-w-[1500px] px-4 sm:px-6 xl:px-12">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 xl:gap-10 2xl:gap-12">
-          {/* Chapter Dual-Button List */}
-          <div
-            className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2 lg:w-[320px] xl:w-[360px] 2xl:w-[380px] lg:flex-none lg:grid-cols-1 xl:gap-3"
-            data-testid="chapter-picker-list"
-          >
-            {languageChapters.map((chapter) => {
-              const progress = chapterProgress.find((c) => c.chapter.id === chapter.id)
-              const Icon = chapterIcon(chapter.badge)
-              const active = chapter.id === selectedId
-              return (
-                <div
-                  key={chapter.id}
-                  data-testid={`chapter-picker-row-${chapter.id}`}
-                  className={cn(
-                    'flex items-center gap-2 rounded-xl border p-2 transition-all',
-                    active
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-sm dark:bg-primary/10'
-                      : 'border-border bg-card hover:border-primary/40 hover:bg-muted/30',
-                  )}
-                >
-                  {Icon && (
-                    <Icon className={cn('size-4 flex-none ml-1', active ? 'text-primary' : 'text-muted-foreground')} />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(chapter.id)}
-                    data-testid={`chapter-picker-select-${chapter.id}`}
-                    aria-pressed={active}
-                    className={cn(
-                      'group inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors',
-                      active
-                        ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
-                        : 'text-foreground hover:bg-muted/80',
-                    )}
-                  >
-                    <span className="truncate text-[13px]">{chapter.title}</span>
-                    <Play
-                      className={cn('size-3 flex-none', active ? 'opacity-90' : 'opacity-40 group-hover:opacity-100')}
-                    />
-                  </button>
-                  <span
-                    className={cn(
-                      'font-mono text-[10px] font-bold tabular-nums pr-1',
-                      progress?.isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground/70',
-                    )}
-                  >
-                    {progress?.isComplete
-                      ? 'done ✓'
-                      : `${progress?.completedCount ?? 0}/${progress?.totalCount ?? chapter.questIds.length}`}
-                  </span>
-                  <Link
-                    to={CHAPTER_GUIDE_ROUTES[chapter.id] ?? CHAPTER_GUIDE_DEFAULT_ROUTE}
-                    data-testid={`chapter-picker-guide-${chapter.id}`}
-                    aria-label={`Learn more about ${chapter.title}`}
-                    title="Learn more in the guides"
-                    onClick={() => telemetry.record(HOME_EVENTS.chapterGuideClicked, { chapter: chapter.id })}
-                    className="inline-flex size-7 flex-none items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-background hover:text-primary"
-                  >
-                    <BookOpenCheck className="size-3.5" />
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Shared Editor Window: Full width on mobile, responsive height */}
-          <div className="w-full flex-1 min-w-0">
-            <div className="h-[calc((100dvh-65px)*0.6)] w-full lg:h-[calc((100dvh-104px)*0.6)] xl:h-[calc((100dvh-104px)*0.68)] 2xl:h-[680px]">
+      {/* Sticky runway container */}
+      <div className="relative mx-auto w-full max-w-[1500px] 2xl:max-w-[1720px] px-6 py-8 lg:px-12 xl:px-16">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-12 xl:gap-16">
+          {/* Left Column: Sticky macOS Chrome Editor */}
+          <div className="w-full lg:w-[58%] xl:w-[60%] lg:sticky lg:top-[110px] z-10 flex-none">
+            <div className="h-[420px] sm:h-[480px] lg:h-[calc(100dvh-150px)] max-h-[700px] w-full rounded-2xl border border-border shadow-2xl overflow-hidden bg-background">
               <MacOSChrome
                 title={CHAPTER_GUIDE_ROUTES[selectedId]?.split('/').pop() ?? 'example.md'}
-                subtitle="shared example editor"
-                className="h-full shadow-xl"
+                subtitle={`Lesson: ${languageChapters.find((c) => c.id === selectedId)?.title ?? selectedId}`}
+                className="h-full"
               >
                 <TourEditorScreen
                   doc={doc}
@@ -232,8 +196,114 @@ export function TourChapterPicker({
               </MacOSChrome>
             </div>
           </div>
+
+          {/* Right Column: Scrolling Chapters / Lesson Explanations */}
+          <div
+            className="w-full lg:w-[42%] xl:w-[40%] flex flex-col gap-16 lg:py-6"
+            data-testid="chapter-picker-list"
+          >
+            {languageChapters.map((chapter, idx) => {
+              const progress = chapterProgress.find((c) => c.chapter.id === chapter.id)
+              const Icon = chapterIcon(chapter.badge)
+              const active = chapter.id === selectedId
+              const desc = CHAPTER_DESCRIPTIONS[chapter.id]
+
+              return (
+                <div
+                  key={chapter.id}
+                  data-chapter-id={chapter.id}
+                  ref={(el) => {
+                    if (el) itemRefs.current.set(chapter.id, el)
+                    else itemRefs.current.delete(chapter.id)
+                  }}
+                  data-testid={`chapter-picker-row-${chapter.id}`}
+                  className={cn(
+                    'rounded-2xl border p-6 sm:p-8 transition-all duration-300 min-h-[340px] flex flex-col justify-between',
+                    active
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-lg dark:bg-primary/10'
+                      : 'border-border/70 bg-card hover:border-primary/40',
+                  )}
+                >
+                  <div>
+                    {/* Step badge & icon */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold uppercase tracking-wider text-primary">
+                          Chapter 0{idx + 1}
+                        </span>
+                        {Icon && <Icon className="size-4 text-primary" />}
+                      </div>
+                      <span
+                        className={cn(
+                          'font-mono text-xs font-semibold tabular-nums',
+                          progress?.isComplete ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-muted-foreground',
+                        )}
+                      >
+                        {progress?.isComplete
+                          ? 'done ✓'
+                          : `${progress?.completedCount ?? 0}/${progress?.totalCount ?? chapter.questIds.length}`}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                      {chapter.title}
+                    </h3>
+
+                    {/* Body explanation */}
+                    <p className="mt-3 text-sm sm:text-base leading-relaxed text-muted-foreground">
+                      {desc?.summary ?? chapter.label}
+                    </p>
+
+                    {/* Bullet breakdown */}
+                    {desc?.bullets && (
+                      <ul className="mt-4 space-y-1.5 text-xs sm:text-sm text-foreground/80 font-mono">
+                        {desc.bullets.map((b, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-primary font-bold">›</span>
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Action controls */}
+                  <div className="mt-6 flex flex-wrap items-center gap-3 pt-4 border-t border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(chapter.id)}
+                      data-testid={`chapter-picker-select-${chapter.id}`}
+                      aria-pressed={active}
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs sm:text-sm font-semibold transition-colors shadow-xs',
+                        active
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'border border-border bg-background text-foreground hover:bg-muted',
+                      )}
+                    >
+                      <Play className="size-3.5 fill-current" />
+                      <span>{active ? 'Loaded in editor' : 'Load example'}</span>
+                    </button>
+
+                    <Link
+                      to={CHAPTER_GUIDE_ROUTES[chapter.id] ?? CHAPTER_GUIDE_DEFAULT_ROUTE}
+                      data-testid={`chapter-picker-guide-${chapter.id}`}
+                      aria-label={`Read guide for ${chapter.title}`}
+                      onClick={() => telemetry.record(HOME_EVENTS.chapterGuideClicked, { chapter: chapter.id })}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/80 px-3.5 py-2 text-xs sm:text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-background hover:text-primary"
+                    >
+                      <BookOpenCheck className="size-3.5" />
+                      <span>Read guide →</span>
+                    </Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
+

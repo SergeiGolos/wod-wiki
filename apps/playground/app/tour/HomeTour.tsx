@@ -10,7 +10,7 @@
  * One shared editor document: the desktop hero view and the write-section
  * sticky pane are two displays of the same doc + block list (edits in either
  * place are edits to the run document; neither resets at the boundary).
- * Desktop hero runs stay in place; mobile hero and chapter runs use fullscreen.
+ * Hero runs stay in place at every width; chapter example runs use fullscreen.
  * The middle tour starts on timer arrival and saves on results arrival.
  * Analytics examples are isolated; recorded results stay scoped to their note.
  *
@@ -33,7 +33,6 @@ import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { usePlaygroundRun } from '../hooks/usePlaygroundRun'
 import { useNav } from '../nav/NavContext'
 import type { NavItemL3 } from '../nav/navTypes'
@@ -58,8 +57,7 @@ import {
 import { TourJumpSection } from './TourJumpSection'
 import { CelebrationBridge } from './CelebrationBridge'
 import { TourChapterPicker } from './TourChapterPicker'
-import { TourMobileStack } from './TourMobileStack'
-import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
+import { TourFlatStack } from './TourFlatStack'
 import { HOME_EVENTS, useTelemetry, useScrollTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
 import {
@@ -286,7 +284,6 @@ export interface HomeTourProps {
 // ── Inner (needs RingTargetsContext) ──────────────────────────────────────────
 
 function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll }: HomeTourProps) {
-  const isMobile = useIsMobile()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
   const track = telemetry?.track
@@ -324,14 +321,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // Runway runtime — set by the run section's inline timer pane; feeds the TV
   // card and lets the host pop the auto-start gate.
   const [tourRuntime, setTourRuntime] = useState<IScriptRuntime | null>(null)
-
-  // ── Mobile runway stage (card-visibility driven; inert on desktop) ──
-  const [mobileStage, setMobileStage] = useState<ScrollStage | null>(null)
-  const mobileRunwayApiRef = useRef<TourMobileRunwayApi | null>(null)
-  const handleMobileStageChange = useCallback(
-    (stage: { id: string; screen: string }) => setMobileStage(stage as ScrollStage),
-    [],
-  )
 
   // ── Canonical runway partitioned across the four tagged sections ──
   const canonicalStages = useMemo(() =>
@@ -458,10 +447,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   }, [])
 
   const scrollTimerStage = useCallback(() => {
-    if (mobileRunwayApiRef.current) {
-      mobileRunwayApiRef.current.scrollToStage('timer-wallclock')
-      return
-    }
     runApiRef.current?.scrollToStage('timer-wallclock')
     document.getElementById('tour-stack-timer')?.scrollIntoView({ behavior: 'instant', block: 'center' })
   }, [])
@@ -641,14 +626,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     if (own) observer.observe(own)
     return () => observer.disconnect()
   }, [prefersReducedMotion])
-  // ── Timer-stage presence ──
-  // Desktop: the run section's sticky window with a timer-* stage active.
-  // Mobile: a timer-* caption card owning the reading zone.
+  // ── Timer-stage presence: the run section's sticky window with a timer-*
+  // stage active (reduced motion: the flat stack's timer card in view). ──
   const runStageId = activeStages.run
   const stageInTimer = prefersReducedMotion
     ? stackTimerInView
-    : (!isMobile && runInView && runStageId != null && runStageId.startsWith('timer-')) ||
-      (isMobile && mobileStage?.screen === 'timer')
+    : runInView && runStageId != null && runStageId.startsWith('timer-')
 
   const [everInTimer, setEverInTimer] = useState(false)
   useEffect(() => {
@@ -671,7 +654,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // halts it (the section's pane shows the recorded $session segments). The
   // run-section timer stage owns the stop while it is active — this catches
   // the blow-past path where the run stages were never dwelled in.
-  const ownStageActive = prefersReducedMotion ? stackOwnInView : isMobile ? mobileStage?.screen === 'analytics' : ownInView && activeStages.own != null
+  const ownStageActive = prefersReducedMotion ? stackOwnInView : ownInView && activeStages.own != null
   useEffect(() => {
     if (runLocation === 'fullscreen' || !ownStageActive || stageInTimer) return
     if (!runRef.current || finalizedRef.current || !runStartedRef.current) return
@@ -753,10 +736,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   }, [beginRun])
 
   // Explicit hero/editor Run: start in place — the hero viewport switches
-  // editor → timer → result without scrolling away from the editor context.
+  // editor → timer → result without scrolling away from the editor context,
+  // at every width (never forced fullscreen by the device).
   const handleHeroRun = useCallback(() => {
-    beginRun('Run', docRef.current, blocksRef.current[0], true, isMobile ? 'fullscreen' : 'hero')
-  }, [beginRun, isMobile])
+    beginRun('Run', docRef.current, blocksRef.current[0], true, 'hero')
+  }, [beginRun])
 
   useEffect(() => {
     if (!stageInTimer || fullscreenOpen || startingRef.current || pendingActionRef.current) return
@@ -866,10 +850,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // The pane's ✕ returns to the write stage; a live run is saved by the
   // scroll-out rule when the run section's viewport releases.
   const handleTimerClose = useCallback(() => {
-    if (mobileRunwayApiRef.current) {
-      mobileRunwayApiRef.current.scrollToStage('editor-blank')
-      return
-    }
     writeApiRef.current?.scrollToStage('editor-blank')
   }, [])
 
@@ -940,10 +920,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     (questId: string) => {
       const stageId = HOME_QUEST_STAGE[questId]
       if (!stageId) return
-      if (mobileRunwayApiRef.current) {
-        mobileRunwayApiRef.current.scrollToStage(stageId as TourStageId)
-        return
-      }
       for (const section of SECTION_ORDER) {
         if (sectionStages[section].some((s) => s.id === stageId)) {
           sectionApis[section].current?.scrollToStage(stageId)
@@ -954,8 +930,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     [sectionStages, sectionApis],
   )
 
-  // Inline timer pane wiring — one shape for desktop runway, mobile runway,
-  // and the reduced-motion stack. Fresh mount per run identity (sessionKey),
+  // Inline timer pane wiring — one shape for the section runway and the
+  // reduced-motion stack. Fresh mount per run identity (sessionKey),
   // auto-start on mount, host-driven finalize stop.
   const timerWiring = {
     sessionKey: timerSessionKey,
@@ -1003,7 +979,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   if (prefersReducedMotion) {
     return (
       <div data-testid="home-tour">
-        <TourMobileStack
+        <TourFlatStack
           theme={theme}
           wodFiles={wodFiles}
           quests={quests}
@@ -1030,43 +1006,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     )
   }
 
-  // ── Mobile sticky-editor runway ──
-  if (isMobile) {
-    return (
-      <div data-testid="home-tour">
-        <TourMobileRunway
-          theme={theme}
-          wodFiles={wodFiles}
-          quests={quests}
-          chapters={chapters}
-          questLabels={questLabels}
-          onChapterRun={handleChapterRun}
-          onHomeQuestClick={handleHomeQuestClick}
-          doc={doc}
-          onDocChange={handleDocChange}
-          onBlocksChange={handleBlocksChange}
-          onRun={handleRun}
-          onHeroRun={handleHeroRun}
-          sharedBy={sharedBy}
-          onResetShared={handleClearShared}
-          onChoice={handleWorkoutChoice}
-          onCommand={handleCaptionCommand}
-          session={{ ...sessionWiring, result: session }}
-          onStageChange={handleMobileStageChange}
-          timer={timerWiring}
-          heroRef={heroRef}
-          apiRef={mobileRunwayApiRef}
-        />
-        <TourFooter />
-        {fullscreen}
-      </div>
-    )
-  }
-
-  // ── Desktop: a normal-flow hero view (heading + THE editor at first
-  // paint — it scrolls out completely before the write track pins), then the
-  // write section in the standard tagline-header + sticky-runway pattern,
-  // then run / own / explore sections → chapters ──
+  // ── One runway for every width: a normal-flow hero view (heading + THE
+  // editor at first paint — it scrolls out completely before the write track
+  // pins), then the write section in the standard tagline-header +
+  // sticky-runway pattern, then run / own / explore sections → chapters ──
   return (
     <div data-testid="home-tour">
       {/* Arrival sentinel (#882): a 1px mark at the very top of the page —
@@ -1077,7 +1020,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       <section
         id="tour-hero"
         data-testid="tour-hero"
-        className="relative grid h-[calc(100dvh-104px)] grid-rows-[2fr_3fr] justify-items-center gap-4 px-5 py-4 text-center lg:px-10 xl:gap-8 xl:py-8 2xl:gap-10 2xl:py-10 2xl:px-16"
+        className="relative grid h-[calc(100dvh-65px)] grid-rows-[2fr_3fr] justify-items-center gap-4 px-5 py-4 text-center lg:h-[calc(100dvh-104px)] lg:px-10 xl:gap-8 xl:py-8 2xl:gap-10 2xl:py-10 2xl:px-16"
       >
         <div className="flex min-h-0 w-full items-center justify-center overflow-y-auto">
           <TourHeroHeading />

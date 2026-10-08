@@ -213,10 +213,6 @@ mock.module('../services/journalNotes', () => ({
   journalNotes: { create: async () => ({ id: 'note-new' }) },
 }))
 
-mock.module('../hooks/useIsMobile', () => ({
-  useIsMobile: () => false,
-}))
-
 // ── useScrollRunway mock — section-aware, driven by one global progress ──────
 
 mock.module('../canvas/useScrollRunway', () => {
@@ -863,6 +859,70 @@ describe('HomeTour', () => {
     expect(guideLink.getAttribute('href')).toBe('/guide/protocols')
     fireEvent.click(guideLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.chapterGuideClicked)
+  })
+
+  it('keeps the edited document and an in-place hero run alive across a desktop→phone viewport change', async () => {
+    // Width drives CSS only: crossing the device breakpoint must not remount
+    // the tree (it used to swap the hero for the mobile runway, opening the
+    // fullscreen dialog and dropping the live run).
+    const mqlListeners = new Map<string, Set<(e: { matches: boolean; media: string }) => void>>()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: (_: string, cb: (e: { matches: boolean; media: string }) => void) => {
+          if (!mqlListeners.has(query)) mqlListeners.set(query, new Set())
+          mqlListeners.get(query)!.add(cb)
+        },
+        removeEventListener: (_: string, cb: (e: { matches: boolean; media: string }) => void) => {
+          mqlListeners.get(query)?.delete(cb)
+        },
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+    await renderHomeTour()
+
+    // Edit the shared document, then Run in place — the pane lives in the hero.
+    const heroEditor = within(screen.getByTestId('tour-hero')).getByTestId('mock-note-editor') as HTMLTextAreaElement
+    await act(async () => {
+      fireEvent.change(heroEditor, { target: { value: 'EDIT ACROSS WIDTHS' } })
+      fireEvent.click(within(screen.getByTestId('tour-hero')).getByRole('button', { name: 'Run' }))
+      await Promise.resolve()
+    })
+    const paneBefore = within(screen.getByTestId('tour-hero')).getByTestId('mock-timer-panel')
+
+    // Cross the breakpoint the way a real viewport change reports it.
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
+      window.dispatchEvent(new window.Event('resize'))
+      for (const [query, cbs] of mqlListeners) {
+        if (!query.includes('width')) continue
+        const matches = window.innerWidth <= 1024
+        for (const cb of cbs) cb({ matches, media: query })
+      }
+      await Promise.resolve()
+    })
+
+    // Same pane node, still inline in the hero — never a fullscreen dialog run.
+    expect(within(screen.getByTestId('tour-hero')).getByTestId('mock-timer-panel')).toBe(paneBefore)
+    expect(screen.getAllByTestId('mock-timer-panel')).toHaveLength(1)
+
+    // Stop → result remains usable in place, and the edit survives the trip
+    // back to the editor.
+    await act(async () => {
+      timerPanelControl().fireTimerComplete?.(completedResults())
+      await Promise.resolve()
+    })
+    expect(within(screen.getByTestId('tour-hero')).getByTestId('tour-session-result')).toBeTruthy()
+    await act(async () => {
+      fireEvent.click(within(screen.getByTestId('tour-hero')).getByTestId('tour-session-result-dismiss'))
+      await Promise.resolve()
+    })
+    expect((within(screen.getByTestId('tour-hero')).getByTestId('mock-note-editor') as HTMLTextAreaElement).value).toBe('EDIT ACROSS WIDTHS')
   })
 
 })

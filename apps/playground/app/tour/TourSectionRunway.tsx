@@ -265,10 +265,9 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
       <section id={`tour-section-${id}`} data-testid={`tour-section-${id}`}>
         {header}
         <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: heightVh }}>
-          <div
-            className="sticky flex flex-col overflow-hidden"
-            style={{ top: STICKY_NAV_HEIGHT, height: `calc(100dvh - ${STICKY_NAV_HEIGHT}px)` }}
-          >
+          {/* top/height follow the shell nav: mobile navbar 65px below lg,
+              desktop header 104px at lg+ (same offsets as TourChapterPicker). */}
+          <div className="sticky top-[65px] flex h-[calc(100dvh-65px)] flex-col overflow-hidden lg:top-[104px] lg:h-[calc(100dvh-104px)]">
             {/* stage bar — the status slot reserves its height in normal
                 flow (status never overlays the pane's dashboard controls);
                 pips carry the stage progress. */}

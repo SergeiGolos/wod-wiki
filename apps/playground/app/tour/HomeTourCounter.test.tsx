@@ -74,10 +74,6 @@ mock.module('../services/journalNotes', () => ({
   journalNotes: { create: async () => ({ id: 'note-new' }) },
 }))
 
-mock.module('../hooks/useIsMobile', () => ({
-  useIsMobile: () => store.isMobile,
-}))
-
 mock.module('@/services/telemetry', () => ({
   telemetry: { record: () => {}, events: { subscribe: () => () => {} } },
   HOME_EVENTS: {
@@ -124,10 +120,9 @@ function makeSlice(): TestSlice {
   }
 }
 
-const store: { slice: TestSlice; runwayReached: boolean; isMobile: boolean; listeners: Set<() => void> } = {
+const store: { slice: TestSlice; runwayReached: boolean; listeners: Set<() => void> } = {
   slice: makeSlice(),
   runwayReached: false,
-  isMobile: false,
   listeners: new Set(),
 }
 
@@ -195,7 +190,6 @@ beforeEach(() => {
   window.localStorage.clear()
   store.slice = makeSlice()
   store.runwayReached = false
-  store.isMobile = false
 
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -241,15 +235,5 @@ describe('HomeTour stage counter derivation', () => {
     const progress = readHomeProgress()
     expect(progress['qs-arrive']).toBe(true)
     expect(progress['qs-tour-timer']).toBe(true)
-  })
-
-  it('mobile stack also starts at the arrival quest only', () => {
-    store.isMobile = true
-    renderHomeTour()
-
-    const progress = readHomeProgress()
-    expect(progress['qs-arrive']).toBe(true)
-    expect(progress['qs-tour-timer']).toBeUndefined()
-    expect(progress['qs-tour-analytics']).toBeUndefined()
   })
 })

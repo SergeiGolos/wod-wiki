@@ -15,7 +15,7 @@ import { TOUR_ACCENTS } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'
 
-export interface TourMobileStackProps {
+export interface TourFlatStackProps {
   theme: string
   wodFiles?: Record<string, string>
   quests: Quest[]
@@ -41,14 +41,14 @@ export interface TourMobileStackProps {
   session?: TourSectionSessionWiring
 }
 
-export function TourMobileStack(props: TourMobileStackProps) {
+export function TourFlatStack(props: TourFlatStackProps) {
   const editorBlankCaption = TOUR_CAPTIONS.find((c) => c.id === 'editor-blank')
   const editorMetricsCaption = TOUR_CAPTIONS.find((c) => c.id === 'editor-metrics')
   const timerCaption = TOUR_CAPTIONS.find((c) => c.id === 'timer-wallclock')
   const metricsCaption = TOUR_CAPTIONS.find((c) => c.id === 'metrics-e')
 
   return (
-    <div data-testid="tour-mobile-stack" className="flex flex-col gap-6">
+    <div data-testid="tour-flat-stack" className="flex flex-col gap-6">
       <section id="tour-hero" data-testid="tour-hero" className="grid h-[calc(100dvh-65px)] grid-rows-[2fr_3fr] gap-4 px-6 py-4 lg:h-[calc(100dvh-104px)]">
         <div className="flex min-h-0 items-center justify-center overflow-y-auto"><TourHeroHeading /></div>
         <div className="relative min-h-0 overflow-hidden rounded-xl border border-border">

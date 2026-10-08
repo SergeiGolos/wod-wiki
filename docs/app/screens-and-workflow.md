@@ -4,13 +4,13 @@ The WOD Wiki application follows a continuous loop: **Plan → Track → Analyze
 
 ## Home tour
 
-The demo and description divide the available context 60/40. Wide contexts place them side by side; tall contexts stack them. The desktop rail measures the content area after navigation, status and padding. Phone layouts use the viewport below navigation. Reduced-motion keeps the flat card layout.
+Home uses the same hero, sticky runway and chapter picker at every width. The demo and description divide the measured content area 60/40 after navigation, status and padding. Wide contexts place them side by side; tall contexts stack them. Resizing changes layout without replacing the editor or active run. Reduced-motion keeps the flat card layout.
 
 Embedded clocks measure their own column and fit their digits into the remaining clock band. On narrow panels the clock reserves up to 280px before the visual-state summary takes the remaining height; shorter hosts scroll the clock column. Stop, Pause and Next remain reachable. Metric-table controls and recorded-result headers stay fixed while their rows scroll.
 
 The hero uses the editor's Run control. The duplicate hero Run action and four chapter-jump buttons are removed; guide, library and journal links remain.
 
-Desktop hero Run keeps the clock and recorded results in the hero viewport, including workouts opened through `/load?z=`. Mobile hero Run and Learn the Language examples use the normal fullscreen runner. Stop and Exit report partial results before closing; natural completion opens review.
+Hero Run keeps the clock and recorded results in the hero viewport on desktop and phone, including workouts opened through `/load?z=`. Learn the Language examples use the normal fullscreen runner. Stop and Exit report partial results; natural completion shows recorded results in place for hero runs and opens review for fullscreen examples.
 
 The middle tour starts the current workout when its timer stage enters view. Write-section Run and Try it move to that timer. Leaving the timer or arriving at results stops and records the partial once; returning does not rerun the recorded identity.
 
