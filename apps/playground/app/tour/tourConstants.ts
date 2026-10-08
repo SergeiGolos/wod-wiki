@@ -47,15 +47,22 @@ export type RingTargetKey =
   | 'analytics.graphs'
   | 'analytics.dashboard'
 
-/** Metric-token accents (light + dark safe — tokens flip with the theme). */
+/**
+ * Tour decorative accents — collapsed to ONE accessible action accent (the
+ * theme primary) for all tour chrome: headings, pips, ring, command chips.
+ * Semantic metric colors remain global CSS (--metric-*) and are untouched;
+ * data surfaces keep using them.
+ */
+const TOUR_ACTION = 'hsl(var(--primary))'
+
 export const TOUR_ACCENTS = {
   ink: 'hsl(var(--foreground))',
-  editor: 'hsl(var(--metric-resistance))',
-  timer: 'hsl(var(--metric-effort))',
-  analytics: 'hsl(var(--metric-rounds))',
-  library: 'hsl(var(--metric-rep))',
+  editor: TOUR_ACTION,
+  timer: TOUR_ACTION,
+  analytics: TOUR_ACTION,
+  library: TOUR_ACTION,
   /** Alias for the analytics accent used by explore-section chrome. */
-  rounds: 'hsl(var(--metric-rounds))',
+  rounds: TOUR_ACTION,
 } as const
 
 export interface TourStage {

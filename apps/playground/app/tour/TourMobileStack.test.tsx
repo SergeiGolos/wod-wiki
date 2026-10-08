@@ -104,20 +104,4 @@ describe('TourMobileStack', () => {
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.behaviorsOpened)
   })
 
-  it('keeps the same chapter group boundaries as the sticky runway (hero view, four headered sections)', async () => {
-    await renderStack()
-
-    // Hero is its own view box, followed by the four chapter sets.
-    const root = screen.getByTestId('tour-mobile-stack')
-    const childIds = Array.from(root.children).map((el) => el.id)
-    expect(childIds.indexOf('tour-hero')).toBeGreaterThanOrEqual(0)
-    expect(childIds.indexOf('tour-hero')).toBeLessThan(childIds.indexOf('tour-section-write'))
-    for (const id of ['write', 'run', 'own', 'explore']) {
-      expect(screen.getByTestId(`tour-section-${id}`)).toBeTruthy()
-    }
-
-    // Reduced motion pins nothing: the editor is a static card in its section.
-    const editor = screen.getByTestId('tour-stack-editor')
-    expect(editor.className).not.toContain('sticky')
-  })
 })

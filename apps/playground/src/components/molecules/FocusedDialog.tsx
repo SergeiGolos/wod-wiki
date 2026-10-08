@@ -26,6 +26,8 @@ export interface FocusedDialogProps {
   variant?: 'default' | 'minimal';
   /** Optional actions (e.g. Cast button) to show to the left of the close button. */
   actions?: React.ReactNode;
+  /** Visible label for the close button (e.g. "Exit"). Renders a ≥44px text button; default keeps the icon X. */
+  closeLabel?: string;
 }
 
 export const FocusedDialog: React.FC<FocusedDialogProps> = ({
@@ -36,6 +38,7 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
   floatingClose = false,
   variant = 'default',
   actions,
+  closeLabel,
 }) => {
   // Prevent scrolling on the body while the dialog is open
   useEffect(() => {
@@ -52,12 +55,14 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
       onClick={onClose}
       className={
         closeButtonClassName ??
-        `p-2 rounded-pill ${isMinimal ? 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'} transition-colors shadow-[rgba(0,0,0,0.06)_0px_1px_2px]`
+        `rounded-pill transition-colors shadow-[rgba(0,0,0,0.06)_0px_1px_2px] ${isMinimal ? 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'} ${
+          closeLabel ? 'flex h-11 min-w-[44px] items-center justify-center px-4 text-sm font-medium hover:text-foreground' : 'p-2'
+        }`
       }
-      title="Close"
+      title={closeLabel ?? "Close"}
       data-testid={TEST_IDS.FOCUSED_DIALOG_CLOSE}
     >
-      <X className="h-5 w-5" />
+      {closeLabel ?? <X className="h-5 w-5" />}
     </button>
   );
 

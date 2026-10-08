@@ -23,7 +23,6 @@ import type { EditorView } from "@codemirror/view";
 import { TimerDisplay } from "@/panels/wallclock-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
-import { useScreenMode } from "@/panels/panel-system/useScreenMode";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
 import { getActiveWorkbenchSessionStore } from "@/stores/workbenchSessionStore";
@@ -107,9 +106,7 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   handleStop,
   handleNext,
 }) => {
-  const { isCompact } = usePanelSize();
-  const screenMode = useScreenMode();
-  const isMobile = screenMode === 'mobile' || isCompact;
+  const { isCompact: isMobile } = usePanelSize();
 
   // PROTOTYPE hook-in — throwaway. When ?proto-timer=A|B|C is in the URL,
   // replace the whole body with the mobile-layout prototype variants.
@@ -128,33 +125,37 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {/* ── Body: stacked on mobile, side-by-side on desktop. Mobile puts the
-          clock + controls FIRST so a bounded host never clips them. ── */}
+      {/* ── Body: stacked on mobile, side-by-side on desktop. Both columns
+          get a proportional share (3:2 favoring the clock) with min-h-0 so
+          neither can squeeze the other out of a bounded host: the visual
+          state scrolls internally and the clock keeps controls reachable. ── */}
       <div className={`min-h-0 flex-1 overflow-hidden flex ${isMobile ? "flex-col" : "flex-row"}`}>
         {/* Visual State — below the clock on mobile, left on desktop */}
         <div className={`overflow-hidden bg-secondary/10 ${
           isMobile
-            ? "order-2 min-h-0 border-t border-border"
-            : "min-w-0 w-1/3 border-r border-border"
+            ? "order-2 min-h-0 flex-[2] border-t border-border"
+            : "min-h-0 min-w-0 w-1/3 border-r border-border"
         }`}>
           <VisualStatePanel />
         </div>
 
         {/* Timer + controls — top on mobile, right on desktop */}
-        <div className={`flex flex-col justify-center overflow-hidden bg-background ${
-          isMobile ? "order-1 min-h-0 flex-1" : "w-2/3"
+        <div className={`flex flex-col overflow-y-auto bg-background ${
+          isMobile ? "order-1 min-h-[min(280px,100%)] flex-[3]" : "min-h-0 w-2/3"
         }`}>
-          <TimerDisplay
-            elapsedMs={execution.elapsedTime}
-            hasActiveBlock={true}
-            onStart={handleStart}
-            onPause={execution.pause}
-            onStop={handleStop}
-            onNext={handleNext}
-            isRunning={execution.status === "running"}
-            compact={isMobile}
-            enableDisplayStack={true}
-          />
+          <PanelSizeProvider>
+            <TimerDisplay
+              elapsedMs={execution.elapsedTime}
+              hasActiveBlock={true}
+              onStart={handleStart}
+              onPause={execution.pause}
+              onStop={handleStop}
+              onNext={handleNext}
+              isRunning={execution.status === "running"}
+              compact={isMobile}
+              enableDisplayStack={true}
+            />
+          </PanelSizeProvider>
         </div>
       </div>
 

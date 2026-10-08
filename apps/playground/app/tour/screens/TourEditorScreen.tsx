@@ -68,30 +68,48 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     const close = body.querySelector('.cm-wod-fence-close')
     if (open && close) {
       const bodyRect = body.getBoundingClientRect()
-      const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
       const openRect = open.getBoundingClientRect()
       const closeRect = close.getBoundingClientRect()
-      block = {
-        top: (openRect.top - bodyRect.top) / scale,
-        left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
-        width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
-        height: (closeRect.bottom - openRect.top) / scale,
+      // A proxy is only registered while its source is actually on screen —
+      // an absent/offscreen target must never draw a ring border at a
+      // clipped or stale position.
+      const visible =
+        openRect.top >= bodyRect.top - 2 &&
+        closeRect.bottom <= bodyRect.bottom + 2
+      if (visible) {
+        const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
+        block = {
+          top: (openRect.top - bodyRect.top) / scale,
+          left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
+          width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
+          height: (closeRect.bottom - openRect.top) / scale,
+        }
       }
     }
     setBlockBox(block)
 
-    // Measure the Run pill rendered on the workout block by InlineCommandBar
+    // Measure the Run command rendered on the workout block by
+    // InlineCommandBar — by its testid, never a looser heuristic.
     let run: BlockBox | null = null
-    const runPill = body.querySelector(`[data-testid="${TEST_IDS.EDITOR_START_WORKOUT}"]`) ?? body.querySelector('button[title="Run"]')
+    const runPill = body.querySelector(`[data-testid="${TEST_IDS.EDITOR_START_WORKOUT}"]`)
     if (runPill) {
       const bodyRect = body.getBoundingClientRect()
       const pillRect = runPill.getBoundingClientRect()
-      const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
-      run = {
-        top: (pillRect.top - bodyRect.top) / scale,
-        left: (pillRect.left - bodyRect.left) / scale,
-        width: pillRect.width / scale,
-        height: pillRect.height / scale,
+      const visible =
+        pillRect.width > 0 &&
+        pillRect.height > 0 &&
+        pillRect.top >= bodyRect.top - 2 &&
+        pillRect.bottom <= bodyRect.bottom + 2 &&
+        pillRect.left >= bodyRect.left - 2 &&
+        pillRect.right <= bodyRect.right + 2
+      if (visible) {
+        const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
+        run = {
+          top: (pillRect.top - bodyRect.top) / scale,
+          left: (pillRect.left - bodyRect.left) / scale,
+          width: pillRect.width / scale,
+          height: pillRect.height / scale,
+        }
       }
     }
     setRunBox(run)
@@ -117,6 +135,10 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       const content = viewRef.current?.contentDOM
       if (content) ro.observe(content)
     }
+    const mutations = new MutationObserver((records) => {
+      if (records.some((record) => record.target instanceof Element && record.target.closest('.cm-note-editor'))) measure()
+    })
+    mutations.observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] })
     // Settle loop: absolutely-positioned chrome (the InlineCommandBar Run
     // pill) shifts with section geometry when fonts swap, without resizing
     // anything the observers above watch, and its React re-render can land
@@ -147,6 +169,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       window.clearTimeout(t1)
       window.clearTimeout(t2)
       ro?.disconnect()
+      mutations.disconnect()
       scroller?.removeEventListener('scroll', measure)
       window.removeEventListener('resize', measure)
       cancelAnimationFrame(raf)

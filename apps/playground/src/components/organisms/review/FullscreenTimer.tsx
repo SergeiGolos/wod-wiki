@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "@/components/organisms/editor/RuntimeTimerPanel";
 import type { ScriptBlock, Sessions } from "@/components/Editor/types";
 import { ReviewGrid } from "@/components/organisms/review/ReviewGrid";
 import { useDebugMode } from "@/contexts/DebugModeContext";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
+import type { IScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { Segment } from '@bitcobblers/wod-wiki-engine';
 import { FocusedDialog } from "@/components/molecules/FocusedDialog";
 import { CastButtonRpc } from "@/components/organisms/cast/CastButtonRpc";
@@ -17,6 +18,16 @@ export interface FullscreenTimerProps {
   onCompleteWorkout?: (blockId: string, results: Sessions) => void;
   /** Whether the timer should start automatically on mount. */
   autoStart?: boolean;
+  /** Called when the inner runtime is created — host can send gate-popping events (e.g. Next to clear WaitingToStart). */
+  onRuntimeReady?: (runtime: IScriptRuntime) => void;
+  /** Called once when the inner runtime transitions from idle to running. */
+  onRunStarted?: () => void;
+  /**
+   * Host-driven halt (doc swap / pending restart): while true, a live run is
+   * stopped and its partial results reported via onCompleteWorkout WITHOUT
+   * closing — the host keeps control of when the overlay exits.
+   */
+  externalStop?: boolean;
 }
 
 export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
@@ -25,26 +36,47 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
   onClose,
   onCompleteWorkout,
   autoStart,
+  onRuntimeReady,
+  onRunStarted,
+  externalStop,
 }) => {
   const [completedSegments, setCompletedSegments] = useState<Segment[] | null>(null);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set());
   const { isDebugMode } = useDebugMode();
 
+  // Exit/Stop on a live run must not discard outputs: flip the panel's halt
+  // flag (RuntimeTimerPanel externalStop), which stops the execution and
+  // reports partial results via onComplete BEFORE we close. Refs make idle
+  // exits cheap (plain close, nothing to report) and double-finalize
+  // impossible.
+  const startedRef = useRef(false);
+  const finalizedRef = useRef(false);
+  const exitRequestedRef = useRef(false);
+  const [haltRequested, setHaltRequested] = useState(false);
+
+  const handleRunStarted = useCallback(() => {
+    startedRef.current = true;
+    onRunStarted?.();
+  }, [onRunStarted]);
+
   const handleClose = () => {
-    // Dismiss immediately so the runner closes on the same tick the user
-    // clicks the Close (X) button. A previous implementation deferred this
-    // by 100ms for hypothetical closing animations, but no animations are
-    // wired and the delay made the click feel unresponsive — particularly
-    // in the Ready-to-Start state where the timer hasn't started yet, so
-    // the user sees no other state change to acknowledge their input.
-    // See issue UX-01.
-    onClose();
+    // Review view, an already-finalized run, or a never-started run: nothing
+    // left to report — dismiss immediately (idle exit finishes with no results).
+    if (completedSegments !== null || finalizedRef.current || !startedRef.current) {
+      onClose();
+      return;
+    }
+    // Live run: halt first; close once the partial report has gone out.
+    exitRequestedRef.current = true;
+    setHaltRequested(true);
   };
 
-  // Called by RuntimeTimerPanel when the workout finishes (either naturally or
-  // via the Stop button).  When completed === true (natural finish), we
+  // Called by RuntimeTimerPanel when the workout finishes (naturally, via its
+  // Stop button, or via a halt). When completed === true (natural finish), we
   // transition to the results view instead of closing.
   const handleComplete = (blockId: string, results: Sessions) => {
+    if (finalizedRef.current) return; // single report per run — no double-finalize
+    finalizedRef.current = true;
     onCompleteWorkout?.(blockId, results);
 
     if (results.completed && results.logs && results.logs.length > 0) {
@@ -53,9 +85,11 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
     } else if (results.completed) {
       // Completed but no logs — still switch to results view (will show empty state)
       setCompletedSegments([]);
+    } else if (exitRequestedRef.current) {
+      // User Exit/Stop on a live run: partial results are reported — safe to close.
+      onClose();
     }
-    // If not completed (manual stop), fall through — RuntimeTimerPanel will call
-    // onClose() which closes the popup normally.
+    // Host-driven externalStop partial: panel stays mounted; the host owns exit.
   };
 
   const handleSelectSegment = (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => {
@@ -101,7 +135,25 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
     </FocusedDialog>
   ) : (
     /* ── Track view: active timer ── */
-    <FocusedDialog onClose={handleClose} floatingClose actions={<><CastButtonRpc /><AudioToggle /></>}>
+    <FocusedDialog
+      onClose={handleClose}
+      title="Workout"
+      closeLabel="Exit"
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={handleClose}
+            title="Stop Session"
+            className="flex h-11 min-w-[44px] items-center justify-center rounded-pill bg-muted/50 px-4 text-sm font-medium text-muted-foreground shadow-[rgba(0,0,0,0.06)_0px_1px_2px] transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Stop
+          </button>
+          <CastButtonRpc />
+          <AudioToggle />
+        </>
+      }
+    >
       <RuntimeTimerPanel
         block={block}
         view={view}
@@ -109,6 +161,9 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
         onComplete={handleComplete}
         isExpanded={true}
         autoStart={autoStart}
+        onRuntimeReady={onRuntimeReady}
+        onRunStarted={handleRunStarted}
+        externalStop={externalStop || haltRequested}
       />
     </FocusedDialog>
   );

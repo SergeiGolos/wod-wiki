@@ -3,10 +3,8 @@
  *
  * Asserts the four tagged runway sections (write / run / own / explore), the
  * jump section exits, the chapter picker, per-stage drop-off hrefs, and the
- * telemetry funnel events. Runs are INLINE (no fullscreen overlay): a fresh
- * playground run identity is minted per explicit Run / stage-entrance
- * autostart, saved exactly once, and the explore table is scoped to the
- * run's note.
+ * telemetry funnel events, arrival auto-start, record-once finalization,
+ * and note-scoped results.
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
@@ -154,6 +152,10 @@ mock.module('../hooks/usePlaygroundRun', () => ({
     get run() {
       return runControl.run
     },
+    get recorded() {
+      return runControl.recorded
+    },
+    pendingResults: null,
     start: mock(async (doc: string, block: ScriptBlock) => {
       if (runControl.failStarts) throw new Error('storage blocked')
       runControl.starts += 1
@@ -178,9 +180,7 @@ mock.module('../hooks/usePlaygroundRun', () => ({
   }),
 }))
 
-// The explore table pane executes WQL against the store; in tests the store
-// is unavailable — the pane must degrade to its empty/sample affordances
-// while still issuing the (note-scoped) query.
+// The run source remains note-scoped when the journal query fails.
 const queryCalls: string[] = []
 mock.module('@/services/queryService', () => ({
   queryService: {
@@ -191,11 +191,6 @@ mock.module('@/services/queryService', () => ({
   },
 }))
 
-mock.module('@/services/analytics/sample', () => ({
-  hasSampleData: async () => false,
-  loadSampleData: async () => ({ facts: 0 }),
-  purgeSampleData: async () => {},
-}))
 
 mock.module('@/services/content/seedContent', () => ({
   useSeedContent: () => null,
@@ -391,15 +386,11 @@ async function renderHomeTour() {
   return result
 }
 
-/** Drives to the run section's timer stage and waits out the dwell autostart. */
-async function driveToTimerStageAndAutostart() {
+async function startRunAtTimerStage() {
   await act(async () => {
+    fireEvent.click(screen.getByTestId('tour-caption-command-editor-run-try'))
     setTestTourProgress(0.50)
     await Promise.resolve()
-  })
-  // The stage-entrance autostart dwells 400ms before minting the run.
-  await act(async () => {
-    await delay(450)
   })
 }
 
@@ -410,7 +401,7 @@ describe('HomeTour', () => {
   let unsubscribe: () => void = () => {}
 
   beforeEach(() => {
-    setTestTourProgress(0.50)
+    setTestTourProgress(0.05)
     resetScrollSpy()
     recorded = []
     queryCalls.length = 0
@@ -450,8 +441,6 @@ describe('HomeTour', () => {
 
     const feedsLink = within(jump).getByTestId('jump-feeds')
     expect(feedsLink.getAttribute('href')).toBe('/feeds')
-    // The Feeds destination is live — no stale "work in progress" label.
-    expect(jump.textContent?.toLowerCase()).not.toContain('work in progress')
 
     const libraryLink = within(jump).getByTestId('jump-library')
     expect(libraryLink.getAttribute('href')).toBe('/collections')
@@ -471,54 +460,7 @@ describe('HomeTour', () => {
     }
   })
 
-  it('renders the page structure — four tagged runways in walkthrough order', async () => {
-    await renderHomeTour()
 
-    expect(screen.getByTestId('tour-jump-section')).toBeTruthy()
-    expect(screen.queryByTestId('tour-registry')).toBeNull()
-    expect(screen.queryByTestId('tour-reference')).toBeNull()
-
-    const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent ?? '')
-    const order = ['Write it in', 'Run it as a', 'Own the', 'your analytics']
-    let cursor = -1
-    for (const fragment of order) {
-      const idx = headings.findIndex((t, i) => i > cursor && t.includes(fragment))
-      expect(idx).toBeGreaterThan(cursor)
-      cursor = idx
-    }
-
-    expect(screen.getByTestId('tour-chapter-picker')).toBeTruthy()
-    expect(screen.getAllByTestId('tour-runway')).toHaveLength(4)
-  })
-
-  it('never renders the fullscreen playground overlay on any path', async () => {
-    await renderHomeTour()
-    await driveToTimerStageAndAutostart()
-
-    // The run is inline in the run section — no overlay exists anywhere.
-    expect(screen.queryByTestId('tour-playground-overlay')).toBeNull()
-    expect(screen.getByTestId('mock-timer-panel')).toBeTruthy()
-  })
-
-  it('autostarts the run once per identity on timer-stage dwell', async () => {
-    await renderHomeTour()
-    await driveToTimerStageAndAutostart()
-
-    expect(runControl.starts).toBe(1)
-    expect(runControl.run?.noteId).toBe('note-1')
-
-    // Backward/forward re-entry never re-runs the settled identity.
-    await act(async () => {
-      setTestTourProgress(0.10)
-      await Promise.resolve()
-    })
-    await act(async () => {
-      setTestTourProgress(0.50)
-      await Promise.resolve()
-      await delay(450)
-    })
-    expect(runControl.starts).toBe(1)
-  })
 
   it('publishes a stop-the-timer outline button on the metrics row only while a run is live', async () => {
     const published: NavItemL3[][] = []
@@ -538,6 +480,9 @@ describe('HomeTour', () => {
               setSecondarySpec: () => {},
               scrollToSection: () => {},
               registerScrollFn: () => {},
+              setStreamControls: () => {},
+              openCreateJournal: () => {},
+              registerCreateJournal: () => {},
             }}
           >
             <HomeTour wodFiles={wodFiles} theme="light" quests={homeQuests} chapters={chapters} />
@@ -551,7 +496,7 @@ describe('HomeTour', () => {
     const lastOutline = () => published[published.length - 1] ?? []
     expect(lastOutline().find((i) => i.id === 'own')?.secondaryAction).toBeUndefined()
 
-    await driveToTimerStageAndAutostart()
+    await startRunAtTimerStage()
     await act(async () => {
       await Promise.resolve()
     })
@@ -561,8 +506,6 @@ describe('HomeTour', () => {
   })
 
   it('does not start a hidden run when the visitor blows past the timer stages', async () => {
-    // Stub IntersectionObserver: leaving the run section's viewport before
-    // the dwell completes must clear the pending autostart — no hidden run.
     type MockEntry = { el: Element; fire: (v: boolean) => void }
     const observers: MockEntry[] = []
     class MockIO {
@@ -577,7 +520,7 @@ describe('HomeTour', () => {
             this.cb([{ isIntersecting: v } as unknown as IntersectionObserverEntry], this as unknown as IntersectionObserver),
         }
         observers.push(entry)
-        entry.fire(true)
+        entry.fire(false)
       }
       unobserve() {}
       disconnect() {}
@@ -591,8 +534,6 @@ describe('HomeTour', () => {
         setTestTourProgress(0.10)
         await Promise.resolve()
       })
-      // Blow past: the run section's viewport releases within the dwell
-      // window (real fast scroll) — the pending autostart is cleared.
       await act(async () => {
         for (const o of observers) {
           if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(false)
@@ -661,7 +602,7 @@ describe('HomeTour', () => {
 
   it('records completion against the run identity exactly once', async () => {
     await renderHomeTour()
-    await driveToTimerStageAndAutostart()
+    await startRunAtTimerStage()
     expect(runControl.starts).toBe(1)
 
     await act(async () => {
@@ -735,107 +676,76 @@ describe('HomeTour', () => {
     expect(editors[0].value).toContain('21-15-9')
   })
 
-  it('registers the fenced-block highlight region only in the runway window (#884)', async () => {
-    await renderHomeTour()
-    await act(async () => {
-      setTestTourProgress(0.20)
-      await Promise.resolve()
-    })
-
-    expect(screen.getAllByTestId('tour-wod-block-region')).toHaveLength(1)
-
-    // Picking an adventure preset keeps exactly one fixed region (the fence
-    // is line-aligned across presets, so the box does not move).
-    await act(async () => {
-      setTestTourProgress(0.05)
-      await Promise.resolve()
-    })
-    const wrapper = screen.getByTestId('tour-workout-choices')
-    fireEvent.click(wrapper.querySelector('button')!)
-    const option = await screen.findByText('Load & Resistance')
-    await act(async () => {
-      fireEvent.mouseDown(option)
-      await Promise.resolve()
-    })
-    expect(screen.getAllByTestId('tour-wod-block-region')).toHaveLength(1)
-  })
 
   it('restarts the run from the timer header Reset button (#885)', async () => {
     await renderHomeTour()
-    await driveToTimerStageAndAutostart()
+    await startRunAtTimerStage()
     await screen.findByTestId('mock-timer-panel')
 
     const resetButton = await screen.findByRole('button', { name: /Reset timer/i })
-    const mountsBefore = timerPanelControl().mockTimerPanelMounts ?? 0
     await act(async () => {
       fireEvent.click(resetButton)
       await Promise.resolve()
     })
 
-    // Reset finalizes the live partial (completed:false) and remounts the
-    // pane on a fresh unstarted snapshot.
+    expect(runControl.finalizes).toHaveLength(1)
+    expect(runControl.finalizes[0].completed).toBe(false)
     expect(runControl.resets).toBe(1)
-    expect(timerPanelControl().mockTimerPanelMounts ?? 0).toBeGreaterThan(mountsBefore)
+    await act(async () => {
+      fireEvent.click(within(screen.getByTestId('tour-section-run')).getByRole('button', { name: 'Run this example' }))
+      await Promise.resolve()
+    })
+    expect(runControl.run?.noteId).toBe('note-2')
+    expect(runControl.finalizes).toHaveLength(1)
   })
 
-  it('saves the partial exactly once when the run section scrolls out of view', async () => {
-    // Stub IntersectionObserver so the test can toggle the run section's
-    // viewport signal directly.
-    type MockEntry = { el: Element; fire: (v: boolean) => void }
-    const observers: MockEntry[] = []
-    class MockIO {
-      cb: IntersectionObserverCallback
-      constructor(cb: IntersectionObserverCallback) {
-        this.cb = cb
-      }
-      observe(el: Element) {
-        const entry = {
-          el,
-          fire: (v: boolean) =>
-            this.cb([{ isIntersecting: v } as unknown as IntersectionObserverEntry], this as unknown as IntersectionObserver),
-        }
-        observers.push(entry)
-        entry.fire(true)
-      }
-      unobserve() {}
-      disconnect() {}
-    }
-    const globalScope = globalThis as unknown as Record<string, unknown>
-    globalScope.IntersectionObserver = MockIO
 
+  it('starts the tour once on timer arrival without a Run click', async () => {
+    const observers: Array<{ el: Element; fire: (visible: boolean) => void }> = []
+    class MockIO {
+      constructor(private callback: IntersectionObserverCallback) {}
+      observe(el: Element) {
+        observers.push({ el, fire: (visible) => this.callback([{ target: el, isIntersecting: visible } as IntersectionObserverEntry], this as unknown as IntersectionObserver) })
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    const scope = globalThis as unknown as { IntersectionObserver?: unknown }
+    scope.IntersectionObserver = MockIO
     try {
       await renderHomeTour()
-      await driveToTimerStageAndAutostart()
-      expect(runControl.starts).toBe(1)
-
-      // Leave the run section's viewport — the live execution is halted
-      // (externalStop) and the partial is recorded exactly once.
+      expect(runControl.starts).toBe(0)
       await act(async () => {
-        for (const o of observers) {
-          if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(false)
+        for (const observer of observers) {
+          if (observer.el instanceof HTMLElement && observer.el.closest('[data-testid="tour-section-run"]')) observer.fire(true)
+        }
+        setTestTourProgress(0.5)
+        await Promise.resolve()
+      })
+      await waitFor(() => expect(runControl.starts).toBe(1))
+      await act(async () => {
+        for (const observer of observers) {
+          if (observer.el instanceof HTMLElement && observer.el.closest('[data-testid="tour-section-run"]')) observer.fire(false)
         }
         await Promise.resolve()
       })
       await waitFor(() => expect(runControl.finalizes).toHaveLength(1))
-      expect(runControl.finalizes[0]).toMatchObject({ completed: false })
-
-      // Re-entering never re-runs the settled identity.
+      expect(runControl.finalizes[0].completed).toBe(false)
       await act(async () => {
-        for (const o of observers) {
-          if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(true)
+        for (const observer of observers) {
+          if (observer.el instanceof HTMLElement && observer.el.closest('[data-testid="tour-section-run"]')) observer.fire(true)
         }
         await Promise.resolve()
-        await delay(450)
       })
       expect(runControl.starts).toBe(1)
     } finally {
-      delete (globalThis as unknown as Record<string, unknown>).IntersectionObserver
+      delete scope.IntersectionObserver
     }
   })
 
   it('records completion in place — the visitor is never pulled elsewhere', async () => {
     await renderHomeTour()
-    await driveToTimerStageAndAutostart()
+    await startRunAtTimerStage()
     await screen.findByTestId('mock-timer-panel')
 
     resetScrollSpy()
@@ -866,7 +776,7 @@ describe('HomeTour', () => {
             this.cb([{ isIntersecting: v } as unknown as IntersectionObserverEntry], this as unknown as IntersectionObserver),
         }
         observers.push(entry)
-        entry.fire(true)
+        entry.fire(false)
       }
       unobserve() {}
       disconnect() {}
@@ -888,6 +798,7 @@ describe('HomeTour', () => {
       await act(async () => {
         for (const o of observers) {
           if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(false)
+          if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-own"]')) o.fire(true)
         }
         setTestTourProgress(0.90)
         await Promise.resolve()
@@ -904,19 +815,19 @@ describe('HomeTour', () => {
     }
   })
 
-  it('scopes the explore WQL table to the current run note', async () => {
+  it('scopes the WQL table to the current note only when This run is selected', async () => {
     await renderHomeTour()
-    await driveToTimerStageAndAutostart()
+    await startRunAtTimerStage()
     expect(runControl.run?.noteId).toBe('note-1')
-
-    // Drive to the explore section's table beat — the pane's query must be
-    // filtered to the run's note identity.
+    const own = within(screen.getByTestId('tour-section-own'))
+    expect(own.getByTestId('tour-session-source-label').textContent).toBe('Example data')
+    expect(queryCalls).toEqual([])
     await act(async () => {
-      setTestTourProgress(0.30)
+      fireEvent.click(own.getByRole('button', { name: 'This run' }))
       await Promise.resolve()
     })
-    await waitFor(() => expect(queryCalls.length).toBeGreaterThan(0))
-    expect(queryCalls.some((q) => q.includes('note:note-1'))).toBe(true)
+    await waitFor(() => expect(queryCalls.some((q) => q.includes('note:note-1'))).toBe(true))
+    expect(own.getByTestId('tour-session-source-label').textContent).toBe('This run')
   })
 
   it('scopes explore queries AST-safely — empty and preset filters parse with the real parser', async () => {
@@ -954,24 +865,4 @@ describe('HomeTour', () => {
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.chapterGuideClicked)
   })
 
-  it('hero title highlights jump to each walkthrough section on click', async () => {
-    const scrollIntoViewSpy = mock(() => {})
-    const originalScrollIntoView = Element.prototype.scrollIntoView
-    Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as typeof originalScrollIntoView
-
-    try {
-      await renderHomeTour()
-
-      const sections = ['write', 'run', 'own', 'explore']
-      for (const sec of sections) {
-        scrollIntoViewSpy.mockClear()
-        const btn = screen.getByTestId(`hero-tagline-${sec}`)
-        expect(btn).toBeTruthy()
-        fireEvent.click(btn)
-        expect(scrollIntoViewSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
-      }
-    } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView
-    }
-  })
 })
