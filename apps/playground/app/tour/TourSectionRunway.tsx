@@ -272,7 +272,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
             {/* stage bar — the status slot reserves its height in normal
                 flow (status never overlays the pane's dashboard controls);
                 pips carry the stage progress. */}
-            <div className="mx-auto flex min-h-[46px] w-full max-w-[1500px] items-center justify-between gap-4 px-6 pt-3 pb-2 lg:px-12">
+            <div className="mx-auto flex min-h-[46px] w-full max-w-[1500px] 2xl:max-w-[1720px] items-center justify-between gap-4 px-6 pt-3 pb-2 lg:px-12 xl:px-16 xl:pt-4 xl:pb-3">
               <div className="flex min-w-0 flex-1">
                 {toastLabel != null && (
                   <div
@@ -311,8 +311,8 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                 is wide, stacked when it is tall. */}
             <div
               ref={setContextRow}
-              className={`flex min-h-0 w-full flex-1 px-5 pb-5 lg:px-10 ${
-                split ? 'flex-row items-stretch gap-[clamp(20px,2.5vw,44px)]' : 'flex-col gap-6'
+              className={`mx-auto flex min-h-0 w-full max-w-[1500px] 2xl:max-w-[1720px] flex-1 px-5 pb-5 lg:px-10 xl:px-16 xl:pb-8 2xl:pb-10 ${
+                split ? 'flex-row items-stretch gap-[clamp(20px,2.5vw,56px)] xl:gap-12 2xl:gap-16' : 'flex-col gap-6 xl:gap-8'
               }`}
             >
               {/* stage pane — the RingTargetsProvider scopes the ring registry

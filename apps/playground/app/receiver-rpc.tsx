@@ -71,12 +71,13 @@ const ReceiverApp: React.FC<{
     const signalingRef = useRef<ReceiverCastSignaling | null>(null);
 
     // Send event back to browser via the proxy runtime
-    const sendEvent = useCallback((eventName: string) => {
+    const sendEvent = useCallback((eventName: string, data?: unknown) => {
         const runtime = runtimeRef.current;
         if (!runtime) return;
         runtime.handle({
             name: eventName,
             timestamp: new Date(),
+            data,
         });
     }, []);
 
@@ -111,9 +112,10 @@ const ReceiverApp: React.FC<{
         // Best effort: notify sender so it can react while still connected.
         sendEvent('dismiss');
 
-        // Local fallback: always reset to waiting even if sender is gone.
+        // Reset to idle but keep proxyRuntime: nulling it strands the UI on
+        // the waiting screen while the sender is still connected — subsequent
+        // workbench updates (preview/active/review) must restore the display.
         setWorkbenchState({ mode: 'idle' });
-        setProxyRuntime(null);
     }, [sendEvent]);
 
     // D-Pad navigation activation
@@ -134,7 +136,7 @@ const ReceiverApp: React.FC<{
 
             // Preview screen items → start the workout
             if (elementId.startsWith('preview-block-')) {
-                sendEvent('next');
+                sendEvent('select-block', { index: Number(elementId.slice('preview-block-'.length)) });
                 return;
             }
             // Track panel controls
@@ -203,67 +205,7 @@ const ReceiverApp: React.FC<{
         return cleanup;
     }, [proxyRuntime]);
 
-    /**
-     * Initialize/Re-initialize the WebRTC transport and receiver session.
-     * Called whenever a new signaling offer arrives.
-     *
-     * The session manager handles audio routing and the workbench
-     * subscription; the React tree only needs to observe the runtime
-     * and react to disconnect events.
-     */
-    const setupTransport = useCallback(() => {
-        if (!signalingRef.current) return;
-        console.log('[ReceiverApp] Setting up new transport session…');
-
-        // 1. Dispose previous session + transport. The receiver session
-        //    manager's dispose() tears down the runtime and audio routing;
-        //    we then dispose the transport so the signaling facade can
-        //    be re-issued. ReceiverApp owns the signaling lifetime, not
-        //    the transport, so we wrap it in a non-disposable facade.
-        activeSessionHandleRef.current?.dispose();
-        activeSessionHandleRef.current = null;
-        transportRef.current?.dispose();
-        transportRef.current = null;
-        setProxyRuntime(null);
-
-        const sharedSignaling = signalingRef.current;
-        const signalingFacade: ISignaling = {
-            send: (signal) => sharedSignaling.send(signal),
-            onSignal: (handler) => sharedSignaling.onSignal(handler),
-            dispose: () => { /* no-op — signaling is owned by ReceiverApp */ },
-        };
-        const transportInstance: IRpcTransport = new WebRtcRpcTransport('answerer', signalingFacade);
-        const handle = createReceiverSession(transportInstance);
-        transportRef.current = transportInstance;
-        activeSessionHandleRef.current = handle;
-
-        const unsubDisconnect = handle.onDisconnected(() => {
-            console.log('[ReceiverApp] RPC transport disconnected — returning to waiting screen');
-            setConnectionStatus('disconnected');
-            setProxyRuntime(null);
-            if (activeSessionHandleRef.current === handle) {
-                activeSessionHandleRef.current = null;
-            }
-            if (transportRef.current === transportInstance) {
-                transportRef.current = null;
-            }
-        });
-
-        transportInstance.onConnected(() => {
-            console.log('[ReceiverApp] RPC transport connected');
-            setConnectionStatus('connected');
-            setProxyRuntime(handle.runtime);
-        });
-
-        transportInstance.connect().catch((err: unknown) => {
-            console.error('[ReceiverApp] RPC transport connect failed', err);
-            setConnectionStatus('error');
-        });
-
-        // Track the unsub for cleanup if setupTransport runs again.
-        return () => unsubDisconnect();
-    }, []);
-    // ── Shared session wiring (paths 1 & 2) ──────────────────────────
+    // ── Shared session wiring (paths 1 & 2 & 3) ──────────────────────
     // Both the externalHandle path (parent owns lifetime) and the legacy
     // transport path (this receiver builds + disposes the handle) do the same
     // bookkeeping + subscriptions. The only thing that varies is **who owns
@@ -325,6 +267,50 @@ const ReceiverApp: React.FC<{
         runtimeRef.current = null;
         transportRef.current = null;
     }, []);
+
+    /**
+     * Initialize/Re-initialize the WebRTC transport and receiver session.
+     * Called whenever a new signaling offer arrives.
+     *
+     * The session manager handles audio routing and the workbench
+     * subscription; the React tree only needs to observe the runtime
+     * and react to disconnect events.
+     */
+    const setupTransport = useCallback(() => {
+        if (!signalingRef.current) return;
+        console.log('[ReceiverApp] Setting up new transport session…');
+
+        // 1. Dispose previous session + transport. The receiver session
+        //    manager's dispose() tears down the runtime and audio routing;
+        //    we then dispose the transport so the signaling facade can
+        //    be re-issued. ReceiverApp owns the signaling lifetime, not
+        //    the transport, so we wrap it in a non-disposable facade.
+        activeSessionHandleRef.current?.dispose();
+        activeSessionHandleRef.current = null;
+        transportRef.current?.dispose();
+        transportRef.current = null;
+        setProxyRuntime(null);
+
+        const sharedSignaling = signalingRef.current;
+        const signalingFacade: ISignaling = {
+            send: (signal) => sharedSignaling.send(signal),
+            onSignal: (handler) => sharedSignaling.onSignal(handler),
+            dispose: () => { /* no-op — signaling is owned by ReceiverApp */ },
+        };
+        const transportInstance: IRpcTransport = new WebRtcRpcTransport('answerer', signalingFacade);
+        const handle = createReceiverSession(transportInstance);
+
+        wireSession(handle, {
+            ownsLifetime: true,
+            transport: transportInstance,
+            disconnectedLog: '[ReceiverApp] RPC transport disconnected — returning to waiting screen',
+        });
+
+        transportInstance.connect().catch((err: unknown) => {
+            console.error('[ReceiverApp] RPC transport connect failed', err);
+            setConnectionStatus('error');
+        });
+    }, [wireSession]);
 
     // ── Transport initialization ──────────────────────────────────────────
     // Three paths (Finding 05):
@@ -458,8 +444,9 @@ const ReceiverApp: React.FC<{
         return () => document.removeEventListener('keydown', handleEscape, true);
     }, [sendEvent, flash]);
 
-    // Waiting screen (not yet connected)
-    if (!proxyRuntime) {
+    // Waiting screen: not yet connected, or connected with no runtime active.
+    // The sender flips this back to preview/active/review on the next update.
+    if (!proxyRuntime || workbenchState.mode === 'idle') {
         return (
             <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/60 font-mono uppercase tracking-[0.5em]">
                 <div className="animate-pulse">Wod.Wiki // {connectionStatus}</div>
@@ -477,7 +464,7 @@ const ReceiverApp: React.FC<{
                 <ReceiverPreviewPanel
                     previewData={workbenchState.previewData}
                     getFocusProps={getFocusProps}
-                    onBlockSelect={() => sendEvent('next')}
+                    onBlockSelect={(_blockId, index) => sendEvent('select-block', { index })}
                 />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}

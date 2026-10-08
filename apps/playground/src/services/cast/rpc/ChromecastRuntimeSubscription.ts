@@ -17,6 +17,17 @@ import { serializeStackSnapshot, serializeOutput, serializeAnalyticsSummary } fr
  * state hasn't changed (timer tick values are excluded; the receiver
  * interpolates elapsed time locally from spans).
  */
+/**
+ * Stable signature for a fragment tier (IMetric[][]): type/value/image/unit only.
+ * Object values (e.g. timer elapsed TimerState) collapse to '' — excluded like
+ * ticks; the receiver interpolates. Avoids JSON cost and volatile payloads.
+ */
+function fragSig(frags?: unknown[][]): string {
+    return (frags ?? []).map(loc => (loc as IMetric[]).map(m =>
+        `${m?.type ?? ''}:${m?.value == null || typeof m.value === 'object' ? '' : String(m.value)}:${m?.image ?? ''}:${m?.unit ?? ''}`,
+    ).join(',')).join(';');
+}
+
 export class ChromecastRuntimeSubscription implements ICastSubscription {
     readonly id: string;
     private lastFingerprint = '';
@@ -74,6 +85,8 @@ export class ChromecastRuntimeSubscription implements ICastSubscription {
      * Only structural changes (block list, labels, completion, metrics tiers, behaviors)
      * trigger a send. Timer spans are included (so span count / start changes are detected)
      * but accumulated elapsed is NOT — the receiver interpolates locally.
+     * Fragment tiers fingerprint stable value fields (type/value/image/unit), so
+     * same-count value changes re-send; object values (timer elapsed) stay excluded.
      */
     private computeFingerprint(message: {
         snapshotType: string;
@@ -106,10 +119,11 @@ export class ChromecastRuntimeSubscription implements ICastSubscription {
                     `timer:${block.timer.isRunning}:${block.timer.spans.length}:${block.timer.durationMs}:${block.timer.spans[0]?.started ?? ''}:${block.timer.role ?? ''}`,
                 );
             }
-            // Include metrics tier counts so added/removed rows trigger a re-send
-            parts.push(`frags:${block.displayFragments.length}`);
-            parts.push(`promote:${block.promoteFragments?.length ?? 0}`);
-            parts.push(`result:${block.resultFragments?.length ?? 0}`);
+            // Fragment tiers: fingerprint stable value fields, not just counts —
+            // same-count metric value changes must re-send.
+            parts.push(`frags:${fragSig(block.displayFragments)}`);
+            parts.push(`promote:${fragSig(block.promoteFragments)}`);
+            parts.push(`result:${fragSig(block.resultFragments)}`);
             const privateTags = Object.keys(block.privateFragments ?? {}).sort().join(',');
             parts.push(`private:${privateTags}`);
             // Include next-preview metrics content so Up Next changes trigger a re-send

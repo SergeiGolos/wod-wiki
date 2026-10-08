@@ -1073,10 +1073,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           re-entering it from below resets the shared document. */}
       <div ref={heroRef} aria-hidden className="h-px" />
 
+      {/* ponytail: clamped responsive spacing ceiling at 2xl/1720px; upgrade to fluid container queries if ultrawide canvas grows */}
       <section
         id="tour-hero"
         data-testid="tour-hero"
-        className="relative grid h-[calc(100dvh-104px)] grid-rows-[2fr_3fr] justify-items-center gap-4 px-5 py-4 text-center lg:px-10"
+        className="relative grid h-[calc(100dvh-104px)] grid-rows-[2fr_3fr] justify-items-center gap-4 px-5 py-4 text-center lg:px-10 xl:gap-8 xl:py-8 2xl:gap-10 2xl:py-10 2xl:px-16"
       >
         <div className="flex min-h-0 w-full items-center justify-center overflow-y-auto">
           <TourHeroHeading />
@@ -1086,7 +1087,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
             context. The write section's sticky pane below is a second
             display of the same shared document. The chrome title names the
             loaded doc (shared attribution or the default welcome note). */}
-        <div className="h-full min-h-0 w-full max-w-[1000px]">
+        <div className="h-full min-h-0 w-full max-w-[1000px] xl:max-w-[1140px] 2xl:max-w-[1360px]">
           <MacOSChrome
             title={
               heroState === 'run'
@@ -1274,13 +1275,13 @@ export function TaglineHeader({
   blurb: string
 }) {
   return (
-    <header className="flex items-center border-b border-border/60 px-6 py-14 lg:px-12">
-      <div className="mx-auto w-full max-w-[1500px]">
-        <h2 className="flex items-baseline gap-4 text-[clamp(26px,3.6vw,48px)] font-extrabold leading-[1.1] tracking-[-0.03em]">
+    <header className="flex items-center border-b border-border/60 px-6 py-14 lg:px-12 xl:py-20 2xl:py-24 xl:px-16">
+      <div className="mx-auto w-full max-w-[1500px] 2xl:max-w-[1720px]">
+        <h2 className="flex items-baseline gap-4 xl:gap-6 text-[clamp(26px,3.6vw,52px)] font-extrabold leading-[1.1] tracking-[-0.03em]">
           <span className="font-mono text-xs font-normal tracking-normal text-muted-foreground">{index}</span>
           <span>{before}{accentText}{after}</span>
         </h2>
-        <p className="mt-3 max-w-xl text-[clamp(14px,1.2vw,16px)] leading-[1.6] text-muted-foreground">
+        <p className="mt-3 xl:mt-4 max-w-xl xl:max-w-2xl 2xl:max-w-3xl text-[clamp(14px,1.2vw,18px)] leading-[1.65] text-muted-foreground">
           {blurb}
         </p>
       </div>

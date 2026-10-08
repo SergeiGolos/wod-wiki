@@ -374,6 +374,36 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     };
   }, [runtime, castTransport]);
 
+  // ── Cast workbench mode bridge ───────────────────────────────────────
+  // While this inline runtime owns the receiver, flip it to the active clock
+  // when the run starts and back to idle when it stops (status returns to
+  // 'idle') or the panel unmounts mid-run. Completion is owned by the review
+  // projection sent below — clearing the marker there lets the receiver keep
+  // showing review (EditorCastBridge re-sends preview once the runtime is no
+  // longer active). lastWorkbenchModeRef dedupes: re-renders, ticks and
+  // pause/resume must not re-send the same mode.
+  const lastWorkbenchModeRef = useRef<'active' | 'idle' | null>(null);
+  // Transport (re)connect is a new peer — resend the current mode.
+  useEffect(() => { lastWorkbenchModeRef.current = null; }, [castTransport]);
+  useEffect(() => {
+    if (execution.status === 'completed') {
+      lastWorkbenchModeRef.current = null;
+      return;
+    }
+    const mode: 'active' | 'idle' | null = ready && execution.status !== 'completed'
+      ? 'active'
+      : null;
+    if (!mode || mode === lastWorkbenchModeRef.current || !castTransport?.connected) return;
+    lastWorkbenchModeRef.current = mode;
+    try { castTransport.send({ type: 'rpc-workbench-update', mode }); } catch { /* ignore */ }
+  }, [ready, execution.status, castTransport]);
+  // Unmount while the receiver shows the active clock → hand back to idle.
+  // Registry getter, not the closure state: the transport may have changed.
+  useEffect(() => () => {
+    if (lastWorkbenchModeRef.current !== 'active') return;
+    try { getActiveCastTransport()?.send({ type: 'rpc-workbench-update', mode: 'idle' }); } catch { /* ignore */ }
+  }, []);
+
   // Track completion: notify parent immediately so it can switch to results view.
   // The parent (FullscreenTimer) will unmount this panel when it transitions.
   // Also send review mode to Chromecast BEFORE the panel unmounts (which would

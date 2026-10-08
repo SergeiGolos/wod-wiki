@@ -15,7 +15,7 @@ import { noteByIdPath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
 
 const ITEM_BASE =
-  'group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+  'group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary xl:px-5 xl:py-2.5 xl:text-base'
 
 export function TourJumpSection() {
   const navigate = useNavigate()
@@ -42,13 +42,13 @@ export function TourJumpSection() {
   return (
     <section
       data-testid="tour-jump-section"
-      className="flex flex-col items-center border-b border-border bg-muted/30 px-6 py-8"
+      className="flex flex-col items-center border-b border-border bg-muted/30 px-6 py-8 xl:py-14 2xl:py-16"
     >
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+      <h2 className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground xl:text-xs">
         Know where you&apos;re going?
       </h2>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 xl:mt-6 xl:gap-3.5">
         <Link
           to="/feeds"
           onClick={handleFeeds}
@@ -86,7 +86,7 @@ export function TourJumpSection() {
         </button>
       </div>
 
-      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 xl:mt-6 xl:text-[11px]">
         — or keep scrolling ↓
       </p>
     </section>

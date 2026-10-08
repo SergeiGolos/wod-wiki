@@ -28,9 +28,9 @@ export function CelebrationBridge({ chapters, className }: CelebrationBridgeProp
   return (
     <section
       data-testid="celebration-bridge"
-      className={cn('py-12 px-4 border-b border-border/60 text-center', className)}
+      className={cn('py-12 px-4 sm:px-6 xl:py-20 2xl:py-24 border-b border-border/60 text-center', className)}
     >
-      <div className="mx-auto max-w-2xl flex flex-col items-center gap-4">
+      <div className="mx-auto max-w-2xl xl:max-w-3xl 2xl:max-w-4xl flex flex-col items-center gap-4 xl:gap-6">
         {/* Progress badge / Celebrated state */}
         <div
           data-testid="celebration-badge"
@@ -57,13 +57,13 @@ export function CelebrationBridge({ chapters, className }: CelebrationBridgeProp
         </div>
 
         {/* Headline */}
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+        <h2 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight text-foreground">
           You've seen how it works. Now master the syntax.
         </h2>
 
 
         {/* Hype Paragraph */}
-        <p className="text-[14px] sm:text-[15px] leading-relaxed text-muted-foreground max-w-xl">
+        <p className="text-[14px] sm:text-[15px] xl:text-base 2xl:text-lg leading-relaxed text-muted-foreground max-w-xl xl:max-w-2xl 2xl:max-w-3xl">
           From your first <code className="font-mono text-[12px] bg-muted px-1.5 py-0.5 rounded text-foreground">wod</code> block to a full training session: time-capped protocols like AMRAP and EMOM, repeating rounds and dash-format rep schemes (<code className="font-mono text-[12px] bg-muted px-1 py-0.5 rounded text-foreground">21-15-9</code>), inline metrics for effort and heart rate, dialect fences for workout, log, plan, and climb notes — and complex workouts that chain it all into one session. Six chapters on the syntax, each with a runnable example and quests to earn. Keep scrolling to start.
         </p>
       </div>

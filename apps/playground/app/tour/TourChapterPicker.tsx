@@ -116,13 +116,13 @@ export function TourChapterPicker({
   }, [doc, markComplete, onRun])
 
   return (
-    <div id="tour-chapter-picker" data-testid="tour-chapter-picker" className="py-8">
+    <div id="tour-chapter-picker" data-testid="tour-chapter-picker" className="py-8 xl:py-16 2xl:py-20">
       {/* Section header — "Learn the Language" CTAs + per-chapter badge chips. */}
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-6">
+      <div className="mx-auto max-w-6xl xl:max-w-7xl 2xl:max-w-[1500px] px-4 sm:px-6 xl:px-12 pb-6 xl:pb-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Learn the Language</h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl xl:text-4xl">Learn the Language</h2>
+            <p className="mt-2 max-w-xl xl:max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base xl:text-lg">
               Six chapters, each with a runnable example — load one into the editor, or read the full walkthrough in the guides.
             </p>
           </div>
@@ -146,11 +146,11 @@ export function TourChapterPicker({
       </div>
 
       {/* Main content: Responsive Stacked on Mobile, Side-by-Side on Desktop */}
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+      <div className="mx-auto max-w-6xl xl:max-w-7xl 2xl:max-w-[1500px] px-4 sm:px-6 xl:px-12">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 xl:gap-10 2xl:gap-12">
           {/* Chapter Dual-Button List */}
           <div
-            className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2 lg:w-[320px] lg:flex-none lg:grid-cols-1"
+            className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2 lg:w-[320px] xl:w-[360px] 2xl:w-[380px] lg:flex-none lg:grid-cols-1 xl:gap-3"
             data-testid="chapter-picker-list"
           >
             {languageChapters.map((chapter) => {
@@ -215,7 +215,7 @@ export function TourChapterPicker({
 
           {/* Shared Editor Window: Full width on mobile, responsive height */}
           <div className="w-full flex-1 min-w-0">
-            <div className="h-[calc((100dvh-65px)*0.6)] w-full lg:h-[calc((100dvh-104px)*0.6)]">
+            <div className="h-[calc((100dvh-65px)*0.6)] w-full lg:h-[calc((100dvh-104px)*0.6)] xl:h-[calc((100dvh-104px)*0.68)] 2xl:h-[680px]">
               <MacOSChrome
                 title={CHAPTER_GUIDE_ROUTES[selectedId]?.split('/').pop() ?? 'example.md'}
                 subtitle="shared example editor"

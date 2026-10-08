@@ -404,18 +404,18 @@ export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; on
   return (
     <>
       {/* Section number kept subtly inline — no eyebrow prelabel. */}
-      <h3 className="mb-3.5 text-[clamp(22px,2vw,30px)] font-extrabold leading-[1.12] tracking-[-0.03em]">
+      <h3 className="mb-3.5 xl:mb-5 text-[clamp(22px,2vw,32px)] font-extrabold leading-[1.12] tracking-[-0.03em]">
         <span className="mr-2 align-[0.2em] font-mono text-[0.5em] font-semibold tracking-[0.08em] text-muted-foreground/50">
           {cap.num}
         </span>
         {cap.title}
       </h3>
-      <p className="text-[14.5px] leading-[1.7] text-muted-foreground">{cap.body}</p>
-      <div className="mt-4 border-t border-border pt-3 font-mono text-[10px] tracking-[0.06em] text-muted-foreground/60">
+      <p className="text-[14.5px] sm:text-base xl:text-[17px] leading-[1.7] xl:leading-[1.75] text-muted-foreground">{cap.body}</p>
+      <div className="mt-4 xl:mt-6 border-t border-border pt-3 xl:pt-4 font-mono text-[10px] xl:text-[11px] tracking-[0.06em] text-muted-foreground/60">
         {cap.foot}
       </div>
       {cap.choices && cap.choices.length > 0 && (
-        <div className="mt-4" data-testid="tour-workout-choices">
+        <div className="mt-4 xl:mt-6" data-testid="tour-workout-choices">
           {cap.choicePrompt && (
             <div
               className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em]"
@@ -455,7 +455,7 @@ export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; on
         </div>
       )}
       {cap.commands && cap.commands.length > 0 && onCommand && (
-        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`tour-caption-commands-${cap.id}`}>
+        <div className="mt-4 xl:mt-6 flex flex-wrap items-center gap-2" data-testid={`tour-caption-commands-${cap.id}`}>
           {cap.commands.map((command) => (
             <button
               key={command.key}
@@ -470,7 +470,7 @@ export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; on
         </div>
       )}
       {cap.actions && cap.actions.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-4 xl:mt-6 flex flex-wrap items-center gap-3">
           {cap.actions.map((action, i) => {
             const isPrimary = i === 0
             return (

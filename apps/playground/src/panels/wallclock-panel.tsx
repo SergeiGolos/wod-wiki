@@ -18,6 +18,7 @@ import {
   useStackTimers,
   useActiveControls,
   useStackDisplayRows,
+  getRuntimeNowMs,
 } from '@bitcobblers/wod-wiki-engine';
 import { useRoundDisplay } from '@bitcobblers/wod-wiki-engine';
 import { calculateDuration } from '@/lib/timeUtils';
@@ -134,7 +135,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   // ---------------------------------------------------------------------------
   // Ticking Logic for Open Spans
   // ---------------------------------------------------------------------------
-  const [now, setNow] = React.useState(Date.now());
+  const [now, setNow] = React.useState(getRuntimeNowMs());
 
   // Check if ANY timer is running (has an open span)
   const isAnyTimerRunning = useMemo(() => {
@@ -147,7 +148,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
 
     let frameId: number;
     const update = () => {
-      setNow(Date.now());
+      setNow(getRuntimeNowMs());
       frameId = requestAnimationFrame(update);
     };
 

@@ -138,6 +138,34 @@ describe('ChromecastRuntimeSubscription', () => {
 
             expect(transport.sent).toHaveLength(2);
         });
+        it('should send again when fragment value changes with same count', () => {
+            const makeLoc = (img: string) => ({
+                metrics: {
+                    toArray: () => [{ type: 'text', image: img, origin: 'runtime' }],
+                },
+            });
+            const b1 = createMockBlock('b1', 'Run');
+            (b1 as any).getMetricMemoryByVisibility = (v: string) => v === 'display' ? [makeLoc('00:10')] : [];
+            const b2 = createMockBlock('b1', 'Run');
+            (b2 as any).getMetricMemoryByVisibility = (v: string) => v === 'display' ? [makeLoc('00:20')] : [];
+            const snapshot1: StackSnapshot = {
+                type: 'push',
+                blocks: [b1],
+                depth: 1,
+                clockTime: new Date(),
+            };
+            const snapshot2: StackSnapshot = {
+                type: 'push',
+                blocks: [b2],
+                depth: 1,
+                clockTime: new Date(),
+            };
+
+            subscription.onStackSnapshot(snapshot1);
+            subscription.onStackSnapshot(snapshot2);
+
+            expect(transport.sent).toHaveLength(2);
+        });
     });
 
     describe('onOutput', () => {
