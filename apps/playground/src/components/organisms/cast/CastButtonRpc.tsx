@@ -40,6 +40,30 @@ import { CastTransportProvider } from '@/contexts/CastTransportContext';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 
+/**
+ * CAF and the WebRTC transport reject with different shapes: Error instances,
+ * `{ code, description }` objects (chrome.cast.Error), and plain objects.
+ * Logging them raw prints "[object Object]" and loses the failure code — the
+ * thing you need when diagnosing a cast failure from console logs.
+ */
+export function describeCastError(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    if (typeof err === 'object' && err !== null) {
+        const { code, description } = err as { code?: unknown; description?: unknown };
+        if (code !== undefined || description !== undefined) {
+            return [code !== undefined ? String(code) : null, description ? String(description) : null]
+                .filter((part): part is string => part !== null)
+                .join(': ') || 'unknown';
+        }
+        try {
+            return JSON.stringify(err);
+        } catch {
+            return String(err);
+        }
+    }
+    return String(err);
+}
+
 export const CastButtonRpc: React.FC = () => {
     const backend: ICastBackend = getCastBackend();
     const [backendState, setBackendState] = useState<ICastBackendState>(backend.state);
@@ -118,12 +142,40 @@ export const CastButtonRpc: React.FC = () => {
         }
     }, [sessionManager]);
 
+    // Adopt a platform session that outlived this mount (SPA navigation or
+    // page reload): the CAF session is still running, so rebuild the local
+    // transport against it rather than showing a dead "connected" button.
+    // `connectSession` bails while `connectingRef` is set, so adoption tracks
+    // its own in-flight flag.
+    const adoptingRef = useRef(false);
+    const adoptSession = useCallback(async () => {
+        if (handleRef.current || adoptingRef.current) return;
+        if (typeof backend.resumeSession !== 'function') return;
+        adoptingRef.current = true;
+        try {
+            const transport = await backend.resumeSession();
+            await connectSession(transport);
+        } catch (err) {
+            console.warn('[CastButtonRpc] Session resume failed:', describeCastError(err));
+            cleanupCast(false);
+            // Stale SDK session (receiver gone): reset so the button offers
+            // a fresh start instead of a dead 'session-active' state.
+            backend.endSession();
+        } finally {
+            adoptingRef.current = false;
+        }
+    }, [backend, connectSession, cleanupCast]);
+
     // Subscribe to backend state changes.
     useEffect(() => {
         const unsub = backend.onStateChanged((s) => {
             setBackendState(s);
             if (s === 'session-active') {
                 setIsCasting(true);
+                // The platform session may have outlived this mount (SPA
+                // navigation or page reload) — rebuild the local transport
+                // against it instead of leaving a dead "connected" button.
+                void adoptSession();
             } else if (s === 'ready' || s === 'unavailable') {
                 setIsCasting(false);
             } else if (s === 'session-ended') {
@@ -131,7 +183,18 @@ export const CastButtonRpc: React.FC = () => {
             }
         });
         return unsub;
-    }, [backend, cleanupCast]);
+    }, [backend, cleanupCast, adoptSession]);
+
+    // Mount: if the platform session was already active before this component
+    // existed (route remount after SPA navigation, or a reload where CAF
+    // resumed before React subscribed), no state CHANGE will ever arrive —
+    // adopt directly from the current state.
+    useEffect(() => {
+        if (backend.state === 'session-active') {
+            void adoptSession();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only by design; adoptSession reads live refs
+    }, [backend]);
 
     // Best-effort: tell the receiver we're going away when the tab
     // closes. The transport-level disconnect handler on the receiver
@@ -168,11 +231,11 @@ export const CastButtonRpc: React.FC = () => {
                 setIsCasting(true);
                 await connectSession(transport);
             } catch (err) {
-                const message = err instanceof Error ? err.message : String(err);
-                if (message.includes('cancel') || message === 'cancel') {
+                const message = describeCastError(err);
+                if (message === 'cancel' || message.includes('cancel')) {
                     console.log('[CastButtonRpc] Cast request canceled or gesture expired');
                 } else {
-                    console.error('[CastButtonRpc] Cast failed:', err);
+                    console.error('[CastButtonRpc] Cast failed:', message);
                 }
                 cleanupCast(false);
             }
