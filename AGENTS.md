@@ -371,6 +371,7 @@ e2e/
 ## Known Issues and Constraints
 
 - **Playwright Browser Download**: `bun run setup` may fail downloading Chromium browsers (expected)
+- **Cast/TV hardware testing**: read `docs/cast-tv-testing.md` before testing against Laboratory TV — adb/DevTools recipes, DHCP drift, zombie-session and console-propagation gotchas
 - **TypeScript Errors**: 369 TypeScript errors exist in the codebase - only fix errors related to your changes
 - **No ESLint**: Code style enforced through TypeScript and manual review
 - **Build Times**: NEVER cancel builds - `bun run build-storybook` may take up to 60 minutes
