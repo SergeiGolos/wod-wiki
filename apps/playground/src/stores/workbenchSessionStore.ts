@@ -43,6 +43,9 @@ import { loadStaticWorkbenchContent } from '@/app/workbench/workbenchProviders';
 import { createResultRecorder } from '@/services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment } from '@/types/storage';
+import { sharedCastSessionManager } from '@/services/cast/rpc/CastSessionManager';
+import { getActiveCastTransport } from '@/services/cast/castTransportRegistry';
+import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 import { hashCode } from '@/lib/utils';
 import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
@@ -87,7 +90,7 @@ export interface WorkbenchHandles {
   handleStartWorkoutAction: (block: ScriptBlock) => void;
 }
 
-const noopHandles: WorkbenchHandles = {
+export const noopHandles: WorkbenchHandles = {
   handleStart: () => { },
   handlePause: () => { },
   handleStop: () => { },
@@ -917,7 +920,10 @@ export function createWorkbenchSessionStore(
       setSelectedBlockId: (id) => set({ selectedBlockId: id }),
       setCursorLine: (line) => set({ cursorLine: line }),
       setHighlightedLine: (line) => set({ highlightedLine: line }),
-      setSubscriptionManager: (mgr) => set({ subscriptionManager: mgr }),
+      setSubscriptionManager: (mgr) => {
+        set({ subscriptionManager: mgr });
+        sharedCastSessionManager.setSubscriptionRegistry(mgr);
+      },
       setViewMode: (mode) => set({ viewMode: mode }),
 
       // ─── Runtime & execution setters ──────────────────────────
@@ -965,6 +971,20 @@ export function createWorkbenchSessionStore(
               set({ activeSegmentIds: segmentIds, activeStatementIds: statementIds });
             }),
           );
+          const transport = getActiveCastTransport();
+          if (transport?.connected) {
+            const castSub = new ChromecastRuntimeSubscription(transport);
+            subscriptionDisposers.push(
+              runtime.subscribeToStack((snapshot) => castSub.onStackSnapshot(snapshot)),
+              runtime.subscribeToOutput((output) => castSub.onOutput(output)),
+              () => castSub.dispose(),
+            );
+            try {
+              castSub.onStackSnapshot(runtime.getStackSnapshot());
+            } catch {
+              // ignore
+            }
+          }
         } else {
           // Runtime disposed. Clear the live list so analytics fall back to
           // persisted logs (if any) on the next read.

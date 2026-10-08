@@ -55,6 +55,9 @@ export class ChromecastBackend implements ICastBackend {
     constructor() {
         this._state = sdkToBackend[ChromecastSdk.getState()];
         this.subscribeToSdk();
+        if (hasCustomCastAppId && typeof window !== 'undefined') {
+            void ChromecastSdk.load(CAST_APP_ID).catch(() => {});
+        }
     }
 
     get state(): ICastBackendState {

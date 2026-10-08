@@ -131,6 +131,21 @@ export class CastSessionManager {
     get isConnected(): boolean {
         return this.activeHandle !== null;
     }
+    getActiveHandle(): CastSessionHandle | null {
+        return this.activeHandle;
+    }
+
+    setSubscriptionRegistry(registry: SubscriptionRegistry | null): void {
+        if (!this.activeHandle || !this.activeMeta) return;
+        if (this.activeMeta.registry === registry) return;
+        if (this.activeMeta.registry) {
+            this.activeMeta.registry.remove(this.activeMeta.subscriptionId);
+        }
+        this.activeMeta.registry = registry;
+        if (registry) {
+            registry.add(this.activeHandle.subscription);
+        }
+    }
 
     /**
      * Wire a cast session to the supplied transport.
@@ -264,6 +279,8 @@ export class CastSessionManager {
         meta?.clockSync?.dispose();
     }
 }
+
+export const sharedCastSessionManager = new CastSessionManager();
 
 interface ActiveMeta {
     registry: SubscriptionRegistry | null;

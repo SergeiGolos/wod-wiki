@@ -284,4 +284,23 @@ describe('CastSessionManager', () => {
         mgr.dispose(true);
         expect(transport.sent.some(m => m.type === 'rpc-dispose')).toBe(true);
     });
+
+    it('getActiveHandle() returns the active handle while connected and null when disposed', () => {
+        expect(mgr.getActiveHandle()).toBeNull();
+        const handle = mgr.connect(transport, registry);
+        expect(mgr.getActiveHandle()).toBe(handle);
+        mgr.dispose();
+        expect(mgr.getActiveHandle()).toBeNull();
+    });
+
+    it('setSubscriptionRegistry() moves active subscription to new registry', () => {
+        mgr.connect(transport, registry);
+        expect(registry.added).toHaveLength(1);
+
+        const nextRegistry = new CountingRegistry();
+        mgr.setSubscriptionRegistry(nextRegistry);
+
+        expect(registry.removed).toEqual(['chromecast']);
+        expect(nextRegistry.added).toHaveLength(1);
+    });
 });

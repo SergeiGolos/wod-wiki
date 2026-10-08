@@ -430,6 +430,25 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtime?.handle(new NextEvent(undefined, runtime!.nowProvider));
   };
 
+  useEffect(() => {
+    if (!runtime) return;
+    const store = getActiveWorkbenchSessionStore().getState();
+    store.setRuntime(runtime);
+    store.setHandles({
+      handleStart,
+      handlePause: () => execution.pause(),
+      handleStop,
+      handleNext,
+      handleStartWorkoutAction: () => {},
+    });
+    return () => {
+      const current = getActiveWorkbenchSessionStore().getState();
+      if (current.runtime === runtime) {
+        current.setRuntime(null);
+      }
+    };
+  }, [runtime, execution]);
+
   // The cast stack is wired by `CastSessionManager` against the workbench
   // `SubscriptionManager`. The inline runtime's snapshots flow to the
   // receiver through the workbench runtime. D-Pad events are routed by

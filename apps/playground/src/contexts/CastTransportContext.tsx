@@ -10,6 +10,7 @@
 
 import React, { createContext, useContext, useMemo } from 'react';
 import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
+import { getActiveCastTransport, onCastTransportChange } from '@/services/cast/castTransportRegistry';
 
 interface CastTransportContextValue {
     /** The active cast transport, or `null` when not casting. */
@@ -27,7 +28,10 @@ const CastTransportContext = createContext<CastTransportContextValue>(defaultCon
  * gate on this before invoking any transport methods.
  */
 export function useCastTransport(): IRpcTransport | null {
-    return useContext(CastTransportContext).transport;
+    const context = useContext(CastTransportContext);
+    const [globalTransport, setGlobalTransport] = React.useState<IRpcTransport | null>(() => getActiveCastTransport());
+    React.useEffect(() => onCastTransportChange(setGlobalTransport), []);
+    return context.transport ?? globalTransport;
 }
 
 export interface CastTransportProviderProps {

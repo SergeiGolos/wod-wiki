@@ -24,8 +24,10 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';
+import { noopHandles } from '@/stores/workbenchSessionStore';
+import { NextEvent } from '@/hooks/useRuntimeTimer';
 import {
-    CastSessionManager,
+    sharedCastSessionManager,
     type CastSessionHandle,
     getCastBackend,
     setActiveCastTransport,
@@ -76,8 +78,8 @@ export const CastButtonRpc: React.FC = () => {
 
     // One manager per button lifetime. The manager is the source of
     // truth for the active session — refs would defeat the point.
-    const sessionManager = useMemo(() => new CastSessionManager(), []);
-    const handleRef = useRef<CastSessionHandle | null>(null);
+    const sessionManager = sharedCastSessionManager;
+    const handleRef = useRef<CastSessionHandle | null>(sessionManager.getActiveHandle());
     const connectingRef = useRef(false);
 
     const cleanupCast = useCallback((notifyRemote: boolean) => {
@@ -115,10 +117,35 @@ export const CastButtonRpc: React.FC = () => {
             handle.eventProvider.onEvent((event) => {
                 const state = useWorkbenchSessionStore.getState();
                 routeRuntimeEvent(event, {
-                    onNext: () => state.handles.handleNext(),
-                    onStart: () => state.handles.handleStart(),
-                    onPause: () => state.handles.handlePause(),
-                    onStop: () => state.handles.handleStop(),
+                    onNext: () => {
+                        if (state.handles.handleNext) {
+                            state.handles.handleNext();
+                        }
+                        if (state.runtime && (!state.handles.handleNext || state.handles.handleNext === noopHandles.handleNext)) {
+                            state.runtime.handle(new NextEvent(undefined, state.runtime.nowProvider));
+                            if (state.execution.status !== 'running') {
+                                state.execution.start();
+                            }
+                        }
+                    },
+                    onStart: () => {
+                        if (state.handles.handleStart) state.handles.handleStart();
+                        if (state.execution && (!state.handles.handleStart || state.handles.handleStart === noopHandles.handleStart)) {
+                            state.execution.start();
+                        }
+                    },
+                    onPause: () => {
+                        if (state.handles.handlePause) state.handles.handlePause();
+                        if (state.execution && (!state.handles.handlePause || state.handles.handlePause === noopHandles.handlePause)) {
+                            state.execution.pause();
+                        }
+                    },
+                    onStop: () => {
+                        if (state.handles.handleStop) state.handles.handleStop();
+                        if (state.execution && (!state.handles.handleStop || state.handles.handleStop === noopHandles.handleStop)) {
+                            state.execution.stop();
+                        }
+                    },
                 });
             });
 
@@ -149,6 +176,14 @@ export const CastButtonRpc: React.FC = () => {
     // its own in-flight flag.
     const adoptingRef = useRef(false);
     const adoptSession = useCallback(async () => {
+        if (sessionManager.isConnected && sessionManager.getActiveHandle()) {
+            const handle = sessionManager.getActiveHandle()!;
+            handleRef.current = handle;
+            setSessionHandle(handle);
+            setSessionSubscription(handle.subscription);
+            setIsCasting(true);
+            return;
+        }
         if (handleRef.current || adoptingRef.current) return;
         if (typeof backend.resumeSession !== 'function') return;
         adoptingRef.current = true;
@@ -158,13 +193,11 @@ export const CastButtonRpc: React.FC = () => {
         } catch (err) {
             console.warn('[CastButtonRpc] Session resume failed:', describeCastError(err));
             cleanupCast(false);
-            // Stale SDK session (receiver gone): reset so the button offers
-            // a fresh start instead of a dead 'session-active' state.
             backend.endSession();
         } finally {
             adoptingRef.current = false;
         }
-    }, [backend, connectSession, cleanupCast]);
+    }, [backend, connectSession, cleanupCast, sessionManager]);
 
     // Subscribe to backend state changes.
     useEffect(() => {
@@ -190,11 +223,17 @@ export const CastButtonRpc: React.FC = () => {
     // resumed before React subscribed), no state CHANGE will ever arrive —
     // adopt directly from the current state.
     useEffect(() => {
-        if (backend.state === 'session-active') {
+        if (sessionManager.isConnected && sessionManager.getActiveHandle()) {
+            const handle = sessionManager.getActiveHandle()!;
+            handleRef.current = handle;
+            setSessionHandle(handle);
+            setSessionSubscription(handle.subscription);
+            setIsCasting(true);
+        } else if (backend.state === 'session-active') {
             void adoptSession();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only by design; adoptSession reads live refs
-    }, [backend]);
+    }, [backend, sessionManager]);
 
     // Best-effort: tell the receiver we're going away when the tab
     // closes. The transport-level disconnect handler on the receiver
@@ -245,9 +284,6 @@ export const CastButtonRpc: React.FC = () => {
         return () => btn.removeEventListener('click', onNativeClick);
     }, [backend, connectSession, cleanupCast]);
 
-    useEffect(() => {
-        return () => cleanupCast(false);
-    }, [cleanupCast]);
 
     const backendStateRef = useRef(backendState);
     backendStateRef.current = backendState;
