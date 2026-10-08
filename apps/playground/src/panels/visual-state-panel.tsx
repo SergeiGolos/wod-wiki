@@ -17,11 +17,13 @@ export const VisualStatePanel: React.FC = () => {
 
     return (
         <div className={cn(
-            "h-full flex flex-col overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50",
+            "h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-900/50",
             isCompact ? "gap-2 p-2" : "gap-4 p-4"
         )}>
-            {/* 1. Active Stack Context (with Interleaved History) */}
-            <div className="flex-1 min-h-0 flex flex-col">
+            {/* 1. Active Stack Context (with Interleaved History) — scrolls
+                internally so a long stack can never spill over the pinned
+                Up Next card below in bounded panels. */}
+            <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
                 <RuntimeStackView runtime={runtime} outputs={outputs} debug={isDebugMode} />
             </div>
 

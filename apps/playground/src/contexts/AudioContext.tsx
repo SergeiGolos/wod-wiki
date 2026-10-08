@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { audioService } from '@/hooks/useBrowserServices';
 import { useCastTransport } from '@/contexts/CastTransportContext';
 
-interface AudioContextType {
+export interface AudioContextType {
     isEnabled: boolean;
     toggleAudio: () => void;
     playTestSound: () => void;

@@ -16,6 +16,7 @@ export interface TourTimerScreenProps {
   onRuntimeReady: (runtime: IScriptRuntime) => void
   /** Called once when the runtime transitions from idle to running. */
   onRunStarted?: () => void
+  onStart?: () => void
   /**
    * Scroll-out stop (#885): when true, the panel halts execution without
    * resetting — the run's outputs stay in the runtime so the analytics
@@ -39,6 +40,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
   onComplete,
   onRuntimeReady,
   onRunStarted,
+  onStart,
   externalPause,
   externalStop,
   onReset,
@@ -128,8 +130,13 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
             externalStop={externalStop}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Write a workout in the demo editor above
+          <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+            <div className="m-auto flex flex-col items-center gap-5 px-5 py-6 text-center">
+              <span className="font-mono text-[clamp(48px,8vw,96px)] font-bold tabular-nums tracking-tight">00:00</span>
+              <p className="max-w-sm text-sm text-muted-foreground">Ready when you are. Run your edited workout, then use Next to advance.</p>
+              {onStart && <Button onClick={onStart}>Run this example</Button>}
+              <p className="text-xs text-muted-foreground">The tour starts this workout when the timer comes into view.</p>
+            </div>
           </div>
         )}
       </div>

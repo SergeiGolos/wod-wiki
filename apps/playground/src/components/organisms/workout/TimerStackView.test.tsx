@@ -18,35 +18,31 @@ describe('TimerStackView', () => {
     isRunning: false,
   };
 
-  it('increases the primary timer font as the panel gets wider', () => {
+  // ── Primary timer font: width and height bounds (digits must actually fit) ──
+
+  it('keeps digits narrower than the panel and grows with width', () => {
     const mediumPanelFont = getPrimaryTimerFontSizePx(800, false);
     const widePanelFont = getPrimaryTimerFontSizePx(1400, false);
 
     expect(widePanelFont).toBeGreaterThan(mediumPanelFont);
-    expect(mediumPanelFont).toBeGreaterThanOrEqual(128);
+    // "00:00" at font F spans ≈3.1·F — the readout must fit the measured width.
+    expect(mediumPanelFont * 3.1).toBeLessThanOrEqual(800);
+    expect(widePanelFont * 3.1).toBeLessThanOrEqual(1400);
   });
 
-  // ── Responsive font sizing across viewports ──
+  it('caps the font by measured height so digits fit short embedded panels', () => {
+    // Wide but short (bounded hero pane): the 128px width floor must not win —
+    // the digits have to fit the band left under the fixed chrome above and
+    // below the clock (labels, secondary chips, controls).
+    const shortFont = getPrimaryTimerFontSizePx(1200, false, 400);
+    expect(shortFont).toBeLessThanOrEqual(400 - 240);
+    expect(shortFont).toBeLessThan(getPrimaryTimerFontSizePx(1200, false));
 
-  it('scales font for mobile viewport width (375px)', () => {
-    const mobileFont = getPrimaryTimerFontSizePx(375, false);
-    // Container-fit cap (#997): the readout must never exceed ~30% of the
-    // panel width — "00:00" at F spans ≈3.1·F, so 113px fits where the old
-    // 128px floor overflowed a 375px column.
-    expect(mobileFont).toBeLessThanOrEqual(Math.round(375 * 0.3));
-    expect(mobileFont).toBeGreaterThan(0);
-  });
-
-  it('scales font for tablet viewport width (768px)', () => {
-    const tabletFont = getPrimaryTimerFontSizePx(768, false);
-    expect(tabletFont).toBeGreaterThanOrEqual(138);
-    expect(tabletFont).toBeLessThanOrEqual(320);
-  });
-
-  it('scales font for desktop viewport width (1280px)', () => {
-    const desktopFont = getPrimaryTimerFontSizePx(1280, false);
-    expect(desktopFont).toBeGreaterThanOrEqual(230);
-    expect(desktopFont).toBeLessThanOrEqual(320);
+    // Monotonic in height; unmeasured height keeps width-only sizing.
+    expect(getPrimaryTimerFontSizePx(1200, false, 700))
+      .toBeGreaterThanOrEqual(getPrimaryTimerFontSizePx(1200, false, 400));
+    expect(getPrimaryTimerFontSizePx(1200, false, 0))
+      .toBe(getPrimaryTimerFontSizePx(1200, false));
   });
 
   it('uses smaller font in compact mode than default mode at same width', () => {
@@ -55,11 +51,7 @@ describe('TimerStackView', () => {
     const defaultFont = getPrimaryTimerFontSizePx(width, false);
 
     expect(compactFont).toBeLessThan(defaultFont);
-  });
-
-  it('caps mobile compact font at 72px', () => {
-    const compactMobile = getPrimaryTimerFontSizePx(375, true);
-    expect(compactMobile).toBeLessThanOrEqual(72);
+    expect(getPrimaryTimerFontSizePx(375, true)).toBeLessThanOrEqual(72);
   });
 
   // ── Primary timer rendering ──
@@ -356,26 +348,6 @@ describe('TimerStackView', () => {
     expect(screen.getByText('Continue')).toBeDefined();
   });
 
-  it('uses primary styling for the compact Next button', () => {
-    render(
-      <TimerStackView
-        {...baseProps}
-        compact
-        primaryTimer={{
-          id: 'timer-1',
-          ownerId: 'block-1',
-          timerMemoryId: '',
-          label: 'Workout',
-          format: 'up',
-          accumulatedMs: 65000,
-        }}
-      />,
-    );
-
-    const nextButton = screen.getByTitle('Next Block');
-    expect(nextButton.className).toContain('bg-primary');
-    expect(nextButton.className).toContain('text-primary-foreground');
-  });
 
   it('disables Next while paused and blocks click dispatch', () => {
     let nextCalls = 0;

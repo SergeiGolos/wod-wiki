@@ -137,15 +137,21 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
       }
       const elRect = el.getBoundingClientRect()
       const canvasRect = canvas.getBoundingClientRect()
+      const x = Math.round(elRect.left - canvasRect.left)
+      const y = Math.round(elRect.top - canvasRect.top)
+      const w = Math.round(elRect.width)
+      const h = Math.round(elRect.height)
+      // Entirely offscreen targets draw no border — during screen
+      // cross-fades a stale registration would otherwise smear a ring
+      // outside the visible canvas.
+      if (w <= 0 || h <= 0 || x + w < 0 || y + h < 0 || x > canvasRect.width || y > canvasRect.height) {
+        setBox(null)
+        return
+      }
       // Round to whole px: during a resize drag the subpixel noise
       // would otherwise restart the 500ms position transition every event
       // and the ring would smear/shimmer instead of staying glued.
-      setBox({
-        x: Math.round(elRect.left - canvasRect.left),
-        y: Math.round(elRect.top - canvasRect.top),
-        w: Math.round(elRect.width),
-        h: Math.round(elRect.height),
-      })
+      setBox({ x, y, w, h })
     }
     measure()
     // Re-measure after transitions/layout settles (screen cross-fades, fonts).
@@ -159,11 +165,14 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
       ro = new ResizeObserver(measure)
       ro.observe(el)
     }
+    const mutations = new MutationObserver(measure)
+    if (el) mutations.observe(el, { attributes: true, attributeFilter: ['style'] })
     window.addEventListener('resize', measure)
     return () => {
       window.clearTimeout(t1)
       window.clearTimeout(t2)
       ro?.disconnect()
+      mutations.disconnect()
       window.removeEventListener('resize', measure)
     }
   }, [targetKey, version, registry, canvasRef])

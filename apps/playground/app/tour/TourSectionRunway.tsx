@@ -25,6 +25,8 @@ import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
+import { STICKY_NAV_HEIGHT } from '../canvas/canvasUtils'
+import { useTourContextSize } from './tourContextSize'
 import type { ScrollSlice } from '../canvas/scrollRunway'
 import {
   SCREEN_TITLES,
@@ -62,6 +64,8 @@ export interface TourSectionTimerWiring {
   onRuntimeReady: (runtime: IScriptRuntime) => void
   /** First idle→running transition of the current pane's execution. */
   onRunStarted?: () => void
+  /** Idle-clock CTA when no block is wired yet (fresh-note save-first). */
+  onStart?: () => void
   onReset: () => void
 }
 
@@ -171,6 +175,12 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     }, [])
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
+    // The row below the status strip IS the section's available context —
+    // measure its content box and orient 60/40 from it (wide → split,
+    // tall → stacked), never from viewport-width breakpoints.
+    const [contextRow, setContextRow] = useState<HTMLDivElement | null>(null)
+    const context = useTourContextSize(STICKY_NAV_HEIGHT, contextRow)
+    const split = context.mode === 'split'
 
     const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, false, stages)
     const inView = useInView(runwayRef)
@@ -228,7 +238,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
             const tIn = clamp01((s.t - 0.04) / 0.2)
             const tOut = clamp01((s.t - 0.7) / 0.2)
             toast.style.opacity = String(Math.max(0, tIn - tOut))
-            toast.style.transform = `translateX(-50%) translateY(${lerp(-14, 0, tIn)}px)`
+            toast.style.transform = `translateY(${lerp(-14, 0, tIn)}px)`
           } else {
             toast.style.opacity = '0'
           }
@@ -255,11 +265,24 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
       <section id={`tour-section-${id}`} data-testid={`tour-section-${id}`}>
         {header}
         <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: heightVh }}>
-          <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
-            {/* stage bar */}
-            <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
-              <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                {slice.stage.label}
+          <div
+            className="sticky flex flex-col overflow-hidden"
+            style={{ top: STICKY_NAV_HEIGHT, height: `calc(100dvh - ${STICKY_NAV_HEIGHT}px)` }}
+          >
+            {/* stage bar — the status slot reserves its height in normal
+                flow (status never overlays the pane's dashboard controls);
+                pips carry the stage progress. */}
+            <div className="mx-auto flex min-h-[46px] w-full max-w-[1500px] items-center justify-between gap-4 px-6 pt-3 pb-2 lg:px-12">
+              <div className="flex min-w-0 flex-1">
+                {toastLabel != null && (
+                  <div
+                    ref={toastRef}
+                    className="pointer-events-none flex items-center gap-2.5 whitespace-nowrap rounded-full border border-primary/40 bg-card px-5 py-2.5 font-mono text-[10.5px] tracking-[0.04em] opacity-0 shadow-xl"
+                  >
+                    <span className="size-[9px] rounded-sm bg-primary" />
+                    {toastLabel}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 {stages.map((seg, i) => {
@@ -283,15 +306,20 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
               </div>
             </div>
 
-            {/* stage main — the pane fills the sticky viewport; the caption
-                rail stays a readable 320–400px column. Content smaller than
-                the pane centers inside it (screens own their fit). */}
-            <div className="flex min-h-0 w-full flex-1 items-stretch gap-[clamp(20px,2.5vw,44px)] px-5 pb-5 lg:px-10">
+            {/* The measured context row: demo pane takes 3/5 (60%), the
+                caption rail 2/5 (40%) — beside each other when the context
+                is wide, stacked when it is tall. */}
+            <div
+              ref={setContextRow}
+              className={`flex min-h-0 w-full flex-1 px-5 pb-5 lg:px-10 ${
+                split ? 'flex-row items-stretch gap-[clamp(20px,2.5vw,44px)]' : 'flex-col gap-6'
+              }`}
+            >
               {/* stage pane — the RingTargetsProvider scopes the ring registry
                   to THIS section; every runway registers 'editor.window', so a
                   shared registry lets later sections steal earlier ones' ring
                   targets (ring drawn around an off-screen window). */}
-              <div className="relative h-full min-w-0 flex-1">
+              <div className="relative min-h-0 min-w-0 flex-[3_1_0%]">
                 <div ref={canvasInnerRingRef} className="absolute inset-0">
                   <RingTargetsProvider>
                   <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
@@ -319,6 +347,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                             onComplete={timer.onComplete}
                             onRuntimeReady={timer.onRuntimeReady}
                             onRunStarted={timer.onRunStarted}
+                            onStart={timer.onStart}
                             onReset={timer.onReset}
                             externalStop={timer.externalStop}
                           />
@@ -341,15 +370,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                           )}
                         </Screen>
                       )}
-                      {toastLabel != null && (
-                        <div
-                          ref={toastRef}
-                          className="pointer-events-none absolute top-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2.5 whitespace-nowrap rounded-full border border-[hsl(var(--metric-rounds)/0.55)] bg-card px-5 py-2.5 font-mono text-[10.5px] tracking-[0.04em] opacity-0 shadow-xl"
-                        >
-                          <span className="size-[9px] rounded-sm bg-[hsl(var(--metric-rounds))]" />
-                          {toastLabel}
-                        </div>
-                      )}
                     </div>
                   </MacOSChrome>
 
@@ -368,9 +388,10 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                 </div>
               </div>
 
-              {/* caption rail */}
-              <div className="flex w-[clamp(320px,24vw,400px)] flex-none min-h-[280px] flex-col">
-                <div className="relative min-h-[280px] flex-1">
+              {/* caption rail — 40% of the measured context (flex 2/5);
+                  fills the rail height, scrolls internally when needed */}
+              <div className="flex min-h-0 min-w-0 flex-[2_1_0%] flex-col">
+                <div className="relative min-h-0 flex-1">
                   <TourCaptions
                     activeIndex={slice.index}
                     captions={captions}
@@ -418,7 +439,7 @@ function useReachedOnce(runwayRef: React.RefObject<HTMLElement | null>): boolean
  * degrades to "never externally paused" rather than freezing mid-demo.
  */
 function useInView(runwayRef: React.RefObject<HTMLElement | null>): boolean {
-  const [inView, setInView] = useState(true)
+  const [inView, setInView] = useState(false)
   useEffect(() => {
     const el = runwayRef.current
     if (!el || typeof IntersectionObserver === 'undefined') return

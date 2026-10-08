@@ -14,14 +14,14 @@
  * stacks on mobile and the section is static (no scroll animation), so it is
  * inherently reduced-motion safe.
  *
- * Data story: the tiles execute their WQL against the live IndexedDB store
- * (via `useHomeAnalyticsData`), mirroring `DashboardView`; when the store is
- * empty (Storybook, fresh journal) each widget falls back to the illustrative
- * sample so the showcase always teaches by example.
+ * Data story: the tiles execute their WQL against the isolated example
+ * dataset (a real QueryService over the engine's in-memory event store — see
+ * `homeAnalyticsData.ts`), mirroring `DashboardView`. The dataset never
+ * touches visitor storage and is always populated, so the showcase teaches
+ * by example on a fresh home; a clear "Example data" badge labels it.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { queryService } from '@/services/queryService';
-import { type AnyParsedQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';;
+import { type AnyParsedQuery } from '@bitcobblers/wod-wiki-engine';
 import {
   WidgetFrame,
   QueryValue,
@@ -31,45 +31,41 @@ import {
   StackedBar,
 } from '@bitcobblers/wod-wiki-ui';
 import { ParsedQueryChips } from '@/components/organisms/analytics';
-import { WQL_AGGREGATORS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, WQL_INTENSITY_TIERS, WQL_ROLLUP_PERIODS } from '@bitcobblers/wod-wiki-engine';;
+import { WQL_AGGREGATORS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, WQL_INTENSITY_TIERS, WQL_ROLLUP_PERIODS } from '@bitcobblers/wod-wiki-engine';
 import {
   HOME_ANALYTICS_QUERIES,
-  SAMPLE_HOME_ANALYTICS,
-  hasPoints,
+  getHomeExampleQueryService,
   type HomeAnalyticsData,
 } from './homeAnalyticsData';
 
 /**
- * Live data for the showcase: run the showcase queries against the store and
- * fall back per-widget to the illustrative sample whenever the store has no
- * points for that query — or is unavailable (empty journal, unit tests).
- *
- * Self-contained (not `useAnalyticsQueries`) so every query failure is caught
- * and swallowed into the sample fallback: the showcase is a marketing
- * presentation that must never throw, block, or leak an unhandled rejection,
- * regardless of store state.
+ * Example-data results for the showcase: run the showcase queries against
+ * the isolated in-memory example store (real engine, zero visitor-storage
+ * writes). State is discriminated — loading / error / ready — so a query
+ * failure renders an explicit error instead of leaking `undefined` into
+ * widgets behind a cast.
  */
-export function useHomeAnalyticsData(): { data: HomeAnalyticsData; loading: boolean } {
-  const [results, setResults] = useState<Partial<Record<keyof HomeAnalyticsData, QueryResult>>>({});
-  const [loading, setLoading] = useState(true);
+export type HomeAnalyticsDataState =
+  | { state: 'loading' }
+  | { state: 'error'; error: string }
+  | { state: 'ready'; data: HomeAnalyticsData };
+
+export function useHomeAnalyticsData(): HomeAnalyticsDataState {
+  const [state, setState] = useState<HomeAnalyticsDataState>({ state: 'loading' });
 
   useEffect(() => {
     let cancelled = false;
+    const service = getHomeExampleQueryService();
     void (async () => {
-      const entries = await Promise.all(
-        HOME_ANALYTICS_QUERIES.map(async (q) => {
-          try {
-            // The C1 window rides in the query text (`last 6w`) — no range math.
-            const r = await queryService.runQuery(q.query);
-            return [q.key, r] as const;
-          } catch {
-            return [q.key, undefined] as const; // store unavailable → sample fallback
-          }
-        }),
-      );
-      if (!cancelled) {
-        setResults(Object.fromEntries(entries));
-        setLoading(false);
+      try {
+        const [repsByEffort, weeklyVolume, loadByIntensity, volumeByEffort, avgTis, totalVolume] = await Promise.all(
+          HOME_ANALYTICS_QUERIES.map((query) => service.runQuery(query.query)),
+        );
+        if (!cancelled) {
+          setState({ state: 'ready', data: { repsByEffort, weeklyVolume, loadByIntensity, volumeByEffort, avgTis, totalVolume } });
+        }
+      } catch (e) {
+        if (!cancelled) setState({ state: 'error', error: e instanceof Error ? e.message : String(e) });
       }
     })();
     return () => {
@@ -77,20 +73,7 @@ export function useHomeAnalyticsData(): { data: HomeAnalyticsData; loading: bool
     };
   }, []);
 
-  const pick = (key: keyof HomeAnalyticsData): QueryResult => {
-    const live = results[key];
-    return hasPoints(live) ? live : SAMPLE_HOME_ANALYTICS[key];
-  };
-
-  const data: HomeAnalyticsData = {
-    repsByEffort: pick('repsByEffort'),
-    weeklyVolume: pick('weeklyVolume'),
-    loadByIntensity: pick('loadByIntensity'),
-    volumeByEffort: pick('volumeByEffort'),
-    avgTis: pick('avgTis'),
-    totalVolume: pick('totalVolume'),
-  };
-  return { data, loading };
+  return state;
 }
 
 // ── WQL elements reference strip ───────────────────────────────────────────
@@ -187,32 +170,21 @@ export function GraphsTile({ data }: { data: HomeAnalyticsData }) {
 export function DashboardTile({ data }: { data: HomeAnalyticsData }) {
   return (
     <Tile kind="Multi-query dashboard">
-      <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-3">
+      <div className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-3 [&_.text-5xl]:text-2xl">
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="text-sm font-semibold text-foreground">Training Block Review</h3>
           <span className="text-[11px] text-muted-foreground italic text-right">
             {HOME_ANALYTICS_QUERIES.length - 1} WQL widgets · mirrors DashboardView
           </span>
         </div>
-        {/* The composing queries — a dashboard is N WQL elements, listed. */}
-        <div className="flex flex-wrap gap-1">
-          {HOME_ANALYTICS_QUERIES.slice(1).map((q) => (
-            <span
-              key={q.key}
-              className="font-mono text-[10px] rounded bg-muted px-1.5 py-0.5 text-foreground/70 break-all"
-            >
-              {q.query}
-            </span>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <WidgetFrame title="Avg TIS" question="How hard?" query="avg:tis{} last 6w">
-            <QueryValue result={data.avgTis} unit="pts" label="avg intensity" />
+            <QueryValue result={data.avgTis} unit="pts" label="training intensity" />
           </WidgetFrame>
           <WidgetFrame title="Total volume" question="How much?" query="sum:totalVolume{} last 6w">
             <QueryValue result={data.totalVolume} unit="kg" label="total volume" />
           </WidgetFrame>
-          <div className="col-span-2">
+          <div>
             <WidgetFrame title="Weekly tonnage" question="Rising?" query="sum:totalVolume{} by {week} last 6w">
               <div className="h-32">
                 <WqlTimeseries result={data.weeklyVolume} unit="kg" />
@@ -240,8 +212,7 @@ export function DashboardTile({ data }: { data: HomeAnalyticsData }) {
 export interface HomeAnalyticsSectionProps {
   /**
    * Pre-resolved widget data (Storybook / tests). Omit to execute the queries
-   * against the live store with the illustrative sample as the per-widget
-   * fallback.
+   * against the isolated in-memory example store.
    */
   data?: HomeAnalyticsData;
 }
@@ -251,8 +222,14 @@ export function HomeAnalyticsSectionView({ data }: { data: HomeAnalyticsData }) 
   return (
     <section data-testid="home-analytics-section" className="mx-auto flex max-w-[1500px] flex-col gap-8 px-6 py-16 lg:px-12">
       <header className="flex flex-col gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+        <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-primary">
           Own the analytics
+          <span
+            data-testid="home-analytics-example-badge"
+            className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium normal-case text-muted-foreground"
+          >
+            Example data
+          </span>
         </span>
         <h2 className="text-2xl font-bold text-foreground">
           Query what you just did — in WQL
@@ -262,7 +239,8 @@ export function HomeAnalyticsSectionView({ data }: { data: HomeAnalyticsData }) 
           facts: pick an <strong>aggregator</strong> and a <strong>metric</strong>,
           filter by <strong>tag</strong>, group by a <strong>dimension</strong>,
           roll up over <strong>time</strong>. The same elements drive a table, a
-          graph, or a full dashboard.
+          graph, or a full dashboard — executed here against a clearly labelled
+          example dataset, never your journal.
         </p>
       </header>
 
@@ -277,16 +255,26 @@ export function HomeAnalyticsSectionView({ data }: { data: HomeAnalyticsData }) 
   );
 }
 
-/** Live-data variant — executes the showcase queries against the store. */
+/** Live-data variant — executes the showcase queries against the example store. */
 function LiveHomeAnalyticsSection() {
-  const { data } = useHomeAnalyticsData();
-  return <HomeAnalyticsSectionView data={data} />;
+  const state = useHomeAnalyticsData();
+  if (state.state === 'loading') return null;
+  if (state.state === 'error') {
+    return (
+      <div role="alert" data-testid="home-analytics-error" className="mx-auto max-w-[1500px] px-6 py-16 lg:px-12">
+        <p className="text-sm text-muted-foreground">
+          Example data failed to load: {state.error}
+        </p>
+      </div>
+    );
+  }
+  return <HomeAnalyticsSectionView data={state.data} />;
 }
 
 /**
  * The home analytics section. Pass `data` for a static render (Storybook /
- * tests); omit it to execute the queries against the live IndexedDB store
- * with the illustrative sample as the per-widget fallback.
+ * tests); omit it to execute the queries against the isolated in-memory
+ * example store (real engine — never visitor storage), labelled "Example data".
  */
 export function HomeAnalyticsSection({ data }: HomeAnalyticsSectionProps) {
   return data ? <HomeAnalyticsSectionView data={data} /> : <LiveHomeAnalyticsSection />;

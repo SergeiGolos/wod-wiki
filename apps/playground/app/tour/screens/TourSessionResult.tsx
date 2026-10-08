@@ -32,7 +32,9 @@ export function TourSessionResult({ result, onDismiss, dismissLabel }: TourSessi
   const statements = (result.logs ?? []) as unknown as OutputStatementRow[]
 
   return (
-    <div className="flex h-full w-full flex-col overflow-auto p-4" data-testid="tour-session-result">
+    // Header and footer stay pinned; only the statements table scrolls, so
+    // short embedded panes never hide the session stats or the dismiss action.
+    <div className="flex h-full w-full flex-col overflow-hidden p-4" data-testid="tour-session-result">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -64,7 +66,7 @@ export function TourSessionResult({ result, onDismiss, dismissLabel }: TourSessi
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto py-3 space-y-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-3">
         <OutputFilterPills
           presets={DEFAULT_OUTPUT_FILTERS}
           filter={filter}

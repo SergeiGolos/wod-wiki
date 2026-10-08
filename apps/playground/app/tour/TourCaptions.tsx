@@ -1,8 +1,10 @@
 /**
  * TourCaptions.tsx — per-stage captions for the walkthrough.
  *
- * Desktop: a fixed-width column where captions cross-fade with the active
- * stage. Mobile: the parent translates the strip vertically (scrubbed
+ * Desktop: fills the runway's measured description zone (40% of the
+ * context — width when split, height when stacked); captions cross-fade
+ * with the active stage and scroll internally when one outgrows the zone.
+ * Mobile: the parent translates the strip vertically (scrubbed
  * during the last 30% of each stage) or the cards render statically. The
  * same CAPTIONS data now carries the stage drop-off actions for the home
  * funnel.
@@ -93,7 +95,7 @@ export interface TourCaption {
 export const TOUR_CAPTIONS: TourCaption[] = [
   {
     id: 'editor-blank',
-    num: '01a / 03 — Blank Page & Typeahead',
+    num: '01a',
     title: (
       <>
         Start with a Blank Page.{' '}
@@ -115,7 +117,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'editor-metrics',
-    num: '01b / 03 — Metric Types & ``` Syntax',
+    num: '01b',
     title: (
       <>
         Every Line Collects Metrics.{' '}
@@ -135,7 +137,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'editor-run',
-    num: '01c / 03 — Press Run',
+    num: '01c',
     title: (
       <>
         Press Run to Execute.{' '}
@@ -156,16 +158,17 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'timer-wallclock',
-    num: '02a / 03 — The Working Clock',
+    num: '02a',
     title: (
       <>
         What Happens When It Runs.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The script becomes the clock.</em>
       </>
     ),
-    body: 'The Clock runs your exact 21-15-9 script — stepping through reps, distance, and load lines at your own pace without forced time limits.',
-    foot: 'Clock · 21-15-9 step-through · live metric capture',
+    body: 'The Clock runs whatever you wrote — stepping through each line of the edited workout at your own pace, with no forced time limits.',
+    foot: 'Clock · step-through execution · live metric capture',
     accent: TOUR_ACCENTS.timer,
+    commands: [{ key: 'try', label: 'Run this example' }],
     actions: [
       {
         label: 'Read the behaviors explainer',
@@ -176,7 +179,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'timer-next',
-    num: '02b / 03 — Advance & Lock In',
+    num: '02b',
     title: (
       <>
         Next Advances the Workout.{' '}
@@ -196,7 +199,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'timer-cast',
-    num: '02c / 03 — Cast to the Big Screen',
+    num: '02c',
     title: (
       <>
         Cast to the Big Screen.{' '}
@@ -216,7 +219,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'metrics-e' as TourStageId,
-    num: '03a / 03 — Everything is an effort',
+    num: '03a',
     title: (
       <>
         Every line tracks an effort.{' '}
@@ -240,7 +243,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'metrics-d' as TourStageId,
-    num: '03b / 03 — Measures ride along',
+    num: '03b',
     title: (
       <>
         Every effort collects measures.{' '}
@@ -253,7 +256,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'metrics-c' as TourStageId,
-    num: '03c / 03 — They compound',
+    num: '03c',
     title: (
       <>
         Efforts × measures compound into facts.{' '}
@@ -266,14 +269,14 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-idea',
-    num: '04a / 05 — Query what you just did',
+    num: '04a',
     title: (
       <>
         Query what you just did.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Every result is one query away.</em>
       </>
     ),
-    body: 'WQL turns your journal into queryable facts — pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The table in this window is scoped to the run you just finished.',
+    body: 'WQL turns your journal into queryable facts. Pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The labelled example dataset powers these dashboards without adding workouts to your journal.',
     foot: 'aggregator · metric · filter · dimension · rollup',
     accent: TOUR_ACCENTS.analytics,
     actions: [
@@ -286,14 +289,14 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-table',
-    num: '04b / 05 — Read it as a list',
+    num: '04b',
     title: (
       <>
         Read it as a list.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>One query, one ranked table.</em>
       </>
     ),
-    body: 'One aggregator, one metric, one dimension: sum total reps grouped by effort becomes a ranked table the moment the workout is logged — queried straight from this run’s note. Switch the query, watch the table follow.',
+    body: 'Sum total reps grouped by effort to get a ranked table. Start with Example data, or select This run to query only the workout you recorded. Switch the query and the table updates.',
     foot: 'note-scoped WQL · parsed-query chips',
     accent: TOUR_ACCENTS.analytics,
     commands: [
@@ -304,7 +307,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-graphs',
-    num: '04c / 05 — See it as trends',
+    num: '04c',
     title: (
       <>
         See it as trends.{' '}
@@ -324,15 +327,15 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-dashboard',
-    num: '04d / 05 — Compose a dashboard',
+    num: '04d',
     title: (
       <>
         Compose a dashboard.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>N queries on one screen.</em>
       </>
     ),
-    body: 'A dashboard is just N queries on one screen. These are the app’s real seeded boards — same DashboardView, range selector, units, and widget Inspect you get at /dashboard — loaded right into this window.',
-    foot: 'seeded boards · range · units · inspect',
+    body: 'A dashboard is N queries on one screen. These are the app’s seeded boards, using the same DashboardView, range selector, and widget Inspect as /dashboard. Example data stays separate from your journal; each metric keeps its own unit.',
+    foot: 'seeded boards · range · inspect',
     accent: TOUR_ACCENTS.analytics,
     commands: [
       { key: 'board-training-block-review', label: 'Training Block Review' },
@@ -342,15 +345,15 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-live',
-    num: '04e / 05 — It’s your data',
+    num: '04e',
     title: (
       <>
         It’s your data.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Query anything, your way.</em>
       </>
     ),
-    body: 'Every widget here executes against your live journal — these are the sample answers until you have logged work of your own. Open the Dashboards tab to query anything, your way.',
-    foot: 'live journal queries · sample fallback',
+    body: 'Every widget here runs the same WQL against the example dataset — log work of your own and the identical queries answer with your data. Open the Dashboards tab to query anything, your way.',
+    foot: 'WQL queries · example dataset · your data',
     accent: TOUR_ACCENTS.analytics,
     actions: [
       {
@@ -373,14 +376,14 @@ export interface TourCaptionsProps {
   captions?: TourCaption[]
 }
 
-/** Desktop cross-fading caption column. */
+/** Desktop cross-fading caption column — sized by its parent's 40% zone. */
 export function TourCaptions({ activeIndex, onChoice, onCommand, captions = TOUR_CAPTIONS }: TourCaptionsProps) {
   return (
-    <div className="relative w-[clamp(320px,24vw,400px)] flex-none min-h-[280px]" data-testid="tour-captions">
+    <div className="relative h-full w-full" data-testid="tour-captions">
       {captions.map((cap, i) => (
         <div
           key={cap.id}
-          className="absolute inset-0 transition-opacity duration-300"
+          className="absolute inset-0 overflow-y-auto transition-opacity duration-300"
           style={{
             opacity: i === activeIndex ? 1 : 0,
             // Inactive captions are invisible but still stacked above the
@@ -400,13 +403,11 @@ export function TourCaptions({ activeIndex, onChoice, onCommand, captions = TOUR
 export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; onChoice?: (wod: string) => void; onCommand?: (captionId: string, key: string) => void }) {
   return (
     <>
-      <div
-        className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em]"
-        style={{ color: cap.accent }}
-      >
-        {cap.num}
-      </div>
+      {/* Section number kept subtly inline — no eyebrow prelabel. */}
       <h3 className="mb-3.5 text-[clamp(22px,2vw,30px)] font-extrabold leading-[1.12] tracking-[-0.03em]">
+        <span className="mr-2 align-[0.2em] font-mono text-[0.5em] font-semibold tracking-[0.08em] text-muted-foreground/50">
+          {cap.num}
+        </span>
         {cap.title}
       </h3>
       <p className="text-[14.5px] leading-[1.7] text-muted-foreground">{cap.body}</p>
@@ -460,8 +461,7 @@ export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; on
               key={command.key}
               type="button"
               onClick={() => onCommand(cap.id, command.key)}
-              className="inline-flex items-center rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-accent"
-              style={{ borderColor: cap.accent, color: cap.accent }}
+              className="inline-flex items-center rounded-full border border-border px-3.5 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               data-testid={`tour-caption-command-${cap.id}-${command.key}`}
             >
               {command.label}

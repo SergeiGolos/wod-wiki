@@ -20,11 +20,14 @@
  * each mounted lazily on first arrival and kept alive after. No decorative
  * window chrome on mobile — the bounded viewport belongs to the
  * runtime/editor. Stage detection is card-visibility driven
- * (IntersectionObserver over the reading zone below the windows).
+ * (IntersectionObserver over the description zone: the 40% band under a
+ * stacked window; in split mode captions render in the window's side pane
+ * and the cards below act purely as the scroll driver).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
+import { TOUR_DEMO_SHARE, useTourContextSize } from './tourContextSize'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
@@ -49,13 +52,14 @@ import { TourChapterPicker } from './TourChapterPicker'
 import { TourLearnSection } from './TourLearnSection'
 import { RingElementRegistrar, RingTargetsProvider, TourRing } from './TourRing'
 
-const CARD_SLOT_MIN_HEIGHT = '70vh'
-/** Bounded sticky stage window: full width, 40vh tall under the app nav. */
-const STAGE_WINDOW_HEIGHT = '40vh'
-/** The clock needs usable controls — the timer window grows (still bounded). */
-const TIMER_WINDOW_HEIGHT = 'min(72vh, 42rem)'
-/** First-paint editor box inside the hero view (desktop's is 62vh). */
-const HERO_EDITOR_HEIGHT = '52vh'
+/** Sticky demo window under the app nav: the full context when split (the
+    caption pane lives inside it), the 60% share when stacked. */
+const demoWindowHeight = (split: boolean) =>
+  split
+    ? `calc(100dvh - ${MOBILE_STICKY_TOP}px)`
+    : `calc((100dvh - ${MOBILE_STICKY_TOP}px) * ${TOUR_DEMO_SHARE})`
+/** Description zone slot under a stacked window: the 40% remainder. */
+const cardZoneHeight = `calc((100dvh - ${MOBILE_STICKY_TOP}px) * ${1 - TOUR_DEMO_SHARE})`
 
 export interface TourMobileRunwayApi {
   /** Scroll a stage's caption card into the reading zone. */
@@ -72,14 +76,15 @@ export interface TourMobileRunwayProps {
   chapters: Chapter[]
   questLabels?: Record<string, string>
   onHomeQuestClick?: (questId: string) => void
-  /** Chapter example run — runs inline in the pinned timer window. */
+  /** Chapter example run through the normal fullscreen note runner. */
   onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
   /** The single shared editor document (hero + write window display it). */
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
-  /** Shared-script attribution + reset, forwarded to the editor (#882). */
+  onHeroRun?: () => void
+  /** Shared-script attribution + reset, forwarded to the hero editor. */
   sharedBy?: string
   onResetShared?: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank card. */
@@ -128,6 +133,7 @@ export function TourMobileRunway({
   onDocChange,
   onBlocksChange,
   onRun,
+  onHeroRun,
   onChoice,
   onCommand,
   session,
@@ -166,18 +172,23 @@ export function TourMobileRunway({
   const reachedRef = useRef(false)
   const visibleRef = useRef(new Map<Element, number>())
   const [stage, setStage] = useState<TourStage | null>(null)
-  const [viewportHeight, setViewportHeight] = useState(() =>
-    typeof window !== 'undefined' ? window.innerHeight : 800,
-  )
-  useEffect(() => {
-    const onResize = () => setViewportHeight(window.innerHeight)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  const readingZoneTop = Math.round(viewportHeight / 2 + MOBILE_STICKY_TOP / 2)
+  // Measured context (window below the app nav, re-measured on resize).
+  // Orients the 60/40 windows and the matching card reading zone.
+  const context = useTourContextSize(MOBILE_STICKY_TOP)
+  const split = context.mode === 'split'
+  // Description zone in viewport space. Stacked: the 40% band under the demo
+  // window, where the caption cards scroll. Split: captions render in the
+  // window's side pane, so the cards below are pure scroll driver and
+  // trigger from an approach band just past the fold.
+  const zoneTop = split
+    ? MOBILE_STICKY_TOP + context.height
+    : Math.round(MOBILE_STICKY_TOP + context.height * TOUR_DEMO_SHARE)
+  const zoneBand = split
+    ? Math.round(context.height * (1 - TOUR_DEMO_SHARE))
+    : Math.max(0, MOBILE_STICKY_TOP + context.height - zoneTop)
 
   const resolveVisibleStage = useCallback(() => {
-    const anchor = readingZoneTop + 12
+    const anchor = zoneTop + Math.round(zoneBand / 2)
     let bestIdx = -1
     let bestDist = Infinity
     visibleRef.current.forEach((idx, el) => {
@@ -189,7 +200,7 @@ export function TourMobileRunway({
       }
     })
     if (bestIdx >= 0) setStage(TOUR_STAGES[bestIdx] ?? null)
-  }, [readingZoneTop])
+  }, [zoneTop, zoneBand])
 
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return
@@ -204,11 +215,14 @@ export function TourMobileRunway({
         }
         if (reachedRef.current) resolveVisibleStage()
       },
-      { rootMargin: `-${readingZoneTop}px 0px -30% 0px` },
+      // Stacked: the zone is the viewport band under the demo window.
+      // Split: cards approach from below the fold, so the root extends
+      // downward by the band height instead.
+      { rootMargin: `-${zoneTop}px 0px ${split ? zoneBand : 0}px 0px` },
     )
     for (const el of cards) if (el) observer.observe(el)
     return () => observer.disconnect()
-  }, [readingZoneTop, resolveVisibleStage])
+  }, [zoneTop, zoneBand, split, resolveVisibleStage])
 
   // One arrival observer per chapter track: latches that track's keep-alive
   // mount and unlocks stage detection on the first one.
@@ -271,24 +285,56 @@ export function TourMobileRunway({
   const writeCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('editor-'))
   const runCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('timer-'))
   const ownCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('metrics-'))
-  const exploreCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('wql-'))
+  const exploreCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('wql-')).map((cap, index) => ({ ...cap, num: `04${String.fromCharCode(97 + index)}` }))
+  const chapterCaptions: Record<ChapterTrackId, TourCaption[]> = {
+    write: writeCaptions,
+    run: runCaptions,
+    own: ownCaptions,
+    explore: exploreCaptions,
+  }
+  /** Split-window side pane: the live stage's caption while this chapter
+      hosts the stage, else the chapter's opening caption. */
+  const captionFor = (id: ChapterTrackId): TourCaption => {
+    const active = stage ? chapterCaptions[id].find((c) => c.id === stage.id) : undefined
+    return stage && active && stage.screen === CHAPTER_SCREENS[id] ? active : chapterCaptions[id][0]
+  }
 
   const renderCard = (cap: TourCaption) => {
     const globalIdx = TOUR_CAPTIONS.findIndex((c) => c.id === cap.id)
+    const slot = {
+      key: cap.id,
+      ref: (el: HTMLDivElement | null) => {
+        if (globalIdx >= 0) cardRefs.current[globalIdx] = el
+      },
+      style: {
+        minHeight: cardZoneHeight,
+        // scrollIntoView lands a card's top just inside the zone (stack) or
+        // peeking above the fold (split).
+        scrollMarginTop: Math.max(MOBILE_STICKY_TOP, zoneTop - 24),
+      },
+    }
+    if (split) {
+      // Wide context: the description renders in the pinned window's side
+      // pane; these slots remain only as the scroll/stage driver.
+      return (
+        <div
+          {...slot}
+          data-testid={`tour-mobile-card-${cap.id}`}
+          className="px-6"
+          aria-hidden="true"
+        />
+      )
+    }
     return (
       <div
-        key={cap.id}
-        ref={(el) => {
-          if (globalIdx >= 0) cardRefs.current[globalIdx] = el
-        }}
+        {...slot}
         data-testid={`tour-mobile-card-${cap.id}`}
         className="flex items-center justify-center px-6 py-8"
-        style={{
-          minHeight: CARD_SLOT_MIN_HEIGHT,
-          scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)`,
-        }}
       >
-        <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
+        <article
+          className="w-full max-w-xl overflow-y-auto rounded-2xl border border-border bg-card p-6"
+          style={{ maxHeight: `calc(${cardZoneHeight} - 4rem)` }}
+        >
           <CaptionBody cap={cap} onChoice={onChoice} onCommand={onCommand} />
         </article>
       </div>
@@ -300,20 +346,28 @@ export function TourMobileRunway({
       {/* ── Hero — its own view box: heading + THE editor at first paint,
           normal scroll content; it scrolls out completely before the write
           track pins (mirrors the desktop hero view). ── */}
-      <div ref={heroRef} id="tour-hero" data-testid="tour-hero" className="relative px-4 pt-8 pb-10">
-        <TourHeroHeading />
+      <div
+        ref={heroRef}
+        id="tour-hero"
+        data-testid="tour-hero"
+        className="relative grid gap-6 px-4 pt-8 pb-10"
+        style={{ height: `calc(100dvh - ${MOBILE_STICKY_TOP}px)`, gridTemplateRows: '2fr 3fr' }}
+      >
+        {/* Heading rides the 2fr row (scrolling when a short landscape
+            context squeezes it); the demo owns the 3fr row — the same
+            bounded usable-viewport grid as the desktop hero. */}
+        <div className="min-h-0 overflow-y-auto">
+          <TourHeroHeading />
+        </div>
         {/* Flat native card — no decorative chrome on mobile. This is the
             first display of the shared document; the write section's sticky
             pane below is the second display of the same controlled doc. */}
-        <div
-          className="mt-6 min-h-[300px] w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm"
-          style={{ height: HERO_EDITOR_HEIGHT }}
-        >
+        <div className="min-h-0 w-full overflow-hidden rounded-xl border border-border bg-background shadow-sm">
           <TourEditorScreen
             doc={doc}
             onDocChange={onDocChange}
             onBlocksChange={onBlocksChange}
-            onRun={onRun}
+            onRun={onHeroRun ?? onRun}
             theme={theme}
           />
         </div>
@@ -337,7 +391,10 @@ export function TourMobileRunway({
         <div ref={writeTrackRef} data-testid="tour-mobile-runway-track-write" className="relative">
           <ChapterWindow
             id="write"
-            height={STAGE_WINDOW_HEIGHT}
+            height={demoWindowHeight(split)}
+            description={
+              split ? <CaptionBody cap={captionFor('write')} onChoice={onChoice} onCommand={onCommand} /> : null
+            }
             canvasRef={writeCanvasRef}
             windowRingKey="editor.window"
             ringTarget={ringFor('write')}
@@ -371,7 +428,10 @@ export function TourMobileRunway({
         <div ref={runTrackRef} data-testid="tour-mobile-runway-track-run" className="relative">
           <ChapterWindow
             id="run"
-            height={TIMER_WINDOW_HEIGHT}
+            height={demoWindowHeight(split)}
+            description={
+              split ? <CaptionBody cap={captionFor('run')} onChoice={onChoice} onCommand={onCommand} /> : null
+            }
             canvasRef={runCanvasRef}
             ringTarget={ringFor('run')}
             accent={accentFor('run')}
@@ -387,6 +447,7 @@ export function TourMobileRunway({
                 onComplete={timer.onComplete}
                 onRuntimeReady={timer.onRuntimeReady}
                 onRunStarted={timer.onRunStarted}
+                onStart={timer.onStart}
                 onReset={timer.onReset}
                 externalStop={timer.externalStop}
               />
@@ -409,7 +470,10 @@ export function TourMobileRunway({
         <div ref={ownTrackRef} data-testid="tour-mobile-runway-track-own" className="relative">
           <ChapterWindow
             id="own"
-            height={STAGE_WINDOW_HEIGHT}
+            height={demoWindowHeight(split)}
+            description={
+              split ? <CaptionBody cap={captionFor('own')} onChoice={onChoice} onCommand={onCommand} /> : null
+            }
             canvasRef={ownCanvasRef}
             ringTarget={ringFor('own')}
             accent={accentFor('own')}
@@ -444,7 +508,10 @@ export function TourMobileRunway({
         <div ref={exploreTrackRef} data-testid="tour-mobile-runway-track-explore" className="relative">
           <ChapterWindow
             id="explore"
-            height={STAGE_WINDOW_HEIGHT}
+            height={demoWindowHeight(split)}
+            description={
+              split ? <CaptionBody cap={captionFor('explore')} onChoice={onChoice} onCommand={onCommand} /> : null
+            }
             canvasRef={exploreCanvasRef}
             ringTarget={ringFor('explore')}
             accent={accentFor('explore')}
@@ -480,10 +547,14 @@ export function TourMobileRunway({
  * A chapter's bounded sticky stage window — pins under the app nav only
  * while its own chapter section is on screen, then scrolls out with it.
  * The pane inside mounts lazily (caller gates on `reached`) and stays alive.
+ * In split (wide-context) mode the window is a 60/40 row: demo beside a
+ * caption pane, and `height` covers the full context; stacked, the window
+ * is demo-only at the 60% share and the caption cards scroll below it.
  */
 function ChapterWindow({
   id,
   height,
+  description,
   canvasRef,
   windowRingKey,
   ringTarget,
@@ -492,6 +563,8 @@ function ChapterWindow({
 }: {
   id: ChapterTrackId
   height: string
+  /** Present only in split mode: the 40% caption pane beside the demo. */
+  description?: React.ReactNode
   /** Ring measuring surface (plain ref, shared with the canvas div). */
   canvasRef: React.RefObject<HTMLDivElement | null>
   /** Ring key under which the canvas div itself is registered — only the
@@ -526,7 +599,14 @@ function ChapterWindow({
             'editor.window' registration under a shared provider. */}
         <RingTargetsProvider>
           {windowRingKey && <RingElementRegistrar ringKey={windowRingKey} el={innerEl} />}
-          <div className="relative h-full">{children}</div>
+          {description ? (
+            <div className="flex h-full gap-3 p-2">
+              <div className="relative h-full min-h-0 min-w-0 flex-[3_1_0%]">{children}</div>
+              <div className="min-h-0 min-w-0 flex-[2_1_0%] overflow-y-auto p-2">{description}</div>
+            </div>
+          ) : (
+            <div className="relative h-full">{children}</div>
+          )}
           <TourRing target={ringTarget} accent={accent} canvasRef={canvasRef} />
         </RingTargetsProvider>
       </div>

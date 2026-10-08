@@ -14,8 +14,8 @@ import { journalNotes } from '../services/journalNotes'
 import { noteByIdPath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
 
-const CARD_BASE =
-  'group relative flex flex-col justify-between rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md'
+const ITEM_BASE =
+  'group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
 
 export function TourJumpSection() {
   const navigate = useNavigate()
@@ -42,69 +42,51 @@ export function TourJumpSection() {
   return (
     <section
       data-testid="tour-jump-section"
-      className="flex min-h-[55vh] flex-col items-center justify-center border-b border-border bg-muted/30 px-6 py-10"
+      className="flex flex-col items-center border-b border-border bg-muted/30 px-6 py-8"
     >
       <h2 className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
         Know where you&apos;re going?
       </h2>
 
-      <div className="mt-6 grid w-full max-w-4xl gap-4 sm:grid-cols-3">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
         <Link
           to="/feeds"
           onClick={handleFeeds}
           data-testid="jump-feeds"
-          className={CARD_BASE}
+          className={ITEM_BASE}
+          title="Programming feeds you follow, newest first."
         >
-          <div>
-            <div className="flex items-center gap-2">
-              <Newspaper className="size-4 text-muted-foreground" />
-              <span className="text-base font-semibold">Feeds</span>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Programming feeds you follow, newest first.
-            </p>
-          </div>
-          <ArrowRight className="absolute right-4 top-4 size-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+          <Newspaper className="size-4 text-muted-foreground" />
+          Feeds
+          <ArrowRight className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </Link>
 
         <Link
           to="/collections"
           onClick={handleLibrary}
           data-testid="jump-library"
-          className={CARD_BASE}
+          className={ITEM_BASE}
+          title="Curated workouts and sessions, ready to run."
         >
-          <div>
-            <div className="flex items-center gap-2">
-              <Library className="size-4 text-muted-foreground" />
-              <span className="text-base font-semibold">Collections library</span>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Curated workouts and sessions, ready to run.
-            </p>
-          </div>
-          <ArrowRight className="absolute right-4 top-4 size-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+          <Library className="size-4 text-muted-foreground" />
+          Collections library
+          <ArrowRight className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </Link>
 
         <button
           type="button"
           onClick={handleNewNote}
           data-testid="jump-new-note"
-          className={CARD_BASE}
+          className={ITEM_BASE}
+          title="Create today's note and log your first workout."
         >
-          <div>
-            <div className="flex items-center gap-2">
-              <NotebookPen className="size-4 text-muted-foreground" />
-              <span className="text-base font-semibold">Start your own journal</span>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Create today&apos;s note and log your first workout.
-            </p>
-          </div>
-          <ArrowRight className="absolute right-4 top-4 size-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+          <NotebookPen className="size-4 text-muted-foreground" />
+          Start your own journal
+          <ArrowRight className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </button>
       </div>
 
-      <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
         — or keep scrolling ↓
       </p>
     </section>

@@ -14,6 +14,7 @@ import type { TourMobileRunwayProps } from './TourMobileRunway'
 import type { TourStage } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
+import { TOUR_DEMO_SHARE } from './tourContextSize'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
 
@@ -114,12 +115,11 @@ const installIO = () => {
   const ioHost = globalThis as unknown as { IntersectionObserver: unknown }
   ioHost.IntersectionObserver = MockIntersectionObserver
 }
-// The tour card driver's rootMargin — pinned exactly, because sibling
-// observers (e.g. the analytics runway's enter-view IO) share the -30%
-// bottom margin and would otherwise match a suffix selector.
-const readingZoneTop = () => Math.round(window.innerHeight / 2 + MOBILE_STICKY_TOP / 2)
+// Select the card driver by what it observes — no pinned rootMargin pixels
+// (zone geometry belongs to the convention, not the test).
+const cardEl = () => screen.getByTestId('tour-mobile-card-editor-blank')
 const cardObserver = () =>
-  MockIntersectionObserver.instances.find((o) => o.rootMargin.startsWith(`-${readingZoneTop()}px`))
+  MockIntersectionObserver.instances.find((o) => o.observed.includes(cardEl()))
 // One arrival observer per chapter track — identified by its observed el.
 const trackEl = (id: 'write' | 'run' | 'own' | 'explore') =>
   screen.getByTestId(`tour-mobile-runway-track-${id}`)
@@ -184,9 +184,12 @@ function placeCard(stageId: string, top: number, height = 200) {
   return el
 }
 
-/** Center of the reading zone below the pinned window (component's math). */
+/** Center of the description zone — the 40% band under the stacked demo
+    window, straight from the shared convention (portrait viewport below). */
 const readingZoneCenter = () => {
-  const top = Math.round(window.innerHeight / 2 + MOBILE_STICKY_TOP / 2)
+  const top = Math.round(
+    MOBILE_STICKY_TOP + (window.innerHeight - MOBILE_STICKY_TOP) * TOUR_DEMO_SHARE,
+  )
   return top + (window.innerHeight - top) / 2
 }
 
@@ -206,6 +209,11 @@ describe('TourMobileRunway', () => {
 
   beforeEach(() => {
     installIO()
+    // Portrait phone: pins the measured context to the stacked 60/40 shape —
+    // these are behavioral tests; split orientation is viewport-shape, not
+    // behavior, and the shared convention decides it from real dimensions.
+    Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true, writable: true })
+    Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true, writable: true })
     scrollSpy = mock(() => {})
     // jsdom lacks scrollIntoView; the api under test only needs the call.
     const scrollTarget = Element.prototype as unknown as { scrollIntoView: unknown }
@@ -223,7 +231,6 @@ describe('TourMobileRunway', () => {
     await renderRunway()
 
     const hero = screen.getByTestId('tour-hero')
-    expect(hero.className).not.toContain('sticky')
     // First paint: the hero hosts the shared document before any track ran.
     const heroEditor = hero.querySelector('[data-testid="mock-note-editor"]') as HTMLTextAreaElement
     expect(heroEditor).toBeTruthy()

@@ -4,6 +4,7 @@ import { ITimerDisplayEntry, IDisplayCardEntry } from '@/clock/types/DisplayType
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import { useAudio } from '@/contexts/AudioContext';
+import type { AudioContextType } from '@/contexts/AudioContext';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
@@ -46,17 +47,21 @@ export interface TimerStackViewProps {
 
 const formatTime = formatTimeMMSS;
 
-export function getPrimaryTimerFontSizePx(panelWidth: number, compact: boolean): number {
+export function getPrimaryTimerFontSizePx(panelWidth: number, compact: boolean, panelHeight = 0): number {
     const width = panelWidth > 0 ? panelWidth : 800;
 
-    // Container-fit cap: "00:00" at font size F spans ≈3.1·F, so never exceed
-    // ~30% of the panel width regardless of the desktop floor (wayfinder #997
-    // — phone-width workbench columns).
-    if (compact) {
-        return Math.round(Math.min(Math.max(width * 0.14, 56), 72, width * 0.3));
+    // Five clock characters must fit the measured panel width.
+    const widthFit = compact
+        ? Math.min(Math.max(width * 0.14, 56), 72, width * 0.3)
+        : Math.min(Math.max(width * 0.18, 128), 320, width * 0.3);
+
+    // FitArea trims the remaining band after fixed labels and controls.
+    if (panelHeight > 0) {
+        const reservedChromePx = compact ? 180 : panelHeight < 560 ? 240 : 400;
+        return Math.round(Math.min(widthFit, Math.max(44, panelHeight - reservedChromePx)));
     }
 
-    return Math.round(Math.min(Math.max(width * 0.18, 128), 320, width * 0.3));
+    return Math.round(widthFit);
 }
 
 /**
@@ -83,7 +88,7 @@ const FitArea: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 outer.clientWidth / Math.max(inner.scrollWidth, 1),
                 outer.clientHeight / Math.max(inner.scrollHeight, 1),
             );
-            setScale(Number.isFinite(next) && next > 0 ? next : 1);
+            setScale(Number.isFinite(next) ? Math.max(0, next) : 0);
         };
         measure();
         const observer = new ResizeObserver(measure);
@@ -93,10 +98,10 @@ const FitArea: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }, []);
 
     return (
-        <div ref={outerRef} className="flex h-full w-full items-center justify-center">
+        <div ref={outerRef} className="flex h-full min-h-0 w-full items-center justify-center">
             <div
                 ref={innerRef}
-                className="text-center"
+                className="shrink-0 text-center"
                 style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
             >
                 {children}
@@ -125,17 +130,23 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     skipFlash = false,
     skipFlashKey = 0,
 }) => {
-    const { width: panelWidth } = usePanelSize();
+    const { width: panelWidth, height: panelHeight, isShort: panelIsShort } = usePanelSize();
 
-    let audio: ReturnType<typeof useAudio> | null = null;
+    let audio: AudioContextType | null = null;
     try {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         audio = useAudio();
     } catch { /* ignore if provider missing */ }
 
+    // dense = bounded vertical context (short measured panel) or narrow
+    // panel. Shrinks fixed vertical chrome and control sizes so the clock
+    // band keeps a real share of the height instead of being squeezed to a
+    // sliver. Wide-but-short keeps the desktop (non-compact) arrangement.
+    const dense = compact || panelIsShort;
+
     const primaryTimerFontSizePx = useMemo(
-        () => getPrimaryTimerFontSizePx(panelWidth, compact),
-        [panelWidth, compact],
+        () => getPrimaryTimerFontSizePx(panelWidth, compact, panelHeight),
+        [panelWidth, panelHeight, compact],
     );
 
     const handleStart = useCallback(() => {
@@ -267,7 +278,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
     return (
         <div 
-            className={`flex w-full min-h-0 flex-1 flex-col ${compact ? '' : 'gap-4'}`}
+            className={`flex w-full min-h-[192px] flex-1 flex-col ${compact ? '' : dense ? 'gap-2' : 'gap-4'}`}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
@@ -283,7 +294,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
             `}</style>
 
             {/* Main Content Area */}
-            <div className={`flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden ${compact ? 'px-4 py-2' : 'p-4'}`}>
+            <div className={`flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden ${dense ? 'px-4 py-2' : 'p-4'}`}>
 
                 {/* Timer & Controls Container */}
                 <div className="flex flex-col items-center justify-center h-full relative w-full">
@@ -303,66 +314,72 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         renders identically in every state; FitArea scales the
                         content to fit, so label/summary churn never shifts the
                         clock or controls. */}
-                    <div className={`flex w-full items-center justify-center overflow-hidden ${compact ? 'h-14 mb-2' : 'h-24 mb-6'}`}>
+                    <div className={`flex w-full shrink-0 items-center justify-center overflow-hidden ${dense ? 'h-8 mb-1' : 'h-24 mb-6'}`}>
                         <FitArea>
                             {primaryTimer?.label && (
-                                <h2 className={`font-semibold text-foreground tracking-tight ${compact ? 'text-lg' : 'text-3xl lg:text-4xl'}`}>
+                                <h2 className={`font-semibold text-foreground tracking-tight ${dense ? 'text-lg' : 'text-3xl lg:text-4xl'}`}>
                                     {primaryTimer.label}
                                 </h2>
                             )}
                             {subLabels && subLabels.length > 0 && (
-                                <div className={`${compact ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
+                                <div className={`${dense ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
                                     {subLabels.map((line, i) => (
-                                        <p key={i} className={`text-muted-foreground ${compact ? 'text-xs' : 'text-lg lg:text-xl'}`}>
+                                        <p key={i} className={`text-muted-foreground ${dense ? 'text-xs' : 'text-lg lg:text-xl'}`}>
                                             {line}
                                         </p>
                                     ))}
                                 </div>
                             )}
                             {subLabels === undefined && subLabel && (
-                                <p className={`text-muted-foreground ${compact ? 'mt-1 text-xs' : 'mt-2 text-lg lg:text-xl'}`}>
+                                <p className={`text-muted-foreground ${dense ? 'mt-1 text-xs' : 'mt-2 text-lg lg:text-xl'}`}>
                                     {subLabel}
                                 </p>
                             )}
                         </FitArea>
                     </div>
 
-                    {/* Very Large Timer Number (no circle) */}
-                    <div className="relative flex items-center justify-center w-full">
+                    {/* Very Large Timer Number (no circle) — the clock owns the
+                        remaining band (flex-1 min-h-0) and FitArea scales the
+                        digits to the measured width AND height of that band, so
+                        bounded embedded contexts shrink digits instead of
+                        clipping them. */}
+                    <div className="relative flex min-h-0 w-full flex-1 items-center justify-center">
                         <button
                             onClick={isPaused ? handleStart : isRunning ? handlePause : handleStart}
                             {...(getFocusProps ? getFocusProps('timer-main') : {})}
-                            className={`tv-focusable relative z-10 flex flex-col items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group min-h-[48px] min-w-[48px] ${compact ? 'py-2' : 'py-8'}`}
+                            className={`tv-focusable relative z-10 flex h-full max-h-full min-h-[48px] w-full items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group ${dense ? 'py-1' : 'py-8'}`}
                             title={primaryControlLabel}
                         >
-                            <span
-                                className="font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none"
-                                style={{ fontSize: `${primaryTimerFontSizePx}px` }}
-                                role="timer"
-                                aria-live="polite"
-                                aria-atomic="true"
-                            >
-                                {formatTime(displayTimeMs)}
-                            </span>
+                            <FitArea>
+                                <span
+                                    className="block font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none"
+                                    style={{ fontSize: `${primaryTimerFontSizePx}px` }}
+                                    role="timer"
+                                    aria-live="polite"
+                                    aria-atomic="true"
+                                >
+                                    {formatTime(displayTimeMs)}
+                                </span>
+                            </FitArea>
                         </button>
                     </div>
 
                     {/* Secondary Timers — smaller context clocks for parent
                         intervals. Reserved fixed-height band renders identically
                         when empty, so chips appearing never shifts the clock. */}
-                    <div className={`flex w-full items-center justify-center overflow-hidden ${compact ? 'mt-3 h-10' : 'mt-6 h-[60px]'}`}>
-                        <div className={`flex items-center justify-center gap-2 ${compact ? 'flex-wrap' : 'gap-4'}`}>
+                    <div className={`flex w-full shrink-0 items-center justify-center overflow-hidden ${dense ? 'mt-1 h-6' : 'mt-6 h-[60px]'}`}>
+                        <div className={`flex items-center justify-center gap-2 ${dense ? 'flex-wrap' : 'gap-4'}`}>
                             {secondaryTimerData.map((st, index) => (
                                 <div
                                     key={st.id}
                                     {...(getFocusProps ? getFocusProps(`secondary-timer-${index}`) : {})}
-                                    className={`tv-focusable flex items-center gap-2 rounded-lg border bg-muted/40 text-muted-foreground ${compact ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
+                                    className={`tv-focusable flex items-center gap-2 rounded-lg border bg-muted/40 text-muted-foreground ${dense ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
                                     title={st.label}
                                     role="timer"
                                     aria-label={`${st.label} ${formatTime(st.displayMs)}`}
                                     aria-atomic="true"
                                 >
-                                    <Timer className={`shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                                    <Timer className={`shrink-0 ${dense ? 'w-3 h-3' : 'w-4 h-4'}`} />
                                     <span className="font-medium truncate max-w-[120px]">{st.label}</span>
                                     <span className="font-mono font-semibold tabular-nums">
                                         {formatTime(st.displayMs)}
@@ -374,39 +391,42 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                 </div>
             </div>
 
-            {/* Controls Row — adapts between mobile (bottom bar) and desktop (centered buttons) */}
-            <div className={`flex flex-shrink-0 items-center justify-center ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : 'gap-8 px-2 pb-8'} flex-wrap`}>
+            {/* Controls Row — adapts between mobile (bottom bar) and desktop (centered buttons).
+                Sizing follows the dense tier so short embedded contexts keep controls
+                usable instead of pushing them out of the panel; the shape (pill vs
+                circular) follows the compact tier only. */}
+            <div className={`flex flex-shrink-0 items-center justify-center flex-wrap ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : dense ? 'gap-6 px-2 py-2' : 'gap-8 px-2 pb-8'}`}>
                 {/* Stop Button */}
-                <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+                <div className={`flex flex-col items-center ${dense ? 'gap-1' : 'gap-2'}`}>
                     <button
                         onClick={handleStop}
                         {...(getFocusProps ? getFocusProps('btn-stop') : {})}
-                        className={`tv-focusable group flex items-center justify-center rounded-full border transition-all active:scale-95 ${compact ? 'w-12 h-12 bg-muted border-border' : 'w-16 h-16 bg-surface-container-low border-outline-variant hover:bg-surface-variant shadow-sm'}`}
+                        className={`tv-focusable group flex items-center justify-center rounded-full border transition-all active:scale-95 ${dense ? 'w-12 h-12 bg-muted border-border' : 'w-16 h-16 bg-surface-container-low border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title="Stop Session"
                         data-testid={TEST_IDS.TIMER_STOP_SESSION}
                     >
-                        <Square className={`${compact ? 'w-5 h-5' : 'w-7 h-7'} text-muted-foreground group-hover:text-destructive transition-colors`} />
+                        <Square className={`${dense ? 'w-5 h-5' : 'w-7 h-7'} text-foreground group-hover:text-destructive transition-colors`} />
                     </button>
-                    {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">Stop</span>}
+                    {!dense && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Stop</span>}
                 </div>
 
                 {/* Pause/Resume Button */}
-                <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+                <div className={`flex flex-col items-center ${dense ? 'gap-1' : 'gap-2'}`}>
                     <button
                         onClick={isPaused ? handleStart : isRunning ? handlePause : handleStart}
                         {...(getFocusProps ? getFocusProps('btn-pause') : {})}
-                        className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
+                        className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${dense ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title={primaryControlLabel}
                         data-testid={TEST_IDS.TIMER_PLAY_PAUSE}
                     >
                         {isPaused
-                            ? <Play className={`${compact ? 'w-6 h-6 text-primary-foreground ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
+                            ? <Play className={`${dense ? 'w-6 h-6 text-primary-foreground ml-0.5' : 'w-8 h-8 text-foreground ml-1'}`} />
                             : isRunning
-                            ? <Pause className={`${compact ? 'w-6 h-6 text-primary-foreground' : 'w-8 h-8 text-on-surface-variant'}`} />
-                            : <Play className={`${compact ? 'w-6 h-6 text-primary-foreground ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
+                            ? <Pause className={`${dense ? 'w-6 h-6 text-primary-foreground' : 'w-8 h-8 text-foreground'}`} />
+                            : <Play className={`${dense ? 'w-6 h-6 text-primary-foreground ml-0.5' : 'w-8 h-8 text-foreground ml-1'}`} />
                         }
                     </button>
-                    {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">{primaryControlLabel}</span>}
+                    {!dense && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{primaryControlLabel}</span>}
                 </div>
 
                 {/* Next Button */}
@@ -432,13 +452,13 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             disabled={isNextDisabled}
                             aria-disabled={isNextDisabled ? 'true' : undefined}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                            className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl w-24 h-24 ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-primary-foreground active:scale-90'}`}
+                            className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl ${dense ? 'w-16 h-16' : 'w-24 h-24'} ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-primary-foreground active:scale-90'}`}
                             title="Next Block"
                         data-testid={TEST_IDS.TIMER_NEXT_BLOCK}
                         >
-                            <SkipForward className="font-bold w-10 h-10" />
+                            <SkipForward className={`font-bold ${dense ? 'w-6 h-6' : 'w-10 h-10'}`} />
                         </button>
-                        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-on-primary-container">Next</span>
+                        {!dense && <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-on-primary-container">Next</span>}
                     </div>
                 )}
             </div>

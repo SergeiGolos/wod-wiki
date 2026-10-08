@@ -121,10 +121,7 @@ export function TourChapterPicker({
       <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
-              Syntax Reference & Examples
-            </div>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Learn the Language</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Learn the Language</h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
               Six chapters, each with a runnable example — load one into the editor, or read the full walkthrough in the guides.
             </p>
@@ -218,7 +215,7 @@ export function TourChapterPicker({
 
           {/* Shared Editor Window: Full width on mobile, responsive height */}
           <div className="w-full flex-1 min-w-0">
-            <div className="h-[360px] sm:h-[440px] lg:h-[480px] w-full">
+            <div className="h-[calc((100dvh-65px)*0.6)] w-full lg:h-[calc((100dvh-104px)*0.6)]">
               <MacOSChrome
                 title={CHAPTER_GUIDE_ROUTES[selectedId]?.split('/').pop() ?? 'example.md'}
                 subtitle="shared example editor"
