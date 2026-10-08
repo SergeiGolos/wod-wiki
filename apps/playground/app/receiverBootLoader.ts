@@ -2,7 +2,7 @@ export const RECEIVER_BOOT_READY_TIMEOUT_MS = 8000;
 export const RECEIVER_BOOT_FADE_MS = 500;
 export const RECEIVER_BOOT_DEGRADED_STATUS = 'waiting-for-cast (degraded)';
 
-type BootLoaderDismissReason = 'ready' | 'timeout';
+type BootLoaderDismissReason = 'ready' | 'timeout' | 'error';
 
 /**
  * Dismiss the initial boot overlay with the same fade the HTML shell uses.

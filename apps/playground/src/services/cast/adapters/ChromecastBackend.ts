@@ -79,10 +79,16 @@ export class ChromecastBackend implements ICastBackend {
     private subscribeToSdk(): void {
         this.sdkUnsubState = ChromecastSdk.on('state-changed', (next: unknown) => {
             const mapped = sdkToBackend[next as CastSdkState] ?? 'ready';
-            // Don't downgrade a 'session-active' state if our own startSession
-            // already flipped it. We trust our internal state when it is more
-            // specific than the SDK's coarse stream.
-            if (this._state === 'connecting' || this._state === 'session-active') {
+            // While 'session-active' we trust our own more specific state over
+            // the SDK's coarse stream. While 'connecting', only suppress
+            // 'session-active': CAF emits NO_SESSION / SESSION_ENDED (mapped
+            // to 'ready') when the launch fails or the user cancels, and that
+            // must reach us — otherwise a failed startSession bricks the
+            // button on 'connecting' until page reload.
+            if (this._state === 'session-active') {
+                return;
+            }
+            if (this._state === 'connecting' && mapped === 'session-active') {
                 return;
             }
             this.setState(mapped);
@@ -104,46 +110,60 @@ export class ChromecastBackend implements ICastBackend {
 
         this.setState('connecting');
 
+        let transport: WebRtcRpcTransport | null = null;
         try {
-            await ChromecastSdk.load(CAST_APP_ID);
+            try {
+                await ChromecastSdk.load(CAST_APP_ID);
+            } catch (err) {
+                this.setState(sdkToBackend[ChromecastSdk.getState()]);
+                throw err;
+            }
+
+            if (this.disposed) {
+                throw new Error('ChromecastBackend: dispose() called during SDK load');
+            }
+
+            if (ChromecastSdk.getState() === 'unavailable') {
+                this.setState('unavailable');
+                throw new Error('ChromecastBackend: Cast not supported in this browser');
+            }
+
+            // Open the native device picker. Throws on user-cancel or when
+            // CAF reports a launch error (e.g. session_error).
+            await ChromecastSdk.requestSession();
+
+            if (this.disposed) {
+                throw new Error('ChromecastBackend: dispose() called during requestSession');
+            }
+
+            const castSession = ChromecastSdk.getSession();
+            if (!castSession) {
+                throw new Error('ChromecastBackend: no Cast session after requestSession()');
+            }
+
+            // Best-effort ping to verify the receiver is up before we start
+            // the WebRTC handshake. Mirrors the existing flow.
+            try {
+                await castSession.sendMessage('urn:x-cast:com.wodwiki', { type: 'ping', timestamp: Date.now() });
+            } catch (err) {
+                rpcWarn('ChromecastBackend', 'namespace ping failed', err);
+            }
+
+            const signaling = new SenderCastSignaling(castSession);
+            transport = new WebRtcRpcTransport('offerer', signaling);
+            await transport.connect();
         } catch (err) {
-            this.setState(sdkToBackend[ChromecastSdk.getState()]);
+            // Failure recovery: a cancelled picker, launch error, or handshake
+            // timeout must release the half-built transport and return to
+            // 'ready', or the Cast button stays disabled on 'connecting'.
+            // Explicit earlier transitions ('unavailable', SDK-load mapping)
+            // are preserved because they leave 'connecting' before this runs.
+            transport?.dispose();
+            if (!this.disposed && this._state === 'connecting') {
+                this.setState('ready');
+            }
             throw err;
         }
-
-        if (this.disposed) {
-            throw new Error('ChromecastBackend: dispose() called during SDK load');
-        }
-
-        if (ChromecastSdk.getState() === 'unavailable') {
-            this.setState('unavailable');
-            throw new Error('ChromecastBackend: Cast not supported in this browser');
-        }
-
-        // Open the native device picker. Throws on user-cancel.
-        await ChromecastSdk.requestSession();
-
-        if (this.disposed) {
-            throw new Error('ChromecastBackend: dispose() called during requestSession');
-        }
-
-        const castSession = ChromecastSdk.getSession();
-        if (!castSession) {
-            this.setState('ready');
-            throw new Error('ChromecastBackend: no Cast session after requestSession()');
-        }
-
-        // Best-effort ping to verify the receiver is up before we start
-        // the WebRTC handshake. Mirrors the existing flow.
-        try {
-            await castSession.sendMessage('urn:x-cast:com.wodwiki', { type: 'ping', timestamp: Date.now() });
-        } catch (err) {
-            rpcWarn('ChromecastBackend', 'namespace ping failed', err);
-        }
-
-        const signaling = new SenderCastSignaling(castSession);
-        const transport = new WebRtcRpcTransport('offerer', signaling);
-        await transport.connect();
 
         this.activeTransport = transport;
         transport.onDisconnected(() => {
