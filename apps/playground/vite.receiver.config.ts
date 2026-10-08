@@ -30,14 +30,20 @@ import { transform as lightningTransform } from 'lightningcss';
  * Dev-server rendering (local debug tab) is untouched; only the built
  * artifact is rewritten. See docs/cast-research/chromecast-receiver-css-legacy.md.
  */
+let resolvedAssetsDir = '';
+
 const legacyReceiverCssPlugin = (): Plugin => ({
     name: 'legacy-receiver-css',
     apply: 'build',
+    // Resolved at config time so the CSS pass rewrites the assets directory
+    // the build actually used (CI overrides outDir to apps/playground/dist).
+    configResolved(config) {
+        resolvedAssetsDir = resolve(config.root, config.build.outDir, 'assets');
+    },
     closeBundle() {
-        const assetsDir = resolve(import.meta.dirname, '../../dist/assets');
-        const cssFiles = fs.existsSync(assetsDir)
-            ? fs.readdirSync(assetsDir).filter((f) => f.startsWith('receiver-') && f.endsWith('.css'))
-            : [];
+        const assetsDir = resolvedAssetsDir;
+        if (!assetsDir || !fs.existsSync(assetsDir)) return;
+        const cssFiles = fs.readdirSync(assetsDir).filter((f) => f.startsWith('receiver-') && f.endsWith('.css'));
         for (const file of cssFiles) {
             const filePath = resolve(assetsDir, file);
             const root = postcss.parse(fs.readFileSync(filePath, 'utf-8'), { from: filePath });
@@ -83,6 +89,12 @@ export default defineConfig({
         },
     },
     build: {
+        // Cast Android TV receivers run Chromium 92 (CrKey UA, verified on a
+        // real device). esbuild lowers ES2022 syntax — class static blocks
+        // (the crash: SyntaxError on `static {}` in @radix-ui/react-collection),
+        // ??=/||=, private methods — to that target. Runtime APIs the
+        // lowering cannot provide are shimmed inline in receiver-rpc.html.
+        target: 'chrome92',
         // Merge into the repo-root dist/ that the PR pipeline just
         // downloaded (playground-dist artifact) before the S3 sync, so the
         // Chromecast receiver page ships on the preview origin.

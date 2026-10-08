@@ -21,6 +21,7 @@ import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRtcRpcTransport, type ISignaling } from '@/services/cast/rpc/WebRtcRpcTransport';
 import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
+import type { CastReceiverContextLike } from '@/types/cast/sdk';
 import { createReceiverSession, type ReceiverSessionHandle } from '@/services/cast/rpc/ReceiverSessionManager';
 import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 import { ScriptRuntimeProvider } from '@bitcobblers/wod-wiki-engine';
@@ -33,6 +34,7 @@ import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { audioService } from '@/services/AudioService';
 import {
     armReceiverBootFallback,
+    dismissReceiverBootLoader,
     RECEIVER_BOOT_DEGRADED_STATUS,
     RECEIVER_BOOT_READY_TIMEOUT_MS,
 } from './receiverBootLoader';
@@ -84,7 +86,7 @@ const ReceiverApp: React.FC<{
         setTimeout(() => setDpadFlash(false), 200);
     }, []);
 
-    const dismissBootLoader = useCallback((reason: 'ready' | 'timeout') => {
+    const dismissBootLoader = useCallback((reason: 'ready' | 'timeout' | 'error') => {
         const loader = document.getElementById('initial-loader');
         if (!loader || loader.dataset.bootDismissed === 'true') {
             return;
@@ -355,10 +357,20 @@ const ReceiverApp: React.FC<{
             });
         }
         // ── Path 3: Chromecast — initialise CAF SDK ───────────────
-        const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
+        // Unchecked cast: the CAF receiver SDK injects `window.cast` at
+        // runtime; its shape is owned by @/types/cast/sdk, not by TS DOM lib.
+        const castGlobal = (window as unknown as {
+            cast?: { framework?: { CastReceiverContext?: { getInstance(): CastReceiverContextLike } } };
+        }).cast;
+        const castContext = castGlobal?.framework?.CastReceiverContext?.getInstance();
         if (!castContext) {
             console.error('[ReceiverApp] Cast Receiver SDK not loaded');
             setConnectionStatus('error: no Cast SDK');
+            // Never leave the boot spinner up: without the SDK there is no
+            // READY event and no later code path that would dismiss it.
+            const bootMsg = document.getElementById('booting-msg');
+            if (bootMsg) bootMsg.textContent = 'Receiver error: Cast SDK did not load';
+            dismissBootLoader('error');
             return;
         }
         // Start the CAF receiver context FIRST — the custom namespace must be
@@ -660,6 +672,9 @@ class ReceiverErrorBoundary extends React.Component<{ children: React.ReactNode 
 
     componentDidCatch(error: Error, info: React.ErrorInfo): void {
         console.error('[ReceiverApp] render error', error, info);
+        // The loader overlay sits above this boundary's error card; dismiss it
+        // or a render/effect crash still shows an infinite spinner.
+        dismissReceiverBootLoader('error');
     }
 
     render(): React.ReactNode {

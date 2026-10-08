@@ -93,7 +93,15 @@ class ChromecastSdkClass {
     load(appId: string): Promise<void> {
         if (this.loadPromise && this.appId === appId) return this.loadPromise;
         this.appId = appId;
-        this.loadPromise = this._load(appId);
+        this.loadPromise = this._load(appId).catch((err) => {
+            // A failed load must not poison later retries (e.g. a transient
+            // network failure): drop the memo so the next load() re-attempts.
+            if (this.appId === appId) {
+                this.loadPromise = null;
+                this.appId = null;
+            }
+            throw err;
+        });
         return this.loadPromise;
     }
 

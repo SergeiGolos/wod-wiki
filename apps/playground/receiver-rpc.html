@@ -108,6 +108,83 @@
         })();
     </script>
 
+    <script>
+        // Legacy-engine shims — Cast Android TV receivers ship Chromium 92
+        // (CrKey). Must run before any module bundle: these cover the runtime
+        // APIs esbuild syntax-lowering cannot provide.
+        (function() {
+            if (!Object.hasOwn) {
+                Object.hasOwn = function(object, key) {
+                    return Object.prototype.hasOwnProperty.call(Object(object), key);
+                };
+            }
+            if (!Promise.withResolvers) {
+                Promise.withResolvers = function() {
+                    var resolve, reject;
+                    var promise = new Promise(function(res, rej) { resolve = res; reject = rej; });
+                    return { promise: promise, resolve: resolve, reject: reject };
+                };
+            }
+            if (!Array.prototype.at) {
+                var at = function(index) {
+                    index = Math.trunc(index) || 0;
+                    if (index < 0) index += this.length;
+                    if (index < 0 || index >= this.length) return undefined;
+                    return this[index];
+                };
+                Array.prototype.at = at;
+                String.prototype.at = at;
+            }
+            if (!Array.prototype.findLast) {
+                Array.prototype.findLast = function(predicate, thisArg) {
+                    for (var i = this.length - 1; i >= 0; i--) {
+                        if (predicate.call(thisArg, this[i], i, this)) return this[i];
+                    }
+                    return undefined;
+                };
+            }
+            if (!Array.prototype.findLastIndex) {
+                Array.prototype.findLastIndex = function(predicate, thisArg) {
+                    for (var i = this.length - 1; i >= 0; i--) {
+                        if (predicate.call(thisArg, this[i], i, this)) return i;
+                    }
+                    return -1;
+                };
+            }
+            if (typeof structuredClone !== 'function') {
+                window.structuredClone = function(value) {
+                    return JSON.parse(JSON.stringify(value));
+                };
+            }
+        })();
+
+        // Boot watchdog: the React bundle arms its own 8s fallback only after
+        // it executes. If the bundle crashes at parse/eval time (or never
+        // loads), say so instead of spinning silently — Cast core kills the
+        // app after 60s either way. #booting-msg text + paused spinner give
+        // on-device debugging a visible signal (also visible via the remote
+        // DevTools screencast).
+        (function() {
+            var loader = document.getElementById('initial-loader');
+            var msgEl = document.getElementById('booting-msg');
+            function report(text, isError) {
+                if (!loader || loader.dataset.bootDismissed) return;
+                if (msgEl) {
+                    msgEl.innerText = text;
+                    if (isError) msgEl.style.color = 'rgba(248,113,113,0.95)';
+                }
+            }
+            window.addEventListener('error', function(event) {
+                report('Boot error: ' + String(event.message || 'unknown').slice(0, 120), true);
+                var spinner = loader && loader.querySelector('.spinner');
+                if (spinner) spinner.style.animationPlayState = 'paused';
+            }, true);
+            window.setTimeout(function() {
+                report('Still starting... app bundle did not report ready', false);
+            }, 12000);
+        })();
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/app/receiver-rpc.tsx"></script>
 </body>

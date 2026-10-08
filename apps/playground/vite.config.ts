@@ -134,7 +134,11 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(import.meta.dirname, 'index.html'),
-                'receiver-rpc': resolve(import.meta.dirname, 'receiver-rpc.html'),
+                // receiver-rpc.html is intentionally NOT built here: the Cast
+                // Android TV engine is Chromium 92, and this pipeline emits
+                // whole-app vendor chunks with no legacy JS lowering. The
+                // receiver ships from vite.receiver.config.ts (chrome92
+                // target + legacy CSS) — see _verify.yml "Build receiver".
             },
             output: {
                 manualChunks(id) {

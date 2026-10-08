@@ -100,6 +100,15 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
           VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
 
+      # The receiver ships from its dedicated pipeline — Chrome 92 target for
+      # the Cast Android TV engine plus legacy CSS lowering. Never ship the
+      # main playground bundle as the receiver; it crashes Cast Chromium with
+      # SyntaxError before React mounts (spinner-forever incident 2026-10).
+      # Writes into apps/playground/dist so it uploads with the same artifact.
+      - name: Build receiver
+        if: inputs.build-preview-artifact && steps.build.outcome == 'success'
+        run: bun x vite build --config apps/playground/vite.receiver.config.ts --outDir dist
+
       - name: Upload playground dist
         if: inputs.build-preview-artifact && steps.build.outcome == 'success'
         uses: actions/upload-artifact@v7

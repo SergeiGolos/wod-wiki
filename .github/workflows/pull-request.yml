@@ -147,10 +147,8 @@ jobs:
           HASH=$(ls dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
-      - name: Build receiver
-        run: |
-          VITE_BASE_PATH="/${{ env.BRANCH_SLUG }}/dist/" \
-            bun x vite build --config apps/playground/vite.receiver.config.ts
+      # Receiver ships via the playground-dist artifact — the verify job
+      # builds it with the dedicated chrome92 receiver pipeline.
 
 
       - name: Deploy playground to S3
