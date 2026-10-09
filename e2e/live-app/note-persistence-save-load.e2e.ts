@@ -39,6 +39,7 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     });
     journal = new JournalEntryPage(page);
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await waitForSeedReady(page);
   });
 
   test.afterEach(async ({ page: _page }, testInfo) => {
