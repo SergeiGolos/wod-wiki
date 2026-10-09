@@ -18,6 +18,7 @@
 import { test, expect } from '@playwright/test';
 import { JournalEntryPage } from '../pages/JournalEntryPage';
 import { seedJournalNote, clearResults, getResults, WOD_DB } from '../helpers/wodwikiDb';
+import { waitForSeedReady } from '../helpers/seedReadiness';
 
 // ── Stable test dates ─────────────────────────────────────────────────────────
 const DATE_CONTENT_ROUNDTRIP = '2099-08-01';
@@ -247,6 +248,7 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     errors.length = 0;
 
     await page.goto('/guide/protocols', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await waitForSeedReady(page);
 
     // The editor should be present on the syntax page
     const editor = page.locator('.cm-content[contenteditable="true"]:visible').first();
