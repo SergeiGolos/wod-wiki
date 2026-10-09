@@ -392,6 +392,7 @@ export function TourCaptions({ activeIndex, onChoice, onCommand, captions = TOUR
       {captions.map((cap, i) => (
         <div
           key={cap.id}
+          data-scroll-pane
           className="absolute inset-0 overflow-y-auto transition-opacity duration-300"
           style={{
             opacity: i === activeIndex ? 1 : 0,

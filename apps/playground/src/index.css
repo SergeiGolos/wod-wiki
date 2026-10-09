@@ -26,6 +26,17 @@
   min-width: 0;
 }
 
+/* ScrollTrack gates (app/scroll/ScrollTrackProvider): while a gate yields,
+   its inner scrollers freeze so wheel/touch gestures scroll the page track
+   instead of being captured by a pane inside a pinned runway window. The
+   gate captures — restoring inner scrolling — while the user edits inside
+   it. [data-scroll-pane] marks a pane-owned scroller (e.g. the caption
+   rail) that follows the same rule as the CodeMirror scroller. */
+[data-scroll-gate='yield'] .cm-scroller,
+[data-scroll-gate='yield'] [data-scroll-pane] {
+  overflow-y: hidden !important;
+}
+
 /* Monaco Editor - WOD Block Decorations */
 .wod-block {
   background-color: hsl(var(--primary) / 0.05) !important;
