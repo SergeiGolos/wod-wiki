@@ -129,4 +129,39 @@ describe('Journal Notes', () => {
 
     expect(persistence.notes.get(note.id)?.title).toBe('Changed heading');
   });
+
+  it('keeps the final edit when earlier writes are delayed and recovers after a failed write', async () => {
+    const persistence = new MemoryNotePersistence();
+    const journalNotes = createJournalNotes({ persistence });
+    const note = await journalNotes.create({
+      journalDate: '2026-07-13',
+      title: 'Fran',
+      rawContent: '# Fran',
+    });
+
+    let releaseFirst!: () => void;
+    const firstSettles = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const original = persistence.mutateNote.bind(persistence);
+    let mutationCalls = 0;
+    persistence.mutateNote = async (locator, mutation) => {
+      if (++mutationCalls === 1) await firstSettles;
+      return original(locator, mutation);
+    };
+
+    const firstUpdate = journalNotes.update(note.id, '# Fran mid-typing document');
+    const secondUpdate = journalNotes.update(note.id, '# Fran mid-typing document + typed tail');
+    await persistence.getNote(note.id);
+    releaseFirst();
+    const [, second] = await Promise.all([firstUpdate, secondUpdate]);
+
+    expect(second.rawContent).toContain('+ typed tail');
+    expect(persistence.notes.get(note.id)?.rawContent).toContain('+ typed tail');
+
+    // A failed write rejects its caller but must not wedge the next update.
+    persistence.mutateNote = async () => { throw new Error('storage offline'); };
+    await expect(journalNotes.update(note.id, '# doomed')).rejects.toThrow('storage offline');
+    persistence.mutateNote = original;
+    const recovered = await journalNotes.update(note.id, '# Fran recovered');
+    expect(recovered.rawContent).toBe('# Fran recovered');
+  });
 });

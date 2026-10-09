@@ -312,10 +312,10 @@ export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<
               deleteCascade(idReq.result.id);
             } else if (db.objectStoreNames.contains('page')) {
               // V22+: slugs live on the `page` store; notes link via page_notes.
-              const pageReq = tx.objectStore('page').index('by-slug').get(routeId);
-              pageReq.onsuccess = () => {
-                const pg = pageReq.result;
-                if (!pg) return;
+              // Journal day pages carry no slug — resolve `journal/<date>` via
+              // the page `by-date` index so app-created UUID notes are removed
+              // across runs instead of accumulating dangling links.
+              const cascadePage = (pg: { id: string }) => {
                 if (db.objectStoreNames.contains('page_notes')) {
                   const linkReq = tx.objectStore('page_notes').index('by-page').getAll(pg.id);
                   linkReq.onsuccess = () => {
@@ -329,6 +329,15 @@ export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<
                 } else {
                   tx.objectStore('page').delete(pg.id);
                 }
+              };
+              const pageReq = tx.objectStore('page').index('by-slug').get(routeId);
+              pageReq.onsuccess = () => {
+                if (pageReq.result) return cascadePage(pageReq.result);
+                const dateKey = routeId.startsWith('journal/') ? routeId.slice('journal/'.length) : null;
+                if (!dateKey) return;
+                const dateReq = tx.objectStore('page').index('by-date').get(dateKey);
+                dateReq.onsuccess = () => { if (dateReq.result) cascadePage(dateReq.result); };
+                dateReq.onerror = () => reject(dateReq.error);
               };
               pageReq.onerror = () => reject(pageReq.error);
             }
@@ -702,20 +711,36 @@ export async function getNoteContentByRouteId(
               readSegments(idReq.result.id);
             } else if (db.objectStoreNames.contains('page')) {
               // V22+: slugs live on the `page` store; notes link via page_notes.
+              // Journal day pages carry no slug — resolve `journal/<date>` via
+              // the page `by-date` index so app-created UUID notes are found
+              // (identity: routeId → page → page_notes → note segments).
+              const resolvePage = (pg: { id: string } | undefined) => {
+                if (!pg || !db.objectStoreNames.contains('page_notes')) return resolve(null);
+                const linkReq = tx.objectStore('page_notes').index('by-page').getAll(pg.id);
+                linkReq.onsuccess = () => {
+                  // Skip dangling links from earlier runs; first live note wins.
+                  const links = linkReq.result as Array<{ noteId: string }>;
+                  const probe = (i: number): void => {
+                    if (i >= links.length) return resolve(null);
+                    const noteReq = tx.objectStore('notes').get(links[i].noteId);
+                    noteReq.onsuccess = () => {
+                      if (noteReq.result) readSegments(links[i].noteId);
+                      else probe(i + 1);
+                    };
+                    noteReq.onerror = () => reject(noteReq.error);
+                  };
+                  probe(0);
+                };
+                linkReq.onerror = () => reject(linkReq.error);
+              };
               const pageReq = tx.objectStore('page').index('by-slug').get(routeId);
               pageReq.onsuccess = () => {
-                const pg = pageReq.result;
-                if (!pg) return resolve(null);
-                if (db.objectStoreNames.contains('page_notes')) {
-                  const linkReq = tx.objectStore('page_notes').index('by-page').getAll(pg.id);
-                  linkReq.onsuccess = () => {
-                    if (linkReq.result.length === 0) return resolve(null);
-                    readSegments(linkReq.result[0].noteId);
-                  };
-                  linkReq.onerror = () => reject(linkReq.error);
-                } else {
-                  resolve(null);
-                }
+                if (pageReq.result) return resolvePage(pageReq.result);
+                const dateKey = routeId.startsWith('journal/') ? routeId.slice('journal/'.length) : null;
+                if (!dateKey) return resolve(null);
+                const dateReq = tx.objectStore('page').index('by-date').get(dateKey);
+                dateReq.onsuccess = () => resolvePage(dateReq.result);
+                dateReq.onerror = () => reject(dateReq.error);
               };
               pageReq.onerror = () => reject(pageReq.error);
             } else {

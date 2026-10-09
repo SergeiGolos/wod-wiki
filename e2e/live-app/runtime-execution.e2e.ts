@@ -62,12 +62,10 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     await page.addInitScript(() => {
       window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     });
-    try {
-      // Seed IndexedDB access on the app origin before any IDB helpers run.
-      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
-    } catch {
-      test.skip(true, 'Local dev server (localhost:5173) not running');
-    }
+    // Seed IndexedDB access on the app origin before any IDB helpers run.
+    // A navigation failure fails the test — a silent skip here would hide a
+    // broken environment as green.
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
   });
 
   test('countdown progresses and tracks wall clock', async ({ page }) => {
@@ -156,15 +154,6 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     const completed = sessions.find((s) => s.completed === true);
     expect(completed?.duration).toBeGreaterThanOrEqual(5_000);
     expect(errors).toEqual([]);
-  });
-
-  test.skip('completion result feeds the results inlay on the source note (retired in #944)', async ({ page }) => {
-    await installFastClock(page);
-    const id = 'runtime-e2e-inlay';
-    await startCleanWorkout(page, id, '```time\nTimer: 0:06\n5 Burpees\n```');
-
-    await advanceUntilReview(page);
-    expect((await getSessions(page)).some((s) => s.completed === true)).toBe(true);
   });
 
   test('reload of /run/:runtimeId shows the designed defensive state', async ({ page }) => {

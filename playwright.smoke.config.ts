@@ -40,6 +40,7 @@ export default defineConfig({
 
   use: {
     baseURL: appURL,
+    launchOptions: { args: ['--enable-features=IdbSqliteBackingStore'] },
     trace: 'on-first-retry',
     // Every test's screenshot is embedded in the published HTML report.
     screenshot: 'on',

@@ -60,12 +60,15 @@ export default defineConfig({
     ? (process.env.CI ? 4 : 2)
     : process.env.CI ? 2 : undefined,
   reporter: process.env.CI
-    ? [['html'], ['junit', { outputFile: 'test-results/live-e2e-junit.xml' }], ['github']]
+    ? [['html'], ['junit', { outputFile: 'test-results/live-e2e-junit.xml' }], ['json', { outputFile: 'test-results/live-e2e-results.json' }], ['github']]
     : 'html',
 
   use: {
     baseURL: appBaseURL,
-    trace: 'on-first-retry',
+    // ponytail: Playwright Chromium 151 defaults to the slow LevelDB path;
+    // remove this when its SQLite IndexedDB backend is enabled by default.
+    launchOptions: { args: ['--enable-features=IdbSqliteBackingStore'] },
+    trace: 'retain-on-failure',
     screenshot: 'on',
     video: 'retain-on-failure',
     ignoreHTTPSErrors: trustSelfSigned, // trust self-signed / Tailscale certs locally
@@ -86,6 +89,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         viewport: { width: 375, height: 812 },
         storageState: {
+          cookies: [],
           origins: [
             {
               origin: new URL(appBaseURL).origin,
@@ -103,6 +107,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: {
+          cookies: [],
           origins: [
             {
               origin: new URL(appBaseURL).origin,

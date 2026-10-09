@@ -16,8 +16,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { seedNote } from '../helpers/wodwikiDb';
 
-const WOD_DB = 'wodwiki-db';
-
 /** Open the editor overlay for a seeded playground note. */
 async function openNote(page: Page, id: string, content: string): Promise<void> {
   await seedNote(page, `playground/${id}`, content, { type: 'playground', title: id });
@@ -39,11 +37,9 @@ test.describe('Error-Path Resilience', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     });
-    try {
-      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
-    } catch {
-      test.skip(true, 'Local dev server (localhost:5173) not running');
-    }
+    // A navigation failure fails the test — a silent skip here would hide a
+    // broken environment as green.
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
   });
 
   // ── 1. Malformed WOD blocks ───────────────────────────────────────────────
@@ -83,20 +79,17 @@ test.describe('Error-Path Resilience', () => {
 
   // ── 2. IndexedDB unavailable ──────────────────────────────────────────────
 
-  // DEFECT #703 (still open, now precisely located): every IDB open failure
-  // — absent API, SecurityError on open (Firefox private mode), or open
-  // blocked by another tab — leaves the app blank: the route table itself
-  // derives from IDB-backed seed content (useCanvasRoutes), so no route
-  // matches and #root keeps only the Toaster. One rejection also escapes
-  // unhandled from the useSeedContent bootstrap
-  // (seedContent.ts: `void ensureSeedContent()` — needs a .catch) and
-  // surfaces as a pageerror. Quarantined until the boot rejection is caught
-  // and the shell renders an empty state. The interception below is the
+  // Quarantined #1068 (residual of #703): #703's fix (64d59e82) guards the
+  // IndexedDBService constructor, but the boot rejection still escapes
+  // unhandled — useSeedContent runs `void ensureSeedContent()` with no
+  // .catch (apps/playground/src/services/content/seedContent.ts) and
+  // ensureSeedContent rethrows load() failures, so a denied IDB open
+  // surfaces as an unhandled pageerror. The interception below is the
   // ready-to-unquarantine shape: keep the API present, fail opens the way
   // permission-denied storage does (wodwiki-db, wodwiki-telemetry and
-  // wodwiki-user-calcs all fail together).
-  test.skip(true, 'DEFECT #703: IDB failure still white-screens (unhandled rejection in seedContent bootstrap)');
-  test('IndexedDB rejection degrades without an unhandled pageerror', async ({ browser }) => {
+  // wodwiki-user-calcs all fail together). Re-enable once the bootstrap
+  // rejection is caught.
+  test.fixme('IndexedDB rejection degrades without an unhandled pageerror', async ({ browser }) => { // #1068: seedContent bootstrap lacks .catch
     const context = await browser.newContext();
     const page = await context.newPage();
     page.on('pageerror', (e) => errors.push(e.message));

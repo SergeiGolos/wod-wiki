@@ -549,6 +549,71 @@ describe('SeedImporter first-paint ordering', () => {
     expect(counting.fetchChunkCalls).toHaveLength(3);
   });
 
+  it('imports a slow earlier chunk even when a later fetch finishes first', async () => {
+    const { source } = makeSource({
+      canvas: [row('markdown/canvas/home/README.md')],
+      'collection.a': [row('markdown/collections/a/fran.md')],
+      'collection.b': [row('markdown/collections/b/annie.md')],
+    }, 1000);
+    const laterFetched = Promise.withResolvers<void>();
+    const storage = new InMemorySeedStorage();
+    await new SeedImporter(storage, {
+      fetchManifest: () => source.fetchManifest(),
+      fetchChunk: async (path) => {
+        if (path === 'chunks/collection.a.json') await laterFetched.promise;
+        if (path === 'chunks/collection.b.json') laterFetched.resolve();
+        return source.fetchChunk(path);
+      },
+    }).applyAll();
+
+    expect(storage.allNotes().map((note) => note.sourcePath).sort()).toEqual([
+      'markdown/canvas/home/README.md',
+      'markdown/collections/a/fran.md',
+      'markdown/collections/b/annie.md',
+    ]);
+    expect((await storage.getSeedMeta())?.seedVersion).toBe(1000);
+  });
+
+  it('keeps committed chunks and resumes after a later fetch fails early', async () => {
+    const { source } = makeSource({
+      canvas: [row('markdown/canvas/home/README.md')],
+      'collection.a': [row('markdown/collections/a/fran.md')],
+      'collection.b': [row('markdown/collections/b/annie.md')],
+      'collection.c': [row('markdown/collections/c/cindy.md')],
+    }, 1000);
+    const laterFailed = Promise.withResolvers<void>();
+    const storage = new InMemorySeedStorage();
+    const importer = new SeedImporter(storage, {
+      fetchManifest: () => source.fetchManifest(),
+      fetchChunk: async (path) => {
+        if (path === 'chunks/collection.a.json') {
+          await laterFailed.promise;
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        }
+        if (path === 'chunks/collection.b.json') {
+          laterFailed.resolve();
+          throw new Error('chunk unavailable');
+        }
+        return source.fetchChunk(path);
+      },
+    });
+    await expect(importer.applyAll()).rejects.toThrow('chunk unavailable');
+    expect(storage.allNotes().map((note) => note.sourcePath).sort()).toEqual([
+      'markdown/canvas/home/README.md',
+      'markdown/collections/a/fran.md',
+    ]);
+    expect(Object.keys((await storage.getSeedMeta())!.chunks)).toEqual(['canvas', 'collection.a']);
+
+    await new SeedImporter(storage, source).applyAll();
+    expect(storage.allNotes().map((note) => note.sourcePath).sort()).toEqual([
+      'markdown/canvas/home/README.md',
+      'markdown/collections/a/fran.md',
+      'markdown/collections/b/annie.md',
+      'markdown/collections/c/cindy.md',
+    ]);
+    expect((await storage.getSeedMeta())?.seedVersion).toBe(1000);
+  });
+
   it('does not fire onFirstPaintApplied when the canvas chunk is already applied (resume)', async () => {
     const canvasRows = [row('markdown/canvas/home/README.md')];
     const aRows = [row('markdown/collections/a/fran.md')];

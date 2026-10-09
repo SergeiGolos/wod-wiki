@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { TEST_IDS } from '../contracts/TestIdContract';
+import { waitForSeedReady } from '../helpers/seedReadiness';
 
 const DB_NAME = 'wodwiki-db';
 
@@ -8,11 +9,13 @@ export class EffortsPage {
 
   async gotoCatalog() {
     await this.page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await waitForSeedReady(this.page);
     await this.waitForCatalogLoaded();
   }
 
   async gotoDetail(slug: string) {
     await this.page.goto(`/e/${encodeURIComponent(slug)}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await waitForSeedReady(this.page);
     await this.waitForDetailLoaded();
   }
 
@@ -32,10 +35,14 @@ export class EffortsPage {
     return this.page.getByTestId('stream-empty-state');
   }
 
+  /** Exact-title row match: `^title$i` (case-insensitive) — a prefix match
+   *  would click through to the wrong detail ('burpee' ⊂ 'Burpee pull up'). */
   effortRow(slug: string): Locator {
+    const title = slug.replace(/-/g, ' ');
+    const pattern = new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
     return this.page
       .locator('[data-testid="library-row-effort"]')
-      .filter({ hasText: new RegExp(slug.replace(/-/g, ' '), 'i') })
+      .filter({ has: this.page.getByRole('heading', { name: pattern }) })
       .first();
   }
 

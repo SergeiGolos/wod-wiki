@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { appBaseURL } from '../utils/url-helpers';
-import { WorkoutEditorPage } from '../pages/WorkoutEditorPage';
+import { waitForSeedReady } from '../helpers/seedReadiness';
 
 /** Pageerror noise filter — production loads third-party/analytics/extension scripts. */
 function isCriticalError(message: string): boolean {
@@ -16,9 +16,8 @@ async function probeRoute(page: Page, path: string): Promise<void> {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(path, { waitUntil: 'domcontentloaded' });
-  // Allow async errors + late hydration to surface.
-  await page.waitForTimeout(2000);
-  await expect(page.locator('main, [role="main"], #root').first()).toBeVisible();
+  await waitForSeedReady(page);
+  await expect(page.locator('main, [role="main"]').first()).toBeVisible();
   expect(errors.filter(isCriticalError)).toHaveLength(0);
 }
 
@@ -43,16 +42,11 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     const today = new Date().toISOString().split('T')[0];
     await page.goto(`/journal/${today}`, { waitUntil: 'domcontentloaded' });
 
-    // Wait a moment for React to mount
-    await page.waitForTimeout(1000);
-
-    // Check that the editor is present
-    const editor = page.locator('[contenteditable="true"], textarea, .editor').first();
-    await expect(editor).toBeVisible({ timeout: 5000 }).catch(() => {
-      // Editor might not be visible immediately, check for any main content
-      const main = page.locator('main, [role="main"], #root').first();
-      expect(main).toBeVisible();
-    });
+    await waitForSeedReady(page);
+    // Date-page contract (JournalDatePage always renders this action once the
+    // route settles): the page's own New note control, plus the inline editor
+    // when the date already has a note.
+    await expect(page.getByRole('button', { name: 'New note', exact: true })).toBeVisible({ timeout: 10_000 });
 
     await page.screenshot({ path: 'e2e/screenshots/smoke-journal.png', fullPage: false });
   });
@@ -78,18 +72,6 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     expect(criticalErrors).toHaveLength(0);
   });
 
-  test('WOD index page loads', async ({ page }) => {
-    await page.goto('/wod', { waitUntil: 'domcontentloaded' });
-
-    // Wait for content to load
-    await page.waitForTimeout(1000);
-
-    // Check that the page has content
-    const content = page.locator('main, [role="main"], #root').first();
-    await expect(content).toBeVisible();
-
-    await page.screenshot({ path: 'e2e/screenshots/smoke-wod-index.png', fullPage: false });
-  });
   // ── Deepening (#694): primary routes + a real workout start ───────────────
 
   test('/efforts loads without critical page errors', async ({ page }) => {
@@ -109,7 +91,7 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     await page.screenshot({ path: 'e2e/screenshots/smoke-syntax-basics.png', fullPage: false });
   });
 
-  test('Fran collection workout starts and mounts the timer overlay', async ({ page }) => {
+  test('Fran collection workout starts and mounts the running controls', async ({ page }) => {
     test.setTimeout(90_000); // production network + cold parse
     await page.addInitScript(() => {
       // Suppress the First-Note Wizard so it can't intercept the Play click.
@@ -117,12 +99,9 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     });
     page.on('dialog', (d) => { void d.accept(); });
 
-    const editor = new WorkoutEditorPage(page);
-    // /workout/:cat/:name redirects to /collections/:cat/:name.
-    await page.goto(editor.url('crossfit-girls', 'fran'), { waitUntil: 'domcontentloaded' });
-
-    // The workout loaded — its name renders in the main content.
-    await editor.expectProseContains('Fran');
+    await page.goto('/collections/crossfit-girls/fran', { waitUntil: 'domcontentloaded' });
+    await waitForSeedReady(page);
+    await expect(page.locator('main').first()).toContainText('Fran');
 
     // Start the workout: DOM click (block overlay decorations intercept
     // pointer events, same as the live-app specs).
@@ -130,11 +109,8 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     await expect(play).toBeVisible({ timeout: 15_000 });
     await play.evaluate((el) => (el as HTMLElement).click());
 
-    // Timer overlay mounts (the FocusedDialog close button is present from
-    // initializing through running) and/or the run route is active.
-    await expect(
-      page.locator('button[title="Close"]').first(),
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page).toHaveURL(/\/journal\/\d{4}-\d{2}-\d{2}/);
+    await expect(page.getByRole('button', { name: 'Stop Session', exact: true }).first()).toBeVisible();
     await page.screenshot({ path: 'e2e/screenshots/smoke-fran-timer.png', fullPage: false });
   });
 
@@ -147,11 +123,11 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
   test('/analytics/explorer deep link cold-loads and renders (#909)', async ({ page }) => {
     const deepLink = '/analytics/explorer?q=' + encodeURIComponent('sum:totalVolume{}');
     await page.goto(deepLink, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
+    await waitForSeedReady(page);
 
     // The SPA fallback restores the deep link and the explorer mounts.
     await expect(page.getByText('Metric Explorer').first()).toBeVisible({ timeout: 5000 });
-    // The query survived the redirect round-trip to /dashboard.
-    expect(page.url()).toContain('/dashboard?q=');
+    await expect(page).toHaveURL(/\/dashboards\?q=/);
+    expect(new URL(page.url()).searchParams.get('q')).toBe('sum:totalVolume{}');
   });
 });

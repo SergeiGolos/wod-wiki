@@ -166,6 +166,33 @@ Full map: [`docs/architecture/overview.md`](./docs/architecture/overview.md).
 | `bun run lint:playground` | Lints playground source with ESLint |
 | `bun run build` | Compiles packages and production builds of both apps |
 
+### Deployed E2E verification
+
+Run the production bundle locally with `bun run build:app` followed by
+`E2E_TARGET=preview bun run test:e2e`. Set `E2E_APP_URL` to test a deployed build
+without starting a local server. Seed-dependent tests await the bootstrap's
+`data-seed-state` and `data-seed-outcome` on `<html>` before checking the route.
+Derived seed rows are queued within the existing atomic chunk transaction;
+a failed write rolls back both rows and the checkpoint.
+Canvas commits before any library fetch; the remaining chunks fetch four at a
+time and still commit in manifest order. Failed fetches preserve the committed
+checkpoint so the next bootstrap resumes without reapplying completed chunks.
+Playwright's pinned Chromium uses SQLite-backed IndexedDB explicitly; its
+LevelDB backend took 31.5 seconds for a fresh seed versus 2.8 seconds with SQLite.
+
+PR previews and main run the live-app suite after deployment and wait for the
+deployed entry-bundle hash. Reports publish to `https://<branch-slug>.e2e.wod.wiki/`
+and [the main report](https://e2e.wod.wiki/), including failed runs. CI summaries
+show per-file pass, fail, flaky, and skipped counts. `e2e-run-metadata.json` beside
+the report records the tested commit, build hash, deploy URL, timestamp, and run URL.
+Failed-test artifacts retain the initial trace, browser console, network, and video.
+
+Quarantines must cite an open issue: unsupported effort actions and the CI
+performance budget are tracked in [#719](https://github.com/SergeiGolos/wod-wiki/issues/719);
+production Chromecast round-trips in [#1067](https://github.com/SergeiGolos/wod-wiki/issues/1067);
+storage-denial bootstrap recovery in [#1068](https://github.com/SergeiGolos/wod-wiki/issues/1068).
+Retired routes and widgets are removed from the suite rather than silently skipped.
+
 ---
 
 ## Repository layout

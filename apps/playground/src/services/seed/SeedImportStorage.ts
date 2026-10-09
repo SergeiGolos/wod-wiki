@@ -114,13 +114,18 @@ export class IndexedDBSeedImportStorage implements SeedImportStorage {
         for (const effort of write.efforts) await efforts.put(effort);
         for (const slug of write.deleteEffortSlugs) await efforts.delete(slug);
 
+        // The multi-thousand-row derived chunks (block-index/block-efforts)
+        // are the cold-import throughput bottleneck (#1066): one awaited
+        // request per row costs an event-loop task each. Promise.all enqueues
+        // the batch on the same transaction; a rejection propagates through
+        // the wrapper, which aborts and rolls back the whole chunk.
         const blocks = tx.readwrite('block_index');
-        for (const row of write.blocks) await blocks.put(row);
-        for (const id of write.deleteBlockIds) await blocks.delete(id);
+        await Promise.all(write.blocks.map((row) => blocks.put(row)));
+        await Promise.all(write.deleteBlockIds.map((id) => blocks.delete(id)));
 
         const blockEffortsStore = tx.readwrite('block_efforts');
-        for (const row of write.blockEfforts) await blockEffortsStore.put(row);
-        for (const id of write.deleteBlockEffortIds) await blockEffortsStore.delete(id);
+        await Promise.all(write.blockEfforts.map((row) => blockEffortsStore.put(row)));
+        await Promise.all(write.deleteBlockEffortIds.map((id) => blockEffortsStore.delete(id)));
 
         const tagsStore = tx.readwrite('tags');
         const noteTagsStore = tx.readwrite('note_tags');

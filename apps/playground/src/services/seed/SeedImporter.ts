@@ -44,6 +44,23 @@ import { DEFAULT_TAG_TYPES } from '@/services/storage/StorageService';
 import { assertBlockEffortRows, assertBlockRows, assertRows, type ISeedSource } from './ISeedSource';
 import type { SeedImportStorage } from './SeedImportStorage';
 
+async function* fetchChunks(source: ISeedSource, plan: ManifestChunk[]) {
+  for (let i = 0; i < plan.length;) {
+    // ponytail: four concurrent fetches bound memory; tune only from cold-import traces.
+    const batch = plan.slice(i, i + (plan[i]?.id === CANVAS_CHUNK_ID ? 1 : 4));
+    const pending = batch.map((chunk) => source.fetchChunk(chunk.path).then(
+      (payload) => ({ chunk, payload }),
+      (error: unknown) => ({ chunk, error }),
+    ));
+    for (const request of pending) {
+      const result = await request;
+      if ('error' in result) throw result.error;
+      yield result;
+    }
+    i += batch.length;
+  }
+}
+
 /** Fixed RFC-4122 namespace for deterministic seed note ids (UUIDv5 of the source path). */
 const SEED_NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
 
@@ -238,8 +255,7 @@ export class SeedImporter {
     let totalEfforts = 0;
     let totalBlocks = 0;
 
-    for (const chunk of orderedPlan) {
-      const payload = await this.source.fetchChunk(chunk.path);
+    for await (const { chunk, payload } of fetchChunks(this.source, orderedPlan)) {
 
       // ── Block-index chunks: precomputed rows straight into `block_index` ──
       if ((chunk.kind ?? 'notes') === 'block-index') {

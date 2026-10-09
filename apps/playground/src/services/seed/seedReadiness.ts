@@ -34,9 +34,26 @@ function notify(): void {
   for (const listener of listeners) listener();
 }
 
+// CI/e2e diagnostics: trace captures record <html> attributes, so the gate
+// state and the last sync outcome surface there instead of a window handle.
+// The outcome is removed when an attempt starts.
+function reflectState(next: GateState): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.seedState = next;
+}
+
+function reflectOutcome(next: SeedSyncOutcome | null): void {
+  if (typeof document === 'undefined') return;
+  if (next === null) delete document.documentElement.dataset.seedOutcome;
+  else document.documentElement.dataset.seedOutcome = next;
+}
+
+reflectState(state); // 'idle' visible from module load: bootstrap-not-run vs never-settled
+
 function setState(next: GateState): void {
   if (state === next) return;
   state = next;
+  reflectState(next);
   notify();
 }
 
@@ -54,11 +71,13 @@ function clearBusyWatch(): void {
 /** Called from app bootstrap, before runSeedSync. */
 export function markSeedSyncStarted(): void {
   clearBusyWatch();
+  reflectOutcome(null);
   setState('preparing');
 }
 
 /** Called with the outcome of every runSeedSync attempt (including retries). */
 export function markSeedSyncSettled(outcome: SeedSyncOutcome): void {
+  reflectOutcome(outcome);
   switch (outcome) {
     case 'busy': {
       if (state !== 'preparing') return;
@@ -106,5 +125,7 @@ export function useSeedReadiness(): SeedReadiness {
 export function resetSeedReadinessForTest(): void {
   clearBusyWatch();
   state = 'idle';
+  reflectState('idle');
+  reflectOutcome(null);
   notify();
 }

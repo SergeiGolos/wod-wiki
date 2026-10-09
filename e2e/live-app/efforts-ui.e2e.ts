@@ -14,6 +14,7 @@
 
 import { test, expect, Page } from '@playwright/test';
 import { EffortsPage } from '../pages/EffortsPage';
+import { waitForSeedReady } from '../helpers/seedReadiness';
 
 const TEST_EFFORT_PREFIX = 'e2e-test';
 
@@ -53,7 +54,7 @@ test.describe('Efforts Catalog Page', () => {
   test('loads and displays bundled efforts', async ({ page }) => {
     const errors = setupErrorCapture(page);
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
+    await waitForSeedReady(page);
 
     await expect(page.getByTestId('stream-query-bar')).toBeVisible();
     await expect(page.getByRole('main').getByText('Rowing').first()).toBeVisible();
@@ -62,7 +63,7 @@ test.describe('Efforts Catalog Page', () => {
 
   test('shows search and filter controls', async ({ page }) => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
+    await waitForSeedReady(page);
 
     await expect(page.getByTestId('stream-query-bar')).toBeVisible();
     await expect(page.getByTestId('stream-view-settings-trigger')).toBeVisible();
@@ -119,12 +120,14 @@ test.describe('Effort Detail Page', () => {
 
     await expect(efforts.detailLabel()).toHaveText('Rowing');
     await expect(efforts.detailSource()).toHaveText('Bundled');
-    // Frontmatter renders as a structured properties panel (no raw `met: 7` line).
+    // Identity header surfaces the typed attributes user-visibly: rowing
+    // met 7.0, intensityTier high (same contract as the kettlebell-snatch
+    // test below).
+    await expect(page.getByText('7 MET')).toBeVisible();
+    await expect(page.getByLabel('Intensity tier')).toHaveValue('high');
+    // Properties panel is editable: the slug lives in an input value.
     const properties = efforts.frontmatterProperties();
-    await expect(properties).toBeVisible();
-    await expect(properties.getByText('rowing', { exact: true })).toBeVisible();
-    await expect(properties.getByText('baseAttributes', { exact: true })).toBeVisible();
-    await expect(properties).toContainText('rower');
+    await expect(properties.getByLabel('Value for slug')).toHaveValue('rowing');
     await expect(efforts.cloneButton()).toBeVisible();
     await expect(efforts.editButton()).not.toBeVisible();
     expect(errors).toHaveLength(0);
@@ -146,61 +149,22 @@ test.describe('Effort Detail Page', () => {
 
   test('shows effort with aliases', async ({ page }) => {
     await page.goto('/effort/rowing', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
+    await waitForSeedReady(page);
 
-    await expect(page.getByRole('main').getByText('row').first()).toBeVisible();
-    await expect(page.getByRole('main').getByText('rower').first()).toBeVisible();
-  });
-});
-
-// ── Create Custom Effort ─────────────────────────────────────────────────────
-
-test.describe('Create Custom Effort', () => {
-  const testSlug = `${TEST_EFFORT_PREFIX}-create-${Date.now()}`;
-
-  test.fixme('creates a new custom effort', async ({ page }) => { // e2e-remediation: Save button retired from effort detail surface — needs product decision (#719) // e2e-remediation: expect(locator).toBeVisible() failed — runtime state, needs trace
-    const errors = setupErrorCapture(page);
-
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
-
-    await page.getByRole('button', { name: /Create Custom/i }).click();
-    await page.waitForURL(/\/effort\/new\?mode=create/, { timeout: 5_000 });
-
-    await expect(page.getByRole('button', { name: /Save/i })).toBeVisible();
-
-    const yaml = [
-      '---',
-      `slug: ${testSlug}`,
-      'label: E2E Test Effort',
-      'aliases:',
-      '  - e2e-test',
-      'baseAttributes:',
-      '  met: 8.5',
-      '  discipline: strength',
-      '  intensityTier: high',
-      'registrySource: user',
-      '---',
-    ].join('\n');
-
-    await setEditorContent(page, yaml);
-
-    await page.getByRole('button', { name: /Save/i }).click();
-    await page.waitForURL(new RegExp(`/effort/${testSlug}`), { timeout: 5_000 });
-
-    await expect(page.getByText('E2E Test Effort')).toBeVisible();
-    await expect(page.getByText('Custom')).toBeVisible();
-    await expect(page.getByRole('main').getByText('8.5')).toBeVisible();
-
-    await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await page.waitForTimeout(800);
-    await expect(page.getByText('E2E Test Effort')).toBeVisible();
-
-    expect(errors).toHaveLength(0);
+    // Aliases are not a tags property (ui-package isTagProperty covers only
+    // tag/tags/category), so they render as the joined value input — text
+    // lookups find nothing because the panel is all inputs. Seeded rowing
+    // aliases: row, rower, rowing machine, erg, ergometer, concept2 row, …
+    const aliases = page.getByLabel('Value for aliases');
+    await expect(aliases).toBeVisible();
+    await expect(aliases).toHaveValue(/row, rower/);
   });
 });
 
 // ── Clone Effort ─────────────────────────────────────────────────────────────
+// (The retired create-custom effort fixme lived here; the supported flow is
+// covered by efforts-catalog.e2e.ts "opens create-custom flow from the
+// catalog CTA and creates the effort" against the current textarea form.)
 
 test.describe('Clone Effort', () => {
   const cloneSlug = `${TEST_EFFORT_PREFIX}-clone-${Date.now()}`;
@@ -273,7 +237,6 @@ test.describe('Edit and Delete Custom Effort', () => {
     await page.waitForURL(new RegExp(`/effort/${editSlug}`), { timeout: 5_000 });
 
     // Edit
-    page.on('console', (msg) => console.log('[BROWSER]', msg.type(), msg.text()));
     await page.getByRole('button', { name: /Edit/i }).click();
     await page.waitForTimeout(500);
 
