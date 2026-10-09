@@ -42,6 +42,7 @@ export interface RunwayAdapterProps {
   theme: string
   /** Window-chrome title (e.g. `chapters.md`). */
   noteTitle?: string
+  showFrontmatter?: boolean
   /**
    * Controlled editor document. When provided (with `onDocChange`), the host
    * owns the runway's document — e.g. ScrollCanvasPage, whose trailing-section
@@ -65,6 +66,7 @@ export function RunwayAdapter({
   wodFiles,
   theme,
   noteTitle,
+  showFrontmatter,
   doc,
   onDocChange,
   onBlocksChange,
@@ -85,6 +87,7 @@ export function RunwayAdapter({
       wodFiles={wodFiles}
       theme={theme}
       noteTitle={noteTitle}
+      showFrontmatter={showFrontmatter}
       doc={doc}
       onDocChange={onDocChange}
       onBlocksChange={onBlocksChange}

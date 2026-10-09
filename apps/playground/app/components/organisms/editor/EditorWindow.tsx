@@ -43,6 +43,8 @@ export interface EditorWindowProps {
   enableInlineRuntime?: boolean
   /** Enable block-level preview (default: true) */
   enablePreview?: boolean
+  /** Show frontmatter and its controls (default: false for demo windows). */
+  showFrontmatter?: boolean
   /** Enable Whiteboard Script linting (default: true) */
   enableLinting?: boolean
   /** Optional custom script commands */
@@ -95,6 +97,7 @@ export function EditorWindow({
   enableOverlay = false,
   enableInlineRuntime = false,
   enablePreview = true,
+  showFrontmatter = false,
   enableLinting = true,
   commands,
   hideDefaultCommands,
@@ -162,6 +165,7 @@ export function EditorWindow({
             enableOverlay={enableOverlay}
             enableInlineRuntime={enableInlineRuntime}
             enablePreview={enablePreview}
+            showFrontmatter={showFrontmatter}
             enableLinting={enableLinting}
             commands={commands}
             hideDefaultCommands={hideDefaultCommands}

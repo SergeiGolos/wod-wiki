@@ -16,6 +16,10 @@ export const frontmatterSuggestions = Facet.define<
   (() => Promise<FrontmatterSuggestionCatalog>) | null
 >({ combine: (providers) => providers[0] ?? null });
 
+export const frontmatterVisibility = Facet.define<boolean, boolean>({
+  combine: (values) => values[0] ?? true,
+});
+
 const pendingFocus = new WeakMap<EditorView, { kind: "key" | "tag"; key: string }>();
 const widgetCleanup = new WeakMap<HTMLElement, (() => void)[]>();
 let suggestionId = 0;
@@ -871,10 +875,17 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const { sections } = state.field(sectionField);
 
+  const visible = state.facet(frontmatterVisibility);
   let hasFrontmatter = false;
   for (const section of sections) {
     if (section.type !== "frontmatter") continue;
     hasFrontmatter = true;
+
+    if (!visible) {
+      const to = section.to < state.doc.length ? section.to + 1 : section.to;
+      builder.add(section.from, to, Decoration.replace({ block: true }));
+      continue;
+    }
 
     // While the selection intersects the section, reveal the raw YAML so the
     // source (and its completions) stay editable; the widget returns on exit.
@@ -892,7 +903,7 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
     );
   }
 
-  if (!hasFrontmatter && !state.readOnly) {
+  if (visible && !hasFrontmatter && !state.readOnly) {
     builder.add(
       0,
       0,
@@ -917,7 +928,12 @@ export const frontmatterPreviewField = StateField.define<DecorationSet>({
     }
     return deco;
   },
-  provide: (f) => EditorView.decorations.from(f),
+  provide: (f) => [
+    EditorView.decorations.from(f),
+    EditorView.atomicRanges.of((view) =>
+      view.state.facet(frontmatterVisibility) ? Decoration.none : view.state.field(f),
+    ),
+  ],
 });
 
 export const frontmatterPreview: Extension = [frontmatterPreviewField];

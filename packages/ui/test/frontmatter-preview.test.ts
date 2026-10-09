@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { EditorState } from '@codemirror/state';
+import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import {
   sectionField,
   frontmatterPreview,
   frontmatterSuggestions,
+  frontmatterVisibility,
 } from '../src/extensions';
 
 const SAMPLE_NOTE = `---
@@ -22,6 +23,49 @@ Some note body here.
 describe('frontmatterPreview extension', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+  it('hides frontmatter without changing source and restores editable properties on opt-in', async () => {
+    const visibility = new Compartment();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({
+      parent: container,
+      state: EditorState.create({
+        doc: SAMPLE_NOTE,
+        extensions: [sectionField, frontmatterPreview, visibility.of(frontmatterVisibility.of(false))],
+      }),
+    });
+    try {
+      expect(container.querySelector('.cm-frontmatter-preview')).toBeNull();
+      expect(view.contentDOM.textContent).not.toContain('field_catalog');
+      expect(view.contentDOM.textContent).toContain('FieldCatalogEntry');
+      expect(view.state.doc.toString()).toBe(SAMPLE_NOTE);
+
+      view.dispatch({ selection: { anchor: SAMPLE_NOTE.indexOf('store:') } });
+      expect(view.contentDOM.textContent).not.toContain('field_catalog');
+      view.dispatch({
+        selection: { anchor: SAMPLE_NOTE.indexOf('# FieldCatalogEntry') },
+        effects: visibility.reconfigure(frontmatterVisibility.of(true)),
+      });
+      const input = Array.from(container.querySelectorAll('input')).find((item) => item.value === 'field_catalog');
+      expect(input).toBeDefined();
+      if (!input) throw new Error('Missing property value input');
+      input.value = 'updated_catalog';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+      expect(view.state.doc.toString()).toContain('store: updated_catalog');
+
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: '# Body only' },
+        effects: visibility.reconfigure(frontmatterVisibility.of(false)),
+      });
+      expect(container.querySelector('[aria-label="Add property"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Add tag"]')).toBeNull();
+      expect(view.contentDOM.textContent).toContain('Body only');
+    } finally {
+      view.destroy();
+      container.remove();
+    }
   });
   it('renders properties box with tag pills, list icons, and add property button', () => {
     const state = EditorState.create({

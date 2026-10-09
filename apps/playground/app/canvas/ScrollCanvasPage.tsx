@@ -176,6 +176,7 @@ export function ScrollCanvasPage({
         wodFiles={wodFiles}
         theme={theme}
         noteTitle={noteTitle}
+        showFrontmatter={page.frontmatter.showFrontmatter === true}
         doc={doc}
         onDocChange={setDoc}
         onBlocksChange={handleBlocksChange}

@@ -44,5 +44,9 @@
 - **Live Local Edits with Protected Source:**
   - Users can freely edit and run code examples inside canvas pages.
   - Edits remain local to the active session; teaching source files are protected from unintentional mutation.
+- **Frontmatter visibility:**
+  - Home and syntax-guide examples hide frontmatter and the Add property, Add tag, and Edit YAML controls. Metadata remains in the document for parsing, running, and sharing.
+  - Set `showFrontmatter: true` in a guide's page frontmatter to show those properties and controls, including guides that use a `scroll` block. Set `false` to hide them on other canvas pages.
+  - Embedded `EditorWindow` demos default to hidden frontmatter and accept `showFrontmatter={true}`. Full `NoteEditor` instances still show it by default and accept `showFrontmatter={false}`.
 - **Quest Ledger Synchronization:**
   - Completing interactive challenges updates local storage quest milestones and unlocks subsequent sections.

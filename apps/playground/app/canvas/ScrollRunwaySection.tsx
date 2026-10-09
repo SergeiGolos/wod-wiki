@@ -36,6 +36,7 @@ export interface ScrollRunwaySectionProps {
   theme: string
   /** Window-chrome title (e.g. `chapters.md`). */
   noteTitle?: string
+  showFrontmatter?: boolean
   /** Controlled editor document (with `onDocChange`) — a host that owns the runway's doc (ScrollCanvasPage: swapSource + runtime) passes it; omit for an uncontrolled runway (home chapter tour). */
   doc?: string
   onDocChange?: (doc: string) => void
@@ -53,6 +54,7 @@ export function ScrollRunwaySection({
   wodFiles,
   theme,
   noteTitle = 'note.md',
+  showFrontmatter,
   doc: controlledDoc,
   onDocChange,
   onBlocksChange,
@@ -200,6 +202,7 @@ export function ScrollRunwaySection({
               onDocChange={setDoc}
               onBlocksChange={onBlocksChange}
               theme={theme}
+              showFrontmatter={showFrontmatter}
               run={onRun ? { onRun } : undefined}
               className="absolute inset-x-2 top-2 bottom-2"
             >

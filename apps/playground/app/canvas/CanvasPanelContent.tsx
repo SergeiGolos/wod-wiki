@@ -28,6 +28,7 @@ export interface CanvasPanelContentProps {
   headerActions?: ReactNode
   onRun?: (doc: string, block: ScriptBlock | null) => void
   readonly?: boolean
+  showFrontmatter?: boolean
 }
 
 export function CanvasPanelContent({
@@ -47,6 +48,7 @@ export function CanvasPanelContent({
   headerActions,
   onRun,
   readonly = false,
+  showFrontmatter,
 }: CanvasPanelContentProps) {
   const isEditorDirty = editorSource !== activeOriginalSource
   const subheader = (
@@ -77,6 +79,7 @@ export function CanvasPanelContent({
         theme={theme}
         readonly={readonly}
         showLineNumbers={false}
+        showFrontmatter={showFrontmatter}
         enableOverlay={false}
         enableInlineRuntime={false}
         commands={commands}

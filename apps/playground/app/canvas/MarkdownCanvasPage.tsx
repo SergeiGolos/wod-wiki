@@ -504,6 +504,9 @@ export function MarkdownCanvasPage({
       onResetToSource={handlePanelReset}
       canvasNoteId={canvasNoteId}
       readonly={isPageSlug}
+      showFrontmatter={typeof page.frontmatter.showFrontmatter === 'boolean'
+        ? page.frontmatter.showFrontmatter
+        : !isGuide && route !== '/' && !route.startsWith('/syntax')}
       theme={theme}
       commands={canvasCommands}
       onBlocksChange={handleBlocksChange}

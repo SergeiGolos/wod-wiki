@@ -235,6 +235,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           theme={theme}
           readonly={false}
           showLineNumbers={false}
+          showFrontmatter={false}
           enableOverlay={false}
           enableInlineRuntime={false}
           className="h-full"

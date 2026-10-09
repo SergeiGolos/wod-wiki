@@ -47,7 +47,7 @@ import { sectionField, SectionState, activeCursorSection, type EditorSection } f
 import { sessionQueryInsert } from '@bitcobblers/wod-wiki-ui/extensions';
 import { previewDecorations } from '@bitcobblers/wod-wiki-ui/extensions';
 import { embedPreviewDecorations } from '@bitcobblers/wod-wiki-ui/extensions';
-import { frontmatterPreview } from '@bitcobblers/wod-wiki-ui/extensions';
+import { frontmatterPreview, frontmatterVisibility } from '@bitcobblers/wod-wiki-ui/extensions';
 import { markdownTablePreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { linkPreview } from '@bitcobblers/wod-wiki-ui/extensions';
 import { markdownSyntaxHiding } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -139,6 +139,8 @@ export interface NoteEditorProps {
   showLineNumbers?: boolean;
   /** Enable block-level preview (default: true) */
   enablePreview?: boolean;
+  /** Show frontmatter and its property/tag controls (default: true). Hidden metadata stays in the document. */
+  showFrontmatter?: boolean;
   /** Enable Whiteboard Script linting (default: true) */
   enableLinting?: boolean;
   /** Enable overlay panel (default: true) */
@@ -198,6 +200,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   lineWrapping: initialLineWrapping = true,
   showLineNumbers: showLineNums = true,
   enablePreview = true,
+  showFrontmatter = true,
   enableLinting = true,
   enableOverlay = false,
   commands,
@@ -536,12 +539,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Section tracking (required by all other unified extensions)
       sectionField,
+      frontmatterVisibility.of(showFrontmatter),
+      ...(enablePreview || !showFrontmatter ? [frontmatterPreview] : []),
 
       // Block-level preview decorations
       ...(enablePreview ? [
         previewDecorations,
         embedPreviewDecorations,
-        frontmatterPreview,
         createFrontmatterSuggestions(),
         markdownTablePreview,
         markdownSyntaxHiding(),
@@ -652,6 +656,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       showLineNums,
       initialLineWrapping,
       enablePreview,
+      showFrontmatter,
       enableLinting,
       enableOverlay,
       noteId,
@@ -823,6 +828,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Slot renderer — routes to companion components by section type
   const renderSlot = (props: OverlaySlotProps) => {
+    if (!showFrontmatter && props.sectionType === "frontmatter") return null;
     if (props.sectionType === "time" || props.sectionType === "log") {
       return (
         <WhiteboardCompanion
