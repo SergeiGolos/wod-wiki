@@ -30,11 +30,11 @@ describe('listCatalogs', () => {
     const blocks = [
       makeBlock('crossfit-girls/fran', 'collection:crossfit-girls/fran'),
       makeBlock('crossfit-girls/cindy', 'collection:crossfit-girls/cindy'),
-      makeBlock('ZombieFit-org-2010-Jan/wod-120109', 'collection:ZombieFit-org-2010-Jan/wod-120109'),
+      makeBlock('zombiefit/2009-12-01', 'collection:zombiefit/2009-12-01'),
     ]
     expect(listCatalogs(blocks)).toEqual([
       { id: 'crossfit-girls', name: 'crossfit-girls' },
-      { id: 'ZombieFit-org-2010-Jan', name: 'ZombieFit-org-2010-Jan' },
+      { id: 'zombiefit', name: 'zombiefit' },
     ])
   })
 

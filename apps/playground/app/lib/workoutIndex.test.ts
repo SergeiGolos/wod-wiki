@@ -29,10 +29,10 @@ describe('deriveDate', () => {
 describe('buildWorkoutItems', () => {
   it('carries frontmatter date onto the WorkoutItem', () => {
     const [item] = buildWorkoutItems({
-      'markdown/collections/ZombieFit-org-2009-Dec/wod-120109.md': ZOMBIE_WOD,
+      'markdown/collections/zombiefit/2009-12-01.md': ZOMBIE_WOD,
     })
     expect(item!.date).toBe(new Date('2009-12-01T12:00:00Z').getTime())
-    expect(item!.category).toBe('ZombieFit-org-2009-Dec')
+    expect(item!.category).toBe('zombiefit')
   })
 
   it('leaves date undefined for undated files', () => {

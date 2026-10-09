@@ -69,9 +69,9 @@ describe('getWorkoutPreview', () => {
 
 describe('matchesCollectionQuery', () => {
   const item = {
-    id: 'markdown/collections/ZombieFit-org-2009-Dec/wod-120109.md',
-    name: 'wod-120109',
-    category: 'ZombieFit-org-2009-Dec',
+    id: 'markdown/collections/zombiefit/2009-12-01.md',
+    name: '2009-12-01',
+    category: 'zombiefit',
     content: 'quadrupedal movement',
     date: new Date('2009-12-01T12:00:00Z').getTime(),
   }
@@ -85,14 +85,14 @@ describe('matchesCollectionQuery', () => {
 
   it('still matches name and content, and passes everything on empty query', () => {
     expect(matchesCollectionQuery(item, 'quadrupedal')).toBe(true)
-    expect(matchesCollectionQuery(item, 'wod-120')).toBe(true)
+    expect(matchesCollectionQuery(item, '12-01')).toBe(true)
     expect(matchesCollectionQuery(item, '')).toBe(true)
     expect(matchesCollectionQuery(item, '   ')).toBe(true)
   })
 
   it('ignores the date arm when the item has no date', () => {
     const undated = { ...item, date: undefined }
-    expect(matchesCollectionQuery(undated, '2009')).toBe(false)
+    expect(matchesCollectionQuery(undated, '2009-11')).toBe(false)
   })
 
   it('workoutDateKey formats noon-UTC epoch as YYYY-MM-DD without TZ drift', () => {

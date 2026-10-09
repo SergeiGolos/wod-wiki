@@ -148,7 +148,7 @@ describe('resolveRouteView — collection index nav', () => {
     return {
       frontmatter: {},
       template: 'canvas',
-      route: '/collections/crossfit-games-2024',
+      route: '/collections/crossfit-games',
       quests: [],
       chapters: [],
       sections: [
@@ -168,9 +168,9 @@ describe('resolveRouteView — collection index nav', () => {
   it('derives workout links with onRun + link icon from a {{workouts}} tag', () => {
     const selectWorkout = mock((_item: SelectWorkoutItem) => {})
     const item = {
-      id: '../../markdown/collections/crossfit-games-2024/Event-05.md',
-      name: 'Event 5',
-      category: 'crossfit-games-2024',
+      id: '../../markdown/collections/crossfit-games/2024-08-10-event-05.md',
+      name: '2024-08-10-event-05',
+      category: 'crossfit-games',
       content: '...',
     }
     const deps = makeDeps({
@@ -178,11 +178,11 @@ describe('resolveRouteView — collection index nav', () => {
       workoutItems: [item],
       selectWorkout,
     })
-    const view = resolveRouteView('/collections/crossfit-games-2024', { collection: 'crossfit-games-2024' }, deps)
+    const view = resolveRouteView('/collections/crossfit-games', { collection: 'crossfit-games' }, deps)
 
     const workoutLink = view.nav.find(l => l.id === `workout-${item.id}`)
     expect(workoutLink).toBeDefined()
-    expect(workoutLink?.label).toBe('Event 5')
+    expect(workoutLink?.label).toBe('2024-08-10-event-05')
     expect(workoutLink?.type).toBe('time')
     expect(workoutLink?.runIcon).toBe('link')
     expect(workoutLink?.onRun).toBeFunction()
@@ -193,16 +193,16 @@ describe('resolveRouteView — collection index nav', () => {
 
   it('falls back to listing collection items when the page has no {{workouts}} tag', () => {
     const item = {
-      id: '../../markdown/collections/crossfit-games-2024/Event-04.md',
-      name: 'Event 4',
-      category: 'crossfit-games-2024',
+      id: '../../markdown/collections/crossfit-games/2024-08-10-event-04.md',
+      name: '2024-08-10-event-04',
+      category: 'crossfit-games',
       content: '...',
     }
     const deps = makeDeps({
       canvasPage: makeCollectionPage('No workouts placeholder.'),
       workoutItems: [item],
     })
-    const view = resolveRouteView('/collections/crossfit-games-2024', { collection: 'crossfit-games-2024' }, deps)
+    const view = resolveRouteView('/collections/crossfit-games', { collection: 'crossfit-games' }, deps)
 
     const workoutLink = view.nav.find(l => l.id === `workout-${item.id}`)
     expect(workoutLink).toBeDefined()

@@ -27,10 +27,10 @@ import { installFastClock } from '../utils/fastClock';
 import { TEST_IDS } from '../contracts/TestIdContract';
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
-const STOP_NOTE_ID = 'ZombieFit-org-2010-Jan/wod-011010';
-const COMPLETE_NOTE_ID = 'ZombieFit-org-2010-Jan/wod-011310';
-const STOP_TITLE = 'wod-011010';
-const COMPLETE_TITLE = 'wod-011310';
+const STOP_NOTE_ID = 'zombiefit/2010-01-10';
+const COMPLETE_NOTE_ID = 'zombiefit/2010-01-13';
+const STOP_TITLE = '2010-01-10';
+const COMPLETE_TITLE = '2010-01-13';
 
 const STOP_CONTENT = '# E2E Stop Run\n\n```time\n10:00 AMRAP\n  5 Air Squats\n  5 Push Ups\n```\n';
 const COMPLETE_CONTENT = '# E2E Complete Run\n\n```time\n0:03 AMRAP\n  5 Air Squats\n```\n';

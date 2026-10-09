@@ -33,10 +33,10 @@ describe('staticNotesFromBlocks', () => {
   it('sets catalog to the first path segment for collections', () => {
     const blocks = [
       makeBlock('crossfit-girls/fran', 'collection:crossfit-girls/fran'),
-      makeBlock('ZombieFit-org-2010-Jan/wod-120109', 'collection:ZombieFit-org-2010-Jan/wod-120109'),
+      makeBlock('zombiefit/2009-12-01', 'collection:zombiefit/2009-12-01'),
     ];
     const notes = staticNotesFromBlocks(blocks);
-    expect(notes.map(n => n.catalog).sort()).toEqual(['ZombieFit-org-2010-Jan', 'crossfit-girls']);
+    expect(notes.map(n => n.catalog).sort()).toEqual(['crossfit-girls', 'zombiefit']);
   });
 
   it('strips the `feeds/` wrapper to extract the catalog dir for feed rows', () => {
