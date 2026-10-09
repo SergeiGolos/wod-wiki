@@ -13,6 +13,7 @@ import { useState, type ReactNode, type Ref } from 'react'
 import type { ScrollStage } from './parseCanvasMarkdown'
 import { useContextSize } from './contextSize'
 import { STICKY_NAV_HEIGHT } from './canvasUtils'
+import { ScrollGate } from '../scroll/ScrollTrackProvider'
 
 export interface RunwayShellProps {
   /** Outer track ref — attach the host's useScrollRunway driver here. */
@@ -29,6 +30,13 @@ export interface RunwayShellProps {
   captions: ReactNode
   /** Status slot in the stage bar (reserves its height in normal flow). */
   status?: ReactNode
+  /**
+   * ScrollTrack segment this shell's track belongs to. When set, the
+   * caption rail is wrapped in a scroll gate for that segment. Editing or
+   * Scroll panel enables its inner scroller; otherwise gestures move the page.
+   * Omitted → no gate (canvas guide runways outside a track).
+   */
+  segmentId?: string
   testId?: string
   className?: string
 }
@@ -41,6 +49,7 @@ export function RunwayShell({
   pane,
   captions,
   status,
+  segmentId,
   testId,
   className,
 }: RunwayShellProps) {
@@ -89,7 +98,17 @@ export function RunwayShell({
         >
           <div className="relative min-h-0 min-w-0 flex-[3_1_0%]">{pane}</div>
           <div className="flex min-h-0 min-w-0 flex-[2_1_0%] flex-col">
-            <div className="relative min-h-0 flex-1">{captions}</div>
+            {segmentId ? (
+              <ScrollGate
+                gateId={`${segmentId}-captions`}
+                segmentId={segmentId}
+                className="relative min-h-0 flex-1"
+              >
+                {captions}
+              </ScrollGate>
+            ) : (
+              <div className="relative min-h-0 flex-1">{captions}</div>
+            )}
           </div>
         </div>
       </div>

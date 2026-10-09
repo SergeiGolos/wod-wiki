@@ -20,11 +20,18 @@
  * Deliberately a near-copy of tour/useTourScroll.ts operating on parsed
  * ScrollStage[] — the home tour file is not imported or mutated, so the
  * home page stays untouched.
+ *
+ * ScrollTrack: inside a ScrollTrackProvider (the home page) the hook
+ * registers as a track driver instead of listening on its own — the
+ * track's single measure pass feeds it slices from the shared track
+ * position, so every section's progress is continuous with the page's.
+ * Outside a provider it runs its own listener exactly as before.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useId } from 'react'
 import { resolveScrollStage, type ScrollSlice } from './scrollRunway'
 import type { ScrollStage } from './parseCanvasMarkdown'
+import { useScrollTrack } from '../scroll/ScrollTrackProvider'
 export type ScrollRunwaySubscriber = (slice: ScrollSlice, progress: number) => void
 
 /**
@@ -78,6 +85,7 @@ export function useScrollRunway(
   runwayRef: React.RefObject<HTMLElement | null>,
   interactive: boolean,
   stages: ScrollStage[],
+  segmentId?: string,
 ): UseScrollRunwayResult {
   const [slice, setSlice] = useState<ScrollSlice>(() => resolveScrollStage(0, stages))
   const [runwayReached, setRunwayReached] = useState(false)
@@ -87,6 +95,15 @@ export function useScrollRunway(
   const rafRef = useRef(0)
   const interactiveRef = useRef(interactive)
   interactiveRef.current = interactive
+
+  // ScrollTrack delegation (see header): when a track is present this
+  // driver registers with it and the track's measure pass feeds it.
+  const track = useScrollTrack()
+  const registerDriver = track?.registerDriver
+  const trackMirror = useRef(track)
+  trackMirror.current = track
+  const autoDriverId = useId()
+  const driverId = segmentId ?? autoDriverId
 
   // Stages are parsed once per page; keep a ref so measure stays stable.
   const stagesRef = useRef(stages)
@@ -104,7 +121,7 @@ export function useScrollRunway(
     subscribersRef.current.forEach((cb) => cb(next, progress))
   }, [])
 
-  const measure = useCallback(() => {
+  const measureLocal = useCallback(() => {
     rafRef.current = 0
     if (interactiveRef.current) return
     const el = runwayRef.current
@@ -117,23 +134,50 @@ export function useScrollRunway(
     emit(resolveScrollStage(progress, stagesRef.current), progress)
   }, [runwayRef, emit])
 
+  /** Measure from the current scroll position — the track's shared pass
+   *  when delegated, this driver's own rect math otherwise. */
+  const measure = useCallback(() => {
+    if (trackMirror.current) {
+      trackMirror.current.resync()
+      return
+    }
+    measureLocal()
+  }, [measureLocal])
+
   const onScroll = useCallback(() => {
     if (rafRef.current) return
     rafRef.current = requestAnimationFrame(measure)
   }, [measure])
 
+  // Track delegation: register as a driver; the track owns the listener
+  // and feeds this hook's emit/reached from the shared track position.
   useEffect(() => {
+    if (!registerDriver) return
+    return registerDriver(driverId, {
+      getEl: () => runwayRef.current,
+      getStages: () => stagesRef.current,
+      onMeasure: ({ slice: next, progress, reached }) => {
+        if (interactiveRef.current) return
+        setRunwayReached(reached)
+        emit(next, progress)
+      },
+    })
+  }, [registerDriver, driverId, runwayRef, emit])
+
+  useEffect(() => {
+    // With a track present the provider owns the scroll listener.
+    if (registerDriver) return
     // Capture phase: scroll events don't bubble, and the app shell scrolls
     // inside a container div (not window) — capture catches every scroller.
     window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     window.addEventListener('resize', onScroll)
-    measure()
+    measureLocal()
     return () => {
       window.removeEventListener('scroll', onScroll, { capture: true })
       window.removeEventListener('resize', onScroll)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [onScroll, measure])
+  }, [registerDriver, onScroll, measureLocal])
 
   const subscribe = useCallback((cb: ScrollRunwaySubscriber) => {
     subscribersRef.current.add(cb)

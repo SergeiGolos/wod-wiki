@@ -26,6 +26,23 @@
   min-width: 0;
 }
 
+/* Panels yield to native page gestures. Editing or Scroll panel enables
+   inner scrolling; boundaries chain back to the page without JS dragging. */
+[data-scroll-gate] .cm-editor,
+[data-scroll-gate] .cm-scroller {
+  height: 100%;
+  min-height: 0;
+}
+[data-scroll-gate] .cm-scroller {
+  overflow-y: auto;
+}
+[data-scroll-gate] :is(.cm-scroller, [data-scroll-pane], .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll) {
+  overscroll-behavior-y: auto;
+}
+[data-scroll-gate='yield'] :is(.cm-scroller, [data-scroll-pane], .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll) {
+  overflow-y: hidden !important;
+}
+
 /* Monaco Editor - WOD Block Decorations */
 .wod-block {
   background-color: hsl(var(--primary) / 0.05) !important;

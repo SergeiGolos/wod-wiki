@@ -58,6 +58,11 @@ import { TourJumpSection } from './TourJumpSection'
 import { CelebrationBridge } from './CelebrationBridge'
 import { TourChapterPicker } from './TourChapterPicker'
 import { TourFlatStack } from './TourFlatStack'
+import {
+  ScrollGate,
+  ScrollTrackProvider,
+  useTrackAnchor,
+} from '../scroll/ScrollTrackProvider'
 import { TaglineHeader } from './TaglineHeader'
 import { HOME_EVENTS, useTelemetry, useScrollTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
@@ -567,6 +572,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
   // editor to the initial load content, discarding edits and session state.
   // The initial entry (page load) is arrival, not a re-entry. ──
   const heroRef = useRef<HTMLDivElement | null>(null)
+  // The hero is a stageless anchor segment of the scroll track — gates in
+  // the hero hand off to the write section as the reading line moves on.
+  const heroSectionRef = useRef<HTMLElement | null>(null)
+  useTrackAnchor('hero', heroSectionRef)
   const heroVisibleRef = useRef(true) // the hero mounts at the top of the page
   const heroRunActiveRef = useRef(heroRunActive)
   heroRunActiveRef.current = heroRunActive
@@ -1005,6 +1014,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 
       {/* ponytail: clamped responsive spacing ceiling at 2xl/1720px; upgrade to fluid container queries if ultrawide canvas grows */}
       <section
+        ref={heroSectionRef}
         id="tour-hero"
         data-testid="tour-hero"
         className="relative grid h-[calc(100dvh-65px)] grid-rows-[2fr_3fr] justify-items-center gap-4 px-5 py-4 text-center lg:h-[calc(100dvh-104px)] lg:px-10 xl:gap-8 xl:py-8 2xl:gap-10 2xl:py-10 2xl:px-16"
@@ -1017,7 +1027,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
             context. The write section's sticky pane below is a second
             display of the same shared document. The chrome title names the
             loaded doc (shared attribution or the default welcome note). */}
-        <div className="h-full min-h-0 w-full max-w-[1000px] xl:max-w-[1140px] 2xl:max-w-[1360px]">
+        {/* The hero editor is a scroll gate: while traveling, gestures
+            scroll the track; editing inside captures the gate. */}
+        <ScrollGate
+          gateId="hero-pane"
+          segmentId="hero"
+          className="h-full min-h-0 w-full max-w-[1000px] xl:max-w-[1140px] 2xl:max-w-[1360px]"
+        >
           <MacOSChrome
             title={
               heroState === 'run'
@@ -1061,7 +1077,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
               />
             )}
           </MacOSChrome>
-        </div>
+        </ScrollGate>
       </section>
 
       {/* Jump exits sit between the editor window and the first tagline —
@@ -1193,7 +1209,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 export function HomeTour(props: HomeTourProps) {
   return (
     <RingTargetsProvider>
-      <HomeTourInner {...props} />
+      {/* One continuous scroll track for the whole page: the four runway
+          sections resolve their stages from the shared track position,
+          and the panes inside the pinned windows gate their inner
+          scrollers to it (see app/scroll). */}
+      <ScrollTrackProvider>
+        <HomeTourInner {...props} />
+      </ScrollTrackProvider>
     </RingTargetsProvider>
   )
 }

@@ -29,6 +29,7 @@ import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
+import { ScrollGate } from '../scroll/ScrollTrackProvider'
 import { RunwayShell } from '../canvas/RunwayShell'
 import type { ScrollSlice } from '../canvas/scrollRunway'
 import {
@@ -180,7 +181,12 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
 
-    const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, false, stages)
+    // The scroll driver: useScrollRunway — inside a ScrollTrackProvider
+    // (the home page) it delegates measurement to the shared track, so
+    // all four sections resolve from one continuous track position;
+    // outside a track it runs its own driver, unchanged. The section id
+    // keys its track segment (and its scroll gates).
+    const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, false, stages, id)
     const inView = useInView(runwayRef)
     useEffect(() => {
       onViewportChange?.(inView)
@@ -267,6 +273,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
           height={heightVh}
           stages={stages}
           activeIndex={slice.index}
+          segmentId={id}
           testId="tour-runway"
           status={
             toastLabel != null ? (
@@ -288,7 +295,9 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
               <RingTargetsProvider>
               <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
               <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
-                <div className="relative h-full">
+                {/* The pane is a scroll gate: its inner scrollers (editor)
+                    yield to the page track until the user edits inside. */}
+                <ScrollGate gateId={`${id}-pane`} segmentId={id} className="relative h-full">
                   {editor && (
                     <Screen visible={activeScreen === 'editor'}>
                       <TourEditorScreen
@@ -334,7 +343,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                       )}
                     </Screen>
                   )}
-                </div>
+                </ScrollGate>
               </MacOSChrome>
 
               {tvStageId && <TourTvCard ref={tvCardRef} runtime={tvRuntime ?? null} />}
