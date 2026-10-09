@@ -427,6 +427,29 @@ describe('ConditionsNavPanel', () => {
     fireEvent.click(screen.getByTestId('conditions-jump-wql-text'))
     expect(closed).toBe(1)
   })
+
+  it('shows no count badge on the live text row while categorical counts remain', async () => {
+    renderPanel()
+    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    // Open the tags accordion via its section wrapper — no label wording pin.
+    fireEvent.click(await waitFor(() => {
+      const button = screen.getByTestId('conditions-section-tags').querySelector('button')
+      if (!button) throw new Error('tags accordion not rendered yet')
+      return button
+    }))
+    await waitFor(() => expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy())
+
+    // Typing in the live Contains box rewrites the query's text condition;
+    // the value becomes a row in the Contains section.
+    fireEvent.change(screen.getByTestId('conditions-input-text'), { target: { value: 'PW Workout' } })
+    await waitFor(() => expect(textValues(findOf(parseQuery(routedQuery()))!)).toEqual(['PW Workout']))
+    const textRow = screen.getByTestId('conditions-row-text:PW Workout')
+    expect(textRow.querySelector('span.tabular-nums')).toBeNull()
+
+    // Genuine categorical counts are untouched.
+    expect(screen.getByTestId('conditions-row-tags:strength').querySelector('span.tabular-nums')!.textContent).toBe('1')
+  })
+
   it('closes the drawer on full-query shortcuts only, never on facet edits', async () => {
     let closed = 0
     renderPanel('/collections', () => {

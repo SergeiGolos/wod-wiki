@@ -21,6 +21,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/atoms/primitives/button'
 import { queryService } from '@/services/queryService'
+import { onResultSaved } from '@/services/resultRecorder'
 import { useSeedReadiness } from '@/services/seed/seedReadiness'
 import { parseQuery, isFindQuery, isPipelineQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { wqlFilterKeys, wqlGroupingDimensions } from '@bitcobblers/wod-wiki-wql'
@@ -349,6 +350,9 @@ export function QueriableStreamView({
   // is debounced (host-owned 150ms, coalescing per-keystroke composer
   // emissions). Invalid drafts never execute — previous results stay visible
   // (stale, flagged by the query error banner), and loading never wedges.
+  // A committed result bumps savedTick so the mounted listing re-queries.
+  const [savedTick, setSavedTick] = useState(0)
+  useEffect(() => onResultSaved(() => setSavedTick((t) => t + 1)), [])
   useEffect(() => {
     if (seedReadiness === 'preparing') return
     if (parsed.error) {
@@ -391,7 +395,7 @@ export function QueriableStreamView({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [query, activeEngine, parsed, location.pathname, seedReadiness])
+  }, [query, activeEngine, parsed, location.pathname, seedReadiness, savedTick])
 
   // Grouping: the committed run's query `by {}` dimensions win; otherwise
   // the view setting, then the level default. The query leg is stored WITH

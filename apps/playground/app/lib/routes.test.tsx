@@ -404,16 +404,14 @@ describe('GettingStartedRedirect', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('NotFoundPage', () => {
-  it('renders 404 messaging', async () => {
+  // Dynamic import: react-router-dom is mocked via mock.module above; a
+  // static import would bind the real module before the mock registers.
+  it('renders a not-found heading and a home affordance', async () => {
     const { NotFoundPage } = await import('../pages/NotFoundPage')
     render(<NotFoundPage />)
 
-    expect(screen.getByText('Page not found')).toBeDefined()
-    expect(
-      screen.getByText(
-        'The page you are looking for does not exist or has been moved.',
-      ),
-    ).toBeDefined()
+    expect(screen.getByRole('heading', { name: /not found/i })).toBeDefined()
+    expect(screen.getByRole('button', { name: /go home/i })).toBeDefined()
   })
 
   it('navigates home when Go home button is clicked', async () => {

@@ -115,6 +115,8 @@ The `source:` filter names where content lives — five values, plural:
 
 Omitting `source:` searches **all** of them — there is no `source:all` (the parser refuses it). Pin one catalog with an id: `collection:crossfit-girls`. The singular spellings (`source:collection`) still parse as legacy, but write plural.
 
+Journal scope includes user-created clones whose `sourceId` points to the original note UUID or legacy `journal/YYYY-MM-DD` ID. That backlink does not turn a clone into imported content. Seeded guides, catalog notes, dashboards, efforts, and equipment remain excluded.
+
 ### Windows {#windows}
 
 One per query, at the end: relative — `last 7d`, `last 6w`, `last 12w` — or absolute — `from 2026-01-01 to 2026-03-31` (both dates included; drop `to …` to stay open). There is no `since:` keyword.
@@ -154,6 +156,8 @@ pipeline:
 ```
 
 Targets: `:note` (whole notes), `:block` (addressable fenced blocks), `:effort` (registry entries, filterable by `effort`, `discipline`, `intensity`, `origin`, `text`), plus the advanced `:session`, `:segment`, `:event` for recorded results and raw rows. Content-only keys (`type`, `text`, `has`, `source`, `catalog`) are category errors on aggregates.
+
+The search palette's FIND mode matches note titles and bodies within its selected scope and time window. Type plain text or a quoted phrase such as `"workout in the park"`; clearing the text restores the scope. WQL mode retains diagnostics for malformed queries. Freeform CONTAINS rows have no count badge; the results total reports matches.
 
 ### Presentation pipes {#pipes}
 

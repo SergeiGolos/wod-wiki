@@ -93,15 +93,15 @@ export const useRuntimeExecution = (
   /**
    * Reactive completion detection
    * Ensures 'completed' status is set immediately when the stack becomes empty,
-   * regardless of whether the playback loop is active.
+   * regardless of whether the playback loop is active. A run advanced purely
+   * by Next events never enters 'running' — a drained stack still means done.
    */
   useEffect(() => {
     if (!runtime) return;
-    
+
     // Subscribe to stack snapshots to detect when everything is finished
     const unsubscribe = runtime.subscribeToStack((snapshot) => {
-      // If stack becomes empty and we were previously in an active state, we are done!
-      if (snapshot.blocks.length === 0 && (status === 'running' || status === 'paused')) {
+      if (snapshot.blocks.length === 0 && status !== 'completed') {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;

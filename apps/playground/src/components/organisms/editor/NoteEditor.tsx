@@ -118,9 +118,9 @@ export interface NoteEditorProps {
    * `resultId` is the id the editor generated for the optimistic result and
    * used in the inserted query:table block — persistence MUST reuse it (#944).
    * `runBlock` is the section-derived identity (id + contentId) of the block
-   * that just completed, so results persist against the right block even when
-   * the session's selected block is stale or absent. */
-  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId">) => void;
+   * that just completed. May return a promise (the save) for commit-gated
+   * dismissal in the overlay. */
+  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId">) => void | Promise<unknown>;
   /** Called when Whiteboard Script blocks change */
   onBlocksChange?: (blocks: ScriptBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
@@ -322,6 +322,16 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [enableInlineRuntime, handleRun]);
 
+  // The overlay re-reports the SAME results object when the host's save
+  // fails and offers a same-report Retry. Memoize the generated id until the
+  // save settles so a retry neither mints a new id nor stacks a second
+  // query:table; a settled save releases the memo for the next run.
+  const lastReportRef = useRef<{
+    results: ScriptBlock["results"];
+    resultId: string;
+    runBlock?: Pick<ScriptBlock, "id" | "contentId">;
+  } | null>(null);
+
   // Intercept workout completion: insert a ```query:table block carrying the
   // session-scoped rows query directly after the workout block (#944 — the
   // query block replaces the old wodResultsField optimistic write; result data
@@ -331,9 +341,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // stacks re-runs newest-first between the workout block and prior tables.
   const handleCompleteWorkout = useCallback(
     (blockId: string, results: ScriptBlock["results"]) => {
-      const resultId = uuidv7();
-      let runBlock: Pick<ScriptBlock, "id" | "contentId"> | undefined;
-      if (results && viewRef.current) {
+      const pending = lastReportRef.current;
+      const isRetry = pending !== null && pending.results === results;
+      const resultId = isRetry ? pending.resultId : uuidv7();
+      let runBlock = isRetry ? pending.runBlock : undefined;
+      if (!isRetry && results && viewRef.current) {
         const view = viewRef.current;
         // Resolve the completed block's identity live from the editor state —
         // the same section lookup the insert uses — so persistence records the
@@ -352,7 +364,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           onChange?.(view.state.doc.toString());
         }
       }
-      onCompleteWorkout?.(blockId, results, resultId, runBlock);
+      // Memo BEFORE the call — a synchronous host throw stays retryable.
+      if (!isRetry) lastReportRef.current = { results, resultId, runBlock };
+      let save: void | Promise<unknown>;
+      try {
+        save = onCompleteWorkout?.(blockId, results, resultId, runBlock);
+      } catch (err) {
+        return Promise.reject(err instanceof Error ? err : new Error(String(err)));
+      }
+      void Promise.resolve(save).then(
+        () => {
+          if (lastReportRef.current?.results === results) lastReportRef.current = null;
+        },
+        () => {}, // failure keeps the memo — the retry must reuse id + insert
+      );
+      return save;
     },
     [onChange, onCompleteWorkout],
   );

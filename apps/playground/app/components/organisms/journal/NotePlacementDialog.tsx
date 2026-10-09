@@ -57,7 +57,8 @@ export function NotePlacementDialog({
   useEffect(() => {
     if (!open) return
     setDate(entryDate ?? (mode === 'clone' ? getTodayDateKey() : ''))
-    setSlug(entrySlug ?? '')
+    // A clone never inherits the original's /p/ link.
+    setSlug(mode === 'clone' ? '' : (entrySlug ?? ''))
     setSource(entrySource ?? '')
     setError(null)
   }, [open, mode, entryId, entryDate, entrySlug, entrySource])
@@ -209,7 +210,10 @@ export function NotePlacementDialog({
             spellCheck={false}
             disabled={saving}
           />
-          <p className="text-xs text-muted-foreground">Optional /p/&lt;slug&gt; link; leave empty to unlink.</p>
+          <p className="text-xs text-muted-foreground">
+            Optional /p/&lt;slug&gt; link. Typing an existing page&apos;s slug shares that
+            page with its notes — it does not create a unique copy.
+          </p>
         </div>
 
         {isClone ? null : (

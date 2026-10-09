@@ -58,8 +58,9 @@ export interface RuntimeTimerPanelProps {
   view?: EditorView;
   /** Called when the user presses Stop (which also closes the panel). */
   onClose: () => void;
-  /** Called when a workout is completed or stopped with results. */
-  onComplete?: (blockId: string, results: Sessions) => void;
+  /** Called when a workout is completed or stopped with results. May return a
+   * promise; the panel never awaits it — hosts own their commit lifecycle. */
+  onComplete?: (blockId: string, results: Sessions) => void | Promise<unknown>;
   /** Whether the slot is currently in full-height expanded mode. */
   isExpanded?: boolean;
   /** Toggle between expanded and compact runtime view. */
@@ -165,7 +166,7 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
       <div className={`flex h-[26px] flex-shrink-0 items-center gap-2 px-2.5 text-[10px] text-muted-foreground ${outputCount > 0 ? "border-t border-border bg-muted/20" : ""}`}>
         {outputCount > 0 && (
           <span>
-            {outputCount} result{outputCount !== 1 ? "s" : ""} logged
+            {outputCount} result{outputCount !== 1 ? "s" : ""} captured
           </span>
         )}
         {outputCount > 0 && createdAt && (
@@ -201,6 +202,8 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [createdAt, setCompletedAt] = useState<Date | null>(null);
   const [wizardDone, setWizardDone] = useState(false);
   const [pendingStart, setPendingStart] = useState(false);
+  // One-shot "run is live": first captured output or running transition.
+  const hasFiredRunStartedRef = useRef(false);
   // True once the factory declined to build a runtime (empty / uncompilable
   // block) — drives the "Nothing to run" empty state instead of hanging on
   // "Initializing…". (#702)
@@ -255,6 +258,12 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     const unsubOutput = rt.subscribeToOutput(
       (output: IOutputStatement) => {
         if (output.outputType === "segment" || output.outputType === "milestone") {
+          // Synchronous first-output signal: Next-driven runs never flip to
+          // 'running', so this is what stops a fast Exit/Stop discarding them.
+          if (!hasFiredRunStartedRef.current) {
+            hasFiredRunStartedRef.current = true;
+            onRunStarted?.();
+          }
           setOutputCount((n) => n + 1);
         }
       },
@@ -302,7 +311,6 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   // Surface the first transition to running so tour quest gating can observe
   // an actual run signal rather than just stage visibility.
-  const hasFiredRunStartedRef = useRef(false);
   useEffect(() => {
     if (execution.status === 'running' && !hasFiredRunStartedRef.current) {
       hasFiredRunStartedRef.current = true;
@@ -320,16 +328,13 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [externalPause, execution.status, execution.pause]);
 
-  // Host-driven stop: same path as the Stop button (stop → workout:stop →
-  // partial results via onComplete) but WITHOUT onClose — the host keeps the
-  // panel mounted (metrics arrival, reset chaining). Only a live execution
-  // (running/paused) stops; idle has nothing to finalize and completed has
-  // already reported.
+  // Host-driven stop: same as the Stop button but WITHOUT onClose — the host
+  // keeps the panel mounted. Idle-with-outputs (Next-driven) must still
+  // report; idle-without-outputs and completed runs have nothing to add.
   useEffect(() => {
-    if (!externalStop || (execution.status !== 'running' && execution.status !== 'paused')) return;
-    execution.stop();
-    runtime?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
-    handleComplete(false);
+    if (!externalStop || execution.status === 'completed') return;
+    if (execution.status !== 'running' && execution.status !== 'paused' && !hasFiredRunStartedRef.current) return;
+    stopAndReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [externalStop, execution.status, execution.stop]);
 
@@ -428,10 +433,17 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     }
   }, [execution.status, execution.elapsedTime, createdAt, handleComplete, castTransport, runtime]);
 
-  const handleStop = () => {
+  // Halt + report shared by Stop and host-driven stops; a stack drained
+  // before the halt is a natural finish, not a partial.
+  const stopAndReport = () => {
+    const completedBeforeHalt = runtime ? runtime.stack.count === 0 : false;
     execution.stop();
     runtime?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
-    handleComplete(false);
+    handleComplete(completedBeforeHalt);
+  };
+
+  const handleStop = () => {
+    stopAndReport();
     onClose();
   };
 

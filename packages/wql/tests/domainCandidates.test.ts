@@ -180,6 +180,35 @@ describe('domain candidate reads — parity with the whole-store path', () => {
     expect(result.stages.selected).toBe(2);
   });
 
+  it(':journal lists a lineage-stamped clone beside its original — once each, corpus still excluded', async () => {
+    // Deterministic UUID ids in natural (lexicographic) order — the plain
+    // path surfaces store iteration order, the domain path sorts by id, and
+    // both must agree.
+    const rows: Note[] = [
+      // Clone: sourceId stamps the original note's UUID, not a provenance token.
+      { id: '01990e80-0000-7000-8000-000000000001', title: 'same', type: 'journal', sourceId: '01990e80-0000-7000-8000-000000000002', createdAt: T0 },
+      { id: '01990e80-0000-7000-8000-000000000002', title: 'same', type: 'journal', sourceId: 'journal', createdAt: T0 },
+      { id: '01990e80-0000-7000-8000-000000000005', title: 'same', type: 'journal', sourceId: 'journal/2026-10-09', createdAt: T0 },
+      // Lineage never overrides corpus ownership: UUID-stamped dashboards /
+      // imported rows stay excluded, as do unknown source strings.
+      { id: '01990e80-0000-7000-8000-000000000003', title: 'same', type: 'dashboard', sourceId: '01990e80-0000-7000-8000-000000000002', createdAt: T0 },
+      { id: '01990e80-0000-7000-8000-000000000004', title: 'same', type: 'note', sourceId: '01990e80-0000-7000-8000-000000000002', catalog: 'girls', createdAt: T0 },
+      { id: 'zz-dash', title: 'same', type: 'dashboard', sourceId: 'dashboards', createdAt: T0 },
+      { id: 'zz-seed', title: 'same', type: 'note', sourceId: 'collection:girls', catalog: 'girls', createdAt: T0 },
+      { id: 'zz-stray', title: 'same', type: 'journal', sourceId: 'unknown-source', createdAt: T0 },
+    ];
+    const parsed = { ...find('note', [{ key: 'text', negate: false, values: [val('same')] }]), sourceScope: ['journal'] };
+    const plain = new QueryService({ noteStore: makeNoteStore(rows) });
+    const domain = new QueryService({ noteStore: makeNoteStore(rows, makeDomainRead(rows, [])) });
+    const result = await outcome(domain, parsed);
+    expect(result).toEqual(await outcome(plain, parsed));
+    expect(result.noteIds).toEqual([
+      '01990e80-0000-7000-8000-000000000001',
+      '01990e80-0000-7000-8000-000000000002',
+      '01990e80-0000-7000-8000-000000000005',
+    ]);
+  });
+
   it('preserves page-like notes when negated or wildcard type clauses disable default exclusion', async () => {
     const rows: Note[] = [
       { id: 'n', title: 'note', type: 'note', createdAt: T0 },

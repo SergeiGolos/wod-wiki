@@ -4,7 +4,7 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import type { Session } from '@/types/storage';
 import { journalNotes } from '../services/journalNotes';
-import { playgroundRecorder } from '@/services/resultRecorder';
+import { playgroundRecorder, onResultSaved } from '@/services/resultRecorder';
 import { storageService } from '@/services/storage';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
 import { useSearchParams, Link, Navigate, useNavigate } from 'react-router-dom';
@@ -96,7 +96,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     journalNotes.update(noteId, newContent).catch(() => {});
   }, []);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">, targetNoteId?: string) => {
+  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">, targetNoteId?: string): Promise<unknown> => {
     const noteId = targetNoteId ?? activeNoteId ?? notes?.[0]?.id ?? journalDate;
     const targets = resolveCompletionTargets({
       blockId,
@@ -108,22 +108,26 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       editorResultId,
       resolveNoteUuid: () => noteId,
     });
-    if (!targets) return;
+    // Surfaced, not silent — the overlay awaits this and offers Retry.
+    if (!results) return Promise.reject(new Error('This run produced no results to save.'));
+    if (!targets) return Promise.reject(new Error('Could not match this run to a note block — nothing was saved.'));
     const { runBlock, resultId } = targets;
 
+    // Retry-stable: the overlay re-reports the same run after a failed save;
+    // the marker check keeps retries from stacking duplicate tables.
+    const marker = sessionQueryWql(resultId);
     const view = editorViewsRef.current.get(noteId) ?? editorViewRef.current ?? editorView;
     if (!editorRunBlock && view) {
       const insert = sessionQueryInsert(view.state, blockId, resultId, runBlock);
-      if (insert) {
+      if (insert && !view.state.doc.toString().includes(marker)) {
         view.dispatch({ changes: insert });
         const updatedContent = view.state.doc.toString();
         handleNoteContentChange(noteId, updatedContent);
       }
     } else if (!editorRunBlock && noteId) {
-      const qWql = sessionQueryWql(resultId);
       journalNotes.getById(noteId).then((entry) => {
-        if (!entry) return;
-        const updatedContent = entry.rawContent.trim() + `\n\n\`\`\`query:table\n${qWql}\n\`\`\``;
+        if (!entry || entry.rawContent.includes(marker)) return;
+        const updatedContent = entry.rawContent.trim() + `\n\n\`\`\`query:table\n${marker}\n\`\`\``;
         journalNotes.update(noteId, updatedContent).then(() => {
           journalNotes.listByDate(journalDate).then((entries) => {
             if (entries.length) setNotes(entries);
@@ -132,16 +136,15 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       }).catch(() => {});
     }
 
-    playgroundRecorder.record({
+    // Runtime ids stay live until overlay close — a retry must reuse the id.
+    return playgroundRecorder.record({
       runBlock,
       blockId,
       noteId,
       resultId,
-      data: results!,
-      createdAt: results?.endTime || Date.now(),
-    }).catch(() => {});
-    setActiveRuntimeId(null);
-    setActiveNoteId(null);
+      data: results,
+      createdAt: results.endTime || Date.now(),
+    });
   }, [blocksByNote, activeRuntimeId, activeNoteId, timerBlock, editorView, journalDate, notes, handleNoteContentChange]);
 
   useEffect(() => {
@@ -184,6 +187,11 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }
     return () => { cancelled = true; };
   }, [noteIds]);
+  useEffect(() => onResultSaved((saved) => {
+    storageService.getSessionsForNote(saved.noteId).then((rows) => {
+      setResultsByNote((prev) => ({ ...prev, [saved.noteId]: rows }));
+    }).catch(() => {});
+  }), []);
   const singleNote = notes !== null && notes.length === 1 ? notes[0] : null;
   const results = singleNote ? resultsByNote[singleNote.id] : undefined;
 

@@ -77,6 +77,31 @@ describe('useRuntimeExecution', () => {
     expect(message.toLowerCase()).toContain('already running');
   });
 
+  it('reports completed when the stack drains without ever running (Next-driven runs)', () => {
+    // A run advanced purely by Next events never enters 'running'; a drained
+    // stack still means done (the [dogfood-1] causal regression: end-of-section
+    // runs stayed 'idle' forever and nothing reported).
+    let observer: ((snapshot: { blocks: { key: string }[] }) => void) | null = null;
+    const runtime = {
+      handle: () => { },
+      subscribeToStack: (obs: (snapshot: { blocks: { key: string }[] }) => void) => {
+        observer = obs;
+        return () => { observer = null; };
+      },
+    } as unknown as ScriptRuntime;
+    const { result } = renderHook(() => useRuntimeExecution(runtime));
+
+    act(() => {
+      observer?.({ blocks: [{ key: 'session-root' }] });
+    });
+    expect(result.current.status).toBe('idle');
+
+    act(() => {
+      observer?.({ blocks: [] });
+    });
+    expect(result.current.status).toBe('completed');
+  });
+
   it('warns when start() is called without a runtime', () => {
     const { result } = renderHook(() => useRuntimeExecution(null));
 

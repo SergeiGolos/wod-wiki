@@ -105,9 +105,40 @@ describe('effort-markdown document format', () => {
     expect(errors).toContain('Invalid slug: must be lowercase letters, numbers, and hyphens only');
   });
 
-  it('validates met is positive', () => {
-    const bad = effortToDocument({ ...fullEffort, baseAttributes: { ...fullEffort.baseAttributes, met: -1 } });
-    const { errors } = documentToEffort(bad);
-    expect(errors).toContain('Invalid met: must be a positive number');
+  it('rejects met values that are not finite positive numbers', () => {
+    // '5x' matters: parseFloat accepted it as 5; the parser must not.
+    for (const met of ['0', '-2', 'abc', '5x', '']) {
+      const doc = `---\nslug: run\nlabel: Run\nbaseAttributes:\n  met: ${met}\n---\n`;
+      expect(documentToEffort(doc).errors.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('names baseAttributes.met for missing or misplaced met', () => {
+    // Create with no met anywhere: absence must not be erased by a 0 default.
+    const missing = documentToEffort('---\nslug: run\nlabel: Run\n---\n');
+    expect(missing.errors.join('\n')).toContain('baseAttributes.met');
+    expect(missing.effort.baseAttributes.met).toBeUndefined();
+
+    // Top-level met: 5 is misplaced, not invalid — and the edit fallback
+    // must not silently rescue the misplacement.
+    const misplacedDoc = '---\nslug: run\nlabel: Run\nmet: 5\n---\n';
+    expect(documentToEffort(misplacedDoc).errors.join('\n')).toContain('baseAttributes.met');
+    expect(documentToEffort(misplacedDoc, fullEffort).errors.join('\n')).toContain('baseAttributes.met');
+  });
+
+  it('accepts nested positive met and keeps the edit fallback for absent met', () => {
+    const nested = documentToEffort('---\nslug: run\nlabel: Run\nbaseAttributes:\n  met: 5\n---\n');
+    expect(nested.errors).toEqual([]);
+    expect(nested.effort.baseAttributes.met).toBe(5);
+
+    const edited = documentToEffort('---\nslug: run\nlabel: Run\n---\n', fullEffort);
+    expect(edited.errors).toEqual([]);
+    expect(edited.effort.baseAttributes.met).toBe(fullEffort.baseAttributes.met);
+  });
+
+  it('rejects a non-finite met arriving via the edit fallback', () => {
+    const bad: IEffort = { ...fullEffort, baseAttributes: { ...fullEffort.baseAttributes, met: Infinity } };
+    const { errors } = documentToEffort('---\nslug: run\nlabel: Run\n---\n', bad);
+    expect(errors.join('\n')).toContain('baseAttributes.met');
   });
 });

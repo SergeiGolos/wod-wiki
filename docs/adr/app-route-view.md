@@ -50,6 +50,11 @@ link rules: [../link-crosswalk.md](../link-crosswalk.md) and
    the legacy resolveRedirect matrix; nav derivation lives in
    `lib/routeNav.ts`.
 
+7. **Unmatched routes stay visible.** The route table always mounts a wildcard.
+   Before the seeded root exists, it shows loading or re-seed recovery; after
+   the root is available, it shows `NotFoundPage` with home navigation.
+   Explicit note routes retain their own missing-note state.
+
 ## Consequences
 
 - New stream surface = profile + route pattern; classification, membership,

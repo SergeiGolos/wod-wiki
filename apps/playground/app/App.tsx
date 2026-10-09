@@ -31,6 +31,7 @@ import {
 } from './lib/routeRedirects'
 import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
 import QueryBlockComposerPrototypePage from './pages/QueryBlockComposerPrototypePage'
 import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAuthoringPanel'
@@ -152,12 +153,20 @@ export function App() {
               <NavProvider tree={navTree}>
                 <ScrollToTop />
                 <Routes>
-                  {/* Seed still loading or root route missing: one explicit
-                      catch-route (loading vs recoverable error) instead of
-                      unmatched-location warnings during async derivation. */}
-                  {!canvasRouteList.some(({ route }) => route === ROUTE_PATTERNS.home) && (
-                    <Route path="*" element={<RootUnavailable settling={seedReadiness === 'preparing'} />} />
-                  )}
+                  {/* Unconditional wildcard: pre-seed locations show the
+                      loading/re-seed gate; once the root route exists,
+                      unmatched paths get the 404 view. Explicit routes
+                      outrank the splat. */}
+                  <Route
+                    path="*"
+                    element={
+                      !canvasRouteList.some(({ route }) => route === ROUTE_PATTERNS.home) ? (
+                        <RootUnavailable settling={seedReadiness === 'preparing'} />
+                      ) : (
+                        <NotFoundPage />
+                      )
+                    }
+                  />
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
                   <Route path="/proto/query-block-composer" element={<QueryBlockComposerPrototypePage />} />
 

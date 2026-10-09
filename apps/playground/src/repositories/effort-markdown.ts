@@ -184,6 +184,8 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
 
   type Context = 'root' | 'baseAttributes' | 'derivation' | 'coefficients' | 'hardOverrides';
   let context: Context = 'root';
+  let misplacedTopLevelMet = false;
+  let metInvalid = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -228,6 +230,9 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
           case 'updatedAt':
             result.updatedAt = val;
             break;
+          case 'met':
+            misplacedTopLevelMet = true;
+            break;
         }
       }
     } else if (indent === 2) {
@@ -250,9 +255,15 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
           const val = match[2].trim();
           if (context === 'baseAttributes') {
             switch (key) {
-              case 'met':
-                baseAttributes.met = parseFloat(val) || 0;
+              case 'met': {
+                const n = Number(val);
+                if (val !== '' && Number.isFinite(n)) {
+                  baseAttributes.met = n;
+                } else {
+                  metInvalid = true;
+                }
                 break;
+              }
               case 'discipline':
                 baseAttributes.discipline = parseDiscipline(val);
                 break;
@@ -284,8 +295,11 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
   }
 
   if (!result.aliases) result.aliases = [];
+  // Only the edit-mode baseEffort fallback may supply MET; absence stays
+  // absent on create (never a fabricated zero).
+  const fallbackMet = baseEffort?.baseAttributes.met;
   result.baseAttributes = {
-    met: baseEffort?.baseAttributes.met ?? 0,
+    ...(fallbackMet !== undefined ? { met: fallbackMet } : {}),
     ...baseAttributes,
   };
   if (Object.keys(derivation).length > 0 || coefficients || hardOverrides) {
@@ -305,10 +319,16 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
   if (!result.label?.trim()) errors.push('Missing required field: label');
 
   const met = result.baseAttributes?.met;
-  if (met === undefined || met === null) {
-    errors.push('Missing required field: met');
-  } else if (typeof met !== 'number' || Number.isNaN(met) || met <= 0) {
-    errors.push('Invalid met: must be a positive number');
+  if (metInvalid) {
+    errors.push('Invalid baseAttributes.met: must be a positive number');
+  } else if (misplacedTopLevelMet) {
+    errors.push(
+      "Invalid met placement: 'met' must be nested under baseAttributes (missing baseAttributes.met)",
+    );
+  } else if (met === undefined || met === null) {
+    errors.push('Missing required field: baseAttributes.met');
+  } else if (!Number.isFinite(met) || met <= 0) {
+    errors.push('Invalid baseAttributes.met: must be a positive number');
   }
 
   if (!result.id) result.id = baseEffort?.id || `effort-user-${uuidv7()}`;

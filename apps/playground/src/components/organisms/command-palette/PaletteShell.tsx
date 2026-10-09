@@ -5,7 +5,7 @@ import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
-import { parseQuery } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import { useVisualViewportRect, WqlComposer, type WqlValidationState } from '@bitcobblers/wod-wiki-ui';
 
 /** Host-owned execution debounce: the composer resolves drafts synchronously;
@@ -89,6 +89,9 @@ export const PaletteShell: React.FC = () => {
   // so a first-action Apply never reads a stale render.
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
+  // The composer's live scope: last valid find draft, updated on every
+  // synchronous emission — never inferred from completed searches.
+  const scopeRef = useRef<string>();
   const [validity, setValidity] = useState<WqlValidationState>({ valid: true });
   const validityRef = useRef(validity);
   const isDesktop = useIsDesktopViewport();
@@ -101,6 +104,8 @@ export const PaletteShell: React.FC = () => {
   const handleQueryChange = useCallback((wql: string) => {
     queryRef.current = wql;
     setQuery(wql);
+    const parsed = parseQuery(wql);
+    if (!parsed.error && isFindQuery(parsed)) scopeRef.current = wql;
   }, []);
 
   const handleValidationChange = useCallback((state: WqlValidationState) => {
@@ -160,7 +165,9 @@ export const PaletteShell: React.FC = () => {
       const initial = request.wql ? request.wql.initialQuery ?? '' : request.initialQuery ?? '';
       queryRef.current = initial;
       setQuery(initial);
-      const error = request.wql ? parseQuery(initial).error : undefined;
+      const initialParsed = parseQuery(initial);
+      scopeRef.current = !initialParsed.error && isFindQuery(initialParsed) ? initial : undefined;
+      const error = request.wql ? initialParsed.error : undefined;
       const initialValidity: WqlValidationState = error ? { valid: false, error } : { valid: true };
       validityRef.current = initialValidity;
       setValidity(initialValidity);
@@ -178,7 +185,8 @@ export const PaletteShell: React.FC = () => {
   // sources salvage the plain words, so the list filters).
   useEffect(() => {
     if (!isOpen || !request) return;
-    if (wqlConfig && isWqlMode && !validity.valid) {
+    const config = request.wql;
+    if (config && isWqlMode && !validity.valid) {
       // Invalid draft: cancel any scheduled/in-flight search and keep the
       // previous results on screen, marked stale.
       searchVersion.current += 1;
@@ -193,7 +201,12 @@ export const PaletteShell: React.FC = () => {
         try {
           const settled = await Promise.all(
             request.sources.map(source =>
-              Promise.resolve(source.search(query)).then(items =>
+              Promise.resolve(
+                // Live scope rides along when one exists.
+                scopeRef.current
+                  ? source.search(query, { scopeWql: scopeRef.current })
+                  : source.search(query)
+              ).then(items =>
                 items.map(item => ({
                   ...toListItem(item),
                   // Prefix source label as group if item has no category

@@ -452,7 +452,6 @@ export class IndexedDBContentProvider implements IContentProvider {
                 await this.db.saveSegment(segment);
             }
         }
-        if (!existingNote) await this.db.rebuildBlockIndexForNote?.(noteId);
 
         const note: Note = {
             id: noteId,
@@ -464,6 +463,9 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
 
         await this.db.saveNote(note);
+        // The index rebuild reads the note title — it must run after the
+        // note row exists or first saves index empty noteTitle values.
+        if (!existingNote) await this.db.rebuildBlockIndexForNote?.(noteId);
         // T4 bridge: frontmatter `tags:` and typed tags are additive into the note's tag set.
         const knownTypes = (await this.db.getAllTagTypes?.().catch(() => []))?.map(t => t.name) ?? [];
         const fmTags = frontmatterTagsOf(sections, knownTypes);
@@ -686,8 +688,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             for (const segment of currentSegments) {
                 if (!keptIds.has(segment.id)) await retire(segment);
             }
-            // V14 — rebuild derived block index after segment changes.
-            await this.db.rebuildBlockIndexForNote?.(note.id);
+            // V14 — the derived block index rebuild runs after saveNote below
+            // (it reads the note title).
         }
 
         // T4 bridge — frontmatter `tags:` union into note_tags. Frontmatter is
@@ -775,6 +777,12 @@ export class IndexedDBContentProvider implements IContentProvider {
         // previously never saved it). Pure result writes skip the save so
         // recording a workout doesn't churn the note row.
         if (metadataChanged) await this.db.saveNote(note);
+
+        // Block rows carry noteTitle — rebuild after the note row is saved,
+        // or content/title changes index the stale title.
+        if (patch.rawContent !== undefined || patch.title !== undefined) {
+            await this.db.rebuildBlockIndexForNote?.(note.id);
+        }
 
         // Derived projection fields for the returned entry (V22 — junction).
         const tags = await this.db.getTagsForNote(note.id);

@@ -1,7 +1,8 @@
 /**
  * NotFoundPage — 404 fallback for unknown routes.
  *
- * Replaces the previous wildcard catch-all that silently rendered AppContent.
+ * Mounted unconditionally as the App.tsx wildcard: rendered once the seeded
+ * root route exists; the loading/re-seed gate covers the pre-seed window.
  */
 
 import { useNavigate } from 'react-router-dom'

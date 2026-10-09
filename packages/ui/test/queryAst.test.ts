@@ -63,6 +63,24 @@ describe('lossless targeted WQL edits', () => {
     ]);
   });
 
+  it('keeps quoted phrase typing guided and preserves the search scope', () => {
+    const scope = ':note{source:journal,tags:strength} last 4w';
+    const phrase = '"workout in the park"';
+    for (let end = 1; end <= phrase.length; end++) {
+      const result = resolveQueryDraft(scope, phrase.slice(0, end));
+      expect(result.valid).toBe(true);
+      expect(astToPills(result.ast)).not.toBeNull();
+    }
+    expect(resolveQueryDraft(scope, phrase).ast).toMatchObject({
+      window: { kind: 'relative', size: 4, unit: 'w' },
+      filters: [
+        { key: 'source', values: [{ value: 'journal', wildcard: false }] },
+        { key: 'tags', values: [{ value: 'strength', wildcard: false }] },
+        { key: 'text', values: [{ value: 'workout in the park', wildcard: false }] },
+      ],
+    });
+  });
+
   it('rejects quote-containing literals instead of changing their meaning', () => {
     const query = ':note{text:snatch}';
     const result = edit(query, 'text', 'a"quoted" value');

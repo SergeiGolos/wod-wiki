@@ -15,10 +15,12 @@
  * collide with real user data. IndexedDB is cleared before each test.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { JournalEntryPage } from '../pages/JournalEntryPage';
 import { seedJournalNote, clearResults, getResults, WOD_DB } from '../helpers/wodwikiDb';
 import { waitForSeedReady } from '../helpers/seedReadiness';
+import { clearSessions, getSessions } from '../utils/sessionsDb';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
 // ── Stable test dates ─────────────────────────────────────────────────────────
 const DATE_CONTENT_ROUNDTRIP = '2099-08-01';
@@ -263,5 +265,253 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     expect(noteNotFoundErrors, 'No NOTE_NOT_FOUND errors on static pages').toHaveLength(0);
 
     await page.screenshot({ path: testInfo.outputPath('persistence-05-static-no-errors.png') });
+  });
+
+  // ── 6-8. /notes/:id overlay runs persist through the recorder (dogfood #1) ──
+
+  const NOTE_DATE = '2099-08-04';
+  const NOTE_ID = `journal/${NOTE_DATE}`;
+  // The reported repro fixture verbatim: Next-driven runs never press Start,
+  // so they previously drained the stack while execution stayed idle and
+  // nothing ever reported.
+  const OVERLAY_WOD = '```time\n0:03 Count Down\n10 Pushups\n```';
+
+  /**
+   * Open /notes/:id once (seeding the note), then start overlay runs against
+   * it. Later runs skip the seed so results stack in one note — the Run
+   * control is DOM-clicked, which bypasses the block overlay's pointer
+   * interception and hover gating alike.
+   */
+  async function startOverlayRun(page: Page, seed = true): Promise<void> {
+    if (seed) {
+      await seedJournalNote(page, NOTE_DATE, `# Overlay Run\n\n${OVERLAY_WOD}\n`);
+      await page.goto(`/notes/${encodeURIComponent(NOTE_ID)}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    }
+    const runControl = page.locator('[data-testid="editor-start-workout"]').first();
+    await expect(runControl).toBeAttached({ timeout: 15_000 });
+    await runControl.evaluate((el) => (el as HTMLElement).click());
+    // Track view mounts (Exit = FocusedDialog close control).
+    await expect(page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first()).toBeVisible({ timeout: 8_000 });
+    // Leave the SessionRoot gate — Next advances into the countdown.
+    await page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first().click();
+  }
+
+  /**
+   * Drive the run to end-of-section with Next and dismiss whichever surface
+   * is up: the natural-finish results view (Exit) or the track view the
+   * moment before its completed report rendered (header Stop). A Stop that
+   * lands on the drained stack persists completed:true and shows the results
+   * view — dismissed here too. Both paths leave exactly one session.
+   */
+  async function finishRunAtEndOfSection(page: Page, dismissClicks = 1): Promise<void> {
+    for (let i = 0; i < 8; i++) {
+      if (await page.getByText('Workout Complete').isVisible().catch(() => false)) break;
+      const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
+      if ((await next.count()) === 0) break;
+      await next.click().catch(() => {});
+      await page.getByText('Workout Complete').waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {});
+    }
+    if (await page.getByText('Workout Complete').isVisible().catch(() => false)) {
+      const close = page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first();
+      for (let i = 0; i < dismissClicks; i++) await close.click({ timeout: 2_000 }).catch(() => {});
+    } else {
+      const stop = page.getByRole('button', { name: 'Stop', exact: true }).first();
+      for (let i = 0; i < dismissClicks; i++) await stop.click({ timeout: 2_000 }).catch(() => {});
+      if (await page.getByText('Workout Complete').isVisible().catch(() => false)) {
+        await page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first().click();
+      }
+    }
+    await expectOverlayGone(page);
+  }
+
+  async function expectOverlayGone(page: Page): Promise<void> {
+    await expect(page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first()).toBeHidden({ timeout: 8_000 });
+  }
+
+  /** Rows in the unified event store for one note (the run's metrics). */
+  async function getEventCount(page: Page, noteId: string): Promise<number> {
+    return page.evaluate(async (noteId) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open('wodwiki-db');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      try {
+        if (!db.objectStoreNames.contains('events')) return 0;
+        return await new Promise<number>((resolve, reject) => {
+          const tx = db.transaction('events', 'readonly');
+          const req = tx.objectStore('events').getAll();
+          req.onsuccess = () =>
+            resolve((req.result as { noteId?: string }[]).filter((e) => e.noteId === noteId).length);
+          tx.onerror = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    }, noteId);
+  }
+
+  /** Make exactly the NEXT `sessions`-store put throw (transaction aborts). */
+  async function failNextSessionPut(page: Page): Promise<void> {
+    await page.evaluate(() => {
+      const w = window as unknown as Record<string, unknown>;
+      if (!w.__putPatched) {
+        w.__putPatched = true;
+        const orig = IDBObjectStore.prototype.put;
+        w.__origPut = orig;
+        IDBObjectStore.prototype.put = function (...args: unknown[]) {
+          if ((this as IDBObjectStore).name === 'sessions' && w.__failNextSessionPut) {
+            w.__failNextSessionPut = false;
+            throw new DOMException('injected session write failure', 'AbortError');
+          }
+          return (orig as (...a: unknown[]) => IDBRequest).apply(this, args);
+        };
+      }
+      w.__failNextSessionPut = true;
+    });
+  }
+
+  test('three /notes overlay runs (Stop ×2, Exit ×1) yield three unique persisted sessions with events and Sessions entries', async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
+    await clearSessions(page, NOTE_ID);
+
+    // ── Run 1: rapid double Stop at end-of-section — the dedupe path.
+    await startOverlayRun(page);
+    await finishRunAtEndOfSection(page, 2);
+    expect(await getSessions(page, NOTE_ID)).toHaveLength(1);
+
+    // ── Run 2: header Stop after end-of-section — Stop persists completed:true.
+    await startOverlayRun(page, false);
+    await finishRunAtEndOfSection(page);
+
+    // ── Run 3: natural completion, "Saved" claim, then results-view Exit.
+    await startOverlayRun(page, false);
+    for (let i = 0; i < 8; i++) {
+      if (await page.getByText('Workout Complete').isVisible().catch(() => false)) break;
+      const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
+      if ((await next.count()) === 0) break;
+      await next.click().catch(() => {});
+      await page.getByText('Workout Complete').waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {});
+    }
+    await expect(page.getByText('Workout Complete')).toBeVisible({ timeout: 5_000 });
+    // "Saved" may only be claimed after the real commit landed.
+    await expect(page.getByText('Saved ✓')).toBeVisible({ timeout: 8_000 });
+    await page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first().click();
+    await expectOverlayGone(page);
+
+    // ── Three unique sessions — every end-of-section run completed:true.
+    const sessions = await getSessions(page, NOTE_ID);
+    expect(sessions, 'exactly one session per run').toHaveLength(3);
+    expect(new Set(sessions.map((s) => s.id)).size, 'session ids are unique').toBe(3);
+    expect(
+      sessions.every((s) => s.completed === true),
+      'end-of-section Stop persists completed:true, never a partial',
+    ).toBe(true);
+
+    // Event metrics: every persisted run projected rows into the event store
+    // (the skipped countdown alone emits at least one output per run).
+    const eventCount = await getEventCount(page, NOTE_ID);
+    expect(eventCount, 'each run contributes event rows').toBeGreaterThanOrEqual(3);
+
+    // The note stacks one query:table per run — distinct result ids (the
+    // debounced content save flushes shortly after the last overlay closes).
+    await expect
+      .poll(async () => {
+        const stored = await journal.storedContent(NOTE_DATE);
+        return [...(stored ?? '').matchAll(/:session\{result:([0-9a-f-]+)\}/g)].map((m) => m[1]);
+      }, { timeout: 10_000 })
+      .toHaveLength(3);
+    const markers = [...(await journal.storedContent(NOTE_DATE) ?? '').matchAll(/:session\{result:([0-9a-f-]+)\}/g)].map((m) => m[1]);
+    expect(new Set(markers).size, 'one table per unique result id').toBe(3);
+
+    // Sessions listing shows EXACTLY these three identities before and after
+    // a reload — "3 of 3" plus one /results/:id card per session id.
+    const expectedHrefs = sessions.map((s) => `/results/${s.id}`).sort();
+    const expectExactSessions = async () => {
+      await expect
+        .poll(
+          async () => {
+            const hrefs = await page
+              .locator('a[href^="/results/"]')
+              .evaluateAll((els) => els.map((a) => a.getAttribute('href')));
+            return [...new Set(hrefs)].sort();
+          },
+          { timeout: 15_000 },
+        )
+        .toEqual(expectedHrefs);
+      await expect(page.getByText('3 of 3')).toBeVisible();
+    };
+    await page.goto(`/sessions?q=${encodeURIComponent(':session{}')}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await page.getByTestId('stream-view-settings-trigger').click();
+    await page.getByTestId('view-settings-layout-feed').click();
+    await page.getByTestId('view-settings-close').click();
+    await expectExactSessions();
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await expectExactSessions();
+
+    await page.screenshot({ path: testInfo.outputPath('persistence-06-overlay-three-runs.png') });
+  });
+
+  test('mid-run Exit on a Next-driven run persists a partial session', async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    await clearSessions(page, NOTE_ID);
+    await startOverlayRun(page);
+    // Second Next: the countdown segment emits captured outputs while the
+    // execution never flipped to 'running' — Exit must halt+report, not discard.
+    await page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first().click().catch(() => {});
+    await expect(page.getByText(/results? captured/)).toBeVisible({ timeout: 8_000 });
+    await page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first().click();
+    await expectOverlayGone(page);
+
+    const sessions = await getSessions(page, NOTE_ID);
+    expect(sessions, 'the partial is persisted, not discarded').toHaveLength(1);
+    expect(sessions[0]!.completed).toBe(false);
+
+    await page.screenshot({ path: testInfo.outputPath('persistence-08-next-exit-partial.png') });
+  });
+
+  test('a rejected session write shows an error with same-id Retry, leaves no partial write, and one retry persists one session', async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    await clearSessions(page, NOTE_ID);
+    await startOverlayRun(page);
+    await failNextSessionPut(page);
+
+    // Early Stop: the partial's write fails inside the atomic transaction.
+    await page.getByRole('button', { name: 'Stop', exact: true }).first().click();
+
+    // The overlay stays open: visible error + Retry, no fake success.
+    await expect(page.getByRole('alert')).toContainText('Save failed', { timeout: 8_000 });
+    const retry = page.getByRole('button', { name: 'Retry save' });
+    await expect(retry).toBeVisible();
+
+    // No partial write: the aborted transaction left neither sessions nor events.
+    expect(await getSessions(page, NOTE_ID)).toHaveLength(0);
+    expect(await getEventCount(page, NOTE_ID)).toBe(0);
+
+    // Same-ID retry: exactly one session and its events, one query:table.
+    await retry.click();
+    await expectOverlayGone(page);
+
+    const sessions = await getSessions(page, NOTE_ID);
+    expect(sessions, 'retry persists exactly one session').toHaveLength(1);
+    expect(sessions[0]!.completed).toBe(false);
+    expect(await getEventCount(page, NOTE_ID), 'retry persists the event metrics').toBeGreaterThanOrEqual(1);
+
+    // No duplicate query:table from the retry — the one table from the first
+    // (failed) attempt is reused, and it references the persisted session.
+    await expect
+      .poll(async () => {
+        const stored = await journal.storedContent(NOTE_DATE);
+        return [...(stored ?? '').matchAll(/:session\{result:([0-9a-f-]+)\}/g)].length;
+      }, { timeout: 10_000 })
+      .toBe(1);
+    expect(await getSessions(page, NOTE_ID)).toHaveLength(1);
+
+    // Completion then Stop/Exit never duplicates: reloading the note writes
+    // nothing further.
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
+    expect(await getSessions(page, NOTE_ID)).toHaveLength(1);
+
+    await page.screenshot({ path: testInfo.outputPath('persistence-07-retry-saves-once.png') });
   });
 });

@@ -50,6 +50,19 @@ export interface PaletteRequest {
 }
 
 /**
+ * Per-search context the palette host supplies alongside the draft.
+ */
+export interface PaletteSearchContext {
+  /**
+   * The composer's live scope: the last valid find draft emitted this
+   * session — updated synchronously with every composer emission, never
+   * debounce-late. Sources that must stay inside the selected scope merge
+   * the draft into it; absent, they fall back to their own defaults.
+   */
+  scopeWql?: string;
+}
+
+/**
  * A single pluggable search backend.
  * Pure async function — no side effects, no navigation.
  */
@@ -57,7 +70,7 @@ export interface PaletteDataSource {
   id: string;
   /** Displayed as a group heading above this source's results. */
   label?: string;
-  search: (query: string) => PaletteItem[] | Promise<PaletteItem[]>;
+  search: (query: string, context?: PaletteSearchContext) => PaletteItem[] | Promise<PaletteItem[]>;
 }
 
 /** A single result row returned by a PaletteDataSource. */

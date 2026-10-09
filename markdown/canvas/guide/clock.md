@@ -83,6 +83,8 @@ pipeline:
 
 A movement line without a duration is not "no timer" — it's a count-up stopwatch tracking that block while you log reps.
 
+On a stored note, **Stop** or **Exit** saves the captured partial run. Finishing the last block saves a completed run. The fullscreen results view shows **Saved ✓** only after the write succeeds. If saving fails, the clock keeps the run open; **Retry save** retries the same run without creating another session. Live "results captured" counts do not confirm a save.
+
 ## Capture prompts {#capture-prompts}
 
 Collectible placeholders (`?lb`, `:?`, `?m`, `?`) mark the values the plan doesn't know; you supply the actuals during capture, and each lands in the fact store with its block. Session RPE is captured after the workout — skippable, and never blocking a save. Every recorded value carries a declared origin — see [Provenance](#provenance).

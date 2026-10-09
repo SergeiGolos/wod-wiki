@@ -258,6 +258,14 @@ export class StreamQueryEngine {
         }
       }
 
+      // Block rows can carry an empty noteTitle (the index is built before
+      // the note row exists on first save); blank labels never surface —
+      // resolve those from the real note record.
+      await Promise.all([...noteMap].filter(([, note]) => !note.title).map(async ([id, note]) => {
+        const real = await storageService.getNote(id);
+        if (real?.title) noteMap.set(id, { ...note, title: real.title });
+      }));
+
       const entries = Array.from(noteMap.values()).map(toEntry);
       await this.attachPageLinks(entries);
       emitStages(onStages, primaryResult.stages, entries);

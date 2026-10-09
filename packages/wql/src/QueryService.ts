@@ -79,6 +79,10 @@ export type {
 };
 
 
+/** User note identity shape — uuidv7 minted by the journal/persistence layer
+ *  (crypto.randomUUID on legacy rows). Seed corpus ids are path-shaped. */
+const NOTE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Extract the catalog directory id from a Note or BlockIndexRow.
  *  Uses explicit `catalog` when present; falls back to parsing `sourceId`
  *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`.
@@ -89,14 +93,16 @@ export function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: s
   const isCollectionOrFeed = !!item.sourceId && /^(collection|feed):/.test(item.sourceId);
   const raw = isCollectionOrFeed ? item.sourceId!.replace(/^(collection|feed):/, '') : (item.noteId || item.id || '');
   if (!raw) return undefined;
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return undefined;
+  if (NOTE_UUID_RE.test(raw)) return undefined;
   const clean = raw.startsWith('feeds/') ? raw.slice('feeds/'.length) : raw;
   if (!isCollectionOrFeed && !clean.includes('/')) return undefined;
   return clean.split('/')[0];
 }
 
 /** Match a single row against one source filter value. The `journal` kind matches
- *  rows with no sourceId prefix; the `collection` / `guide` kinds match
+ *  rows with no sourceId, the literal 'journal', or UUID / journal/date lineage
+ *  pointing to the original note. Lineage also passes corpus exclusions below.
+ *  The collection / guide kinds match
  *  rows whose sourceId starts with the kind. A `kind:id` literal matches the
  *  exact id. `playground` matches the playground intake's sourceId convention
  *  and, on the note plane, legacy rows typed 'playground' (playground pages
@@ -120,13 +126,8 @@ export function sourceMatches(
   if (kind === 'all') return !sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(item, k));
   if (kind === 'journal') {
     if (item.type === 'playground' || item.id?.startsWith('playground/') || item.noteId?.startsWith('playground/')) return false;
-    if (sourceId) return sourceId === 'journal';
-    // Sourceless rows stay journal unless the rest of the corpus owns them:
-    // importer-seeded rows (seedOrigin 'seed' — 'user' is a genuine user
-    // journal origin), user-edited imports whose seedChunkId / seed-tree
-    // sourcePath / catalog survive, and typed non-journal notes
-    // (dashboards, efforts, equipment). A user journal note carries none of
-    // those markers.
+    if (sourceId && sourceId !== 'journal' && !NOTE_UUID_RE.test(sourceId) && !/^journal\/\d{4}-\d{2}-\d{2}$/.test(sourceId)) return false;
+    // UUID or legacy journal/date lineage still must pass corpus exclusions.
     return item.type !== 'dashboard'
       && item.type !== 'effort'
       && item.type !== 'equipment'

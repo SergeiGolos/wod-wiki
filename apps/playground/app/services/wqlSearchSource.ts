@@ -11,7 +11,7 @@
  */
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { queryService } from '@/services/queryService';
-import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, isFindQuery, serialize, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';
 import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { entryOpenHref } from '../lib/entryActions';
 import { searchEntries } from '../lib/entrySearch';
@@ -48,18 +48,37 @@ function toPaletteItem(entry: Entry): PaletteItem {
   };
 }
 
-/**
- * WQL-driven search: valid find queries execute through the engine; invalid
- * (mid-edit) WQL yields no rows — the composer's diagnostics strip carries
- * the error, so the palette stays quiet instead of flashing stale results.
- */
+/** Merge free-text terms into a find scope: replaces the positive `text:`
+ *  occurrence (empty terms clear it); multiword values serialize quoted. */
+export function scopedTextQuery(scope: ParsedFindQuery, terms: string): string {
+  const filters = scope.filters.filter(f => !(f.key === 'text' && !f.negate));
+  if (terms) filters.push({ key: 'text', negate: false, values: [{ value: terms, wildcard: false }] });
+  return serialize({ ...scope, filters });
+}
+
+/** Valid find queries run through the engine. Find-mode prose merges
+ *  verbatim as a `text:` phrase into the live scope (`context.scopeWql`,
+ *  else the route default); empty restores the scope; ':'-prefixed invalid
+ *  drafts stay quiet (WQL mode's stale badge carries those). */
 export function wqlSearchSource(): PaletteDataSource {
   return {
     id: 'wql-search',
     label: 'Search',
-    search: async (wql) => {
-      const entries = await searchEntries(wql);
-      return entries.slice(0, MAX_RESULTS).map(toPaletteItem);
+    search: async (wql, context) => {
+      const parsed = parseQuery(wql);
+      if (!parsed.error) return (await searchEntries(wql)).slice(0, MAX_RESULTS).map(toPaletteItem);
+      if (wql.trimStart().startsWith(':')) return [];
+      const prose = wql.trim();
+      // Boundary quotes are phrase intent; interior `"` has no grammar encoding.
+      // ponytail: dropping interior quotes — add engine-side escaping if literals are ever needed.
+      const terms = (prose.startsWith('"') && prose.endsWith('"') && prose.length > 1
+        ? prose.slice(1, -1)
+        : prose
+      ).replaceAll('"', '');
+      const scope = parseQuery(context?.scopeWql ?? searchPaletteQuery());
+      if (scope.error || !isFindQuery(scope)) return [];
+      const merged = scopedTextQuery(scope, terms);
+      return (await searchEntries(merged)).slice(0, MAX_RESULTS).map(toPaletteItem);
     },
   };
 }

@@ -9,6 +9,8 @@
  *   2. IndexedDB unavailable (indexedDB.open rejects) → app degrades without
  *      an unhandled pageerror.
  *   3. Malformed journal routes (/journal/not-a-date) → handled state.
+ *   4. Unknown top-level route → styled not-found view with working Go home
+ *      (cold and settled boots; dogfood issue 2).
  *
  * Findings recorded inline as each test is written; defects are quarantined.
  */
@@ -125,5 +127,43 @@ test.describe('Error-Path Resilience', () => {
     await page.waitForURL(/\/journal\/?$/, { timeout: 10_000 });
     await expect(page.locator('#root')).not.toBeEmpty();
     expect(errors).toEqual([]);
+  });
+
+  // ── 4. Unknown top-level routes (dogfood issue 2) ─────────────────────────
+
+  test('unknown route reached in-app after settled boot shows not-found with working Go home', async ({ page }) => {
+    // SPA navigation (no reload) to an unmatched path, the way a stale
+    // in-app link lands. The heading may lag behind seed derivation; the
+    // wildcard must settle on the 404 view, not a blank page.
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/definitely-not-a-page-xyz');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await expect(page.getByRole('heading', { name: /not found/i })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole('button', { name: /go home/i }).click();
+    await page.waitForURL(({ pathname }) => pathname === '/', { timeout: 10_000 });
+    await expect(page.locator('#root')).not.toBeEmpty();
+    expect(errors).toEqual([]);
+  });
+
+  test('cold boot directly on an unknown route settles into not-found', async ({ browser }) => {
+    // Fresh profile: empty IndexedDB, seed import runs while the unknown
+    // location is mounted — the loading gate must resolve to the 404 view.
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('dialog', (d) => { void d.accept(); });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
+    });
+
+    await page.goto('/definitely-not-a-page-xyz', { waitUntil: 'domcontentloaded', timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /not found/i })).toBeVisible({ timeout: 30_000 });
+
+    await page.getByRole('button', { name: /go home/i }).click();
+    await page.waitForURL(({ pathname }) => pathname === '/', { timeout: 10_000 });
+    await expect(page.locator('#root')).not.toBeEmpty();
+    await context.close();
   });
 });

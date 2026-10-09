@@ -335,7 +335,7 @@ function ConditionSection({
     rows.push({
       value,
       label: labelOverride ?? option?.label ?? selectedByDisplay.get(value)?.label ?? value,
-      count: option ? option.count : 0,
+      count: option ? option.count : null,
       state: filterValueState(query, entryKey, value),
     })
   }

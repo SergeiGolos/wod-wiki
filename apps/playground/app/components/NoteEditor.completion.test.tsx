@@ -21,17 +21,35 @@ const sampleResults: Sessions = {
   metrics: [],
 } as unknown as Sessions;
 
+// The mock mimics the real overlay's retry seam: it keeps the last reported
+// payload and can re-send the SAME report (same block id + results object),
+// which is how FullscreenTimer drives the same-id Retry save.
+let lastReport: { blockId: string; results: Sessions } | null = null;
+
 mock.module('@/components/organisms/review/FullscreenTimer', () => ({
   FullscreenTimer: (props: {
     block: ScriptBlock;
-    onCompleteWorkout: (blockId: string, results: Sessions) => void;
+    onCompleteWorkout: (blockId: string, results: Sessions) => void | Promise<unknown>;
   }) => (
-    <button
-      data-testid="complete-workout"
-      onClick={() => props.onCompleteWorkout(props.block.id, sampleResults)}
-    >
-      complete
-    </button>
+    <>
+      <button
+        data-testid="complete-workout"
+        onClick={() => {
+          lastReport = { blockId: props.block.id, results: sampleResults };
+          void props.onCompleteWorkout(lastReport.blockId, lastReport.results);
+        }}
+      >
+        complete
+      </button>
+      <button
+        data-testid="retry-workout"
+        onClick={() => {
+          if (lastReport) void props.onCompleteWorkout(lastReport.blockId, lastReport.results);
+        }}
+      >
+        retry
+      </button>
+    </>
   ),
 }));
 
@@ -129,5 +147,51 @@ describe('NoteEditor write-on-completion (#944)', () => {
     expect(ids[0]).not.toBe(firstId);
     expect(onCompleteWorkout).toHaveBeenCalledTimes(2);
     expect(onCompleteWorkout.mock.calls[1][2]).toBe(ids[0]);
+  });
+
+  it('same-report retry after a failed save reuses the result id and never stacks a second table', async () => {
+    let latestValue = DOC;
+    const onChange = (value: string) => { latestValue = value; };
+    let calls = 0;
+    // First save rejects (persistence failure), the retry resolves — the
+    // exact sequence the overlay's Retry button drives against one payload.
+    const onCompleteWorkout = mock(
+      (_blockId: string, _results?: Sessions, _resultId?: string): Promise<unknown> => {
+        calls += 1;
+        return calls === 1 ? Promise.reject(new Error('write failed')) : Promise.resolve();
+      },
+    );
+    lastReport = null;
+    render(
+      <NoteEditor
+        value={DOC}
+        onChange={onChange}
+        noteId="journal/2026-08-02"
+        onCompleteWorkout={onCompleteWorkout}
+      />,
+    );
+
+    await completeOneRun();
+    await waitFor(() => expect(latestValue).toContain('```query:table'));
+    const resultId = /:session\{result:([0-9a-f-]+)\}/.exec(latestValue)![1];
+    expect(calls).toBe(1);
+    expect(onCompleteWorkout.mock.calls[0][2]).toBe(resultId);
+
+    // Retry with the SAME payload: identical id threaded again, still exactly
+    // one query:table for the result.
+    fireEvent.click(screen.getByTestId('retry-workout'));
+    await waitFor(() => expect(calls).toBe(2));
+    expect(onCompleteWorkout.mock.calls[1][2]).toBe(resultId);
+    expect([...latestValue.matchAll(/:session\{result:([0-9a-f-]+)\}/g)]).toHaveLength(1);
+
+    // A settled save releases the report: replaying the same object afterwards
+    // is a fresh run — new id, second table stacked.
+    fireEvent.click(screen.getByTestId('retry-workout'));
+    await waitFor(() => expect(calls).toBe(3));
+    const ids = [...latestValue.matchAll(/:session\{result:([0-9a-f-]+)\}/g)].map(m => m[1]);
+    expect(ids).toHaveLength(2);
+    expect(ids[0]).not.toBe(resultId);
+    expect(ids[1]).toBe(resultId);
+    expect(onCompleteWorkout.mock.calls[2][2]).toBe(ids[0]);
   });
 });

@@ -814,20 +814,21 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       setSession(results)
       if ((results.logs ?? []).length === 0) {
         finalizedRef.current = true
-        void performPending()
-        return
+        return performPending()
       }
       finalizedRef.current = true
-      void finalize(results, results.completed)
+      // The promise is returned so awaiting hosts (the fullscreen overlay)
+      // hold dismissal and offer the same-report Retry on failure; the toast
+      // stays for the embedded panes whose host ignores the return value.
+      return finalize(results, results.completed)
         .then(() => {
           unsavedRef.current = null
+          return performPending()
         })
-        .then(() => performPending())
         .catch((err) => {
-          console.error('[HomeTour] failed to log session to playground:', err)
           finalizedRef.current = false
           // The execution is already halted — it cannot report again. Park
-          // the outputs; the next host action retries the save.
+          // the outputs; the next host action or the overlay Retry re-saves.
           runStartedRef.current = false
           unsavedRef.current = results
           externalStopRef.current = false
@@ -838,6 +839,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
             description: 'The run could not be recorded. Nothing was lost — your next action retries the save.',
             variant: 'destructive',
           })
+          throw err
         })
     },
     [finalize, performPending],

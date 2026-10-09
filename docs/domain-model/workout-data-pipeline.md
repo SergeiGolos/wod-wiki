@@ -26,9 +26,13 @@ Workout execution runs in the CodeMirror editor or fullscreen timer:
 - The Whiteboard runtime (`@bitcobblers/wod-wiki-engine`) emits `IOutputStatement`s (reps, loads, elapsed time, HR).
 - On completion, `resultRecorder.record(...)` hands the payload to the persistence seam.
 
+The editor and fullscreen timer await the recorder before showing saved results or dismissing a reported run. Next-driven completion counts even without starting the playback loop. Stop preserves a partial run; stopping after the stack drains preserves completion. Live output counts mean captured, not saved.
+
+A rejected write keeps the overlay open with its payload and result ID. Retry save reuses that ID and the existing session-results query. Badges and mounted Sessions listings refresh after commit.
+
 ## 3. How Data Is Written
 
-Two writes, both inside `IndexedDBNotePersistence.mutateNote` / `IndexedDBContentProvider.updateEntry`:
+Session metadata, event rows, and summaries share the note mutation's IndexedDB transaction in `IndexedDBNotePersistence.mutateNote` / `IndexedDBContentProvider.updateEntry`. A rejected write aborts the transaction:
 
 1. **Session row** — `saveSession` writes the flattened metadata record (scalars only).
 2. **Event rows** — `toEventRows(logs, identity)` converts each statement to an `EventRecord` (`grain: 'event'`, id `${resultId}:${seq}`) and `toSummaryEventRows` folds Tier-2 outputs into `grain: 'summary'` rows; `appendEvents` + `finalizeSummaries` persist them.

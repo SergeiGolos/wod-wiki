@@ -142,13 +142,13 @@ describe('PaletteShell WQL mode', () => {
     })
 
     const input = findDraftInput()
-    await waitFor(() => expect(search).toHaveBeenCalledWith(':note'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note', { scopeWql: ':note' }))
 
     // Typing re-runs the search with the pending text resolved as the same
     // text filter Enter commits — bare concatenation is invalid WQL and
     // would blank the results instead of narrowing them.
     fireEvent.change(input, { target: { value: 'fran' } })
-    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{text:fran}'), { timeout: 1_000 })
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{text:fran}', { scopeWql: ':note{text:fran}' }), { timeout: 1_000 })
   })
 
   it('applies the exact visible draft immediately — no debounce wait on the action', async () => {
@@ -229,7 +229,7 @@ describe('PaletteShell WQL mode', () => {
 
     // The scope clause landed in the draft (multi-select ORs the scope
     // values) and re-searched…
-    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{source:journal|guides}'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{source:journal|guides}', { scopeWql: ':note{source:journal|guides}' }))
     // …but the Enter did NOT activate the palette result…
     await act(async () => {})
     expect(resolved).toBe(false)
@@ -252,7 +252,7 @@ describe('PaletteShell WQL mode', () => {
     fireEvent.change(input, { target: { value: 'fran' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(screen.getByTestId('token-slot-text').textContent).toContain('fran')
-    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{text:fran}'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith(':note{text:fran}', { scopeWql: ':note{text:fran}' }))
 
     await screen.findByText('Fran')
 

@@ -29,9 +29,12 @@ export function WallClockPage() {
   const pending = pendingRef.current
 
   const handleComplete = useCallback(
-    (_blockId: string, results: Sessions | undefined) => {
-      if (!results || !runtimeId || !pending) return
-      playgroundRecorder.record({
+    (_blockId: string, results: Sessions | undefined): Promise<unknown> => {
+      // Surfaced, not silent — the overlay awaits this and offers Retry.
+      if (!results || !runtimeId || !pending) {
+        return Promise.reject(new Error('Run cannot be saved — its session data or runtime id is missing.'))
+      }
+      return playgroundRecorder.record({
         runBlock: pending.block,
         blockId: pending.block.id,
         noteId: pending.noteId,
@@ -43,7 +46,7 @@ export function WallClockPage() {
         if (results.completed) {
           navigate(sessionDetailPath(runtimeId), { replace: true })
         }
-      }).catch(() => {})
+      })
     },
     [runtimeId, pending, navigate],
   )

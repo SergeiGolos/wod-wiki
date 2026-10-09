@@ -18,7 +18,7 @@ import { journalDatePath, noteByIdPath, pagePath, runPath } from '../lib/routes'
 import { NotePlacementDialog, type NotePlacementMode } from '../components/organisms/journal/NotePlacementDialog'
 import type { HistoryEntry } from '@/types/history'
 import type { Session } from '@/types/storage'
-import { playgroundRecorder } from '@/services/resultRecorder'
+import { playgroundRecorder, onResultSaved } from '@/services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useNotePageNav } from './shared/useNotePageNav'
@@ -119,11 +119,18 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
     setScriptBlocks([])
     if (!noteKey) return
     let cancelled = false
-    storageService.getSessionsForNote(noteKey).then((rows) => {
-      if (!cancelled) setResults(rows)
-    }).catch(() => {})
+    const refresh = () => {
+      storageService.getSessionsForNote(noteKey).then((rows) => {
+        if (!cancelled) setResults(rows)
+      }).catch(() => {})
+    }
+    refresh()
+    const unsubscribe = onResultSaved((saved) => {
+      if (!cancelled && saved.noteId === noteKey) refresh()
+    })
     return () => {
       cancelled = true
+      unsubscribe()
     }
   }, [noteKey])
 
@@ -184,9 +191,15 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
       results: ScriptBlock['results'],
       resultId?: string,
       runBlock?: Pick<ScriptBlock, 'id' | 'contentId'>,
-    ) => {
-      if (!results || !resultId || !entry) return
-      void playgroundRecorder.record({
+    ): Promise<unknown> => {
+      // Surfaced, not silent — the overlay awaits this and offers Retry.
+      if (!results || !resultId) {
+        return Promise.reject(new Error('This run produced no results to save.'))
+      }
+      if (!entry) {
+        return Promise.reject(new Error('The note is not loaded — the run cannot be saved.'))
+      }
+      return playgroundRecorder.record({
         runBlock,
         blockId,
         noteId: entry.id,

@@ -477,6 +477,29 @@ describe('StreamQueryEngine — stage counts reconcile the companion union', () 
   })
 })
 
+describe('StreamQueryEngine — blank block noteTitle', () => {
+  it('fills a body-hit entry label from the real note record', async () => {
+    const memory = new InMemoryStorage()
+    setStorageForTesting(memory)
+    try {
+      const note: Note = { id: 'note-uuid', title: 'Dogfod smoke original', type: 'note', createdAt: 1 }
+      await storageService.saveNote(note)
+      // First-save indexing runs before the note row exists, so block rows
+      // can carry an empty noteTitle.
+      const block = { ...makeBlock(0), noteId: note.id, noteTitle: '', sourceId: undefined }
+      const engine = new StreamQueryEngine({
+        service: { runFind: async parsed => ({ parsed, notes: [], blocks: parsed.target === 'block' ? [block] : [], stages: { selected: 1, matched: 1 } }) },
+      })
+      const entries = await engine.query(':note{text:pushup} in all')
+      expect(entries.map(e => e.id)).toEqual([note.id])
+      expect(entries[0]!.title).toBe('Dogfod smoke original')
+    } finally {
+      resetStorageForTesting()
+      await memory.close()
+    }
+  })
+})
+
 describe('StreamQueryEngine — named page navigation', () => {
   it('opens note and block hits by the first named page slug, not a calendar page UUID', async () => {
     const memory = new InMemoryStorage()

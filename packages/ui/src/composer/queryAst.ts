@@ -224,8 +224,10 @@ export function resolveQueryDraft(query: string, pendingText = ''): QueryDraft {
     return emit({ ...base.ast, filters });
   }
   if (/[{}]/.test(text)) return snapshot(pendingText);
+  const terms = text.startsWith('"') ? text.slice(1).replace(/"$/, '') : pendingText;
+  if (!terms) return base;
   const filters = [...base.ast.filters];
-  const filter: TagFilter = { key: 'text', negate: false, values: [{ value: pendingText, wildcard: false }] };
+  const filter: TagFilter = { key: 'text', negate: false, values: [{ value: terms, wildcard: false }] };
   const index = filters.findIndex((existing) => existing.key === 'text' && !existing.negate);
   if (index < 0) filters.push(filter);
   else filters[index] = filter;
