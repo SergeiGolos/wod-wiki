@@ -174,6 +174,9 @@ without starting a local server. Seed-dependent tests await the bootstrap's
 `data-seed-state` and `data-seed-outcome` on `<html>` before checking the route.
 Derived seed rows are queued within the existing atomic chunk transaction;
 a failed write rolls back both rows and the checkpoint.
+Canvas commits before any library fetch; the remaining chunks fetch four at a
+time and still commit in manifest order. Failed fetches preserve the committed
+checkpoint so the next bootstrap resumes without reapplying completed chunks.
 Playwright's pinned Chromium uses SQLite-backed IndexedDB explicitly; its
 LevelDB backend took 31.5 seconds for a fresh seed versus 2.8 seconds with SQLite.
 
