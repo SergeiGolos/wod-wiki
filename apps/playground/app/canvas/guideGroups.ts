@@ -7,14 +7,16 @@
  */
 import type { CanvasSection, ScrollStage } from './parseCanvasMarkdown'
 
-/** Terminal meta sections stay in normal flow after the runways so they
- *  remain fully accessible (What's Next navigation, the compact reference). */
-const STATIC_TAIL_IDS: Record<string, true> = { 'whats-next': true, reference: true }
+/** Terminal meta section stays in normal flow after the runways so it
+ *  remains fully accessible (the compact reference). The old What's Next
+ *  button block is gone — the GuideIndexFooter list carries next-chapter
+ *  navigation now. */
+const STATIC_TAIL_IDS: Record<string, true> = { reference: true }
 
 /**
  * Semantic runs per guide slug (section ids in document order) — each guide's
  * chapters grouped by concept, keeping h3 subsections beside their parent.
- * What's Next / reference never appear here (static tail); Try-it closes the
+ * The reference never appears here (static tail); Try-it closes the
  * last run so its Run/source buttons act on the panel beside it.
  */
 const SEMANTIC_GROUPS: Record<string, string[][]> = {

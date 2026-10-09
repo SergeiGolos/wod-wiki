@@ -15,7 +15,7 @@
 import React, { useCallback, useState } from 'react';
 import { ExternalLink, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getProfileDisplayName } from '@/services/profile';
+import { getProfileDisplayName } from '@/hooks/useWorkbenchServices';
 
 // ---------------------------------------------------------------------------
 // Encoding helpers

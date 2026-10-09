@@ -181,18 +181,3 @@ pipeline:
   - set-state: track
 ```
 
-## What's Next {sticky}
-
-```button
-label:  Metrics →
-target: preview
-pipeline:
-  - navigate: /guide/metrics
-```
-
-```button
-label:  ← Timers & Protocols
-target: preview
-pipeline:
-  - navigate: /guide/protocols
-```

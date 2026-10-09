@@ -435,23 +435,23 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   // Halt + report shared by Stop and host-driven stops; a stack drained
   // before the halt is a natural finish, not a partial.
-  const stopAndReport = () => {
+  const stopAndReport = useCallback(() => {
     const completedBeforeHalt = runtime ? runtime.stack.count === 0 : false;
     execution.stop();
     runtime?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
     handleComplete(completedBeforeHalt);
-  };
+  }, [runtime, execution, handleComplete]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     stopAndReport();
     onClose();
-  };
+  }, [stopAndReport, onClose]);
 
-  const handleStart = () => {
+  const handleStart = useCallback(() => {
     execution.start();
     // Auto-expand to full content area when the timer starts.
     if (!isExpanded) onToggleExpand?.();
-  };
+  }, [execution, isExpanded, onToggleExpand]);
 
   // ── Pre-run Choice Wizard ─────────────────────────────────────────────────
   // Scan the parsed block before RuntimeFactory can default unresolved choices.
@@ -469,9 +469,9 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     resolveChoiceSelection(preRunScript, item, selectedIndex);
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     runtime?.handle(new NextEvent(undefined, runtime!.nowProvider));
-  };
+  }, [runtime]);
 
   useEffect(() => {
     if (!runtime) return;
@@ -490,7 +490,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
         current.setRuntime(null);
       }
     };
-  }, [runtime, execution]);
+  }, [runtime, execution, handleStart, handleStop, handleNext]);
 
   // The cast stack is wired by `CastSessionManager` against the workbench
   // `SubscriptionManager`. The inline runtime's snapshots flow to the

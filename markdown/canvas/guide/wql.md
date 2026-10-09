@@ -187,18 +187,3 @@ pipeline:
   - navigate: /dashboards
 ```
 
-## What's Next {sticky}
-
-```button
-label:  Dashboards & Cookbook →
-target: preview
-pipeline:
-  - navigate: /guide/dashboards
-```
-
-```button
-label:  ← The Clock
-target: preview
-pipeline:
-  - navigate: /guide/clock
-```

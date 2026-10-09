@@ -220,18 +220,3 @@ pipeline:
   - set-state: track
 ```
 
-## What's Next {sticky}
-
-```button
-label:  ← Back to First Workout
-target: preview
-pipeline:
-  - navigate: /guide/start
-```
-
-```button
-label:  Query Your Training →
-target: preview
-pipeline:
-  - navigate: /guide/wql
-```

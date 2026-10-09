@@ -8,8 +8,8 @@
  * transitions and internal scrollable overflow — nothing is duplicated into
  * brief captions.
  *
- * Terminal meta sections (What's Next, the compact reference) stay out of
- * the runways and render as normal flow after the last group so they remain
+ * Terminal meta sections (the compact reference) stay out of the runways
+ * and render as normal flow after the last group so they remain
  * fully accessible.
  *
  * Deep links: each stage renders an invisible marker INSIDE the group's

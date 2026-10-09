@@ -437,7 +437,7 @@ export class StorageService implements NotePersistenceStorage {
   }
 
   /** Generic store-index read seam for WQL and analytics joins. */
-  async getAllFromIndex(storeName: 'block_efforts' | 'tags' | 'note_tags', index: string, key: IDBValidKey): Promise<any[]> {
+  async getAllFromIndex(storeName: 'block_efforts' | 'tags' | 'note_tags', index: string, key: IDBValidKey): Promise<unknown[]> {
     return this.storage.readonly(storeName).getAllFromIndex(index, key);
   }
   /** Batch note→tag-label resolution (labels carry their tag type): one

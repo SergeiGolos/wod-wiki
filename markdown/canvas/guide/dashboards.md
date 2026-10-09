@@ -141,18 +141,3 @@ pipeline:
   - navigate: /dashboards
 ```
 
-## What's Next {sticky}
-
-```button
-label:  Dialects & Complex Sessions →
-target: preview
-pipeline:
-  - navigate: /guide/sessions
-```
-
-```button
-label:  ← Query Your Training
-target: preview
-pipeline:
-  - navigate: /guide/wql
-```

@@ -201,27 +201,4 @@ One table, the whole line grammar. Chapters 2–3 expand each row.
 | `[Setup Barbell]` / `// note` | cue card / comment |
 | `hard`, `easy` | effort words |
 
-## What's Next {sticky}
-
-```button
-label:  Timers & Protocols →
-target: preview
-pipeline:
-  - navigate: /guide/protocols
-```
-
-```button
-label:  Query Your Training →
-target: preview
-pipeline:
-  - navigate: /guide/wql
-```
-
-```button
-label:  ← Back to Home
-target: preview
-pipeline:
-  - navigate: /
-```
-
 Prefer generating? The [/ai-first](/ai-first) page shows AI-assisted note authoring.

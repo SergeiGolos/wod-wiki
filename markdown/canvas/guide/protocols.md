@@ -213,18 +213,3 @@ pipeline:
   - set-state: track
 ```
 
-## What's Next {sticky}
-
-```button
-label:  Structure & Rounds →
-target: preview
-pipeline:
-  - navigate: /guide/structure
-```
-
-```button
-label:  ← First Workout
-target: preview
-pipeline:
-  - navigate: /guide/start
-```

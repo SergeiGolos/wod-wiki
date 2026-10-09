@@ -116,18 +116,3 @@ pipeline:
   - set-state: track
 ```
 
-## What's Next {sticky}
-
-```button
-label:  Query Your Training →
-target: preview
-pipeline:
-  - navigate: /guide/wql
-```
-
-```button
-label:  ← Metrics
-target: preview
-pipeline:
-  - navigate: /guide/metrics
-```

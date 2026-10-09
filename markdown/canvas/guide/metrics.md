@@ -189,18 +189,3 @@ pipeline:
   - set-state: track
 ```
 
-## What's Next {sticky}
-
-```button
-label:  The Clock →
-target: preview
-pipeline:
-  - navigate: /guide/clock
-```
-
-```button
-label:  ← Structure & Rounds
-target: preview
-pipeline:
-  - navigate: /guide/structure
-```

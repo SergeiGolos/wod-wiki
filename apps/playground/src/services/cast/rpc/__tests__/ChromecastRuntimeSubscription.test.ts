@@ -4,7 +4,7 @@ import { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
 import { RpcMessage, RpcStackUpdate, RpcOutputStatement } from '../RpcMessages';
 import { StackSnapshot } from '@bitcobblers/wod-wiki-engine';
 import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
-import { IRuntimeBlock, IBlockContext, IMetric } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlock, IBlockContext, IMetric, IMemoryLocation } from '@bitcobblers/wod-wiki-engine';
 import { BlockKey } from '@bitcobblers/wod-wiki-engine';
 
 // ── Mock Transport ──────────────────────────────────────────────────────────
@@ -145,9 +145,9 @@ describe('ChromecastRuntimeSubscription', () => {
                 },
             });
             const b1 = createMockBlock('b1', 'Run');
-            (b1 as any).getMetricMemoryByVisibility = (v: string) => v === 'display' ? [makeLoc('00:10')] : [];
+            b1.getMetricMemoryByVisibility = (v: string) => v === 'display' ? [makeLoc('00:10') as IMemoryLocation] : [];
             const b2 = createMockBlock('b1', 'Run');
-            (b2 as any).getMetricMemoryByVisibility = (v: string) => v === 'display' ? [makeLoc('00:20')] : [];
+            b2.getMetricMemoryByVisibility = (v: string) => v === 'display' ? [makeLoc('00:20') as IMemoryLocation] : [];
             const snapshot1: StackSnapshot = {
                 type: 'push',
                 blocks: [b1],

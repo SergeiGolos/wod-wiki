@@ -20,7 +20,7 @@
  * identical for both.
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';

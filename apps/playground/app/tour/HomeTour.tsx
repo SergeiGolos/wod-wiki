@@ -1000,7 +1000,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           timer={timerWiring}
           session={{ ...sessionWiring, result: session }}
         />
-        <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12">
+        <div className="mx-auto w-full max-w-7xl px-6 pb-16 sm:px-8 lg:px-12">
           <OfferingTiers />
         </div>
         <GuideIndexFooter />
@@ -1206,7 +1206,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         theme={theme}
         onRun={handleChapterRun}
       />
-      <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12">
+      <div className="mx-auto w-full max-w-7xl px-6 pb-16 sm:px-8 lg:px-12">
         <OfferingTiers />
       </div>
       <GuideIndexFooter />

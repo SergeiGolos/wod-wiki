@@ -17,6 +17,9 @@ export { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '@/services/Analyt
 // (the kg/lb-only duplicate under src/services/analytics/units is deleted).
 export { convertDisplay as convert, getUnitFamily } from '@bitcobblers/wod-wiki-wql';
 
+// ── Profile ───────────────────────────────────────────────────────────────
+export { getProfileDisplayName } from '@/services/profile';
+
 // ── Export / import ───────────────────────────────────────────────────────
 export { exportAllNotes, exportNote, importFromZip, pickFile } from '@/services/ExportImportService';
 

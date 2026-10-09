@@ -189,7 +189,7 @@ export function SidebarLayout({
   const [railHasContent, setRailHasContent] = useState(false)
   useLayoutEffect(() => {
     setRailHasContent((railContentRef.current?.childElementCount ?? 0) > 0)
-  })
+  }, [secondary, pageAction])
 
   // Mobile hides the facet columns behind the right drawer, so the applied
   // where-filters get no visible state — mirror them as a dot on the trigger.
