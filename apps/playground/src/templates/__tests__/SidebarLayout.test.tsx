@@ -163,4 +163,28 @@ describe('SidebarLayout mobile folding zones', () => {
     fireEvent.click(within(drawerFrame!).getByTestId('nav-settings'));
     await expectDrawerClosed();
   });
+
+  it('hides only the desktop L2 column when hideDesktopSidebar is set; the drawer keeps the sidebar', () => {
+    render(
+      <MemoryRouter>
+        <NuqsAdapter>
+          <NavProvider tree={[]}>
+            <SidebarLayout
+              navbar={<div>Navbar</div>}
+              sidebar={<div>L2 Sidebar</div>}
+              hideDesktopSidebar
+            >
+              <div>Content</div>
+            </SidebarLayout>
+          </NavProvider>
+        </NuqsAdapter>
+      </MemoryRouter>,
+    );
+    const desktopColumn = document.querySelector('nav[aria-label="Main"] div[class*="w-60"]');
+    expect(desktopColumn?.className).toContain('lg:hidden');
+    // Mobile drawer is untouched by the flag: sidebar content still opens there.
+    openDrawer();
+    const drawerFrame = document.querySelector<HTMLElement>('.bg-card.h-full');
+    expect(within(drawerFrame!).getByText('L2 Sidebar')).toBeTruthy();
+  });
 });

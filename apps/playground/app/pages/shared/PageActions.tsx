@@ -2,7 +2,7 @@
  * PageActions — unified page-level action bar.
  *
  * Replaces NotePageActions and PlaygroundNoteActions with a single
- * mode-driven component. All pages receive [NavSearchInput, Cast, …].
+ * mode-driven component. All pages receive [Cast, …].
  * The playground page additionally receives a [New | Reset] ButtonGroup
  * prepended to the left.
  *
@@ -18,7 +18,6 @@ import { ButtonGroup } from '@/components/molecules/ButtonGroup'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { PageMode } from '@/types/content-type'
 
-import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'
@@ -33,14 +32,6 @@ export interface PageActionsProps {
   currentWorkout: { name: string; content: string }
   /** Page index — shown in the ActionsMenu "On this page" section. */
   index: PageNavLink[]
-  /** Opens the command palette / global search. */
-  onSearch: () => void
-  /**
-   * Render the standalone NavSearchInput. Stream routes pass false — their
-   * header query bar IS the search entry, and a second input next to it
-   * duplicates the controls and starves the bar of width.
-   */
-  showSearch?: boolean
   /**
    * Playground-only: resets the current page to its default template.
    * Required when mode === 'playground'.
@@ -52,9 +43,7 @@ export function PageActions({
   mode,
   currentWorkout,
   index,
-  onSearch,
   onReset,
-  showSearch = true,
 }: PageActionsProps) {
   const navigate = useNavigate()
   const [isCreating, setIsCreating] = useState(false)
@@ -115,7 +104,6 @@ export function PageActions({
         />
       )}
 
-      {!dockOwnsGeneric && showSearch && <NavSearchInput onOpen={onSearch} />}
       {!dockOwnsGeneric && <CastButtonRpc />}
       {!dockOwnsGeneric && (
         <ActionsMenu currentWorkout={currentWorkout} items={index && index.length > 0 ? mapIndexToL3(index) : undefined} />

@@ -50,7 +50,9 @@ const guideOrder: Record<string, number> = {
   '/guide/sessions': 7,
 }
 
-function guideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
+/** Guide chapters as NavItems — the Home L2 list and the end-of-page
+ * GuideIndexFooter both render this, so the two stay in sync. */
+export function guideChildrenFrom(routes: CanvasRoute[]): NavItem[] {
   return routes
     .filter(r => !r.route.startsWith('/collections'))
     .filter(r => r.page.frontmatter?.type === 'guide')

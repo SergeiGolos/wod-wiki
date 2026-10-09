@@ -22,6 +22,7 @@ import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { CanvasPanelContent } from './CanvasPanelContent'
 import { GuideRunwayGroups } from './GuideRunwayGroups'
+import { GuideIndexFooter } from './GuideIndexFooter'
 import { groupGuideSections } from './guideGroups'
 import { getEditorPreferredHeight } from './canvasLayout'
 import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
@@ -617,6 +618,7 @@ export function MarkdownCanvasPage({
           />
         )}
       </SplitCanvasTemplate>
+      {isGuide && <GuideIndexFooter />}
     </div>
   )
 }

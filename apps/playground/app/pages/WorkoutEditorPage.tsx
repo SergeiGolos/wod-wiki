@@ -59,7 +59,6 @@ export interface WorkoutEditorPageProps {
   hidePlanningCommands?: boolean
   onViewCreated?: (view: EditorView) => void
   onScrollToSection?: (id: string) => void
-  onSearch?: () => void
 }
 
 export function WorkoutEditorPage({
@@ -70,7 +69,6 @@ export function WorkoutEditorPage({
   runMode,
   hidePlanningCommands,
   onViewCreated,
-  onSearch,
 }: WorkoutEditorPageProps) {
   const usePopup = runMode ? runMode === 'inline' : INLINE_RUNTIME_CATEGORIES.has(category)
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
@@ -191,7 +189,7 @@ export function WorkoutEditorPage({
   })
   const headerActions = (
     <ResponsiveActions>
-      <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
+      <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} />
     </ResponsiveActions>
   )
 

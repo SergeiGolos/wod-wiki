@@ -271,7 +271,6 @@ export function PlaygroundNotePage({
         mode="playground"
         currentWorkout={{ name: pageTitle, content }}
         index={index}
-        onSearch={onSearch ?? (() => {})}
         onReset={resetToOriginal}
       />
     </ResponsiveActions>

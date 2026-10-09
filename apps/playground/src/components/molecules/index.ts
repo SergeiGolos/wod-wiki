@@ -8,5 +8,4 @@ export { CalendarButton, type CalendarButtonProps } from './CalendarButton';
 export { CalendarSplitButton, type CalendarSplitButtonProps } from './CalendarSplitButton';
 export { LinkChip } from './LinkChip';
 export { MetricSourceRow, type MetricSourceRowProps, type FragmentSourceStatus, type FragmentSourceEntry } from './MetricSourceRow';
-export { NavSearchInput, type NavSearchInputProps } from './NavSearchInput';
 export { WorkoutActionButton, type WorkoutActionButtonProps } from './WorkoutActionButton';

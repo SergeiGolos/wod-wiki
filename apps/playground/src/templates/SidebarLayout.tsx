@@ -160,6 +160,10 @@ export function SidebarLayout({
   onCreate,
   secondary,
   pageAction,
+  /** Suppress the desktop L2 column only (mobile drawer keeps it) — set for
+   * the canvas home and /guide/* pages, whose chapter list renders at the
+   * end of the page instead (GuideIndexFooter). */
+  hideDesktopSidebar,
   children,
 }: React.PropsWithChildren<{
   navbar: React.ReactNode
@@ -173,6 +177,7 @@ export function SidebarLayout({
   /** Per-page action row appended to the L3 rail (e.g. Download Markdown) —
    * the same action the ⋯ fallback carries below 2xl. */
   pageAction?: React.ReactNode
+  hideDesktopSidebar?: boolean
 }>) {
   let [showSidebar, setShowSidebar] = useState(false)
   let [showRightDrawer, setShowRightDrawer] = useState(false)
@@ -212,7 +217,7 @@ export function SidebarLayout({
 
           {/* overflow-hidden: SidebarBody is the single scroll owner; shell
               wrappers only size (min-h-0) so sticky sections resolve to it. */}
-          <div className="w-60 shrink-0 sticky top-0 self-start h-svh min-h-0 overflow-hidden border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col">
+          <div className={cn('w-60 shrink-0 sticky top-0 self-start h-svh min-h-0 overflow-hidden border-r border-zinc-950/5 dark:border-white/5 bg-background/72 backdrop-blur-sm flex flex-col', hideDesktopSidebar && 'lg:hidden')}>
             {sidebar}
           </div>
         </nav>

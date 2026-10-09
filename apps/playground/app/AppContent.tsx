@@ -226,19 +226,18 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         theme={actualTheme}
         onViewCreated={handleViewCreated}
         onScrollToSection={scrollToSection}
-        onSearch={openSearchPalette}
       />
     ),
     effortDetail: () => <EffortDetailPage />,
     analyticsExplorer: () => (
       <AnalyticsExplorerPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={view.page !== 'library'} />}
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} />}
       />
     ),
 
     dashboardExplorer: () => (
       <AnalyticsExplorerPage
-        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={view.page !== 'library'} />}
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} />}
       />
     ),
     dashboardView: () => <DashboardViewPage />,
@@ -288,7 +287,6 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         mdContent={view.workout.content}
         theme={actualTheme}
         onViewCreated={handleViewCreated}
-        onSearch={openSearchPalette}
       />
     ),
     library: () => {
@@ -298,12 +296,18 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
           key={profile.route}
           profile={profile}
           registerStreamDraft={registerStreamDraft}
-          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} showSearch={false} />}
+          actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} />}
         />
       )
     },
     settings: () => <SettingsPage />,
   }
+
+  // Canvas home + guide chapters drop the desktop L2 sidebar — their chapter
+  // list renders at the end of the page (GuideIndexFooter) instead. The
+  // mobile drawer keeps the L2 at every breakpoint.
+  const canvasRoute = view.page === 'canvas' ? view.canvasPage?.route : undefined
+  const hideDesktopSidebar = canvasRoute === '/' || !!canvasRoute?.startsWith('/guide/')
 
   const canvasTitleAccessory =
     view.page === 'canvas' && view.canvasPage
@@ -338,7 +342,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
         actions={view.shell.actionsMode
-          ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
+          ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} />
           : undefined}
       >
         {inner}
@@ -384,6 +388,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
         </Navbar>
       }
       sidebar={<NavSidebar navSpec={view.shell.nav} />}
+      hideDesktopSidebar={hideDesktopSidebar}
       secondary={secondarySpec}
       pageAction={currentWorkout.content !== '' ? <PageDownloadAction currentWorkout={currentWorkout} /> : undefined}
       onSearch={openSearchPalette}

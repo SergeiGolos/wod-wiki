@@ -47,7 +47,6 @@ export interface FeedItemPageProps {
   theme: string;
   onViewCreated?: (view: EditorView) => void;
   onScrollToSection?: (id: string) => void;
-  onSearch?: () => void;
 }
 
 export function FeedItemPage({
@@ -56,7 +55,6 @@ export function FeedItemPage({
   feedItem,
   theme,
   onViewCreated,
-  onSearch,
 }: FeedItemPageProps) {
   const navigate = useNavigate();
 
@@ -191,7 +189,6 @@ export function FeedItemPage({
             mode="collection-readonly"
             currentWorkout={{ name: item?.name ?? feedItem, content }}
             index={index}
-            onSearch={onSearch ?? (() => {})}
           />
           </ResponsiveActions>
         }

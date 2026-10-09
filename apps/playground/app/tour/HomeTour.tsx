@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clearHomeShared, loadHomeShared, type HomeSharedScript } from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
+import { GuideIndexFooter } from '../canvas/GuideIndexFooter'
 import { NextEvent } from '@bitcobblers/wod-wiki-engine'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScriptBlock, Sessions } from '@/components/Editor/types'
@@ -1002,6 +1003,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12">
           <OfferingTiers />
         </div>
+        <GuideIndexFooter />
         <TourFooter />
         {fullscreen}
       </div>
@@ -1038,7 +1040,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         <ScrollGate
           gateId="hero-pane"
           segmentId="hero"
-          className="h-full min-h-0 w-full max-w-[1000px] xl:max-w-[1140px] 2xl:max-w-[1360px]"
+          className="h-full min-h-0 w-full max-w-[720px] xl:max-w-[820px] 2xl:max-w-[920px]"
         >
           <MacOSChrome
             title={
@@ -1207,6 +1209,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12">
         <OfferingTiers />
       </div>
+      <GuideIndexFooter />
       <TourFooter />
       {fullscreen}
     </div>
