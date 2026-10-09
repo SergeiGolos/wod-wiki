@@ -24,11 +24,9 @@
  *  - Scroll gates: a pane wrapped in <ScrollGate> YIELDS by default —
  *    CSS freezes its inner scrollers ([data-scroll-gate] rules in
  *    index.css) so wheel/touch gestures scroll the track, not the pane.
- *    The gate CAPTURES when the user starts editing inside it (focus
- *    lands in an editable element), restoring inner scrolling while
- *    they work. The capture releases when focus leaves the gate or when
- *    the active segment changes — the scroll target hands off as you
- *    move between sections.
+ *    Editing or the Scroll panel control captures a gate, restoring inner
+ *    scrolling for editing and reading overflow. Blur, Escape, Scroll page,
+ *    or a segment handoff returns gestures to the page.
  */
 
 import {
@@ -37,6 +35,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useMemo,
   useState,
   type ReactNode,
   type RefObject,
@@ -68,7 +67,6 @@ export interface ScrollTrackApi {
   registerDriver(id: string, driver: TrackDriver): () => void
   /** Force a measure pass from the current scroll position. */
   resync(): void
-  activeSegmentId: string | null
   capturedGateId: string | null
   captureGate(gateId: string, segmentId: string | null): void
   releaseGate(gateId: string): void
@@ -87,7 +85,6 @@ export function ScrollTrackProvider({ children }: { children: ReactNode }) {
   const capturedRef = useRef<{ gateId: string; segmentId: string | null } | null>(null)
   const rafRef = useRef(0)
 
-  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null)
   const [capturedGateId, setCapturedGateId] = useState<string | null>(null)
   const activeRef = useRef<string | null>(null)
 
@@ -103,6 +100,7 @@ export function ScrollTrackProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const measure = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = 0
     const viewportH = window.innerHeight
 
@@ -122,7 +120,6 @@ export function ScrollTrackProvider({ children }: { children: ReactNode }) {
     const nextActive = resolveActiveSegmentId(spans, viewportH)
     if (nextActive !== activeRef.current) {
       activeRef.current = nextActive
-      setActiveSegmentId(nextActive)
       // The scroll target hands off between sections: a gate captured in
       // a segment that no longer owns the reading line releases.
       const captured = capturedRef.current
@@ -168,34 +165,33 @@ export function ScrollTrackProvider({ children }: { children: ReactNode }) {
 
   const registerAnchor = useCallback((id: string, getEl: () => HTMLElement | null) => {
     anchorsRef.current.set(id, getEl)
+    onScroll()
     return () => {
       anchorsRef.current.delete(id)
     }
-  }, [])
+  }, [onScroll])
 
   const registerDriver = useCallback(
     (id: string, driver: TrackDriver) => {
       driversRef.current.set(id, driver)
-      // Sync the new driver from the current track position right away.
-      measure()
+      onScroll()
       return () => {
         driversRef.current.delete(id)
       }
     },
-    [measure],
+    [onScroll],
   )
 
   const resync = useCallback(() => measure(), [measure])
 
-  const api: ScrollTrackApi = {
+  const api = useMemo<ScrollTrackApi>(() => ({
     registerAnchor,
     registerDriver,
     resync,
-    activeSegmentId,
     capturedGateId,
     captureGate,
     releaseGate,
-  }
+  }), [registerAnchor, registerDriver, resync, capturedGateId, captureGate, releaseGate])
 
   return <ScrollTrackContext.Provider value={api}>{children}</ScrollTrackContext.Provider>
 }
@@ -203,20 +199,20 @@ export function ScrollTrackProvider({ children }: { children: ReactNode }) {
 /** Register a stageless anchor element (e.g. the hero) with the track. */
 export function useTrackAnchor(id: string, ref: RefObject<HTMLElement | null>): void {
   const track = useScrollTrack()
+  const registerAnchor = track?.registerAnchor
   useEffect(() => {
-    if (!track) return
-    return track.registerAnchor(id, () => ref.current)
-  }, [track, id, ref])
+    if (!registerAnchor) return
+    return registerAnchor(id, () => ref.current)
+  }, [registerAnchor, id, ref])
 }
 
 /**
  * A scroll gate around an interactive pane inside the track.
  *
  * While the gate yields (the default), CSS freezes its inner scrollers so
- * gestures scroll the track. When the user starts editing inside the
- * gate — focus lands in an editable element — the gate captures and
- * inner scrolling works again until focus leaves or the track's active
- * segment moves on. Outside a provider the gate is inert.
+ * gestures scroll the track. Editing or Scroll panel restores inner scrolling
+ * until focus leaves, the user releases it, or the active segment moves on.
+ * Outside a provider the gate is inert.
  */
 export function ScrollGate({
   gateId,
@@ -239,24 +235,35 @@ export function ScrollGate({
     <div
       data-scroll-gate={mode}
       data-gate-id={gateId}
-      className={className}
+      className={`${className ?? ''} flex flex-col`}
       onFocus={(e) => {
-        // Only editing captures the gate. Buttons and links inside stay
-        // clickable while the gate yields — they never needed the scroll.
-        // (React's onFocus bubbles like focusin; e.target is the element
-        // that actually received focus.)
-        const target = e.target as HTMLElement
-        if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+        // Ordinary controls do not capture on focus.
+        const target = e.target
+        if (target instanceof HTMLElement && target.closest('input:not([readonly]):not([disabled]), textarea:not([readonly]):not([disabled]), select:not([disabled]), [contenteditable="true"]')) {
           track.captureGate(gateId, segmentId ?? null)
         }
       }}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+        if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
           track.releaseGate(gateId)
         }
       }}
     >
-      {children}
+      <div className="relative min-h-0 flex-1">{children}</div>
+      <button
+        type="button"
+        className="min-h-11 self-start rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary"
+        aria-label={`Scroll ${gateId.replace(/-/g, ' ')} content`}
+        aria-pressed={mode === 'captured'}
+        onClick={() => mode === 'captured'
+          ? track.releaseGate(gateId)
+          : track.captureGate(gateId, segmentId ?? null)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') track.releaseGate(gateId)
+        }}
+      >
+        {mode === 'captured' ? 'Scroll page' : 'Scroll panel'}
+      </button>
     </div>
   )
 }

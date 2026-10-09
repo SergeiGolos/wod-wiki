@@ -6,6 +6,19 @@ The WOD Wiki application follows a continuous loop: **Plan → Track → Analyze
 
 Home uses the same hero, sticky runway and chapter picker at every width. The demo and description divide the measured content area 60/40 after navigation, status and padding. Wide contexts place them side by side; tall contexts stack them. Resizing changes layout without replacing the editor or active run. Reduced-motion keeps the flat card layout.
 
+The home tour uses one scroll track. Swipes and wheel gestures over editors,
+clocks, results, analytics and captions move the page by default. Editing or
+**Scroll panel** enables a panel's native inner scrolling so overflowing text
+and actions remain reachable. **Scroll page**, Escape on the control, focus
+leaving the panel, or crossing a section boundary releases it. Inner scroll
+boundaries chain back to the page; roomy panels do not consume gestures.
+
+Run the browser regression against a running playground with
+`bun scripts/check-home-scrolling.mjs`. Set `BASE_URL` for another server and
+`CHROMIUM_PATH` when using a system Chromium. It checks touch gestures at
+390×844 and 844×390, desktop wheel gestures at 1440×1000, editor capture,
+caption access, analytics yielding and forward/reverse section transitions.
+
 Embedded clocks measure their own column and fit their digits into the remaining clock band. On narrow panels the clock reserves up to 280px before the visual-state summary takes the remaining height; shorter hosts scroll the clock column. Stop, Pause and Next remain reachable. Metric-table controls and recorded-result headers stay fixed while their rows scroll.
 
 The hero uses the editor's Run control. The duplicate hero Run action and four chapter-jump buttons are removed; guide, library and journal links remain.

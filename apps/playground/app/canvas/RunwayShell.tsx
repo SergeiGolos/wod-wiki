@@ -32,8 +32,8 @@ export interface RunwayShellProps {
   status?: ReactNode
   /**
    * ScrollTrack segment this shell's track belongs to. When set, the
-   * caption rail is wrapped in a scroll gate for that segment (its inner
-   * scroller yields to the page track until the user edits inside it).
+   * caption rail is wrapped in a scroll gate for that segment. Editing or
+   * Scroll panel enables its inner scroller; otherwise gestures move the page.
    * Omitted → no gate (canvas guide runways outside a track).
    */
   segmentId?: string

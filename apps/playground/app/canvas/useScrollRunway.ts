@@ -99,6 +99,7 @@ export function useScrollRunway(
   // ScrollTrack delegation (see header): when a track is present this
   // driver registers with it and the track's measure pass feeds it.
   const track = useScrollTrack()
+  const registerDriver = track?.registerDriver
   const trackMirror = useRef(track)
   trackMirror.current = track
   const autoDriverId = useId()
@@ -151,8 +152,8 @@ export function useScrollRunway(
   // Track delegation: register as a driver; the track owns the listener
   // and feeds this hook's emit/reached from the shared track position.
   useEffect(() => {
-    if (!track) return
-    return track.registerDriver(driverId, {
+    if (!registerDriver) return
+    return registerDriver(driverId, {
       getEl: () => runwayRef.current,
       getStages: () => stagesRef.current,
       onMeasure: ({ slice: next, progress, reached }) => {
@@ -161,11 +162,11 @@ export function useScrollRunway(
         emit(next, progress)
       },
     })
-  }, [track, driverId, runwayRef, emit])
+  }, [registerDriver, driverId, runwayRef, emit])
 
   useEffect(() => {
     // With a track present the provider owns the scroll listener.
-    if (track) return
+    if (registerDriver) return
     // Capture phase: scroll events don't bubble, and the app shell scrolls
     // inside a container div (not window) — capture catches every scroller.
     window.addEventListener('scroll', onScroll, { passive: true, capture: true })
@@ -176,7 +177,7 @@ export function useScrollRunway(
       window.removeEventListener('resize', onScroll)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [track, onScroll, measureLocal])
+  }, [registerDriver, onScroll, measureLocal])
 
   const subscribe = useCallback((cb: ScrollRunwaySubscriber) => {
     subscribersRef.current.add(cb)

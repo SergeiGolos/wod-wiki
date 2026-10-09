@@ -26,14 +26,20 @@
   min-width: 0;
 }
 
-/* ScrollTrack gates (app/scroll/ScrollTrackProvider): while a gate yields,
-   its inner scrollers freeze so wheel/touch gestures scroll the page track
-   instead of being captured by a pane inside a pinned runway window. The
-   gate captures — restoring inner scrolling — while the user edits inside
-   it. [data-scroll-pane] marks a pane-owned scroller (e.g. the caption
-   rail) that follows the same rule as the CodeMirror scroller. */
-[data-scroll-gate='yield'] .cm-scroller,
-[data-scroll-gate='yield'] [data-scroll-pane] {
+/* Panels yield to native page gestures. Editing or Scroll panel enables
+   inner scrolling; boundaries chain back to the page without JS dragging. */
+[data-scroll-gate] .cm-editor,
+[data-scroll-gate] .cm-scroller {
+  height: 100%;
+  min-height: 0;
+}
+[data-scroll-gate] .cm-scroller {
+  overflow-y: auto;
+}
+[data-scroll-gate] :is(.cm-scroller, [data-scroll-pane], .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll) {
+  overscroll-behavior-y: auto;
+}
+[data-scroll-gate='yield'] :is(.cm-scroller, [data-scroll-pane], .overflow-auto, .overflow-y-auto, .overflow-scroll, .overflow-y-scroll) {
   overflow-y: hidden !important;
 }
 
