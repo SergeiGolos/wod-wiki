@@ -10,6 +10,10 @@
  * after, matching the old single-driver `entered` contract; the write
  * section's editor stays mounted from load exactly as before (the hero view
  * above it is a separate HomeTour-level display of the same shared doc).
+ *
+ * The sticky window/pip/context-row chrome is the shared canvas RunwayShell
+ * (also used by guide runways and the chapter section); this component keeps
+ * the scroll driver, screens, ring and TV/toast scrub logic.
  */
 import {
   forwardRef,
@@ -25,8 +29,7 @@ import type { ScriptBlock, Sessions } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
-import { STICKY_NAV_HEIGHT } from '../canvas/canvasUtils'
-import { useTourContextSize } from './tourContextSize'
+import { RunwayShell } from '../canvas/RunwayShell'
 import type { ScrollSlice } from '../canvas/scrollRunway'
 import {
   SCREEN_TITLES,
@@ -135,6 +138,7 @@ function Screen({ visible, children }: { visible: boolean; children: ReactNode }
         pointerEvents: visible ? 'auto' : 'none',
       }}
       aria-hidden={!visible}
+      inert={!visible}
     >
       {children}
     </div>
@@ -175,12 +179,6 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     }, [])
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
-    // The row below the status strip IS the section's available context —
-    // measure its content box and orient 60/40 from it (wide → split,
-    // tall → stacked), never from viewport-width breakpoints.
-    const [contextRow, setContextRow] = useState<HTMLDivElement | null>(null)
-    const context = useTourContextSize(STICKY_NAV_HEIGHT, contextRow)
-    const split = context.mode === 'split'
 
     const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, false, stages)
     const inView = useInView(runwayRef)
@@ -264,144 +262,104 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     return (
       <section id={`tour-section-${id}`} data-testid={`tour-section-${id}`}>
         {header}
-        <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: heightVh }}>
-          {/* top/height follow the shell nav: mobile navbar 65px below lg,
-              desktop header 104px at lg+ (same offsets as TourChapterPicker). */}
-          <div className="sticky top-[65px] flex h-[calc(100dvh-65px)] flex-col overflow-hidden lg:top-[104px] lg:h-[calc(100dvh-104px)]">
-            {/* stage bar — the status slot reserves its height in normal
-                flow (status never overlays the pane's dashboard controls);
-                pips carry the stage progress. */}
-            <div className="mx-auto flex min-h-[46px] w-full max-w-[1500px] 2xl:max-w-[1720px] items-center justify-between gap-4 px-6 pt-3 pb-2 lg:px-12 xl:px-16 xl:pt-4 xl:pb-3">
-              <div className="flex min-w-0 flex-1">
-                {toastLabel != null && (
-                  <div
-                    ref={toastRef}
-                    className="pointer-events-none flex items-center gap-2.5 whitespace-nowrap rounded-full border border-primary/40 bg-card px-5 py-2.5 font-mono text-[10.5px] tracking-[0.04em] opacity-0 shadow-xl"
-                  >
-                    <span className="size-[9px] rounded-sm bg-primary" />
-                    {toastLabel}
-                  </div>
-                )}
+        <RunwayShell
+          trackRef={runwayRef}
+          height={heightVh}
+          stages={stages}
+          activeIndex={slice.index}
+          testId="tour-runway"
+          status={
+            toastLabel != null ? (
+              <div
+                ref={toastRef}
+                className="pointer-events-none flex items-center gap-2.5 whitespace-nowrap rounded-full border border-primary/40 bg-card px-5 py-2.5 font-mono text-[10.5px] tracking-[0.04em] opacity-0 shadow-xl"
+              >
+                <span className="size-[9px] rounded-sm bg-primary" />
+                {toastLabel}
               </div>
-              <div className="flex items-center gap-1.5">
-                {stages.map((seg, i) => {
-                  const live = slice.index === i
-                  const done = slice.index > i
-                  return (
-                    <span
-                      key={seg.id}
-                      className="h-1 rounded-full transition-all duration-300"
-                      style={{
-                        width: live ? 30 : 10,
-                        background: live
-                          ? (seg.accent ?? TOUR_ACCENTS.editor)
-                          : done
-                            ? 'hsl(var(--foreground))'
-                            : 'hsl(var(--foreground) / 0.15)',
-                      }}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* The measured context row: demo pane takes 3/5 (60%), the
-                caption rail 2/5 (40%) — beside each other when the context
-                is wide, stacked when it is tall. */}
-            <div
-              ref={setContextRow}
-              className={`mx-auto flex min-h-0 w-full max-w-[1500px] 2xl:max-w-[1720px] flex-1 px-5 pb-5 lg:px-10 xl:px-16 xl:pb-8 2xl:pb-10 ${
-                split ? 'flex-row items-stretch gap-[clamp(20px,2.5vw,56px)] xl:gap-12 2xl:gap-16' : 'flex-col gap-6 xl:gap-8'
-              }`}
-            >
-              {/* stage pane — the RingTargetsProvider scopes the ring registry
-                  to THIS section; every runway registers 'editor.window', so a
-                  shared registry lets later sections steal earlier ones' ring
-                  targets (ring drawn around an off-screen window). */}
-              <div className="relative min-h-0 min-w-0 flex-[3_1_0%]">
-                <div ref={canvasInnerRingRef} className="absolute inset-0">
-                  <RingTargetsProvider>
-                  <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
-                  <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
-                    <div className="relative h-full">
-                      {editor && (
-                        <Screen visible={activeScreen === 'editor'}>
-                          <TourEditorScreen
-                            doc={editor.doc}
-                            onDocChange={editor.onDocChange}
-                            onBlocksChange={editor.onBlocksChange}
-                            onRun={editor.onRun}
-                            theme={editor.theme}
-                            withRingTargets
-                          />
-                        </Screen>
+            ) : undefined
+          }
+          pane={
+            /* the RingTargetsProvider scopes the ring registry to THIS
+               section; every runway registers 'editor.window', so a shared
+               registry lets later sections steal earlier ones' ring targets
+               (ring drawn around an off-screen window). */
+            <div ref={canvasInnerRingRef} className="absolute inset-0">
+              <RingTargetsProvider>
+              <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
+              <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
+                <div className="relative h-full">
+                  {editor && (
+                    <Screen visible={activeScreen === 'editor'}>
+                      <TourEditorScreen
+                        doc={editor.doc}
+                        onDocChange={editor.onDocChange}
+                        onBlocksChange={editor.onBlocksChange}
+                        onRun={editor.onRun}
+                        theme={editor.theme}
+                        withRingTargets
+                      />
+                    </Screen>
+                  )}
+                  {showScreens && timer && timerEngaged && (
+                    <Screen visible={activeScreen === 'timer'}>
+                      <TourTimerScreen
+                        key={timer.sessionKey}
+                        block={timer.block}
+                        autoStart={timer.autoStart}
+                        onClose={timer.onClose}
+                        onComplete={timer.onComplete}
+                        onRuntimeReady={timer.onRuntimeReady}
+                        onRunStarted={timer.onRunStarted}
+                        onStart={timer.onStart}
+                        onReset={timer.onReset}
+                        externalStop={timer.externalStop}
+                      />
+                    </Screen>
+                  )}
+                  {/* Sections that carry an editor never host these panes;
+                      mounting them hidden re-runs their fit measurement
+                      against a zero-size box forever. */}
+                  {showScreens && !timer && !editor && session && (
+                    <Screen visible={activeScreen === 'analytics' || activeScreen === 'metrics'}>
+                      {session.result ? (
+                        <TourSessionResult result={session.result} />
+                      ) : (
+                        <TourSessionAnalytics
+                          activeStageId={session.fixedStage ?? slice.stage.id}
+                          noteId={session.noteId}
+                          queryKey={session.queryKey}
+                          boardSlug={session.boardSlug}
+                        />
                       )}
-                      {showScreens && timer && timerEngaged && (
-                        <Screen visible={activeScreen === 'timer'}>
-                          <TourTimerScreen
-                            key={timer.sessionKey}
-                            block={timer.block}
-                            autoStart={timer.autoStart}
-                            onClose={timer.onClose}
-                            onComplete={timer.onComplete}
-                            onRuntimeReady={timer.onRuntimeReady}
-                            onRunStarted={timer.onRunStarted}
-                            onStart={timer.onStart}
-                            onReset={timer.onReset}
-                            externalStop={timer.externalStop}
-                          />
-                        </Screen>
-                      )}
-                      {/* Sections that carry an editor never host these panes;
-                          mounting them hidden re-runs their fit measurement
-                          against a zero-size box forever. */}
-                      {showScreens && !timer && !editor && session && (
-                        <Screen visible={activeScreen === 'analytics' || activeScreen === 'metrics'}>
-                          {session.result ? (
-                            <TourSessionResult result={session.result} />
-                          ) : (
-                            <TourSessionAnalytics
-                              activeStageId={session.fixedStage ?? slice.stage.id}
-                              noteId={session.noteId}
-                              queryKey={session.queryKey}
-                              boardSlug={session.boardSlug}
-                            />
-                          )}
-                        </Screen>
-                      )}
-                    </div>
-                  </MacOSChrome>
-
-                  {tvStageId && <TourTvCard ref={tvCardRef} runtime={tvRuntime ?? null} />}
-
-                  <TourRing
-                    target={
-                      !slice.ring?.key
-                        ? null
-                        : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }
-                    }
-                    accent={slice.stage.accent ?? TOUR_ACCENTS.editor}
-                    canvasRef={canvasInnerRef}
-                  />
-                  </RingTargetsProvider>
+                    </Screen>
+                  )}
                 </div>
-              </div>
+              </MacOSChrome>
 
-              {/* caption rail — 40% of the measured context (flex 2/5);
-                  fills the rail height, scrolls internally when needed */}
-              <div className="flex min-h-0 min-w-0 flex-[2_1_0%] flex-col">
-                <div className="relative min-h-0 flex-1">
-                  <TourCaptions
-                    activeIndex={slice.index}
-                    captions={captions}
-                    onChoice={onChoice}
-                    onCommand={onCommand}
-                  />
-                </div>
-              </div>
+              {tvStageId && <TourTvCard ref={tvCardRef} runtime={tvRuntime ?? null} />}
+
+              <TourRing
+                target={
+                  !slice.ring?.key
+                    ? null
+                    : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }
+                }
+                accent={slice.stage.accent ?? TOUR_ACCENTS.editor}
+                canvasRef={canvasInnerRef}
+              />
+              </RingTargetsProvider>
             </div>
-          </div>
-        </section>
+          }
+          captions={
+            <TourCaptions
+              activeIndex={slice.index}
+              captions={captions}
+              onChoice={onChoice}
+              onCommand={onCommand}
+            />
+          }
+        />
       </section>
     )
   },

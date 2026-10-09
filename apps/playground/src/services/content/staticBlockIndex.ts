@@ -11,6 +11,7 @@
 import type { BlockIndexRow, Note } from '@/types/storage';
 import type { NoteQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
+import { staticCatalogRoute } from '@bitcobblers/wod-wiki-wql';
 import {
     CANONICAL_BLOCK_TYPES,
     blockTypesFromBlocks,
@@ -80,10 +81,11 @@ export function staticTagIndexFromBlocks(blocks: BlockIndexRow[]): Map<string, S
 
 /**
  * Pure projection of a block_index into static Notes — one Note per distinct
- * noteId, with a `catalog` field set to `noteId.split('/')[0]`. The catalog is
- * the directory the file lives under (e.g. `crossfit-girls` for collections,
- * `crossfit-programming` for feeds) and is what the Library's panel uses to
- * target the `+ Filter → Catalog` menu.
+ * noteId. `id` stays the canonical storage identity (UUID for imported rows);
+ * `catalog` and collection-landing status come from the sourceId route via
+ * the shared `staticCatalogRoute` (`catalog` is undefined for UUID-keyed rows
+ * without a route — never a UUID). The catalog (e.g. `crossfit-girls`) is
+ * what the Library's panel uses to target the `+ Filter → Catalog` menu.
  */
 export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
     const map = new Map<string, Note>();
@@ -94,18 +96,15 @@ export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
             if (tags.length > 0) tagsByNote.set(block.noteId, tags);
         }
         if (!map.has(block.noteId)) {
-            const isCollectionPage = !block.noteId.includes('/') && (block.sourceId?.startsWith('page:collection:') || block.sourceId?.startsWith('collection:'));
+            const route = staticCatalogRoute(block);
             map.set(block.noteId, {
                 id: block.noteId,
                 title: block.noteTitle,
                 createdAt: block.createdAt,
-                type: isCollectionPage ? 'collection' : 'note',
-                sourceId: isCollectionPage ? `page:collection:${block.noteId}` : block.sourceId,
-                // Catalog: drop the `feeds/` wrapper for feed rows, then take the
-                // first path segment. For collections (`<dir>/<file>`) the first
-                // segment is the directory; for feeds (`feeds/<dir>/<date>/<file>`)
-                // it would be `feeds`, which is not the catalog id the panel wants.
-                catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
+                type: route.landing ? 'collection' : 'note',
+                sourceId: route.sourceId,
+                catalog: route.catalog,
+                sourcePath: block.sourcePath,
             });
         }
     }

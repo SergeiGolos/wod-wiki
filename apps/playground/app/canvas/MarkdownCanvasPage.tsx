@@ -19,7 +19,11 @@ import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { CanvasPanelContent } from './CanvasPanelContent'
+import { GuideRunwayGroups } from './GuideRunwayGroups'
+import { groupGuideSections } from './guideGroups'
+import { getEditorPreferredHeight } from './canvasLayout'
 import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
@@ -32,7 +36,7 @@ import {
   STICKY_NAV_HEIGHT,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
-import { type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
+import { type ParsedCanvasPage, type CanvasSection, type ButtonBlock, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { executeNavAction, pipelineStepToNavAction, type NavActionDeps } from '../nav/navTypes'
@@ -81,6 +85,11 @@ export function MarkdownCanvasPage({
   useScrollTelemetry(isGuide ? route : undefined)
 
   const isCollection = route.startsWith('/collections/') || route.startsWith('/c/')
+  // Live syntax guides render their content sections as grouped parallax
+  // runways (GuideRunwayGroups over the shared RunwayShell). Collections and
+  // every other canvas page keep the original flowing layout.
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+  const isGuideRunway = isGuide && !isCollection && !reducedMotion
   const collectionSlug = isCollection ? (route.split('/').pop() ?? null) : null
 
   const handleSelectWorkout = useCallback(
@@ -125,6 +134,39 @@ export function MarkdownCanvasPage({
   // resolved from document position rather than from scroll-triggered side
   // effects (it's what makes scrolling back UP correctly restore content).
   const contentOwnerBySection = useMemo(() => resolveContentOwners(contentSections), [contentSections])
+
+  // Guide stages carry their example in the Try-it button pipeline
+  // (`set-source: …`) instead of ```example fences — derive the same owner
+  // map from those so runway activation swaps/restores the panel source
+  // exactly like the example-driven pages do (null on non-guide pages).
+  const guideGroupKey = isGuideRunway ? route.split('/').pop() || undefined : undefined
+  const guideGrouping = useMemo(
+    () => (isGuideRunway ? groupGuideSections(contentSections, guideGroupKey) : null),
+    [isGuideRunway, guideGroupKey, contentSections],
+  )
+  const { guideOwnerBySection, guideOwnerSource } = useMemo(() => {
+    if (!isGuideRunway) return { guideOwnerBySection: null, guideOwnerSource: null }
+    const owners = new Map<string, CanvasSection | null>()
+    const sources = new Map<string, string>()
+    let owner: CanvasSection | null = null
+    for (const section of contentSections) {
+      const chunkButton = section.proseChunks.find(
+        (c): c is { kind: 'button'; button: ButtonBlock } =>
+          c.kind === 'button' && c.button.pipeline.some((step) => step.action === 'set-source'),
+      )
+      const source =
+        chunkButton?.button.pipeline.find((step) => step.action === 'set-source')?.value
+        ?? section.buttons.find((b) => b.pipeline.some((step) => step.action === 'set-source'))
+          ?.pipeline.find((step) => step.action === 'set-source')?.value
+        ?? null
+      if (source) {
+        owner = section
+        sources.set(section.id, source)
+      }
+      owners.set(section.id, owner)
+    }
+    return { guideOwnerBySection: owners, guideOwnerSource: sources }
+  }, [isGuideRunway, contentSections])
   const [activeSectionTheme, setActiveSectionTheme] = useState<SectionTheme>(() =>
     (initialActiveSection ?? sections[0])?.theme ?? 'slate'
   )
@@ -146,8 +188,9 @@ export function MarkdownCanvasPage({
   // example source); the draft only changes once the reset persisted.
   const handlePanelReset = useCallback(async () => {
     const ok = await resetRun(initialSource)
-    if (!ok) return
+    if (!ok) return false
     resetActiveSource()
+    return true
   }, [resetRun, initialSource, resetActiveSource])
 
 
@@ -198,7 +241,8 @@ export function MarkdownCanvasPage({
     setActiveSectionTitle(section.heading)
     setActiveSectionTheme(section.theme ?? 'slate')
 
-    const owner = contentOwnerBySection.get(section.id) ?? null
+    const ownerMap = guideOwnerBySection ?? contentOwnerBySection
+    const owner = ownerMap.get(section.id) ?? null
     setContentOwnerTitle(owner?.heading ?? initialActiveSection?.heading ?? 'Whiteboard Script')
 
     const ownerKey = owner?.id ?? null
@@ -232,7 +276,15 @@ export function MarkdownCanvasPage({
         depsRef.current,
       )
     }
-  }, [selectedExamples, swapSource, contentOwnerBySection, initialActiveSection, initialSource, initialSourceKey])
+
+    // Guide stages: the derived Try-it source IS the owner's example — the
+    // panel loads it when the stage becomes active (and the owner map
+    // restores the previous stage's source when scrolling back up).
+    const guideSource = guideOwnerBySection ? guideOwnerSource?.get(owner.id) : undefined
+    if (guideSource) {
+      swapSource(resolveSource(guideSource, wodFilesRef.current), guideSource)
+    }
+  }, [selectedExamples, swapSource, contentOwnerBySection, guideOwnerBySection, guideOwnerSource, initialActiveSection, initialSource, initialSourceKey])
 
   const handleExampleSelect = useCallback((section: CanvasSection, index: number) => {
     setSelectedExamples((prev) => ({ ...prev, [section.id]: index }))
@@ -270,6 +322,14 @@ export function MarkdownCanvasPage({
   const depsRef = useRef(deps)
   depsRef.current = deps
 
+  // Guide runways: a group reports the section its scroll progress just
+  // activated — same contract as the old per-section IO tracking, so source
+  // ownership, titles, and the ?h= deep link stay in the host.
+  const activateGuideSection = useCallback((section: CanvasSection) => {
+    setHeadingParam(section.id, { history: 'replace' })
+    activateSection(section)
+  }, [activateSection, setHeadingParam])
+
   // The sticky boundary measures the actual visible panel/header stack. This
   // keeps section tracking correct when the editor frame becomes content-sized.
   const stickyViewportOffset = useStickyBoundaryOffset(STICKY_NAV_HEIGHT)
@@ -278,11 +338,16 @@ export function MarkdownCanvasPage({
     [stickyViewportOffset],
   )
 
-  // Scroll tracking
+  // Scroll tracking. Guide runways activate their stages through runway
+  // progress (owner-gated), so the element observer only tracks the static
+  // tail there — hidden caption cards must never compete for activation.
+  const trackedSectionIds = guideGrouping
+    ? guideGrouping.tail.map((s) => s.id)
+    : contentSections.map((s) => s.id)
   const hasUserScrolledRef = useRef(false)
   useActiveScrollSection({
-    ids: contentSections.map((s) => s.id),
-    enabled: contentSections.length > 0,
+    ids: trackedSectionIds,
+    enabled: trackedSectionIds.length > 0,
     rootMargin: activeScrollRootMargin,
     threshold: [0, 0.1, 0.25, 0.5, 0.75],
     dataAttribute: 'data-section-id',
@@ -309,6 +374,9 @@ export function MarkdownCanvasPage({
     if (didInitialScroll.current || !headingParam || contentSections.length === 0) return
     didInitialScroll.current = true
     requestAnimationFrame(() => {
+      // Guide runways render zero-size stage markers at each stage's runway
+      // start, so this element scroll lands at real group progress; static
+      // tail sections resolve to their normal-flow cards.
       const el = document.querySelector(`[data-section-id="${headingParam}"]`)
       if (!el) return
       
@@ -496,28 +564,58 @@ export function MarkdownCanvasPage({
       <SplitCanvasTemplate
         heroSlot={heroSlot}
       >
-        <CanvasProsePanel
-          contentSections={contentSections}
-          isCollection={isCollection}
-          collectionSlug={collectionSlug}
-          workoutItems={workoutItems}
-          handleSelectWorkout={handleSelectWorkout}
-          activeSectionId={activeSectionId}
-          selectedExamples={selectedExamples}
-          runState={runState}
-          deps={deps}
-          handleExampleSelect={handleExampleSelect}
-          hasWorkoutsTag={hasWorkoutsTag}
-          hasViewDef={!!viewDef}
-          chapters={chapters}
-          challengeQuests={challenge.quests}
-          onScrollToSection={onScrollToSection}
-          mobilePanel={mobilePanel}
-          desktopPanel={desktopPanel}
-          stickyAlign={stickyAlign as 'left' | 'right'}
-          editorWidth={editorWidth}
-          editorAppearsAtSectionId={editorAppearsAtSectionId}
-        />
+        {isGuideRunway ? (
+          <GuideRunwayGroups
+            sections={contentSections}
+            groupKey={guideGroupKey}
+            title={String(page.frontmatter.title ?? '')}
+            pane={
+              <div
+                className="absolute inset-0"
+                style={{
+                  '--canvas-editor-preferred-height': getEditorPreferredHeight(editorSource),
+                } as React.CSSProperties}
+              >
+                {panelContent}
+              </div>
+            }
+            cardArgs={{
+              activeSectionId,
+              selectedExamples,
+              onExampleSelect: handleExampleSelect,
+              runState,
+              deps,
+              hasViewDef: !!viewDef,
+              chapters,
+              challengeQuests: challenge.quests,
+              onScrollToSection,
+            }}
+            onActivateSection={activateGuideSection}
+          />
+        ) : (
+          <CanvasProsePanel
+            contentSections={contentSections}
+            isCollection={isCollection}
+            collectionSlug={collectionSlug}
+            workoutItems={workoutItems}
+            handleSelectWorkout={handleSelectWorkout}
+            activeSectionId={activeSectionId}
+            selectedExamples={selectedExamples}
+            runState={runState}
+            deps={deps}
+            handleExampleSelect={handleExampleSelect}
+            hasWorkoutsTag={hasWorkoutsTag}
+            hasViewDef={!!viewDef}
+            chapters={chapters}
+            challengeQuests={challenge.quests}
+            onScrollToSection={onScrollToSection}
+            mobilePanel={mobilePanel}
+            desktopPanel={desktopPanel}
+            stickyAlign={stickyAlign as 'left' | 'right'}
+            editorWidth={editorWidth}
+            editorAppearsAtSectionId={editorAppearsAtSectionId}
+          />
+        )}
       </SplitCanvasTemplate>
     </div>
   )

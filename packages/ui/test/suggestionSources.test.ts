@@ -3,6 +3,7 @@ import { EFFORT_DISCIPLINES } from '@bitcobblers/wod-wiki-lang';
 import {
   CANONICAL_BLOCK_TYPES,
   canonicalSuggestionItems,
+  catalogIdsFromBlocks,
   mergeSuggestionItems,
   SUGGESTION_BINDINGS,
 } from '../src/composer/suggestionSources';
@@ -30,4 +31,18 @@ describe('canonical suggestion values', () => {
     ]);
     expect(merged.filter((item) => item.value === 'rowing').length).toBe(1);
   });
+});
+
+it('offers catalog slugs rather than imported note UUIDs', () => {
+  expect(catalogIdsFromBlocks([{
+    id: 'block',
+    noteId: '1c36bebe-022d-5743-8d50-7ed2be4f1840',
+    segmentId: 's',
+    segmentVersion: 1,
+    dataType: 'wod',
+    rawContent: '',
+    noteTitle: 'Fran',
+    createdAt: 0,
+    sourceId: 'collection:crossfit-girls/fran',
+  }])).toEqual(['crossfit-girls']);
 });

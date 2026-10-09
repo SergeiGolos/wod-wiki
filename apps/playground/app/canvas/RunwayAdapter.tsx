@@ -1,23 +1,24 @@
 /**
  * RunwayAdapter.tsx — the unified sticky-demo adapter (#936). ONE ```scroll
  * spec through ONE stage-resolution seam (`resolveScrollStage → ScrollSlice`),
- * swapped across the three Form Factor presentations:
+ * swapped across the Form Factor presentations:
  *
- *   desktop → ScrollRunwaySection  (slide runway; scroll-progress driver)
- *   mobile  → RunwayMobile         (pinned window; card-visibility driver)
- *   reduced → RunwayReduced        (flat static-card stack; IO stage-enter)
+ *   desktop & mobile → ScrollRunwaySection (slide runway via the shared
+ *                      RunwayShell — the shell's context-measured row orients
+ *                      60/40 beside each other on wide contexts and stacks on
+ *                      tall/narrow ones, so normal motion is ONE adaptive
+ *                      layout rather than a separate mobile arrangement)
+ *   reduced          → RunwayReduced  (flat static-card stack; IO stage-enter)
  *
  * The adapter decides Form Factor — nothing downstream self-detects the
- * breakpoint or the motion preference. This is the single presentation the
- * Page Composer (#933) swaps across desktop / mobile / reduced-motion, and the
- * spec-driven replacement for the tour-coupled `TourMobileRunway` pattern.
- * Validated in the /proto/runway-adapter prototype.
+ * breakpoint or the motion preference. Reduced motion keeps the readable
+ * static stack with Run available; every normal-motion viewport gets the same
+ * first-four shell. Validated in the /proto/runway-adapter prototype.
  */
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { ScrollSpec } from './parseCanvasMarkdown'
 import { useCanvasFormFactor, type CanvasFormFactor } from './useCanvasFormFactor'
 import { ScrollRunwaySection } from './ScrollRunwaySection'
-import { RunwayMobile } from './RunwayMobile'
 import { RunwayReduced } from './RunwayReduced'
 
 /** The three Form Factor presentations the adapter swaps across. */
@@ -74,25 +75,10 @@ export function RunwayAdapter({
   const detected = useRunwayFormFactor()
   const ff = formFactor ?? detected
 
-  if (ff === 'mobile') {
-    return (
-      <RunwayMobile
-        spec={spec}
-        wodFiles={wodFiles}
-        theme={theme}
-        noteTitle={noteTitle}
-        doc={doc}
-        onDocChange={onDocChange}
-        onBlocksChange={onBlocksChange}
-        onStageEnter={onStageEnter}
-        onRun={onRun}
-        className={className}
-      />
-    )
-  }
   if (ff === 'reduced') {
     return <RunwayReduced spec={spec} wodFiles={wodFiles} onStageEnter={onStageEnter} className={className} />
   }
+  // Desktop and mobile-normal-motion share the adaptive shell.
   return (
     <ScrollRunwaySection
       scroll={spec}

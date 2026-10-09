@@ -1,30 +1,30 @@
 /**
- * tourContextSize.ts — measured-context orientation for the home tour.
+ * contextSize.ts — measured-context orientation for sticky runway shells.
  *
- * The available context is the actual content box a tour surface occupies
+ * The available context is the actual content box a surface occupies
  * (ResizeObserver), or the window below the app sticky nav when no element
  * applies (desktop STICKY_NAV_HEIGHT, mobile MOBILE_STICKY_TOP, dynamic
- * viewport). The demo takes TOUR_DEMO_SHARE and the description the rest,
+ * viewport). The demo pane takes DEMO_SHARE and the caption rail the rest,
  * along the dominant axis: split side-by-side when the context is at least
  * as wide as tall, stacked when taller — never viewport-width breakpoints.
- * Demo/description CSS is plain calc/flex ratios at the call sites.
+ * Pane/caption CSS is plain calc/flex ratios at the call sites.
  */
 import { useCallback, useEffect, useState } from 'react'
 
-/** Demo pane share of the measured context; the description takes the rest. */
-export const TOUR_DEMO_SHARE = 0.6
+/** Demo pane share of the measured context; the caption rail takes the rest. */
+export const DEMO_SHARE = 0.6
 
-export type TourContextMode = 'split' | 'stack'
+export type ContextMode = 'split' | 'stack'
 
 /** Side-by-side when the measured context is at least as wide as tall. */
-export function tourContextMode(width: number, height: number): TourContextMode {
+export function contextMode(width: number, height: number): ContextMode {
   return width >= height ? 'split' : 'stack'
 }
 
-export interface TourContextSize {
+export interface ContextSize {
   width: number
   height: number
-  mode: TourContextMode
+  mode: ContextMode
 }
 
 /**
@@ -33,12 +33,12 @@ export interface TourContextSize {
  * Without it, the window minus `navOffset`, re-measured on resize; that
  * window estimate also stands when ResizeObserver is unavailable (jsdom).
  */
-export function useTourContextSize(navOffset: number, el?: HTMLElement | null): TourContextSize {
+export function useContextSize(navOffset: number, el?: HTMLElement | null): ContextSize {
   const measure = useCallback(() => {
     if (typeof window === 'undefined') return { width: 0, height: 0, mode: 'stack' as const }
     const width = window.innerWidth
     const height = Math.max(0, window.innerHeight - navOffset)
-    return { width, height, mode: tourContextMode(width, height) }
+    return { width, height, mode: contextMode(width, height) }
   }, [navOffset])
   const [size, setSize] = useState(measure)
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useTourContextSize(navOffset: number, el?: HTMLElement | null): 
         setSize((prev) =>
           prev.width === width && prev.height === height
             ? prev
-            : { width, height, mode: tourContextMode(width, height) },
+            : { width, height, mode: contextMode(width, height) },
         )
       })
       observer.observe(el)

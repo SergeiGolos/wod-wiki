@@ -19,13 +19,14 @@ export interface ScrollCaptionProps {
 
 export function ScrollCaption({ stages, activeIndex }: ScrollCaptionProps) {
   return (
-    <div className="relative w-[330px] flex-none min-h-[280px]" data-testid="scroll-captions">
+    <div className="relative h-full w-full" data-testid="scroll-captions">
       {stages.map((stage, i) => (
         <div
           key={stage.id}
-          className="absolute inset-0 transition-opacity duration-300"
+          className="absolute inset-0 overflow-y-auto transition-opacity duration-300"
           style={{ opacity: i === activeIndex ? 1 : 0 }}
           aria-hidden={i !== activeIndex}
+          inert={i !== activeIndex}
         >
           <div
             className="font-mono text-[11px] uppercase tracking-[0.22em]"

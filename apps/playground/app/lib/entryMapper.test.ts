@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'bun:test'
 import type { BlockIndexRow, Note } from '@/types/storage'
-import type { IEffort, RowsRun, RowsQueryResult, ParsedRowsQuery } from '@bitcobblers/wod-wiki-wql'
+import type { IEffort, RowsRun } from '@bitcobblers/wod-wiki-wql'
 import type { EventRecord } from '@bitcobblers/wod-wiki-core'
 import {
   toEntry,
@@ -18,7 +18,7 @@ import {
   type EntryKind,
 } from './entryMapper'
 
-function makeNote(overrides: Partial<Note> = {}): Note {
+function makeNote(overrides: Partial<Note> & { slug?: string; pageId?: string } = {}): Note {
   return {
     id: 'n',
     title: 't',
@@ -87,15 +87,21 @@ describe('toEntry — guide entries', () => {
     expect(entry.date).toBeNull()
   })
 
-  it('derives the page id — the /p slug — from the declared route (#link-crosswalk)', () => {
+  it('derives the page slug — the /p route — from the declared sourceId route, never the note id', () => {
     const entry = toEntry(makeNote({
       id: 'guide/syntax/basics',
       sourceId: 'guides:guide/syntax/basics',
     }))
-    expect(entry.pageId).toBe('syntax/basics')
+    expect(entry.sourceItem).toBe('guide/syntax/basics')
+    expect(entry.pageSlug).toBe('syntax/basics')
+
+    // UUID-keyed guide notes route from sourceId too
+    const uuidEntry = toEntry(makeNote({ id: 'uuid-guide', sourceId: 'guides:guide/clock' }))
+    expect(uuidEntry.sourceItem).toBe('guide/clock')
+    expect(uuidEntry.pageSlug).toBe('clock')
 
     // Non-guide notes have no page render target
-    expect(toEntry(makeNote({ id: 'uuid-1' })).pageId).toBeUndefined()
+    expect(toEntry(makeNote({ id: 'uuid-1' })).pageSlug).toBeUndefined()
   })
 })
 
@@ -153,6 +159,91 @@ describe('toEntry — date resolution', () => {
     // does NOT pretend to know the journal-date of a note.
     const entry = toEntry(makeNote())
     expect(entry.date).toBeNull()
+  })
+})
+
+describe('toEntry — collection route derivation (sourceId/sourcePath, never UUID)', () => {
+  const UUID = '0b9b7e57-0e1a-4b9e-9b1e-3f2a4d5c6b7e'
+
+  it('derives catalog/item from a collection: sourceId on a UUID-keyed note', () => {
+    const entry = toEntry(makeNote({ id: UUID, sourceId: 'collection:crossfit-girls/fran' }))
+    expect(entry.kind).toBe<EntryKind>('session')
+    expect(entry.sourceCatalog).toBe('crossfit-girls')
+    expect(entry.sourceItem).toBe('fran')
+    expect(entry.id).toBe(UUID)
+    expect(entry.noteId).toBe(UUID)
+  })
+
+  it('maps a page:collection: UUID landing to the collection landing', () => {
+    const entry = toEntry(makeNote({ id: UUID, sourceId: 'page:collection:crossfit-girls', type: 'collection' }))
+    expect(entry.sourceCatalog).toBe('crossfit-girls')
+    expect(entry.sourceItem).toBe('')
+    expect(entry.noteId).toBe(UUID)
+  })
+
+  it('derives the route from sourcePath for imported notes lacking sourceId', () => {
+    const entry = toEntry(makeNote({
+      id: UUID,
+      sourceId: undefined,
+      sourcePath: 'markdown/collections/girls/fran.md',
+      catalog: 'girls',
+    }))
+    expect(entry.kind).toBe<EntryKind>('session')
+    expect(entry.sourceCatalog).toBe('girls')
+    expect(entry.sourceItem).toBe('fran')
+    expect(entry.subtitle).toBe('girls')
+  })
+
+  it('treats a README corpus path as the collection landing, not a workout', () => {
+    const entry = toEntry(makeNote({
+      id: UUID,
+      sourceId: undefined,
+      sourcePath: 'markdown/collections/dan-john/README.md',
+      catalog: 'dan-john',
+    }))
+    expect(entry.sourceCatalog).toBe('dan-john')
+    expect(entry.sourceItem).toBe('')
+  })
+
+  it('falls back to the executor catalog as landing when no route info exists', () => {
+    const entry = toEntry(makeNote({ id: UUID, type: 'collection', catalog: 'crossfit-girls' }))
+    expect(entry.sourceCatalog).toBe('crossfit-girls')
+    expect(entry.sourceItem).toBe('')
+  })
+
+  it('propagates the projected named slug to pageSlug, ignoring UUID pageIds', () => {
+    const PAGE_UUID = '1d2e3f4a-5b6c-4d8e-9f0a-1b2c3d4e5f6b'
+    const withSlug = toEntry(makeNote({ id: UUID, slug: 'my-page', pageId: PAGE_UUID }))
+    expect(withSlug.pageSlug).toBe('my-page')
+    expect(withSlug.pageId).toBe(PAGE_UUID)
+    const slugLess = toEntry(makeNote({ id: UUID, pageId: PAGE_UUID }))
+    expect(slugLess.pageSlug).toBeUndefined()
+    expect(slugLess.pageId).toBe(PAGE_UUID)
+  })
+})
+
+describe('toEntry — feed route derivation (sourceId/sourcePath, never UUID)', () => {
+  const UUID = '0b9b7e57-0e1a-4b9e-9b1e-3f2a4d5c6b7e'
+
+  it('derives catalog/date/item from the feed: sourceId route on a UUID-keyed note', () => {
+    const entry = toEntry(makeNote({ id: UUID, sourceId: 'feed:feeds/crossfit-programming/2026-01-12/monday' }))
+    expect(entry.kind).toBe<EntryKind>('post')
+    expect(entry.sourceCatalog).toBe('crossfit-programming')
+    expect(entry.date).toBe('2026-01-12')
+    expect(entry.sourceItem).toBe('monday')
+    expect(entry.noteId).toBe(UUID)
+  })
+
+  it('derives the route from sourcePath for imported notes lacking sourceId', () => {
+    const entry = toEntry(makeNote({
+      id: UUID,
+      sourceId: undefined,
+      sourcePath: 'markdown/feeds/crossfit-programming/2026-01-12/monday.md',
+    }))
+    expect(entry.kind).toBe<EntryKind>('post')
+    expect(entry.sourceCatalog).toBe('crossfit-programming')
+    expect(entry.date).toBe('2026-01-12')
+    expect(entry.sourceItem).toBe('monday')
   })
 })
 
@@ -216,6 +307,17 @@ describe('blockToEntry (#855)', () => {
   it('classifies journal blocks (no sourceId) as Note', () => {
     const entry = blockToEntry(makeBlock({ noteId: 'n-1', sourceId: undefined }))
     expect(entry.kind).toBe<EntryKind>('note')
+  })
+
+  it('routes imported blocks through sourcePath when sourceId is absent', () => {
+    const entry = blockToEntry(makeBlock({
+      noteId: '0b9b7e57-0e1a-4b9e-9b1e-3f2a4d5c6b7e',
+      sourceId: undefined,
+      sourcePath: 'markdown/collections/girls/fran.md',
+    }))
+    expect(entry.kind).toBe<EntryKind>('session')
+    expect(entry.sourceCatalog).toBe('girls')
+    expect(entry.sourceItem).toBe('fran')
   })
 })
 

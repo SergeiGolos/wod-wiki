@@ -137,6 +137,8 @@ export interface ParsedCanvasPage {
   frontmatter: Record<string, any>
   template: string
   route: string
+  /** Frontmatter `type` (e.g. 'guide') — surfaced for page-kind gating. */
+  type?: string
   sections: CanvasSection[]
   /**
    * Page-level quests, extracted from ```quest fenced blocks that appear
@@ -914,5 +916,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections, frontmatter: meta, quests, chapters, scroll, namedScrolls }
+  return { template: 'canvas', route, type: meta['type'] ? String(meta['type']) : undefined, sections, frontmatter: meta, quests, chapters, scroll, namedScrolls }
 }

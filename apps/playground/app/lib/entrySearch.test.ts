@@ -8,10 +8,12 @@
 import { describe, expect, it, mock } from 'bun:test'
 
 import type { FindQueryResult, ParsedRowsQuery, RowsQueryResult } from '@bitcobblers/wod-wiki-engine'
-import type { BlockIndexRow } from '@/types/storage'
+import type { BlockIndexRow, Note } from '@/types/storage'
 import { parseQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 import type { IEffort, RowsRun } from '@bitcobblers/wod-wiki-wql'
 import type { EventRecord } from '@bitcobblers/wod-wiki-core'
+import { InMemoryStorage, setStorageForTesting, resetStorageForTesting, storageService } from '@/services/storage'
+import { entryOpenHref } from './entryActions'
 function makeBlock(i: number, createdAt = i): BlockIndexRow {
   return {
     id: `static:note-${i % 5}:seg-${i}:1`,
@@ -30,13 +32,12 @@ function makeBlock(i: number, createdAt = i): BlockIndexRow {
 
 let runFindImpl: (parsed: ParsedFindQuery) => Promise<FindQueryResult>
 let runFindEffortImpl: ((parsed: ParsedFindQuery) => Promise<FindQueryResult>) | undefined
-let runRowsImpl: ((parsed: ParsedRowsQuery) => Promise<RowsQueryResult>) | undefined
 
 mock.module('@/services/queryService', () => ({
   queryService: {
     runFind: mock((parsed: ParsedFindQuery) => runFindImpl(parsed)),
     runFindEffort: mock((parsed: ParsedFindQuery) => runFindEffortImpl ? runFindEffortImpl(parsed) : runFindImpl(parsed)),
-    runRows: mock((parsed: ParsedRowsQuery) => runRowsImpl ? runRowsImpl(parsed) : Promise.resolve({ parsed, runs: [] })),
+    runRows: mock((parsed: ParsedRowsQuery): Promise<RowsQueryResult> => Promise.resolve({ parsed, runs: [] })),
   },
 }))
 
@@ -473,5 +474,34 @@ describe('StreamQueryEngine — stage counts reconcile the companion union', () 
     // selected (scope population) never drops below the union.
     expect(entries).toHaveLength(2)
     expect(stages).toEqual({ selected: 2, matched: 2 })
+  })
+})
+
+describe('StreamQueryEngine — named page navigation', () => {
+  it('opens note and block hits by the first named page slug, not a calendar page UUID', async () => {
+    const memory = new InMemoryStorage()
+    setStorageForTesting(memory)
+    try {
+      const note: Note = { id: 'note-uuid', title: 'Workout plan', type: 'note', createdAt: 1 }
+      const block = { ...makeBlock(0), noteId: note.id, noteTitle: note.title, sourceId: undefined }
+      await storageService.savePage({ id: 'calendar-uuid', date: '2026-10-08', createdAt: 1 })
+      await storageService.savePage({ id: 'named-uuid', slug: 'workout-plan', createdAt: 2 })
+      await storageService.savePage({ id: 'other-uuid', slug: 'other-plan', createdAt: 3 })
+      await storageService.addNoteToPage(note.id, 'calendar-uuid', 0)
+      await storageService.addNoteToPage(note.id, 'other-uuid', 2)
+      await storageService.addNoteToPage(note.id, 'named-uuid', 1)
+      const engine = new StreamQueryEngine({
+        service: { runFind: async parsed => ({ parsed, notes: parsed.target === 'note' ? [note] : [], blocks: parsed.target === 'block' ? [block] : [], stages: { selected: 1, matched: 1 } }) },
+      })
+      for (const query of [':note in all', ':block in all']) {
+        const entries = await engine.query(query)
+        expect(entries[0]?.pageId).toBe('calendar-uuid')
+        expect(entryOpenHref(entries[0]!)).toBe(query.startsWith(':block') ? '/p/workout-plan#seg-0' : '/p/workout-plan')
+        expect(entries[0]?.noteId).toBe(note.id)
+      }
+    } finally {
+      resetStorageForTesting()
+      await memory.close()
+    }
   })
 })

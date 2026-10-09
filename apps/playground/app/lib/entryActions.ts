@@ -4,7 +4,7 @@
  * these; the test seam is the URL the row would visit on click.
  *
  * URL shapes (target scheme — see docs/link-crosswalk.md):
- *   Open  Note         → /notes/:noteId (page notes → /p/:pageId)
+ *   Open  Note         → /notes/:noteId (named pages → /p/:pageSlug)
  *   Open  Session      → /c/:cat/:page-slug
  *   Open  Post         → /feeds/:feedSlug/:date/:item (transitional)
  *   Open  Effort       → /e/:slug
@@ -22,27 +22,42 @@
 import type { Entry } from './entryMapper'
 import { noteByIdPath, sessionDetailPath, analyticsExplorerPath } from './routes'
 
+/** Per-path-segment encoding — slashes stay separators. */
+function encodePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/')
+}
+
 /** Open: the Entry's deep-link per its kind; block Entries anchor to their
  *  section within the parent note (#855 — honored wherever the target
  *  surface exposes section DOM ids; degrades to the plain note elsewhere).
- *  Every stored note opens in the canonical editor `/notes/:noteId`; the
- *  remaining specialization is the page render (`/p/:pageId`) for notes that
- *  publish a page (#link-crosswalk). */
+ *  Named pages open at /p/<pageSlug>; plain notes open in the canonical
+ *  editor /notes/<uuid>. Route identity comes from sourceId/sourcePath —
+ *  never a UUID pageId or note title. */
 export function entryOpenHref(entry: Entry): string {
   const href = (() => {
     switch (entry.kind) {
-      case 'note':
-        // Page notes (guides, user-built pages) render at their page id; the
-        // lookup in canvasRouteLookup resolves the declared route.
+      case 'note': {
+        // Guide notes render at their declared sourceId route; the pageSlug
+        // lookup in canvasRouteLookup resolves it.
         if (entry.sourceCatalog === 'guides') {
-          return entry.pageId ? `/p/${entry.pageId}` : `/${entry.sourceItem}`
+          return entry.pageSlug ? `/p/${encodePath(entry.pageSlug)}` : `/${encodePath(entry.sourceItem.replace(/^\//, ''))}`
         }
-        // Playground entries open in the playground editor; other stored
-        // notes open in the canonical single-note editor.
+        // Playground entries open in the playground editor.
         if (entry.sourceCatalog === 'playground') {
           return `/playground/${encodeURIComponent(entry.sourceItem)}`
         }
+        // Known corpus surfaces route by sourcePath, never by note UUID:
+        //   markdown/dashboards/<slug>.md            → /d/<slug>
+        //   markdown/efforts/<discipline>/<slug>.md  → /e/<slug>
+        const dash = /^markdown\/dashboards\/(.+)\.md$/.exec(entry.sourcePath ?? '')
+        if (dash?.[1]) return `/d/${encodePath(dash[1])}`
+        const effort = /^markdown\/efforts\/[^/]+\/(.+)\.md$/.exec(entry.sourcePath ?? '')
+        if (effort?.[1]) return `/e/${encodePath(effort[1])}`
+        // Named pages open at their slug; everything else in the canonical
+        // single-note editor.
+        if (entry.pageSlug) return `/p/${encodePath(entry.pageSlug)}`
         return noteByIdPath(entry.id)
+      }
       case 'session':
         if (!entry.sourceItem) {
           return `/c/${encodeURIComponent(entry.sourceCatalog)}`
@@ -53,7 +68,7 @@ export function entryOpenHref(entry: Entry): string {
         return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`
       }
       case 'effort':
-        return `/e/${encodeURIComponent(entry.id)}`
+        return `/e/${encodeURIComponent(entry.effort?.slug ?? entry.id)}`
       case 'result':
         return sessionDetailPath(entry.id)
       case 'segment':

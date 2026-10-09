@@ -319,10 +319,12 @@ const completedResults = (): Sessions =>
 // ── Test data ───────────────────────────────────────────────────────────────
 
 const BARE_WELCOME = '```time\n0:03 Count Down\n10 Pushups\n```'
+const BASICS_EXAMPLE = '```time\nPushups\n```'
 const PROTOCOLS_EXAMPLE = '```time\n5:00 Run\n*:30 Rest\n10 Burpees\n```'
 
 const wodFiles: Record<string, string> = {
   '../../markdown/canvas/home/welcome-1.md': BARE_WELCOME,
+  '../../markdown/canvas/syntax/single-movement.md': BASICS_EXAMPLE,
   '../../markdown/canvas/syntax/timers-rest.md': PROTOCOLS_EXAMPLE,
 }
 
@@ -844,17 +846,30 @@ describe('HomeTour', () => {
     expect(scopeQueryToNote('avg:tis{} last 6w', noteId)).toBe(`avg:tis{note:${noteId}} last 6w`)
   })
 
-  it('chapter picker loads examples into the shared editor and links out to guides', async () => {
+  it('chapter runway loads the scrolled-to example in both directions and links out to guides', async () => {
     await renderHomeTour()
     const picker = screen.getByTestId('tour-chapter-picker')
-
-    fireEvent.click(within(picker).getByTestId('chapter-picker-select-protocols'))
     const pickerEditors = within(picker).getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
     expect(pickerEditors).toHaveLength(1)
+
+    await act(async () => {
+      setTestTourProgress(0.6)
+      await Promise.resolve()
+    })
     await waitFor(() => {
-      expect(pickerEditors[0].value).toContain('Burpees')
+      expect(pickerEditors[0].value).toBe(PROTOCOLS_EXAMPLE)
     })
 
+    // Scrolling back up restores the prior chapter's example.
+    await act(async () => {
+      setTestTourProgress(0.0)
+      await Promise.resolve()
+    })
+    await waitFor(() => {
+      expect(pickerEditors[0].value).toBe(BASICS_EXAMPLE)
+    })
+
+    // The guide action stays live for every chapter caption.
     const guideLink = within(picker).getByTestId('chapter-picker-guide-protocols')
     expect(guideLink.getAttribute('href')).toBe('/guide/protocols')
     fireEvent.click(guideLink)

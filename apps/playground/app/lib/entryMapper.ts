@@ -86,10 +86,16 @@ export interface Entry {
   block?: EntryBlock
   execution?: EntryExecutionData
   effort?: EntryEffortData
-  /** The note's page id — the /p/:slug page-render target (#link-crosswalk).
-   *  Present when the note publishes a page; lists link the editor
-   *  (/notes/:noteId) and the page render (/p/:pageId) from the same row. */
+  /** The note's page id — the Page UUID (hydrated from page_notes by the
+   *  search layer). Route decisions NEVER use this; Open uses
+   *  {@link Entry.pageSlug}. */
   pageId?: string
+  /** Named Page.slug — the /p/:slug route slug. Sources: projected note
+   *  slug fields at map time, page_notes hydration in entrySearch. */
+  pageSlug?: string
+  /** Original Note.sourcePath (e.g. `markdown/collections/girls/fran.md`) —
+   *  route data for corpus surfaces (dashboards/efforts/feeds), never a title. */
+  sourcePath?: string
   /** Executor-exact `Note.type` — what the WQL `type:` / `page:` / source
    *  playground-legacy predicates match. Distinct from the presentation
    *  `kind` (a collection page maps to kind 'session', never a type value). */
@@ -103,12 +109,53 @@ export interface Entry {
   noteId?: string
 }
 
-function isCollection(sourceId: string | undefined): boolean {
-  return !!sourceId?.startsWith('collection:') || !!sourceId?.startsWith('page:collection:')
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** A route slug: a non-empty string that is not a storage UUID. */
+function namedSlug(value: unknown): string | undefined {
+  return typeof value === 'string' && value && !UUID_RE.test(value) ? value : undefined
 }
 
-function isFeed(sourceId: string | undefined): boolean {
-  return !!sourceId?.startsWith('feed:')
+function isCollection(note: Note): boolean {
+  return !!note.sourceId?.startsWith('collection:')
+    || !!note.sourceId?.startsWith('page:collection:')
+    || note.type === 'collection'
+    || /^markdown\/collections\/[^/]+\/.+/.test(note.sourcePath ?? '')
+}
+
+function isFeed(note: Note): boolean {
+  return !!note.sourceId?.startsWith('feed:') || note.sourcePath?.startsWith('markdown/feeds/') === true
+}
+
+/** Collection route (catalog/item) from the sourceId declaration
+ *  (`collection:<catalog>/<item>`, `page:collection:<catalog>`, mirroring
+ *  the executor's staticCatalogRoute) with the imported-note fallback to the
+ *  corpus path `markdown/collections/<catalog>/<item>.md` (README = landing).
+ *  Never derived from the note UUID or title. */
+function collectionRoute(note: Note): { catalog: string; item: string } {
+  const sourceId = note.sourceId
+  if (sourceId?.startsWith('page:collection:')) {
+    const catalog = sourceId.slice('page:collection:'.length)
+    if (catalog) return { catalog, item: '' }
+  } else if (sourceId?.startsWith('collection:')) {
+    const route = sourceId.slice('collection:'.length)
+    if (route) {
+      const slash = route.indexOf('/')
+      return slash === -1
+        ? { catalog: route, item: '' }
+        : { catalog: route.slice(0, slash), item: route.slice(slash + 1) }
+    }
+  }
+  const m = /^markdown\/collections\/([^/]+)\/(.+)\.md$/.exec(note.sourcePath ?? '')
+  if (m) {
+    return { catalog: m[1]!, item: m[2]!.toLowerCase() === 'readme' ? '' : m[2]! }
+  }
+  // Legacy path-keyed ids (`<catalog>/<item>`) predate sourceId. UUID ids
+  // carry no route — degrade to the executor catalog as a landing.
+  const stem = note.id.replace(/^page:collection:/, '')
+  if (UUID_RE.test(stem)) return { catalog: note.catalog ?? '', item: '' }
+  const [catalog, ...rest] = stem.split('/')
+  return { catalog: catalog!, item: rest.join('/') }
 }
 
 /** Playground entries: the intake convention is sourceId 'playground'; legacy
@@ -122,19 +169,6 @@ function isPlaygroundNote(note: Note): boolean {
  *  (the id itself for UUID-keyed notes). */
 export function playgroundRouteName(note: Pick<Note, 'id'>): string {
   return note.id.startsWith('playground/') ? note.id.slice('playground/'.length) : note.id
-}
-
-/** For feeds, drop the `feeds/` wrapper and return the second segment as the catalog. */
-function feedCatalog(noteId: string): string {
-  return noteId.startsWith('feeds/') ? noteId.split('/')[1]! : noteId.split('/')[0]!
-}
-
-/** Extract `YYYY-MM-DD` from a feed file path like `feeds/<dir>/<date>/<file>`. */
-function feedDate(noteId: string): string | null {
-  if (!noteId.startsWith('feeds/')) return null
-  const parts = noteId.split('/')
-  // ['feeds', '<dir>', '<date>', '<file>']
-  return parts[2] && /^\d{4}-\d{2}-\d{2}$/.test(parts[2]) ? parts[2]! : null
 }
 
 export function toEntry(note: Note): Entry {
@@ -168,51 +202,66 @@ function toEntryBase(note: Note): Entry {
     }
   }
 
-  if (isCollection(note.sourceId) || note.type === 'collection') {
+  if (isCollection(note)) {
     const cleanId = id.replace(/^page:collection:/, '')
-    const [catalog, ...rest] = cleanId.split('/')
-    const isCollectionPage = note.type === 'collection' || note.type === 'page' || rest.length === 0 || !rest[0]
+    const { catalog, item } = collectionRoute(note)
+    const isLanding = !item || note.type === 'collection' || note.type === 'page'
     return {
       id: cleanId,
       kind: 'session',
-      sourceCatalog: catalog!,
-      sourceItem: isCollectionPage ? '' : rest.join('/'),
+      sourceCatalog: catalog,
+      sourceItem: isLanding ? '' : item,
       sourceId: note.sourceId,
-      pageId: (note as Note & { pageId?: string; slug?: string }).pageId ?? (note as Note & { pageId?: string; slug?: string }).slug,
+      sourcePath: note.sourcePath,
+      pageId: 'pageId' in note && typeof note.pageId === 'string' ? note.pageId : undefined,
+      pageSlug: 'slug' in note ? namedSlug(note.slug) : undefined,
       title,
       date: null,
       createdAt: note.createdAt,
-      subtitle: (note as Note & { catalog?: string }).catalog ?? catalog,
+      subtitle: note.catalog ?? catalog,
       ...(tags ? { tags } : {}),
     }
   }
 
-  if (isFeed(note.sourceId)) {
+  if (isFeed(note)) {
+    // Route identity (catalog/date/item) comes from the sourceId route or
+    // corpus path — never from a UUID noteId.
+    const raw = note.sourceId?.startsWith('feed:')
+      ? note.sourceId.slice('feed:'.length)
+      : note.sourcePath?.startsWith('markdown/feeds/')
+        ? note.sourcePath.slice('markdown/'.length).replace(/\.md$/, '')
+        : note.id
+    const stem = (raw.startsWith('feeds/') ? raw.slice('feeds/'.length) : raw)
+    const segs = stem.split('/')
+    const date = segs[1] && /^\d{4}-\d{2}-\d{2}$/.test(segs[1]) ? segs[1] : null
     return {
       id,
       kind: 'post',
-      sourceCatalog: feedCatalog(id),
-      sourceItem: id.split('/').slice(3).join('/') || id.split('/').pop()!,
+      sourceCatalog: segs[0]!,
+      sourceItem: segs.slice(2).join('/') || segs[segs.length - 1]!,
       sourceId: note.sourceId,
+      sourcePath: note.sourcePath,
       title,
-      date: feedDate(id),
+      date,
       createdAt: note.createdAt,
-      subtitle: (note as Note & { catalog?: string }).catalog ?? id.split('/')[1]!,
+      subtitle: note.catalog ?? segs[0],
       ...(tags ? { tags } : {}),
     }
   }
 
-  // Guide (canvas-corpus) note: sourceId `guides:<route-without-slash>` —
-  // the page id is the /p/ slug (declared route minus the leading slash and
-  // optional guide/ prefix); sourceItem stays the declared path.
+  // Guide (canvas-corpus) note: sourceId `guides:<declared-route>` — the
+  // /p/ slug (pageSlug) is the declared route minus the leading slash and
+  // optional guide/ prefix; sourceItem stays the declared path.
   if (note.sourceId?.startsWith('guides:')) {
+    const declared = note.sourceId.slice('guides:'.length) || id
     return {
       id,
       kind: 'note',
       sourceCatalog: 'guides',
-      sourceItem: id,
+      sourceItem: declared,
       sourceId: note.sourceId,
-      pageId: id.replace(/^\//, '').replace(/^guide\//, ''),
+      sourcePath: note.sourcePath,
+      pageSlug: namedSlug(declared.replace(/^\//, '').replace(/^guide\//, '')),
       title,
       date: null,
       createdAt: note.createdAt,
@@ -237,7 +286,9 @@ function toEntryBase(note: Note): Entry {
     sourceCatalog: 'journal',
     sourceItem: id,
     sourceId: note.sourceId,
-    pageId: (note as Note & { pageId?: string; slug?: string }).pageId ?? (note as Note & { pageId?: string; slug?: string }).slug,
+    sourcePath: note.sourcePath,
+    pageId: 'pageId' in note && typeof note.pageId === 'string' ? note.pageId : undefined,
+    pageSlug: 'slug' in note ? namedSlug(note.slug) : undefined,
     title,
     date: journalDate,
     createdAt: note.createdAt,
@@ -253,6 +304,7 @@ export function noteFromBlock(block: {
   noteTitle: string
   createdAt: number
   sourceId?: string
+  sourcePath?: string
 }): Note {
   return {
     id: block.noteId,
@@ -260,6 +312,7 @@ export function noteFromBlock(block: {
     createdAt: block.createdAt,
     type: 'note',
     sourceId: block.sourceId,
+    sourcePath: block.sourcePath,
     // No `catalog` pre-set: toEntry derives it through the executor's
     // catalogOfItem (sourceId first), matching what `catalog:` filters hit.
   } as Note

@@ -185,17 +185,17 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
       resultId?: string,
       runBlock?: Pick<ScriptBlock, 'id' | 'contentId'>,
     ) => {
-      if (!results || !resultId) return
+      if (!results || !resultId || !entry) return
       void playgroundRecorder.record({
         runBlock,
         blockId,
-        noteId,
+        noteId: entry.id,
         resultId,
         data: results,
         createdAt: results.endTime || Date.now(),
       })
     },
-    [noteId],
+    [entry],
   )
 
 
@@ -232,7 +232,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
       <WorkbenchSessionProvider notePersistence={notePersistence} provider={contentProvider}>
         <JournalPageShell
           title={entry.title}
-          subtitle={noteByIdPath(noteId)}
+          subtitle={noteByIdPath(entry.id)}
           actions={pageActions}
           editor={
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-6 min-w-0 max-w-full">

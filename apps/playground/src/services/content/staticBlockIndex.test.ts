@@ -136,6 +136,47 @@ describe('staticNotesFromBlocks', () => {
       catalog: 'crossfit-girls',
     });
   });
+
+  it('routes UUID-keyed rows by sourceId — members stay notes, never UUID catalogs', () => {
+    const blocks = [
+      blockRow({
+        noteId: '0f0e0d0c-0b0a-4998-8765-4321fedcba98',
+        noteTitle: 'Fran',
+        sourceId: 'collection:crossfit-girls/fran',
+        dataType: 'frontmatter',
+        rawContent: 'tags: [benchmark]',
+      }),
+      blockRow({
+        noteId: '1a2b3c4d-5e6f-4a1b-8c9d-0e1f2a3b4c5d',
+        noteTitle: 'Crossfit Girls',
+        sourceId: 'page:collection:crossfit-girls',
+      }),
+      blockRow({ noteId: '9f8e7d6c-5b4a-4938-8271-60594e3d2c1b', noteTitle: 'Orphan' }),
+    ];
+    const notes = staticNotesFromBlocks(blocks);
+    expect(notes[0]).toEqual({
+      id: '0f0e0d0c-0b0a-4998-8765-4321fedcba98',
+      title: 'Fran',
+      createdAt: 0,
+      type: 'note',
+      sourceId: 'collection:crossfit-girls/fran',
+      catalog: 'crossfit-girls',
+      tags: ['benchmark'],
+    });
+    expect(notes[1]).toEqual({
+      id: '1a2b3c4d-5e6f-4a1b-8c9d-0e1f2a3b4c5d',
+      title: 'Crossfit Girls',
+      createdAt: 0,
+      type: 'collection',
+      sourceId: 'page:collection:crossfit-girls',
+      catalog: 'crossfit-girls',
+    });
+    expect(notes[2].id).toBe('9f8e7d6c-5b4a-4938-8271-60594e3d2c1b');
+    expect(notes[2].type).toBe('note');
+    expect(notes[2].sourceId).toBeUndefined();
+    expect(notes[2].catalog).toBeUndefined();
+    expect(notes[2].sourcePath).toBeUndefined();
+  });
 });
 
 describe('static stores (IndexedDB-backed)', () => {

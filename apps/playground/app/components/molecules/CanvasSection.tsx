@@ -44,6 +44,9 @@ interface CanvasSectionProps {
   handleSelectWorkout?: (item: WorkoutItem) => void
   /** Called when an inline challenge asks to scroll to its section. */
   onScrollToSection?: (sectionId: string) => void
+  /** 'caption' — runway caption-rail presentation: same rich content, plain
+   *  sentence-case heading, no card chrome (accent rails / zebra / dark). */
+  variant?: 'default' | 'caption'
 }
 
 export const CanvasSection: React.FC<CanvasSectionProps> = ({
@@ -68,9 +71,10 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   workoutItems = [],
   handleSelectWorkout,
   onScrollToSection,
+  variant = 'default',
 }) => {
   const fullBleed = !!section.isFullBleed
-  const dark = !!section.isDark
+  const dark = !!section.isDark && variant !== 'caption'
   const density = section.density
   const sectionTheme = SECTION_THEME_STYLES[section.theme || 'slate'] ?? SECTION_THEME_STYLES.slate
   const examples = section.examples ?? []
@@ -197,42 +201,50 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
       data-section-id={keySuffix === 'default' || keySuffix === 'before-workouts' ? section.id : undefined}
       className={cn(
         'group relative border-b border-border/50 transition-colors duration-300',
-        hasViewDef
-          ? fullBleed
-            ? 'flex items-center justify-center min-h-[35vh] py-12 lg:py-16 px-6 lg:px-10'
+        variant === 'caption'
+          ? 'py-6 pb-10'
+          : hasViewDef
+            ? fullBleed
+              ? 'flex items-center justify-center min-h-[35vh] py-12 lg:py-16 px-6 lg:px-10'
+              : density === 'compact'
+                ? 'py-10 lg:py-12 px-6 lg:px-10'
+                : 'py-14 lg:py-20 px-6 lg:px-10'
             : density === 'compact'
-              ? 'py-10 lg:py-12 px-6 lg:px-10'
-              : 'py-14 lg:py-20 px-6 lg:px-10'
-          : density === 'compact'
-            ? 'py-10 lg:py-12 px-6 lg:px-12'
-            : 'py-16 lg:py-20 px-6 lg:px-12',
-        dark && 'bg-muted/20 overflow-hidden',
-        !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
+              ? 'py-10 lg:py-12 px-6 lg:px-12'
+              : 'py-16 lg:py-20 px-6 lg:px-12',
+        !variant || variant === 'default' ? (dark && 'bg-muted/20 overflow-hidden') : undefined,
+        variant !== 'caption' && !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
       )}
     >
-      <div
-        className={cn(
-          'pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b opacity-0 transition-opacity duration-300',
-          sectionTheme.accent,
-          isActive && 'opacity-100',
-        )}
-      />
-      <div
-        className={cn(
-          'pointer-events-none absolute left-0 top-0 h-full w-1 origin-top rounded-r-full bg-gradient-to-b transition-all duration-300',
-          sectionTheme.progress,
-          isActive ? 'scale-y-100 opacity-100' : 'scale-y-[0.18] opacity-25',
-        )}
-      />
+      {variant !== 'caption' && (
+        <>
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b opacity-0 transition-opacity duration-300',
+              sectionTheme.accent,
+              isActive && 'opacity-100',
+            )}
+          />
+          <div
+            className={cn(
+              'pointer-events-none absolute left-0 top-0 h-full w-1 origin-top rounded-r-full bg-gradient-to-b transition-all duration-300',
+              sectionTheme.progress,
+              isActive ? 'scale-y-100 opacity-100' : 'scale-y-[0.18] opacity-25',
+            )}
+          />
+        </>
+      )}
       {dark && (
         <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
       )}
 
       <div className={cn(
         'relative',
-        hasViewDef
-          ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
-          : 'max-w-4xl w-full mx-auto',
+        variant === 'caption'
+          ? 'max-w-none'
+          : hasViewDef
+            ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
+            : 'max-w-4xl w-full mx-auto',
       )}>
         {showEyebrow && (!fullBleed || !hasViewDef) && linkedQuest && (
           <div className="mb-4 flex items-center gap-2 select-none min-h-[14px]">
@@ -252,7 +264,14 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
 
 
         {showHeading ? (
-          <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
+          <h2
+            className={cn(
+              'font-bold tracking-tight text-foreground leading-tight',
+              variant === 'caption'
+                ? 'text-xl lg:text-2xl mb-4'
+                : 'text-2xl lg:text-3xl font-black uppercase mb-5',
+            )}
+          >
             {section.heading}
           </h2>
         ) : null}

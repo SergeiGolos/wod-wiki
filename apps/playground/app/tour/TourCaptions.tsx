@@ -18,13 +18,17 @@ import {
   ComboboxLabel,
   ComboboxOption,
 } from '@/components/atoms/primitives/combobox'
-import { TOUR_ACCENTS, type TourStageId } from './tourConstants'
+import { TOUR_ACCENTS } from './tourConstants'
 import { telemetry, HOME_EVENTS, type HomeEventName } from '@/services/telemetry'
 
 export interface TourCaptionAction {
   label: string
   href: string
   event: HomeEventName
+  /** Telemetry payload (e.g. { chapter } attribution). */
+  data?: Record<string, unknown>
+  /** Stable test hook (e.g. chapter-picker-guide-<chapterId>). */
+  testId?: string
 }
 
 /** A caption button that drives the live stage pane (query/board/Try-it). */
@@ -77,10 +81,13 @@ export function buildAdventureScript(wod: string): string {
 }
 
 export interface TourCaption {
-  id: TourStageId
+  /** Stage id for walkthrough captions; chapter captions use chapter ids. */
+  id: string
   num: string
   title: ReactNode
   body: string
+  /** Readable explanatory list under the body (chapter captions). */
+  bullets?: string[]
   foot: string
   accent: string
   actions?: TourCaptionAction[]
@@ -90,6 +97,8 @@ export interface TourCaption {
   choices?: TourCaptionChoice[]
   /** Prompt shown above the choices combo box. */
   choicePrompt?: string
+  /** Optional node under the foot line (e.g. chapter quest progress). */
+  extra?: ReactNode
 }
 
 export const TOUR_CAPTIONS: TourCaption[] = [
@@ -218,7 +227,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     ],
   },
   {
-    id: 'metrics-e' as TourStageId,
+    id: 'metrics-e',
     num: '03a',
     title: (
       <>
@@ -242,7 +251,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     ],
   },
   {
-    id: 'metrics-d' as TourStageId,
+    id: 'metrics-d',
     num: '03b',
     title: (
       <>
@@ -255,7 +264,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     accent: TOUR_ACCENTS.editor,
   },
   {
-    id: 'metrics-c' as TourStageId,
+    id: 'metrics-c',
     num: '03c',
     title: (
       <>
@@ -392,6 +401,7 @@ export function TourCaptions({ activeIndex, onChoice, onCommand, captions = TOUR
             pointerEvents: i === activeIndex ? 'auto' : 'none',
           }}
           aria-hidden={i !== activeIndex}
+          inert={i !== activeIndex}
         >
           <CaptionBody cap={cap} onChoice={onChoice} onCommand={onCommand} />
         </div>
@@ -411,9 +421,22 @@ export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; on
         {cap.title}
       </h3>
       <p className="text-[14.5px] sm:text-base xl:text-[17px] leading-[1.7] xl:leading-[1.75] text-muted-foreground">{cap.body}</p>
-      <div className="mt-4 xl:mt-6 border-t border-border pt-3 xl:pt-4 font-mono text-[10px] xl:text-[11px] tracking-[0.06em] text-muted-foreground/60">
-        {cap.foot}
-      </div>
+      {cap.bullets && cap.bullets.length > 0 && (
+        <ul className="mt-3 space-y-1.5 text-sm xl:text-[15px] leading-relaxed text-foreground/85">
+          {cap.bullets.map((b, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className="text-primary font-bold">›</span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {cap.foot && (
+        <div className="mt-4 xl:mt-6 border-t border-border pt-3 xl:pt-4 font-mono text-[10px] xl:text-[11px] tracking-[0.06em] text-muted-foreground/60">
+          {cap.foot}
+        </div>
+      )}
+      {cap.extra && <div className="mt-3">{cap.extra}</div>}
       {cap.choices && cap.choices.length > 0 && (
         <div className="mt-4 xl:mt-6" data-testid="tour-workout-choices">
           {cap.choicePrompt && (
@@ -477,7 +500,8 @@ export function CaptionBody({ cap, onChoice, onCommand }: { cap: TourCaption; on
               <Link
                 key={action.label}
                 to={action.href}
-                onClick={() => telemetry.record(action.event)}
+                onClick={() => telemetry.record(action.event, action.data)}
+                data-testid={action.testId}
                 className={
                   isPrimary
                     ? 'inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'

@@ -16,15 +16,17 @@
  * callers surface the error separately via their own parse.
  */
 import { queryService } from '@/services/queryService';
+import { storageService } from '@/services/storage';
 import {
   parseQuery,
   isFindQuery,
   type AnyParsedQuery,
   type ParsedFindQuery,
+  type ParsedRowsQuery,
   type FindQueryResult,
   type RowsQueryResult,
 } from '@bitcobblers/wod-wiki-engine';
-import type { Note } from '@/types/storage';
+import type { Note, Page } from '@/types/storage';
 import {
   toEntry,
   blockToEntry,
@@ -143,6 +145,28 @@ export class StreamQueryEngine {
     }
     return next;
   }
+
+  private async attachPageLinks(entries: Entry[]): Promise<void> {
+    const pages = new Map<string, Promise<Page | undefined>>();
+    await Promise.all(entries.filter(entry => entry.sourceCatalog === 'journal').map(async entry => {
+      const links = await storageService.getNotePages(entry.noteId ?? entry.id);
+      links.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || a.createdAt - b.createdAt);
+      for (const link of links) {
+        let pending = pages.get(link.pageId);
+        if (!pending) {
+          pending = storageService.getPage(link.pageId);
+          pages.set(link.pageId, pending);
+        }
+        const page = await pending;
+        if (!page) continue;
+        entry.pageId ??= page.id;
+        if (!page.date && page.slug) {
+          entry.pageSlug = page.slug;
+          break;
+        }
+      }
+    }));
+  }
   async query(input: string | AnyParsedQuery, onStages?: (stages: { selected: number; matched: number }) => void): Promise<Entry[]> {
     const parsed: AnyParsedQuery = typeof input === 'string' ? parseQuery(input) : input;
     if (!parsed || parsed.error) return [];
@@ -164,6 +188,7 @@ export class StreamQueryEngine {
       if (parsed.target === 'block') {
         const result = await this.service.runFind(parsed);
         const entries = result.blocks.map(blockToEntry);
+        await this.attachPageLinks(entries);
         emitStages(onStages, result.stages, entries);
         return entries;
       }
@@ -234,6 +259,7 @@ export class StreamQueryEngine {
       }
 
       const entries = Array.from(noteMap.values()).map(toEntry);
+      await this.attachPageLinks(entries);
       emitStages(onStages, primaryResult.stages, entries);
       if (this.noteTagsResolver || this.service.getNoteTagLabels) {
         const resolveTags = this.noteTagsResolver ?? ((id: string) => this.service.getNoteTagLabels!(id));

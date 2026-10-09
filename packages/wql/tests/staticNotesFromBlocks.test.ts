@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { staticNotesFromBlocks } from '../src/static';
 import type { BlockIndexRow } from '@bitcobblers/wod-wiki-core';
 
-function makeBlock(noteId: string, sourceId: string, overrides: Partial<BlockIndexRow> = {}): BlockIndexRow {
+function makeBlock(noteId: string, sourceId: string | undefined, overrides: Partial<BlockIndexRow> = {}): BlockIndexRow {
   return {
     id: `${noteId}:s:1`,
     noteId,
@@ -52,5 +52,23 @@ describe('staticNotesFromBlocks', () => {
     const blocks = [makeBlock('crossfit-girls/fran', 'collection:crossfit-girls/fran')];
     const notes = staticNotesFromBlocks(blocks);
     expect(notes[0].sourceId).toBe('collection:crossfit-girls/fran');
+  });
+
+  it('routes UUID-keyed rows by sourceId — members stay notes, never UUID catalogs', () => {
+    const blocks = [
+      makeBlock('0f0e0d0c-0b0a-4998-8765-4321fedcba98', 'collection:crossfit-girls/fran'),
+      makeBlock('1a2b3c4d-5e6f-4a1b-8c9d-0e1f2a3b4c5d', 'collection:crossfit-girls'),
+      makeBlock('9f8e7d6c-5b4a-4938-8271-60594e3d2c1b', '', { sourceId: undefined }),
+    ];
+    const notes = staticNotesFromBlocks(blocks);
+    expect(notes[0].type).toBe('note');
+    expect(notes[0].catalog).toBe('crossfit-girls');
+    expect(notes[0].sourceId).toBe('collection:crossfit-girls/fran');
+    expect(notes[1].type).toBe('collection');
+    expect(notes[1].catalog).toBe('crossfit-girls');
+    expect(notes[1].sourceId).toBe('page:collection:crossfit-girls');
+    expect(notes[2].type).toBe('note');
+    expect(notes[2].catalog).toBeUndefined();
+    expect(notes[2].sourceId).toBeUndefined();
   });
 });

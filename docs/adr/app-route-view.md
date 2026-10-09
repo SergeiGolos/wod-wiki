@@ -36,11 +36,13 @@ link rules: [../link-crosswalk.md](../link-crosswalk.md) and
    `profile.secondary`; no page-level constant invents a rail. Surfaces
    declare variations (sessions and playgrounds have their own rails).
 
-5. **Canonical note route + dual ids.** Every stored note opens at
-   `/notes/:noteId` from every surface. Note records carry `noteId` (editor)
-   and `pageId` (`/p/:slug` page render) so lists link either. Slugs are
-   pages: `/c/:slug`, `/e/:slug`, `/d/:slug` are specialized views, `/p/:slug`
-   the generic one.
+5. **Storage ids and route slugs stay separate.** `Entry.id` and `noteId`
+   retain the owning note identity. `pageId` is the Page UUID; `pageSlug`
+   addresses named pages at `/p/:slug`. Search resolves named membership
+   through `page_notes`, skipping calendar pages. Plain notes fall back to
+   `/notes/:noteId`. Collection routes use declared `sourceId` or imported
+   `sourcePath`, not UUIDs: `/c/:catalog` for landings and
+   `/c/:catalog/:item` for workouts. Block results preserve section anchors.
 
 6. **Redirect components, not scattered literals.** Each retired path family
    has one Navigate component in `lib/routeRedirects.tsx`, mounted in the App
@@ -54,5 +56,7 @@ link rules: [../link-crosswalk.md](../link-crosswalk.md) and
   title, and secondary follow from the profile.
 - Old paths keep working through redirects; behavior changes land in one
   component each.
-- Note ids no longer route inside collections — scoping is a view
-  (`/c/:slug/:date`, `/c/:slug/:page-slug`), not a link target.
+- UUID-keyed collection members remain notes, not catalog landings. The
+  catalog projection derives grouping and landing status from source routes.
+- Runtime results from named pages retain the loaded note UUID, not the
+  presentation slug.

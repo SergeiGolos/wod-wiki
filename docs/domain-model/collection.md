@@ -47,6 +47,11 @@ Derived, not configured: IDs/display names come from slugs (`crossfit-girls` →
 - Import checkpoint lives in [[Configuration]] (`meta` kv store, proposed rename to `configuration`)
 - Bundled source is protected, but a read-only source does not imply inert UI. Feed detail deliberately persists separate local scratch edits; syntax examples may be ephemeral.
 - Library lists Catalog content; existing collection/feed detail routes and WQL discovery remain compatibility constraints, not redesign targets.
+- Library routes preserve the Note UUID for ownership. Collection landings
+  resolve `page:collection:<catalog>` to `/c/<catalog>`; workouts resolve
+  `collection:<catalog>/<item>` or their imported `sourcePath` to
+  `/c/<catalog>/<item>`. UUID-keyed workouts do not become catalog landings.
+  Block results use the same owning route with a section anchor.
 - Sibling root: **feeds** (`markdown/feeds/{feed}/{YYYY-MM-DD}/{file}.md`) — same builder, dated items
 
 ### Page vs Note vs Collection (Current)

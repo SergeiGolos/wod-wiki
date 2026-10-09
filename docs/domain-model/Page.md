@@ -26,6 +26,12 @@ The stored Page is a grouping/address record for notes, not a content-bearing `N
 
 Notes associate with Pages via the [[PageNote]] junction table (`page_notes`). `Page` has no body text, segments, or tags of its own; authored workout logic lives strictly in [[Note]].
 
+Library note and block results resolve named routes from `Page.slug` through
+`page_notes`. `Entry.pageId` retains the Page UUID; `Entry.pageSlug` supplies
+`/p/:slug`. Membership ordering uses position, then creation time, and skips
+calendar pages when choosing a named route. Notes without a named page open
+at `/notes/:noteId`; result recording keeps that note's UUID.
+
 ### Fields (Current)
 
 | Field | Type | Notes |
@@ -65,7 +71,7 @@ None.
 - Do not extend `pageId` copying to more stores merely for reuse. Existing copies need a defined update policy when a note moves; this review does not prescribe an index-drop migration.
 - Keep journal `Page.date` separate from content creation/import time. Displaying a note on a date does not rewrite its source history.
 - **The `/p/:slug` universal page umbrella:** any slug is a page and renders generically at `/p/:slug`. Specialized prefix routes (`/c/:slug` for collections, `/e/:slug` for efforts, `/d/:slug` for dashboards) provide tailored interactions for those slug types, but resolve to the same underlying [[Page]] presentation model.
-- **Dual-ID navigation seam:** lists and query outputs expose both `pageId` (for `/p/:slug` page viewing) and `noteId` (for `/notes/:noteId` canonical editing).
+- **Navigation identity:** lists retain `noteId` for canonical editing and result ownership, `pageId` for the Page UUID, and `pageSlug` for `/p/:slug` viewing.
 - **Per-note edit boundary preservation:** multi-note pages compose distinct notes rather than concatenating text into a single editable string. Each embedded note maintains its independent `noteId`, versioned segments, and save target.
 
 **Known implementation gap:** the review's isolated `JournalDatePage` slicing reproduction lost a line inserted near a note boundary. That is evidence about its fixed-offset algorithm, not a live browser/persistence test. It blocks extending concatenated editing, not read-only multi-note presentation.

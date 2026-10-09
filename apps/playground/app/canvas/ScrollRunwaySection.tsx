@@ -1,11 +1,13 @@
 /**
- * ScrollRunwaySection.tsx — the DESKTOP presentation of a ```scroll runway (the
- * slide runway): stage bar, typewriter-driven live editor, cross-fading
- * captions, editor ring, transient toasts, playground mode — driven entirely by
- * the parsed ScrollSpec. One branch of the Runway Adapter (#936): the adapter
- * routes desktop here, mobile to RunwayMobile, and reduced-motion to
- * RunwayReduced — so this file no longer self-detects reduced motion; the
- * adapter decides Form Factor.
+ * ScrollRunwaySection.tsx — the NORMAL-MOTION presentation of a ```scroll
+ * runway (the slide runway): stage bar, typewriter-driven live editor,
+ * cross-fading captions, editor ring, transient toasts, playground mode —
+ * driven entirely by the parsed ScrollSpec and rendered through the shared
+ * RunwayShell (the home first-four chrome). One branch of the Runway Adapter
+ * (#936): the adapter routes every normal-motion form factor here (the
+ * shell's context-measured row adapts 60/40 vs stack) and reduced-motion to
+ * RunwayReduced — so this file no longer self-detects breakpoint or motion
+ * preference; the adapter decides Form Factor.
  *
  * Deliberately page-agnostic: no fullscreen runtime, trailing sections, or
  * page-level quest validation (those stay on ScrollCanvasPage). Run and
@@ -13,17 +15,17 @@
  * actions / quest completion.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { EditorWindow } from '../components/organisms/editor/EditorWindow'
 import type { ScriptBlock } from '@/components/Editor/types'
 import {
   type ScrollSpec,
-  type ScrollStage,
 } from './parseCanvasMarkdown'
 import { resolveSource } from './canvasUtils'
 import { clamp01, isStageTextLoaded, lerp, quadOut } from './scrollRunway'
 import { useScrollRunway } from './useScrollRunway'
 import { useScrollTypewriter } from './useScrollTypewriter'
+import { RunwayShell } from './RunwayShell'
 import { ScrollCaption } from './ScrollCaption'
 import { ScrollToast } from './ScrollToast'
 import { ScrollRing } from './ScrollRing'
@@ -78,7 +80,6 @@ export function ScrollRunwaySection({
   const [internalDoc, setInternalDoc] = useState(() => sourcesByStageId[stages[0]?.id] ?? '')
   const doc = controlledDoc ?? internalDoc
   const setDoc = onDocChange ?? setInternalDoc
-  const blocksRef = useRef<ScriptBlock[]>([])
 
   const [interactive, setInteractive] = useState(false)
 
@@ -173,75 +174,57 @@ export function ScrollRunwaySection({
 
   const activeAccent = slice.stage.accent ?? 'hsl(var(--foreground))'
 
+  // Presentation is the shared extracted shell (the home first-four pattern):
+  // sticky 65px/lg104px dvh window, status + pip stage bar, context-measured
+  // 60/40 split versus stack — the same chrome mobile-normal-motion uses via
+  // RunwayAdapter. Host-owned here: scroll driver, typewriter, playground
+  // mode, ring, toast, Run.
   return (
     <div ref={rootRef} className={className} data-testid="scroll-runway-section">
-      <section ref={runwayRef} className="relative" style={{ height: scroll.runway }}>
-        <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
-          {/* stage bar */}
-          <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
-            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              {interactive ? 'Playground mode' : slice.stage.id.replace(/-/g, ' ')}
-            </div>
-            <div className="flex items-center gap-1.5">
-              {stages.map((seg: ScrollStage, i: number) => {
-                const live = slice.index === i
-                const done = slice.index > i
-                return (
-                  <span
-                    key={seg.id}
-                    className="h-1 rounded-full transition-all duration-300"
-                    style={{
-                      width: live ? 30 : 10,
-                      background: live
-                        ? (seg.accent ?? 'hsl(var(--foreground))')
-                        : done
-                          ? 'hsl(var(--foreground))'
-                          : 'hsl(var(--foreground) / 0.15)',
-                    }}
-                  />
-                )
-              })}
-            </div>
+      <RunwayShell
+        trackRef={runwayRef}
+        height={scroll.runway}
+        stages={stages}
+        activeIndex={slice.index}
+        status={
+          <div className="truncate font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            {interactive ? 'Playground mode' : slice.stage.id.replace(/-/g, ' ')}
           </div>
-
-          {/* stage main */}
-          <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-6 pb-5 max-lg:flex-col max-lg:justify-start lg:px-12">
-            {/* editor canvas */}
-            <div className="relative aspect-[1200/720] w-[min(920px,calc(100%-400px))] max-w-full flex-none max-lg:aspect-auto max-lg:h-[50vh] max-lg:w-full">
-              <EditorWindow
-                title={noteTitle ?? ''}
-                noteId="canvas:scroll-runway"
-                doc={doc}
-                onDocChange={setDoc}
-                onBlocksChange={onBlocksChange}
-                theme={theme}
-                run={onRun ? { onRun } : undefined}
-                className="absolute inset-x-2 top-2 bottom-2"
-              >
-                {slice.stage.toast && (
-                  <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
-                )}
-              </EditorWindow>
-              {slice.ring && !interactive && stageTextLoaded && (
-                <ScrollRing tag={slice.ring.tag} accent={activeAccent} lines={slice.ring.lines} />
-              )}
-            </div>
-
-            <ScrollCaption stages={stages} activeIndex={slice.index} />
-          </div>
-
-          {/* playground-mode exit pill */}
-          {interactive && (
-            <button
-              type="button"
-              onClick={() => setInteractive(false)}
-              className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
+        }
+        pane={
+          <div className="absolute inset-0">
+            <EditorWindow
+              title={noteTitle ?? ''}
+              noteId="canvas:scroll-runway"
+              doc={doc}
+              onDocChange={setDoc}
+              onBlocksChange={onBlocksChange}
+              theme={theme}
+              run={onRun ? { onRun } : undefined}
+              className="absolute inset-x-2 top-2 bottom-2"
             >
-              ▶ Playground mode — {userDiverged ? 'your edits are kept' : 'editing'} · tap here to return to the tour
-            </button>
-          )}
-        </div>
-      </section>
+              {slice.stage.toast && (
+                <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
+              )}
+            </EditorWindow>
+            {slice.ring && !interactive && stageTextLoaded && (
+              <ScrollRing tag={slice.ring.tag} accent={activeAccent} lines={slice.ring.lines} />
+            )}
+          </div>
+        }
+        captions={<ScrollCaption stages={stages} activeIndex={slice.index} />}
+      />
+
+      {/* playground-mode exit pill */}
+      {interactive && (
+        <button
+          type="button"
+          onClick={() => setInteractive(false)}
+          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
+        >
+          ▶ Playground mode — {userDiverged ? 'your edits are kept' : 'editing'} · tap here to return to the tour
+        </button>
+      )}
     </div>
   )
 }

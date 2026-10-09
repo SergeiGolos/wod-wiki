@@ -10,6 +10,8 @@
 
 ### Core UI Components
 - `RunwayAdapter` (`apps/playground/app/canvas/RunwayAdapter.tsx`). Continuous scroll runway for staged tutorial steps.
+- `RunwayShell` (`apps/playground/app/canvas/RunwayShell.tsx`). Shared sticky window and measured editor/caption split for home and guide runways.
+- `GuideRunwayGroups` (`apps/playground/app/canvas/GuideRunwayGroups.tsx`). Small semantic runs for all eight `/guide/*` chapters, with the full existing lesson content in the caption rail.
 - `CanvasSection` (`apps/playground/app/components/molecules/CanvasSection.tsx`). Individual stage card with narrative text and challenge badges.
 - `EditorWindow` (`apps/playground/app/components/organisms/editor/EditorWindow.tsx`). Interactive CodeMirror window embedded in the canvas.
 
@@ -22,19 +24,18 @@
 
 ## 2. Desktop View Layout (≥1024px)
 
-- **Split Presentation / Scroll Runway:**
-  - Left runway provides narrative guide prose and syntax explanations.
-  - Right pane pins the live interactive editor with live syntax diagnostics.
-- **Stage Progress Indicator:** Sticky header displays chapter progress and quest badges.
-- **Right Rail (216px right):** Stage index and jump anchors.
+- **Normal-motion guides:** Semantic groups share the home tour's sticky runway. The editor occupies three fifths of the available row and the active lesson occupies two fifths.
+- **Stage changes:** Scrolling forward or backward loads the active lesson's source. Scrolling within the same source-owning lesson preserves edits.
+- **Home learning:** "Learning with Examples" introduces six chapter stages using the same runway as the preceding four sections. Each stage has its own example, explanation, quest progress, and guide link.
+- **Navigation:** Heading links land inside the corresponding stage. Reference and What's Next sections remain in normal document flow.
 
 ---
 
 ## 3. Mobile View Layout (<1024px)
 
-- **Single Linear Scroll:** Split view collapses into an inline sequence of reading cards and code blocks.
-- **Compact Interactive Editors:** Code editor windows embed inline with constrained heights and touch-friendly run buttons.
-- **Floating Quest Pill:** Floating indicator displays active challenge completion status.
+- **Normal motion:** The same sticky window stacks the editor above the active caption when the measured container cannot fit the split layout. Long captions scroll within their rail.
+- **Reduced motion:** Guides use the flowing canvas layout. Home learning shows stacked chapter cards and explicit Load example buttons instead of scroll-driven swaps.
+- **Interactive controls:** Run, Try-it, example selection, guide links, and quest actions remain available in both presentations.
 
 ---
 
