@@ -1,11 +1,11 @@
 name: Release – Main
 
-# Unified parallel production pipeline (6-phase DAG):
 #   1 version   →  2 [ packages | verify(playground) | storybook ]  (parallel)
-#   → 3 publish-storybook (S3 main/storybook/ → story.wod.wiki)
-#     publish-playground   (S3 main/dist/ + GitHub Pages → wod.wiki)
-#   → 4 e2e-storybook + production smoke vs https://wod.wiki
-#   → 5 release-npm    (gated on e2e-storybook; publishes @bitcobblers/* to npmjs)
+#   → 3 publish-storybook  (S3 main/storybook/ → story.wod.wiki)
+#     publish-s3         (S3 main/dist/ → main.preview.wod.wiki)
+#     publish-playground (GitHub Pages → wod.wiki)
+#   → 4 e2e-storybook + e2e-live-app + production smoke vs https://wod.wiki
+#   → 5 release-npm      (gated on e2e-storybook; publishes @bitcobblers/* to npmjs)
 #   → 6 summary
 
 on:
@@ -100,20 +100,12 @@ jobs:
       s3-prefix: main/storybook
       cloudfront-prefix: /main/storybook*
 
-  publish-playground:
-    name: Publish playground (Pages)
+  publish-s3:
+    name: Sync playground to S3 (main.preview.wod.wiki)
     runs-on: ubuntu-22.04
     needs: [verify]
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     outputs:
-      page-url: ${{ steps.deployment.outputs.page_url }}
       bundle-hash: ${{ steps.fingerprint.outputs.hash }}
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
     steps:
       - name: Download playground dist
         uses: actions/download-artifact@v7
@@ -121,27 +113,12 @@ jobs:
           name: playground-dist
           path: ./dist/
 
-      # Fingerprint of the deployed entry bundle; the live-app e2e job polls
-      # the deployed index.html until it references main-<hash>.js so tests
-      # never race a stale CloudFront cache (same gate as PR previews).
       - name: Compute build fingerprint
         id: fingerprint
         run: |
           set -euo pipefail
           HASH=$(ls dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist/
-
-      - name: Deploy Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
 
       - name: Sync to S3 (main.preview.wod.wiki)
         env:
@@ -170,16 +147,47 @@ jobs:
             echo "::warning::CloudFront invalidation failed; content refreshes within 5 minutes via max-age."
           fi
 
+  publish-playground:
+    name: Publish playground (Pages)
+    runs-on: ubuntu-22.04
+    needs: [verify]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page-url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Download playground dist
+        uses: actions/download-artifact@v7
+        with:
+          name: playground-dist
+          path: ./dist/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist/
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   e2e-live-app:
     name: Live-app E2E (main)
-    needs: [publish-playground]
+    needs: [publish-s3]
     uses: ./.github/workflows/preview-e2e.yml
     secrets: inherit
     with:
       preview-url: https://main.preview.wod.wiki
       branch-slug: main
-      build-hash: ${{ needs.publish-playground.outputs.bundle-hash }}
-
+      build-hash: ${{ needs.publish-s3.outputs.bundle-hash }}
   smoke-production:
     name: Production smoke (wod.wiki)
     runs-on: ubuntu-22.04
@@ -306,7 +314,7 @@ jobs:
     name: Pipeline summary
     runs-on: ubuntu-22.04
     if: always()
-    needs: [version, build-test-packages, verify, build-test-storybook, publish-playground, e2e-live-app, smoke-production, e2e-storybook, release-npm]
+    needs: [version, build-test-packages, verify, build-test-storybook, publish-playground, publish-s3, e2e-live-app, smoke-production, e2e-storybook, release-npm]
     steps:
       - name: Write summary
         run: |
@@ -319,7 +327,8 @@ jobs:
           | Packages | \${{ needs.build-test-packages.result }} |
           | Playground | \${{ needs.verify.result }} |
           | Storybook | \${{ needs.build-test-storybook.result }} |
-          | Pages (wod.wiki) | \${{ needs.publish-playground.result }} |
+          | S3 preview (main.preview) | ${{ needs.publish-s3.result }} |
+          | Pages (wod.wiki) | ${{ needs.publish-playground.result }} |
           | Live-app E2E ([e2e.wod.wiki](https://e2e.wod.wiki)) | \${{ needs.e2e-live-app.outputs.outcome }} — \${{ needs.e2e-live-app.outputs.tests }} tests, \${{ needs.e2e-live-app.outputs.failures }} fail, \${{ needs.e2e-live-app.outputs.flaky }} flaky |
           | Production smoke | \${{ needs.smoke-production.result }} |
           | Storybook E2E | \${{ needs.e2e-storybook.result }} |

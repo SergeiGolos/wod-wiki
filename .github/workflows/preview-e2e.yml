@@ -120,8 +120,8 @@ jobs:
           set -euo pipefail
           report="test-results/live-e2e-results.json"
           if [ ! -f "$report" ]; then
-            if [ -z "$E2E_OUTCOME" ] || [ "$E2E_OUTCOME" = skipped ]; then
-              echo "e2e step did not run; no stats collected"
+            if [ -z "$E2E_OUTCOME" ] || [ "$E2E_OUTCOME" = skipped ] || [ "$E2E_OUTCOME" = cancelled ]; then
+              echo "e2e step did not run or was cancelled ($E2E_OUTCOME); no stats collected"
               for k in tests passed failures flaky skipped; do
                 echo "$k=n/a" >> "$GITHUB_OUTPUT"
               done
@@ -158,8 +158,8 @@ jobs:
           # Never overwrite the published report with a stale or missing one:
           # a fresh run must have produced index.html (plus e2e-run-metadata)
           # before we touch the live report URL.
-          if [ ! -f playwright-report/index.html ]; then
-            echo "::error::no fresh playwright-report/index.html (e2e outcome: ${{ steps.preview_e2e.outcome }}); refusing to overwrite s3://$S3_BUCKET/$PREFIX with a stale or missing report"
+          if [ ! -f playwright-report/index.html ] || [ ! -f playwright-report/e2e-run-metadata.json ]; then
+            echo "::error::incomplete playwright report or metadata (e2e outcome: ${{ steps.preview_e2e.outcome }}); refusing to overwrite s3://$S3_BUCKET/$PREFIX with a stale or missing report"
             exit 1
           fi
           echo "Publishing playwright-report/ to s3://$S3_BUCKET/$PREFIX"
