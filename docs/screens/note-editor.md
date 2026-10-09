@@ -54,6 +54,8 @@ Mobile eliminates desktop sidebars and header bars.
   2. Section navigation links ("On this page" anchor jumps).
   3. Document export options (Download Markdown).
 - **Viewport Inset Handling:** Keyboard appearance automatically adjusts the bottom thumb cluster height via `visualViewport` listener.
+- **Focused Line Visibility:** While the software keyboard is open, viewport resizes and editor focus reveal the current caret with 24px clearance. Scrolling preserves the selection and leaves already-visible lines in place. Pinch zoom, unfocused editors, and keyboard dismissal do not trigger this adjustment.
+- **Runnable Check:** `node scripts/check-mobile-editor-keyboard.mjs` exercises a real mobile-size note editor against a running app. Set `BASE_URL` for a different server. The check simulates viewport shrinkage, not a native phone keyboard.
 
 ---
 

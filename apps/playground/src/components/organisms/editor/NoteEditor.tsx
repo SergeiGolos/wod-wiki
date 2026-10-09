@@ -682,6 +682,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       parent: mountNode,
     });
 
+    const viewport = window.visualViewport;
+    let keyboardScrollFrame = 0;
+    const revealKeyboardCaret = () => {
+      cancelAnimationFrame(keyboardScrollFrame);
+      keyboardScrollFrame = requestAnimationFrame(() => {
+        if (view.hasFocus && viewport?.scale === 1 && viewport.height < window.innerHeight) {
+          view.dispatch({
+            effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "nearest", yMargin: 24 }),
+          });
+        }
+      });
+    };
+    viewport?.addEventListener("resize", revealKeyboardCaret);
+    view.contentDOM.addEventListener("focus", revealKeyboardCaret);
+
     viewRef.current = view;
     setViewInstance(view);
     const _shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
@@ -705,6 +720,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     notifyBlockChanges(view.state, onBlocksChange, lastBlocksJsonRef);
 
     return () => {
+      cancelAnimationFrame(keyboardScrollFrame);
+      viewport?.removeEventListener("resize", revealKeyboardCaret);
+      view.contentDOM.removeEventListener("focus", revealKeyboardCaret);
       delete (mountNode as unknown as { __codemirrorView?: EditorView }).__codemirrorView;
       setViewInstance(null);
       view.destroy();
