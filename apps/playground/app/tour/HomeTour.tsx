@@ -40,6 +40,7 @@ import { RingTargetsProvider } from './TourRing'
 import { TOUR_ACCENTS, SCREEN_TITLES, type TourStageId } from './tourConstants'
 import { TourHeroHeading } from './TourHero'
 import { TourFooter } from './TourFooter'
+import { OfferingTiers } from '../components/molecules/OfferingTiers'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
@@ -998,6 +999,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           timer={timerWiring}
           session={{ ...sessionWiring, result: session }}
         />
+        <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12">
+          <OfferingTiers />
+        </div>
         <TourFooter />
         {fullscreen}
       </div>
@@ -1200,6 +1204,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         theme={theme}
         onRun={handleChapterRun}
       />
+      <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12">
+        <OfferingTiers />
+      </div>
       <TourFooter />
       {fullscreen}
     </div>

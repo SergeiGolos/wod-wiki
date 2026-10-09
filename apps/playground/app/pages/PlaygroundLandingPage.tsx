@@ -18,6 +18,7 @@ import { createPlaygroundPage } from '../services/createPlaygroundPage'
 import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/molecules/AttentionWidget'
 import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/molecules/CodeExampleWidget'
 import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/molecules/SyntaxGroupWidget'
+import { OfferingTiers } from '../components/molecules/OfferingTiers'
 import { buildSyntaxGuideReference } from '@/content/syntaxGuideReference'
 import { useSeedContent } from '@/services/content/seedContent'
 import { playgroundPath } from '../lib/routes'
@@ -215,6 +216,8 @@ export function PlaygroundLandingPage() {
           ))}
         </div>
       </section>
+
+      <OfferingTiers />
     </LandingTemplate>
   )
 }
