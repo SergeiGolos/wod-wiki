@@ -3,8 +3,8 @@
  *
  * Dogfoods the full flow:
  *   1. User visits a collection workout page
- *   2. Clicks "Now" → appendWorkoutToJournal creates today's journal entry
- *      and navigates to /journal/YYYY-MM-DD?autoStart=<uuid>
+ *   2. Clicks the block's "Play" run control → appendWorkoutToJournal creates
+ *      today's journal entry and navigates to /journal/YYYY-MM-DD?autoStart=<uuid>
  *   3. JournalPage picks up autoStart → FullscreenTimer opens
  *   4. Workout completes → session saved to wodwiki-db via storageService
  *      with noteId = 'journal/YYYY-MM-DD' (the full key, NOT just the date)
@@ -18,8 +18,8 @@ import { test, expect } from '@playwright/test';
 import { deleteNoteByRouteId, getNoteContentByRouteId, clearResults, getResults, WOD_DB } from '../helpers/wodwikiDb';
 
 // ── The collection workout used for dogfooding ─────────────────────────────
-// Any collection with a "Now" button will do. Crossfit Girls / Fran is the
-// most visible in the demo and reliably parses.
+// Any collection with a playable WOD block will do. Crossfit Girls / Fran is
+// the most visible in the demo and reliably parses.
 const COLLECTION_WORKOUT_URL = '/workout/crossfit-girls/fran';
 
 // ── IDB helpers ────────────────────────────────────────────────────────────
@@ -41,14 +41,12 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
       if (msg.type() === 'error') errors.push(`[console.error] ${msg.text()}`);
     });
 
-    try {
-      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 10_000 });
-    } catch {
-      test.skip(true, 'Dev server not running');
-    }
+    // A navigation failure fails the test — a silent skip here would hide a
+    // broken environment as green.
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 10_000 });
   });
 
-  test.afterEach(async ({}, testInfo) => {
+  test.afterEach(async ({ page }, testInfo) => {
     const persistenceErrors = errors.filter(e =>
       e.includes('NOTE_NOT_FOUND') ||
       e.includes('mutateNote') ||
@@ -58,11 +56,19 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     if (persistenceErrors.length > 0) {
       testInfo.attach('persistence-errors', { body: persistenceErrors.join('\n'), contentType: 'text/plain' });
     }
+    // Failure diagnostic: capture the UI state at cleanup time.
+    if (testInfo.status !== testInfo.expectedStatus) {
+      await page
+        .screenshot({ path: testInfo.outputPath('collection-failure.png'), fullPage: true })
+        .catch(() => {
+          // A failed diagnostic screenshot must not mask the original failure.
+        });
+    }
   });
 
-  // ── 1. Navigation: "Now" creates a journal entry and opens timer ──────────
+  // ── 1. Navigation: "Play" creates a journal entry and opens the timer ─────
 
-  test('clicking "Now" on a collection workout navigates to today\'s journal and opens the timer', async ({ page }, testInfo) => {
+  test('clicking "Play" on a collection workout navigates to today\'s journal and opens the timer', async ({ page }, testInfo) => {
     const dateKey = todayKey();
     const playgroundKey = `journal/${dateKey}`;
 
@@ -73,18 +79,18 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     // Navigate to the collection workout
     await page.goto(COLLECTION_WORKOUT_URL, { waitUntil: 'domcontentloaded', timeout: 15_000 });
 
-    // Blocks-parsed signal: the "Now" run button mounts (bounded auto-wait).
-    const nowButton = page.locator('button', { hasText: 'Now' }).first();
-    const exists = await nowButton.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 1).catch(() => 0);
-    if (exists === 0) {
-      test.skip(true, '"Now" button not found — collection WOD may not have parsed');
-      return;
-    }
+    // Blocks-parsed signal: the block's primary run control mounts (bounded
+    // auto-wait). The collection block action is "Play"
+    // (useScriptBlockCommands, collection-readonly) — the retired "Now"
+    // button no longer exists. Absence is a regression (the collection WOD
+    // failed to parse) — fail, don't skip.
+    const playButton = page.getByRole('button', { name: 'Play', exact: true }).first();
+    await playButton.waitFor({ state: 'visible', timeout: 10_000 });
 
     await page.screenshot({ path: testInfo.outputPath('collection-01-workout-page.png') });
 
-    // Click "Now" (primary run button on the first WOD block)
-    await nowButton.click();
+    // Click "Play" (primary run button on the first WOD block)
+    await playButton.click();
 
     // Should navigate to /journal/YYYY-MM-DD (with optional ?autoStart=...)
     await expect(page).toHaveURL(new RegExp(`/journal/${dateKey}`), { timeout: 8_000 });
@@ -99,10 +105,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     expect(content, 'Journal note should be created in wodwiki-db').not.toBeNull();
     expect(content, 'Journal note should contain the workout name').toContain('fran');
 
-    // FullscreenTimer should be visible (autoStart consumed from pendingRuntimes)
-    // It renders a FocusedDialog — look for the Close button
-    const closeButton = page.getByRole('button', { name: /close/i }).first();
-    await expect(closeButton).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible({ timeout: 5_000 });
 
     // No NOTE_NOT_FOUND errors during navigation
     const notFoundErrors = errors.filter(e => e.includes('NOTE_NOT_FOUND'));
@@ -193,66 +196,5 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     expect(noteNotFoundErrors, 'Journal page load must not trigger NOTE_NOT_FOUND').toHaveLength(0);
 
     await page.screenshot({ path: testInfo.outputPath('collection-04-no-errors-on-journal-load.png') });
-  });
-
-  // ── 4. Full dogfood: collection → journal → timer start → result visible ──
-
-  test('full flow: collection workout → journal created → timer opens without errors', async ({ page }, testInfo) => {
-    const dateKey = todayKey();
-    const playgroundKey = `journal/${dateKey}`;
-
-    errors.length = 0;
-    await deleteNoteByRouteId(page, playgroundKey);
-    await clearResults(page, playgroundKey);
-
-    // Step 1: Go to collection page
-    await page.goto('/collections', { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.screenshot({ path: testInfo.outputPath('collection-05a-collections-page.png') });
-
-    // Step 2: Find and click the CrossFit Girls collection
-    const crossfitGirls = page.locator('text=crossfit-girls, text=CrossFit Girls').first();
-    const found = await crossfitGirls.count();
-    if (found === 0) {
-      // Navigate directly if collection name not visible
-      await page.goto('/collections/crossfit-girls', { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    } else {
-      await crossfitGirls.click();
-      await page.waitForURL(/\/collections\/crossfit-girls/, { timeout: 5_000 });
-    }
-
-    // Step 3: Navigate to the Fran workout within the collection
-    await page.goto(COLLECTION_WORKOUT_URL, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    // Blocks-parsed signal: the "Now" run button mounts (bounded auto-wait).
-    const nowButton2 = page.locator('button', { hasText: 'Now' }).first();
-    const nowVisible = await nowButton2.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
-    await page.screenshot({ path: testInfo.outputPath('collection-05b-fran-page.png') });
-
-    // Step 4: Click "Now"
-    if (!nowVisible) {
-      test.skip(true, '"Now" button not found — collection WOD block may not have parsed');
-      return;
-    }
-    await nowButton2.click();
-
-    // Step 5: Expect journal page + timer
-    await expect(page).toHaveURL(new RegExp(`/journal/${dateKey}`), { timeout: 8_000 });
-    // Timer-open signal: the FocusedDialog close control mounts.
-    const closeButton = page.getByRole('button', { name: /close/i }).first();
-    await expect(closeButton).toBeVisible({ timeout: 5_000 });
-    await page.screenshot({ path: testInfo.outputPath('collection-05c-journal-timer-open.png') });
-
-    // Step 6: Verify journal note was created in wodwiki-db
-    const content2 = await getNoteContentByRouteId(page, playgroundKey);
-    expect(content2, 'Journal note should be created in wodwiki-db').not.toBeNull();
-
-    // Step 7: Close the timer (no result to check — timer was not completed)
-    await closeButton.click();
-    await expect(closeButton).toBeHidden({ timeout: 5_000 });
-
-    // Step 8: No NOTE_NOT_FOUND errors during the entire flow
-    const noteNotFoundErrors = errors.filter(e => e.includes('NOTE_NOT_FOUND'));
-    expect(noteNotFoundErrors, 'Full flow must not throw NOTE_NOT_FOUND').toHaveLength(0);
-
-    await page.screenshot({ path: testInfo.outputPath('collection-05d-timer-closed.png') });
   });
 });

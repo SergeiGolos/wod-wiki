@@ -44,14 +44,17 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     });
+    // Preview/production bundles select the Chromecast backend ('auto' →
+    // MODE === 'production' in apps/playground/src/services/cast/config.ts;
+    // release workflows set VITE_CAST_BACKEND=chromecast explicitly), so no
+    // receiver popup exists and this LocalTabBackend round-trip cannot run
+    // there. Tracked in #1067 — do not enable against production bundles.
     if (process.env.E2E_TARGET === 'preview' || process.env.E2E_APP_URL) {
-      test.skip(true, 'Cast LocalTabBackend e2e test requires dev mode (local backend)');
+      test.skip(true, 'Cast round-trip needs the dev-mode LocalTabBackend; production selects ChromecastBackend (#1067)');
     }
-    try {
-      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
-    } catch {
-      test.skip(true, 'Local dev server not running');
-    }
+    // Dev mode: a navigation failure fails the test — a silent skip here
+    // would hide a broken dev server.
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
   });
 
   test('cast handshake connects the receiver popup to the sender session', async ({ page, context }) => {

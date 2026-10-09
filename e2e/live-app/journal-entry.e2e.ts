@@ -6,9 +6,10 @@
  * template and NO editor. Tests seed a journal note first
  * (`seedJournalNote`), then drive the editor:
  * 1. A seeded date loads its note content
- * 2. Edited content is saved when navigating away normally (≥500ms debounce)
- * 3. Edited content is saved when navigating away before the 500ms debounce fires
- *    (validates the flush-on-unmount fix in usePlaygroundContent)
+ * 2. Edited content is saved after the edit settles
+ * 3. Edited content is saved when navigating away immediately after typing
+ *    (the date page persists per keystroke via journalNotes.update — serialized
+ *    per note; navigation must never drop the final write)
  * 4. Content survives a full page reload
  *
  * Tests run against the live app at https://pluto.forest-adhara.ts.net:5173
@@ -55,7 +56,7 @@ test.describe('Journal Entry — /journal/:date', () => {
 
   // ── 1. Seeded date loads its note content ────────────────────────────────
 
-  test('loads the note content for a seeded date', async ({}, testInfo) => {
+  test('loads the note content for a seeded date', async ({ page }, testInfo) => {
     const seeded = `# E2E-LOAD-${Date.now()}\n\n` + '```time\nTimer: 0:01\n1 Burpee\n```\n';
     await journal.clearStoredEntry(DATE_LOAD);
     await seedJournalNote(journal.page, DATE_LOAD, seeded);
@@ -67,12 +68,12 @@ test.describe('Journal Entry — /journal/:date', () => {
     // No page errors
     expect(errors).toHaveLength(0);
 
-    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-01-template.png') });
+    await page.screenshot({ path: testInfo.outputPath('journal-entry-01-template.png') });
   });
 
   // ── 2. Content saved after normal debounce (≥500ms) ──────────────────────
 
-  test('saves content after waiting for debounce then navigating away', async ({}, testInfo) => {
+  test('saves content after waiting for debounce then navigating away', async ({ page }, testInfo) => {
     const uniqueText = `E2E-SAVE-NORMAL-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_NORMAL);
     await seedJournalNote(journal.page, DATE_SAVE_NORMAL, 'Note\n');
@@ -94,12 +95,12 @@ test.describe('Journal Entry — /journal/:date', () => {
     await journal.goto(DATE_SAVE_NORMAL);
     await journal.expectEditorContains(uniqueText);
 
-    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-02-save-normal.png') });
+    await page.screenshot({ path: testInfo.outputPath('journal-entry-02-save-normal.png') });
   });
 
-  // ── 3. Content saved on quick navigation (unmount flush) ──────────────────
+  // ── 3. Content saved on quick SPA departure after typing ──────────────────
 
-  test('saves content when navigating away before 500ms debounce fires', async ({}, testInfo) => {
+  test('saves content when navigating away before 500ms debounce fires', async ({ page }, testInfo) => {
     const uniqueText = `E2E-SAVE-QUICK-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_QUICK);
     await seedJournalNote(journal.page, DATE_SAVE_QUICK, 'Note\n');
@@ -107,8 +108,10 @@ test.describe('Journal Entry — /journal/:date', () => {
 
     await journal.typeInEditor(uniqueText);
 
-    // Navigate away immediately — well within the 500ms debounce window.
-    // usePlaygroundContent.flush() must fire on component unmount so this content is not lost.
+    // Navigate away immediately after the final keystroke. The date page
+    // persists per keystroke via journalNotes.update (serialized per note);
+    // the SPA navigation must keep the page context alive so the last write
+    // commits — quick navigation must not lose a single edit.
     await journal.gotoJournalList();
 
     // Poll IDB until the unmount-flush write lands (replaces the fixed 300ms wait).
@@ -122,12 +125,12 @@ test.describe('Journal Entry — /journal/:date', () => {
     await journal.goto(DATE_SAVE_QUICK);
     await journal.expectEditorContains(uniqueText);
 
-    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-03-save-quick.png') });
+    await page.screenshot({ path: testInfo.outputPath('journal-entry-03-save-quick.png') });
   });
 
   // ── 4. Content survives a full page reload ────────────────────────────────
 
-  test('content persists across a hard page reload', async ({}, testInfo) => {
+  test('content persists across a hard page reload', async ({ page }, testInfo) => {
     const uniqueText = `E2E-RELOAD-${Date.now()}`;
     await journal.clearStoredEntry(DATE_RELOAD);
     await seedJournalNote(journal.page, DATE_RELOAD, 'Note\n');
@@ -144,12 +147,12 @@ test.describe('Journal Entry — /journal/:date', () => {
 
     await journal.expectEditorContains(uniqueText);
 
-    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-04-reload.png') });
+    await page.screenshot({ path: testInfo.outputPath('journal-entry-04-reload.png') });
   });
 
   // ── 5. Title shows the date ───────────────────────────────────────────────
 
-  test('page title reflects the journal date', async ({}, testInfo) => {
+  test('page title reflects the journal date', async ({ page }, testInfo) => {
     await journal.clearStoredEntry(DATE_LOAD);
     await seedJournalNote(journal.page, DATE_LOAD, 'Note\n');
     await journal.goto(DATE_LOAD);
@@ -160,6 +163,6 @@ test.describe('Journal Entry — /journal/:date', () => {
     // Accepts any format that includes the year
     expect(titleText).toMatch(/2099/);
 
-    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-05-title.png') });
+    await page.screenshot({ path: testInfo.outputPath('journal-entry-05-title.png') });
   });
 });

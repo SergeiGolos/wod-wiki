@@ -302,7 +302,10 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
 
   // ── 6. Performance budget ───────────────────────────────────────────────
 
-  test.fixme('meets performance budget (FCP < 1s, LCP < 2s)', async ({ page }) => { // e2e-remediation: perf-budget — CI-runner-variable FCP/LCP thresholds (FCP 1064ms > 1000ms even locally on a dev server)
+  // Quarantined #719: CI-runner-variable FCP/LCP thresholds (FCP 1064ms >
+  // 1000ms even locally on a dev server) — needs a runner-independent perf
+  // harness before the budget assertion is meaningful.
+  test.fixme('meets performance budget (FCP < 1s, LCP < 2s)', async ({ page }) => { // #719
     const { consoleErrors, pageErrors } = monitorErrors(page);
 
     // Clear performance entries before navigation

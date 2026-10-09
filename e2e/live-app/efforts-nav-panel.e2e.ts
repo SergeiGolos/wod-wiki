@@ -64,15 +64,4 @@ test.describe('Efforts nav panel', () => {
 
     errors.expectClean();
   });
-
-  test.fixme('shows recent workouts for the current effort on the detail route', async ({ page }) => { // e2e-remediation: EffortsNavPanel (origin/discipline filters + per-effort recent workouts) removed in 0d9c08f0 — no effort-scoped recent-workouts surface exists on the detail route
-    const errors = attachErrorCapture(page);
-    const efforts = new EffortsPage(page);
-
-    await efforts.gotoDetail('burpee');
-
-    await expect(page).toHaveURL(/\/e\/burpee$/);
-
-    errors.expectClean();
-  });
 });

@@ -109,28 +109,18 @@ test.describe('Note Persistence — save / load / workout flow', () => {
 
     await page.screenshot({ path: testInfo.outputPath('persistence-02a-before-start.png') });
 
-    // Open the Actions menu and find the play button
-    const actionsMenuTrigger = page.locator('div.flex.items-center.gap-2.shrink-0 button').last();
-    const exists = await actionsMenuTrigger.count();
-    if (exists === 0) {
-      test.skip(true, 'Actions menu trigger not found — story layout may have changed');
-      return;
-    }
-    await actionsMenuTrigger.click();
-    // Menu-open signal: the dropdown mounts.
-    await expect(page.locator('div[role="menu"], [data-headlessui-state="open"]')).toBeVisible({ timeout: 5_000 });
+    // Start the workout via the block's inline run control. The journal WOD
+    // block action is "Run" (data-testid=editor-start-workout, InlineCommandBar)
+    // — the old actions-menu "Workout → Run" dropdown is retired. DOM-click:
+    // the block overlay's decoration layers can intercept pointer events
+    // (see wod-index-play-button.e2e.ts).
+    const runControl = page.locator('[data-testid="editor-start-workout"]').first();
+    await expect(runControl).toBeVisible({ timeout: 10_000 });
+    await runControl.evaluate((el) => (el as HTMLElement).click());
 
-    const dropdownMenu = page.locator('div[role="menu"], [data-headlessui-state="open"]');
-    const playButton = dropdownMenu.locator('[role="menuitem"], button').filter({ hasText: /Workout/ }).locator('button[title="Run"]').first();
-    const playExists = await playButton.count();
-    if (playExists === 0) {
-      test.skip(true, 'Play button in dropdown not found — WOD block may not have parsed yet');
-      return;
-    }
-    await playButton.click();
-
-    // FullscreenTimer should appear
-    await expect(page.getByText('Close')).toBeVisible({ timeout: 5000 });
+    // Runtime session contract: the inline tracker mounts with its accessible
+    // Stop control (the old FullscreenTimer "Close" text button is retired).
+    await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible({ timeout: 5000 });
 
     // No NOTE_NOT_FOUND or persistence errors on start
     const persistenceErrors = errors.filter(e => e.includes('NOTE_NOT_FOUND') || e.includes('mutateNote'));

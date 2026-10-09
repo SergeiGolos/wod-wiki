@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { BaseNotePage } from './BaseNotePage';
 import { deleteNoteByRouteId, getNoteContentByRouteId } from '../helpers/wodwikiDb';
 
@@ -29,25 +29,13 @@ export class JournalEntryPage extends BaseNotePage {
   }
 
   async gotoJournalList() {
-    // Explicitly blur the editor first — this triggers onBlur → flush() → IDB write
-    // before navigation tears down the component.
-    await this.page.keyboard.press('Escape');
-    await this.editor().blur();
-    // Small pause to let the async IDB write from onBlur complete
-    await this.page.waitForTimeout(200);
-
-    // Use SPA navigation (click the sidebar link) so React Router unmounts the current
-    // page component, triggering useEffect cleanup and flushing any pending IDB writes.
-    // page.goto() is a hard navigation that skips React unmount entirely.
-    const journalLink = this.page.locator('nav a[href="/journal"], nav a[href^="/journal"]:not([href*="/"]):not([href*="20"])').first();
-    const exists = await journalLink.count();
-    if (exists > 0) {
-      await journalLink.click();
-      await this.page.waitForURL(/\/journal/, { timeout: 10_000 });
-    } else {
-      // Fallback to hard navigation if nav link not found
-      await this.page.goto('/journal', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    }
+    // SPA nav only — a hard goto kills the last keystroke's in-flight IDB write
+    // (#1066). The date page always renders the "‹ Journal" back button.
+    const back = this.page.locator('nav[aria-label="Journal navigation"] button').first();
+    const datePath = new URL(this.page.url()).pathname;
+    await expect(back).toBeVisible();
+    await back.click();
+    await this.page.waitForURL((url) => url.pathname !== datePath, { timeout: 10_000 });
   }
 
   // ── IndexedDB helpers ─────────────────────────────────────────────────────

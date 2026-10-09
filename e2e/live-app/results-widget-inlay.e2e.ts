@@ -36,19 +36,6 @@ Timer: 1:00
 \`\`\`
 `,
   },
-  canvas: {
-    path: '/',
-    noteId: 'canvas:home',
-    title: 'Canvas Home Result Widget Regression',
-    screenshot: 'e2e/screenshots/results-widget-canvas-after-reload.png',
-    content: `# Morning Strength
-\`\`\`time
-(3)
-  10 Kettlebell Swings 24kg
-  *:30 Rest
-\`\`\`
-`,
-  },
 } as const;
 
 type SeedRoute = typeof ROUTES[keyof typeof ROUTES];
@@ -279,24 +266,6 @@ test.describe('Workout results widget persistence in live app routes', () => {
 
     await expectResultWidgetAfterReload(page, ROUTES.journal);
     await expectResultWidgetAfterReload(page, ROUTES.playground);
-
-    const unexpectedErrors = criticalConsole.filter((entry) =>
-      // The IndexedDB v11-open info line is benign boot chatter, not an error.
-      !/wodwiki-db v\d+ open/.test(entry) &&
-      /NOTE_NOT_FOUND|persistence|IndexedDB|CodeMirror|plugin|exception/i.test(entry)
-    );
-    expect(unexpectedErrors, 'No result persistence or CodeMirror plugin errors should surface').toHaveLength(0);
-  });
-
-  test.fixme('shows .cm-wod-results-inlay after reload on the canvas home route', async ({ page }) => { // e2e-remediation: canvas home renders its default content instead of the seeded canvas:home note — product question (does '/' load canvas:home at all?)
-    const criticalConsole = monitorCriticalConsole(page);
-
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await expect(page.locator('#root')).not.toBeEmpty({ timeout: 15_000 });
-
-    await seedWorkoutDbNotesAndResults(page, [ROUTES.canvas]);
-
-    await expectResultWidgetAfterReload(page, ROUTES.canvas);
 
     const unexpectedErrors = criticalConsole.filter((entry) =>
       // The IndexedDB v11-open info line is benign boot chatter, not an error.

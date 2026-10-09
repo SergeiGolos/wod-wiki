@@ -23,8 +23,12 @@ on:
         value: ${{ jobs.preview-e2e.outputs.outcome }}
       tests:
         value: ${{ jobs.preview-e2e.outputs.tests }}
+      passed:
+        value: ${{ jobs.preview-e2e.outputs.passed }}
       failures:
         value: ${{ jobs.preview-e2e.outputs.failures }}
+      flaky:
+        value: ${{ jobs.preview-e2e.outputs.flaky }}
       skipped:
         value: ${{ jobs.preview-e2e.outputs.skipped }}
   workflow_dispatch:
@@ -54,7 +58,9 @@ jobs:
     outputs:
       outcome: ${{ steps.preview_e2e.outcome }}
       tests: ${{ steps.preview_stats.outputs.tests }}
+      passed: ${{ steps.preview_stats.outputs.passed }}
       failures: ${{ steps.preview_stats.outputs.failures }}
+      flaky: ${{ steps.preview_stats.outputs.flaky }}
       skipped: ${{ steps.preview_stats.outputs.skipped }}
     steps:
       - uses: actions/checkout@v7
@@ -98,29 +104,44 @@ jobs:
           CI: true
           E2E_APP_URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
 
-      - name: Collect preview E2E stats
+      # Per-file + aggregate counts from the Playwright JSON reporter
+      # (test-results/live-e2e-results.json, configured in
+      # playwright.journal.config.ts; junit stays for artifact consumers).
+      # Missing report is loud when the e2e step actually ran — that is a
+      # reporter wiring bug, not "n/a".
+      - name: Collect e2e stats (per-file)
         id: preview_stats
         if: always()
+        env:
+          E2E_OUTCOME: ${{ steps.preview_e2e.outcome }}
+          DEPLOY_URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+          BUILD_HASH: ${{ inputs.build-hash }}
         run: |
           set -euo pipefail
-          report="test-results/live-e2e-junit.xml"
-          extract_attr() {
-            local attr="$1"
-            local file="$2"
-            sed -n "s/.*${attr}=\"\\([0-9]\\+\\)\".*/\\1/p" "$file" | head -n1
-          }
-          if [ -f "$report" ]; then
-            tests=$(extract_attr "tests" "$report")
-            failures=$(extract_attr "failures" "$report")
-            skipped=$(extract_attr "skipped" "$report")
-          else
-            tests="n/a"
-            failures="n/a"
-            skipped="n/a"
+          report="test-results/live-e2e-results.json"
+          if [ ! -f "$report" ]; then
+            if [ -z "$E2E_OUTCOME" ] || [ "$E2E_OUTCOME" = skipped ]; then
+              echo "e2e step did not run; no stats collected"
+              for k in tests passed failures flaky skipped; do
+                echo "$k=n/a" >> "$GITHUB_OUTPUT"
+              done
+              exit 0
+            fi
+            echo "::error::e2e ran ($E2E_OUTCOME) but $report is missing — check the json reporter outputFile in playwright.journal.config.ts"
+            exit 1
           fi
-          echo "tests=${tests:-n/a}" >> "$GITHUB_OUTPUT"
-          echo "failures=${failures:-n/a}" >> "$GITHUB_OUTPUT"
-          echo "skipped=${skipped:-n/a}" >> "$GITHUB_OUTPUT"
+          E2E_SUMMARY_MD=test-results/e2e-per-file-summary.md \
+            bun scripts/e2e-report-summary.mjs "$report"
+          mkdir -p playwright-report
+          cat > playwright-report/e2e-run-metadata.json <<EOF
+          {
+            "commit": "$GITHUB_SHA",
+            "buildHash": "$BUILD_HASH",
+            "generatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployUrl": "$DEPLOY_URL",
+            "runUrl": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          }
+          EOF
 
       # Publishes next to the deployed preview build (<slug>/dist/), so the
       # report is browsable at <preview-url>/e2e-report/index.html.
@@ -134,6 +155,13 @@ jobs:
         run: |
           set -euo pipefail
           PREFIX="${{ inputs.branch-slug }}/e2e-report/"
+          # Never overwrite the published report with a stale or missing one:
+          # a fresh run must have produced index.html (plus e2e-run-metadata)
+          # before we touch the live report URL.
+          if [ ! -f playwright-report/index.html ]; then
+            echo "::error::no fresh playwright-report/index.html (e2e outcome: ${{ steps.preview_e2e.outcome }}); refusing to overwrite s3://$S3_BUCKET/$PREFIX with a stale or missing report"
+            exit 1
+          fi
           echo "Publishing playwright-report/ to s3://$S3_BUCKET/$PREFIX"
           aws s3 sync playwright-report/ "s3://$S3_BUCKET/$PREFIX" \
             --delete \
@@ -161,7 +189,9 @@ jobs:
         if: always()
         env:
           BRANCH_SLUG: ${{ inputs.branch-slug }}
+          BUILD_HASH: ${{ inputs.build-hash }}
         run: |
+          set -euo pipefail
           report_url=""
           if [ -n "$BRANCH_SLUG" ]; then
             if [ "$BRANCH_SLUG" = "main" ]; then
@@ -174,11 +204,17 @@ jobs:
           ## Live-app e2e against the deploy
 
           - Deploy URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+          - Commit: $GITHUB_SHA
+          - Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
           - Playwright outcome: ${{ steps.preview_e2e.outcome }}
-          - Tests: ${{ steps.preview_stats.outputs.tests }}
-          - Failures: ${{ steps.preview_stats.outputs.failures }}
-          - Skipped: ${{ steps.preview_stats.outputs.skipped }}
+          - Tests: ${{ steps.preview_stats.outputs.tests }} (pass ${{ steps.preview_stats.outputs.passed }}, fail ${{ steps.preview_stats.outputs.failures }}, flaky ${{ steps.preview_stats.outputs.flaky }}, skipped ${{ steps.preview_stats.outputs.skipped }})
           EOF
+          if [ -n "$BUILD_HASH" ]; then
+            echo "- Deployed build: main-$BUILD_HASH.js" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -n "$report_url" ]; then
             echo "- HTML report: [$report_url]($report_url)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f test-results/e2e-per-file-summary.md ]; then
+            cat test-results/e2e-per-file-summary.md >> "$GITHUB_STEP_SUMMARY"
           fi

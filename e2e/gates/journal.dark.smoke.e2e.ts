@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { waitForSeedReady } from '../helpers/seedReadiness';
 
 /**
  * Dark-theme gate (journal-dark project): key playground routes boot with the
@@ -7,11 +8,7 @@ import { test, expect, type Page } from '@playwright/test';
  * on mount and toggles the class on documentElement).
  */
 
-const ROUTES = ['/', '/journal', '/library', '/efforts', '/analytics/explorer', '/playground/hello-world'];
-
-async function renderedContent(page: Page) {
-  return (await page.locator('body').innerText()).trim().length;
-}
+const ROUTES = ['/', '/journal', '/catalogs', '/efforts', '/analytics/explorer', '/playground/hello-world'];
 
 for (const route of ROUTES) {
   test(`dark theme applies on ${route}`, async ({ page }) => {
@@ -22,6 +19,8 @@ for (const route of ROUTES) {
     // agreed with the storage key.
     await expect(page.locator('html[data-theme-boot="1"]')).toHaveCount(1);
     await expect(page.locator('html')).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 20_000 });
-    await expect.poll(() => renderedContent(page), { timeout: 20_000 }).toBeGreaterThan(60);
+    // Seed-dependent routes must finish importing before theme is checked.
+    await waitForSeedReady(page);
+    await expect(page.getByRole('main').first()).toBeVisible();
   });
 }

@@ -127,6 +127,5 @@ jobs:
           | --- | --- |
           | Unit tests | ${{ steps.unit.outcome }} |
           | Coverage | ${{ steps.coverage.outcome }} |
-            apps/playground/dist/
           | Playground build | ${{ steps.build.outcome }} |
           EOF

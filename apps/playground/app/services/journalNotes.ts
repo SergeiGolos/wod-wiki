@@ -42,6 +42,10 @@ export function createJournalNotes({
   persistence,
   uuid = uuidv7,
 }: JournalNotesDependencies): JournalNotes {
+  // Serialize per-note mutations: asynchronous reads before the write transaction
+  // can otherwise let an older keystroke overwrite the final edit.
+  const updateQueue = new Map<string, Promise<unknown>>();
+
   return {
     async create(input) {
       const targetDate = input.journalDate ? dateTimestamp(input.journalDate) : Date.now();
@@ -88,10 +92,23 @@ export function createJournalNotes({
 
     update(noteId, rawContent) {
       const heading = normalizeNoteTitle(rawContent.match(/^#\s+(.+)$/m)?.[1]?.trim());
-      return persistence.mutateNote({ id: noteId }, {
-        rawContent,
-        metadata: heading ? { title: heading } : undefined,
-      });
+      const write = async () =>
+        persistence.mutateNote({ id: noteId }, {
+          rawContent,
+          metadata: heading ? { title: heading } : undefined,
+        });
+      // Chain onto this note's pending write so a rejection never wedges it.
+      const prev = updateQueue.get(noteId) ?? Promise.resolve();
+      const next = prev.then(write, write);
+      updateQueue.set(noteId, next);
+      // Settled entries are dropped so the map cannot grow unbounded. Both
+      // outcomes handled here so a failed write never surfaces as an
+      // unhandled rejection from this internal cleanup chain.
+      const cleanup = () => {
+        if (updateQueue.get(noteId) === next) updateQueue.delete(noteId);
+      };
+      next.then(cleanup, cleanup);
+      return next;
     },
 
     moveToDate(noteId, journalDate) {

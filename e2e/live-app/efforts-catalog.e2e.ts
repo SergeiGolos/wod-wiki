@@ -46,8 +46,12 @@ test.describe('Efforts catalog — /efforts', () => {
     await efforts.gotoCatalog();
     await efforts.searchFor('burpee');
 
+    // 'burpee' legitimately matches the whole family (Burpee, Burpee pull up,
+    // Burpee box jump over, …) — assert the exact row plus the family, not a
+    // singleton count.
     await expect(efforts.effortRow('burpee')).toBeVisible();
-    await expect(efforts.effortRows()).toHaveCount(1);
+    await expect(efforts.effortRow('burpee-pull-up')).toBeVisible();
+    expect(await efforts.effortRows().count()).toBeGreaterThanOrEqual(2);
 
     await efforts.searchFor('');
     await expect(efforts.effortRow('rowing')).toBeVisible();
@@ -68,18 +72,37 @@ test.describe('Efforts catalog — /efforts', () => {
     errors.expectClean();
   });
 
-  test.fixme('opens create-custom flow from the catalog CTA', async ({ page }) => { // e2e-remediation: getByTestId('effort-detail-root') not found — detail-page IDs absent
+  test('opens create-custom flow from the catalog CTA and creates the effort', async ({ page }) => {
     const errors = attachErrorCapture(page);
     const efforts = new EffortsPage(page);
+    const slug = `e2e-create-${Date.now()}`;
 
     await efforts.gotoCatalog();
     await efforts.createCustomButton().click();
 
-    await expect(page).toHaveURL(/\/effort\/new\?mode=create$/);
-    await expect(efforts.detailRoot()).toBeVisible();
-    await expect(efforts.notebookEditor()).toBeVisible();
-    await expect(efforts.saveButton()).toBeVisible();
-    await expect(efforts.cancelButton()).toBeVisible();
+    // Create mode renders a plain textarea + "Create Effort" action — no
+    // editor chrome or detail testids (EffortDetailPage isCreateMode branch).
+    await expect(page).toHaveURL(/\/e\/new\?mode=create$/);
+    const doc = page.locator('textarea[aria-label="Effort document"]');
+    await expect(doc).toBeVisible();
+    await doc.fill([
+      '---',
+      `slug: ${slug}`,
+      'label: E2E Create Flow',
+      'aliases:',
+      `  - ${slug}`,
+      'baseAttributes:',
+      '  met: 5.0',
+      'registrySource: user',
+      '---',
+      'Created by the catalog CTA flow test.',
+      '',
+    ].join('\n'));
+    await page.getByRole('button', { name: 'Create Effort' }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/e/${slug}$`), { timeout: 15_000 });
+    await expect(efforts.detailLabel()).toHaveText('E2E Create Flow');
+    await expect(efforts.detailSource()).toContainText('Custom');
 
     errors.expectClean();
   });

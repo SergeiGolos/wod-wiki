@@ -21,13 +21,9 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
       window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     });
 
-    // Try to reach the local server, skip if not running
-    try {
-      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5000 });
-    } catch (e) {
-      test.skip(true, 'Local dev server (localhost:5173) not running');
-      return;
-    }
+    // Reach the app root to seed IndexedDB access. A navigation failure
+    // fails the test — a silent skip here would hide a broken environment.
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5000 });
   });
 
   test('shows play button in Actions menu and starts runtime session', async ({ page }, testInfo) => {

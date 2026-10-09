@@ -21,7 +21,8 @@
 
 import { test, expect, type Page } from '@playwright/test';
 import { seedNote, WOD_DB } from '../helpers/wodwikiDb';
-import { clearSessions, getSessions } from '../utils/sessionsDb';
+import { waitForSeedReady } from '../helpers/seedReadiness';
+import { getSessions } from '../utils/sessionsDb';
 import { installFastClock } from '../utils/fastClock';
 import { TEST_IDS } from '../contracts/TestIdContract';
 
@@ -120,18 +121,13 @@ test.describe('Collection Workout — run and record', () => {
   /**
    * Boot the app and wait for the background seed import to settle before
    * seeding test notes — otherwise the importer's collection chunk overwrites
-   * the E2E content and /c/… pages render fallback markdown mid-race.
+   * the E2E content and /c/… pages render fallback markdown mid-race. Uses the
+   * shared <html data-seed-state> readiness gate (no console-event waits, no
+   * silent catch-and-proceed): a failed sync fails the test here.
    */
   async function gotoHomeAfterSeedImport(page: Page): Promise<void> {
-    const seedSettled = page
-      .waitForEvent('console', {
-        predicate: (m) => /\[seedSync\] outcome: (imported|current|server-stale)/.test(m.text()),
-        timeout: 60_000,
-      })
-      .then(() => true)
-      .catch(() => false);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await seedSettled;
+    await waitForSeedReady(page);
   }
 
   test('creates a journal record on start; stopping early saves and displays results', async ({ page }, testInfo) => {
@@ -141,9 +137,12 @@ test.describe('Collection Workout — run and record', () => {
     await seedNote(page, STOP_NOTE_ID, STOP_CONTENT, { title: 'E2E Stop Run' });
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, STOP_TITLE));
 
-    // 1. Start the workout from the collection page.
+    // 1. Start the workout from the collection page. Gate on the stored E2E
+    // content actually being mounted (not just any editor): the IDB-first load
+    // swaps bundled markdown for the override after mount, and Play must hit
+    // the post-swap DOM.
     await page.goto(`/collections/${STOP_NOTE_ID}`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.cm-content')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.cm-content')).toContainText('10:00 AMRAP', { timeout: 15_000 });
     await clickPlayOnBlock(page, '10:00 AMRAP');
 
     // A new record (journal note for today) is created and the runtime opens.
@@ -204,7 +203,7 @@ test.describe('Collection Workout — run and record', () => {
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, COMPLETE_TITLE));
 
     await page.goto(`/collections/${COMPLETE_NOTE_ID}`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.cm-content')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.cm-content')).toContainText('0:03 AMRAP', { timeout: 15_000 });
     await clickPlayOnBlock(page, '0:03 AMRAP');
 
     await page.waitForURL(new RegExp(`/journal/${today}`), { timeout: 15_000 });

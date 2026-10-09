@@ -3,8 +3,9 @@
  *
  * One focused flow over the real note surface (JournalPageShell → NoteEditor)
  * covering the round-2 dogfood regressions:
- *  - N2: the Read↔Edit transition must focus .cm-content (previously
- *    activeElement stayed on the button and arrows page-scrolled).
+ *  - N2: the editor surface must self-focus .cm-content when the date page
+ *    opens editable (previously activeElement stayed on a toggle button and
+ *    arrows page-scrolled).
  *  - N1: ArrowUp/Down move ONE VISUAL row (fenced workout block + wrapped
  *    paragraph); Shift+Up extends one row — wrapped motion asserted via
  *    measured caret coords (Δy == one 22px line height, x stable).
@@ -26,6 +27,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import type { EditorView } from '@codemirror/view';
 import { seedJournalNote } from '../helpers/wodwikiDb';
+import { waitForSeedReady } from '../helpers/seedReadiness';
 
 const DATE = '2099-08-04';
 
@@ -107,20 +109,26 @@ async function coordsAt(page: Page, pos: number): Promise<{ x: number; y: number
   );
 }
 
-test('note editor: Edit focuses content, arrows walk visual rows, Home no-op on empty line', async ({ page }) => {
+test('note editor: opens focused and editable, arrows walk visual rows, Home no-op on empty line', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
 
   // Seed from the app origin (IndexedDB lives per-origin, not about:blank).
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+  // The boot seed sync builds the app's DB schema; seeding against a
+  // half-booted origin races the import (#1066).
+  await waitForSeedReady(page);
   await seedJournalNote(page, DATE, CONTENT);
 
-  // Explicit Read→Edit transition — the route opens editable ("Read mode"
-  // toggle); drop to read mode first, then click Edit. Page-object helpers
-  // that click into the content would mask the focus bug under test.
+  // The date page opens the note editor inline and editable (the Read/Edit
+  // toggles are retired on this surface) and must self-focus .cm-content —
+  // the focus contract under test. Clicking into the content would mask it.
   await page.goto(`/journal/${DATE}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await page.getByRole('button', { name: 'Read mode', exact: true }).click({ timeout: 10_000 });
-  await page.getByRole('button', { name: 'Edit', exact: true }).click({ timeout: 10_000 });
+  await waitForSeedReady(page);
+  // Measure focus, not mount latency: editor must be attached first. The
+  // self-focus contract is source-backed (NoteEditor focuses on open when
+  // editable — its readonly→editable effect calls view.focus()).
+  await expect(page.locator('.cm-content').first()).toBeAttached({ timeout: 10_000 });
   await expect
     .poll(
       () =>
