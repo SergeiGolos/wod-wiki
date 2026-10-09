@@ -6,7 +6,6 @@ import type {
   BlockQueryStore,
   NoteQueryStore,
   QueryServiceStores,
-  WqlDomainOrder,
   WqlDomainPredicate,
   WqlDomainReadResult,
 } from '../src/stores';
@@ -249,6 +248,18 @@ describe('domain candidate reads — parity with the whole-store path', () => {
     const domain = makeService(true);
     const parsed = find('note', [{ key: 'type', negate: false, values: [val('page')] }], { limit: 1 });
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
+  });
+
+  it('does not resurrect a static seed when the canonical edited note fails the filter', async () => {
+    const edited: Note = { id: 'edited', title: 'Recovery journal', type: 'journal', sourceId: 'journal', createdAt: T0 };
+    const original: Note = { ...edited, title: 'Strength dashboard', type: 'dashboard', sourceId: 'dashboards' };
+    const service = new QueryService({
+      noteStore: makeNoteStore([edited], makeDomainRead([edited], [])),
+      staticNoteStore: makeNoteStore([original]),
+    });
+    const result = await service.runFind(find('note', [{ key: 'type', negate: false, values: [val('dashboard')] }]));
+    expect(result.notes).toEqual([]);
+    expect(result.stages.selected).toBe(1);
   });
 
   it(':note | limit 2 — inclusive plane pages; static plane keeps the JS slice', async () => {

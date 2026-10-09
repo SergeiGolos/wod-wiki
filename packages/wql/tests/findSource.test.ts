@@ -52,7 +52,7 @@ const BLOCKS: BlockIndexRow[] = [
   makeBlock('feed-1', 'feed:crossfit-programming/2026-01-12'),
   makeBlock('guide-1', 'guides:guide/syntax/basics'),
   makeBlock('pg-1', 'playground'),
-  makeBlock('pg-legacy', undefined),
+  makeBlock('pg-legacy', 'playground'),
 ];
 
 function makeService() {
@@ -210,7 +210,7 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
   it('keeps only playground blocks (denormalized sourceId) when source:playground is set', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':block{source:playground} in all') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId)).toEqual(['pg-1']);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['pg-1', 'pg-legacy']);
   });
 
   it('legacy in journal maps to source:journal correctly at runtime', async () => {

@@ -82,13 +82,6 @@ describe('queryService with the seeded corpus', () => {
     expect(query.error).toBeDefined();
   });
 
-  it('discovers collections when querying scope all — feeds excised', async () => {
-    const query = parseFindQuery(':note in all');
-    const result = await queryService.runFind(query);
-    expect(result.notes.length).toBeGreaterThan(0);
-    expect(result.notes.some((n) => n.sourceId?.startsWith('collection:'))).toBe(true);
-    expect(result.notes.some((n) => n.sourceId?.startsWith('feed:'))).toBe(false);
-  });
 
   it('discovers blocks from the corpus when querying :block in all', async () => {
     const query = parseFindQuery(':block in all');

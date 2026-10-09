@@ -119,15 +119,7 @@ export function sourceMatches(
   const sourceId = item.sourceId;
   if (kind === 'all') return !sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(item, k));
   if (kind === 'journal') {
-    if (
-      item.type === 'playground' ||
-      item.noteId === 'pg-legacy' ||
-      item.id === 'pg-legacy' ||
-      item.noteId?.startsWith('pg-') ||
-      item.id?.startsWith('pg-')
-    ) {
-      return false;
-    }
+    if (item.type === 'playground' || item.id?.startsWith('playground/') || item.noteId?.startsWith('playground/')) return false;
     if (sourceId) return sourceId === 'journal';
     // Sourceless rows stay journal unless the rest of the corpus owns them:
     // importer-seeded rows (seedOrigin 'seed' — 'user' is a genuine user
