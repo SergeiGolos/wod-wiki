@@ -18,6 +18,7 @@ import {
   type EntryKind,
 } from './entryMapper'
 import { entryOpenHref } from './entryActions'
+import { groupEntriesByDimension } from './entryGrouping'
 
 function makeNote(overrides: Partial<Note> & { slug?: string; pageId?: string } = {}): Note {
   return {
@@ -120,6 +121,27 @@ describe('toEntry — kind discrimination', () => {
   it('classifies a feed note as Post', () => {
     const entry = toEntry(makeNote({ id: 'feeds/crossfit-programming/2026-01-12/monday', sourceId: 'feed:feeds/crossfit-programming/2026-01-12/monday' }))
     expect(entry.kind).toBe('post')
+  })
+})
+
+describe('toEntry — collection date projection (by {month, year} grouping)', () => {
+  // SeedImporter parses frontmatter `date: YYYY-MM-DD` to noon-UTC epoch ms.
+  const NOON = Date.parse('2009-12-01T12:00:00Z')
+
+  it('projects a seeded collection Note.date onto the entry for date grouping', () => {
+    const entry = toEntry(makeNote({ id: 'zombiefit/2009-12-01-beginner', sourceId: 'collection:zombiefit/2009-12-01-beginner', date: NOON }))
+    expect(entry.date).toBe('2009-12-01')
+  })
+
+  it('keeps a collection entry undated when the note carries no date', () => {
+    const entry = toEntry(makeNote({ id: 'zombiefit/README', sourceId: 'collection:zombiefit' }))
+    expect(entry.date).toBeNull()
+  })
+
+  it('groups dated collection entries under their month', () => {
+    const entry = toEntry(makeNote({ id: 'zombiefit/2009-12-01-beginner', sourceId: 'collection:zombiefit/2009-12-01-beginner', date: NOON }))
+    const groups = groupEntriesByDimension([entry], 'month')
+    expect(groups.map(g => g.key)).toEqual(['2009-12'])
   })
 })
 

@@ -243,7 +243,7 @@ function toEntryBase(note: Note): Entry {
       pageId: 'pageId' in note && typeof note.pageId === 'string' ? note.pageId : undefined,
       pageSlug: 'slug' in note ? namedSlug(note.slug) : undefined,
       title,
-      date: null,
+      date: note.date ? formatDateKey(new Date(note.date)) : null,
       createdAt: note.createdAt,
       subtitle: note.catalog ?? catalog,
       ...(tags ? { tags } : {}),
