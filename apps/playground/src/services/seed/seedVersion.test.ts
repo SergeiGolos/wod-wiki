@@ -1,6 +1,7 @@
 /** Pure version-decision table + the bun-test fallback for the embedded stamp. */
 import { describe, expect, it } from 'bun:test';
 import type { SeedMetaRecord } from '@/types/seed';
+import { SEED_SCHEMA } from '@/types/seed';
 import { decideSeedImport, EMBEDDED_SEED_VERSION, storedSeedIsCurrent } from './seedVersion';
 
 describe('decideSeedImport', () => {
@@ -17,16 +18,31 @@ describe('decideSeedImport', () => {
 });
 
 describe('storedSeedIsCurrent (skip-fetch fast path)', () => {
-  const meta = (seedVersion: number | undefined): SeedMetaRecord | undefined =>
+  const meta = (seedVersion: number | undefined, schema?: number): SeedMetaRecord | undefined =>
     seedVersion === undefined
       ? undefined
-      : { key: 'seed', seedVersion, builtAt: '', importedAt: 0, chunks: {}, claim: null };
+      : {
+          key: 'seed',
+          seedVersion,
+          builtAt: '',
+          importedAt: 0,
+          chunks: {},
+          claim: null,
+          ...(schema !== undefined ? { schema } : {}),
+        };
 
   it('requires a positive stored version equal to the embedded stamp', () => {
     expect(storedSeedIsCurrent(undefined, 1000)).toBe(false);
     expect(storedSeedIsCurrent(meta(0), 1000)).toBe(false);
     expect(storedSeedIsCurrent(meta(1000), 1000)).toBe(true);
     expect(storedSeedIsCurrent(meta(2000), 1000)).toBe(false);
+  });
+
+  it('never skips a stored checkpoint from any other schema', () => {
+    expect(storedSeedIsCurrent(meta(1000, SEED_SCHEMA), 1000)).toBe(true);
+    expect(storedSeedIsCurrent(meta(1000, SEED_SCHEMA - 1), 1000)).toBe(false);
+    expect(storedSeedIsCurrent(meta(1000, SEED_SCHEMA + 1), 1000)).toBe(false);
+    expect(storedSeedIsCurrent(meta(1000, 5), 1000)).toBe(false);
   });
 });
 

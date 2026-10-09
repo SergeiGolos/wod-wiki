@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, it, expect, afterEach } from 'bun:test'
 import { render, screen, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
@@ -61,15 +61,28 @@ describe('appNavTree - Flattened listing zones', () => {
     expect(playgrounds.isActive!(mockLocation('/feeds'))).toBe(false)
   })
 
-  it('activates Playgrounds for /playgrounds, /playground notes, and the /library playground scope', () => {
+  it('activates Playgrounds for /playgrounds and /playground notes only', () => {
     const tree = buildAppNavTree(() => {})
     const playgrounds = tree.find(item => item.id === 'playgrounds')!
 
     expect(playgrounds.isActive!(mockLocation('/playgrounds'))).toBe(true)
     expect(playgrounds.isActive!(mockLocation('/playground/example'))).toBe(true)
-    const aliased = { ...mockLocation('/library'), search: `?q=${encodeURIComponent(':note{source:playground}')}` }
-    expect(playgrounds.isActive!(aliased)).toBe(true)
     expect(playgrounds.isActive!(mockLocation('/journal'))).toBe(false)
+  })
+
+  it('renders the Journal conditions panel with the inclusive All row', () => {
+    render(
+      <MemoryRouter initialEntries={['/journal']}>
+        <NavProvider tree={appNavTree}>
+          <NavSidebar />
+        </NavProvider>
+      </MemoryRouter>,
+    )
+
+    // The All row links the inclusive :note{!source:playground} query view on
+    // the journal surface — no /library route of its own.
+    const allRow = screen.getAllByText('All', { exact: true })[0]!.closest('[role="button"], a, button')
+    expect(allRow).not.toBeNull()
   })
 
   it('renders the Collections conditions panel rows in NavSidebar on /collections', () => {
@@ -187,7 +200,7 @@ describe('appNavTree - Settings navigation', () => {
     expect(settings.isActive!(mockLocation('/settings'))).toBe(true)
     expect(settings.isActive!(mockLocation('/settings/appearance'))).toBe(true)
     expect(settings.isActive!(mockLocation('/settings/system'))).toBe(true)
-    expect(settings.isActive!(mockLocation('/library'))).toBe(false)
+    expect(settings.isActive!(mockLocation('/results/res-1'))).toBe(false)
   })
   it('activates appropriate L2 child based on route', () => {
     const tree = buildAppNavTree(() => {})

@@ -26,7 +26,6 @@ import {
   EffortRedirect,
   ResultsRedirect,
   SegmentsRedirect,
-  ResultDetailRedirect,
   DashboardLandingRedirect,
   ExplorerRedirect,
 } from './lib/routeRedirects'
@@ -198,17 +197,16 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.noteById} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.pages} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  {/* Sessions — execution telemetry streams and detail (#946, Ticket 005);
-                      /results rebranded to /sessions with redirects. */}
+                  {/* Sessions — /sessions lists execution telemetry;
+                      /results/:sessionId is the canonical detail (#946, Ticket 005).
+                      Bare /results* deep links redirect into the family. */}
                   <Route path="/results" element={<ResultsRedirect />} />
                   <Route path="/results/segments" element={<SegmentsRedirect />} />
-                  <Route path="/results/:resultId" element={<ResultDetailRedirect />} />
-                  <Route path={ROUTE_PATTERNS.sessions} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.sessionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.sessions} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.sessionDate} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   {/* Retired review screens (#946, Ticket 005) — bookmarks land on the sessions family. */}
                   <Route path="/review/:runtimeId" element={<ReviewRedirect />} />

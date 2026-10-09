@@ -18,7 +18,6 @@ import { join } from 'node:path';
 import {
   buildBlockIndexRows,
   buildBlockEffortRows,
-  canvasRouteSlug,
   collectCorpusMarkdown,
   discoverUncatalogedEfforts,
   generateSeed,
@@ -26,7 +25,7 @@ import {
   scaffoldDiscoveredEfforts,
   chunkIdFor,
 } from './generate-seed';
-import { SEED_SCHEMA } from '@/types/seed';
+import { SEED_SCHEMA, canvasRouteSlug } from '@/types/seed';
 
 const sha256 = (data: string | Buffer): string =>
   createHash('sha256').update(data).digest('hex');

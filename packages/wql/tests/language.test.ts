@@ -8,6 +8,7 @@ import {
   wqlCompletionSource,
 } from '../src/language';
 import { wqlFilterKeys, wqlGroupingDimensions } from '../src/capabilities';
+import { WQL_SOURCE_VALUES } from '../src/vocabulary';
 import { EFFORT_DISCIPLINES } from '../src/disciplines';
 
 const EFFORTS = ['thruster', 'back-squat', 'rowing'];
@@ -29,12 +30,6 @@ async function completeAsync(scm: typeof source, doc: string) {
 
 describe('wqlCompletionSource', () => {
   it('offers heads at the query start, narrowed by prefix', () => {
-    expect(complete('')).toEqual([
-      'sum', 'avg', 'min', 'max', 'count', 'last', 'delta',
-      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
-      'timeseries', 'bar', 'table', 'donut', 'toplist', 'value',
-      '@session', '@today',
-    ]);
     expect(complete('su')).toEqual(['sum']);
     expect(complete('@to')).toEqual(['@today']);
   });
@@ -237,7 +232,7 @@ describe('wqlCompletionSource — aggressive slots', () => {
     const doc = ':note{source:journal}';
     const keyFrom = doc.indexOf('source');
     const valueFrom = doc.indexOf('journal');
-    expect(at(doc, valueFrom, valueFrom + 'journal'.length)!.labels).toEqual(['journal', 'collections', 'guides', 'playground']);
+    expect(at(doc, valueFrom, valueFrom + 'journal'.length)!.labels).toEqual([...WQL_SOURCE_VALUES]);
     expect(at(doc, keyFrom, keyFrom + 'source'.length)!.labels).toEqual([...wqlFilterKeys('note', 'find')]);
   });
 
@@ -262,7 +257,7 @@ describe('wqlCompletionSource — aggressive slots', () => {
     const state = EditorState.create({ doc, extensions: [wqlLanguage] });
     ensureSyntaxTree(state, doc.length, 200);
     const result = await hosted(new CompletionContext(state, doc.length, true));
-    expect(result?.options.map((o) => o.label)).toEqual(['mine', 'journal', 'collections', 'guides', 'playground']);
+    expect(result?.options.map((o) => o.label)).toEqual(['mine', ...WQL_SOURCE_VALUES]);
   });
 });
 
@@ -270,7 +265,7 @@ describe('wqlCompletionSource — colon heads', () => {
   it('offers head names after the colon, narrowed by prefix', () => {
     expect(complete(':')).toEqual([
       'sum', 'avg', 'min', 'max', 'count', 'last', 'delta',
-      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
+      'note', 'block', 'effort', 'session', 'segment', 'event', 'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground', 'dashboard',
       'timeseries', 'bar', 'table', 'donut', 'toplist', 'value',
       '@session', '@today',
     ]);

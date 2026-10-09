@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { SettingsPage } from './SettingsPage'
-import { writeRouteWqlConfig, readRouteWqlConfig, clearRouteWqlConfig } from '../lib/routeWqlConfig'
+import { writeRouteWqlConfig, readRouteWqlConfig } from '../lib/routeWqlConfig'
 
 // Mock contexts
 let currentTheme = 'system'
@@ -207,7 +207,7 @@ describe('SettingsPage — Query Defaults tab', () => {
     renderSettings('/settings/queries')
 
     expect(screen.getByTestId('query-defaults-section')).toBeDefined()
-    for (const id of ['/library', '/journal', '/collections', '/feeds', '/efforts', '/sessions', '/playgrounds', '/palette']) {
+    for (const id of ['/journal', '/collections', '/catalogs', '/feeds', '/efforts', '/sessions', '/playgrounds', '/dashboards', '/palette']) {
       expect(screen.getByTestId(`query-defaults-card-${id}`)).toBeDefined()
     }
   })
@@ -246,26 +246,26 @@ describe('SettingsPage — Query Defaults tab', () => {
   })
 
   it('persists custom scope options, including the emptied nudge state', () => {
-    writeRouteWqlConfig('/library', { typeOptions: ['notes', 'journal'] })
+    writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
     renderSettings('/settings/queries')
 
     // `notes` shows migrated to the canonical `note` target favorite.
-    fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-note'))
-    fireEvent.click(screen.getByTestId('query-defaults-type-/library-remove-journal'))
-    expect(screen.getByTestId('query-defaults-type-empty-/library')).toBeDefined()
-    fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/collections-remove-note'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/collections-remove-journal'))
+    expect(screen.getByTestId('query-defaults-type-empty-/collections')).toBeDefined()
+    fireEvent.click(screen.getByTestId('query-defaults-save-/collections'))
 
-    expect(readRouteWqlConfig('/library').typeOptions).toEqual([])
+    expect(readRouteWqlConfig('/collections').typeOptions).toEqual([])
   })
 
   it('adds a supported scope option and persists it', () => {
     renderSettings('/settings/queries')
 
-    fireEvent.click(screen.getByTestId('query-defaults-type-custom-/library'))
-    fireEvent.click(screen.getByTestId('query-defaults-type-/library-add-playground'))
-    fireEvent.click(screen.getByTestId('query-defaults-save-/library'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-custom-/collections'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/collections-add-playground'))
+    fireEvent.click(screen.getByTestId('query-defaults-save-/collections'))
 
-    expect(readRouteWqlConfig('/library').typeOptions).toEqual(['playground'])
+    expect(readRouteWqlConfig('/collections').typeOptions).toEqual(['playground'])
   })
 
   it('restricts Group-By favorites to the supported arrangement dimensions', () => {
@@ -280,13 +280,13 @@ describe('SettingsPage — Query Defaults tab', () => {
   })
 
   it('reports stored option ids that are neither canonical nor migratable', () => {
-    writeRouteWqlConfig('/library', { typeOptions: ['rows', 'journal'] })
+    writeRouteWqlConfig('/collections', { typeOptions: ['rows', 'journal'] })
     renderSettings('/settings/queries')
 
-    const report = screen.getByTestId('query-defaults-invalid-/library')
+    const report = screen.getByTestId('query-defaults-invalid-/collections')
     expect(report.textContent).toContain('rows')
     // The invalid id never becomes a favorite — only the canonical scope does.
-    expect(screen.queryByTestId('query-defaults-type-/library-chip-rows')).toBeNull()
-    expect(screen.getByTestId('query-defaults-type-/library-chip-journal')).toBeDefined()
+    expect(screen.queryByTestId('query-defaults-type-/collections-chip-rows')).toBeNull()
+    expect(screen.getByTestId('query-defaults-type-/collections-chip-journal')).toBeDefined()
   })
 })

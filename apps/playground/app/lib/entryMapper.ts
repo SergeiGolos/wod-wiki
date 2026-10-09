@@ -15,7 +15,7 @@ import type { EventRecord, StoredOutputStatement } from '@bitcobblers/wod-wiki-c
 import { formatDateKey } from '../services/dateUtils'
 import { parseNoteId } from '@/lib/noteIdentity'
 
-export type EntryKind = 'note' | 'session' | 'post' | 'result' | 'segment' | 'effort' | 'event'
+export type EntryKind = 'note' | 'session' | 'post' | 'result' | 'segment' | 'effort' | 'event' | 'dashboard' | 'equipment'
 
 /** Block-level payload on an Entry produced from a :block hit (#855):
  *  the card shows the parent note's identity plus the block's own type and
@@ -125,6 +125,33 @@ function isCollection(note: Note): boolean {
 
 function isFeed(note: Note): boolean {
   return !!note.sourceId?.startsWith('feed:') || note.sourcePath?.startsWith('markdown/feeds/') === true
+}
+
+/** Dashboard note: typed (post-repair/new vault dashboards), sourceId-stamped,
+ *  or a legacy sourceless seed row addressed by its corpus path. */
+function isDashboardNote(note: Note): boolean {
+  return note.type === 'dashboard'
+    || note.sourceId === 'dashboards'
+    || note.sourcePath?.startsWith('markdown/dashboards/') === true
+}
+
+/** Effort-corpus note (the note twin of the IEffort registry entry). */
+function isEffortNote(note: Note): boolean {
+  return note.sourceId === 'efforts' || note.sourcePath?.startsWith('markdown/efforts/') === true
+}
+
+/** Equipment note (gear definitions; new source — legacy rows are sourceless). */
+function isEquipmentNote(note: Note): boolean {
+  return note.sourceId === 'equipment' || note.sourcePath?.startsWith('markdown/equipment/') === true
+}
+
+/** Slug of a corpus note — `<slug>.md` (dashboards/equipment) or
+ *  `<discipline>/<slug>.md` (efforts); `undefined` for UUID-keyed rows. */
+function corpusSlug(note: Note, depth: 1 | 2): string | undefined {
+  const stem = note.sourcePath?.replace(/^markdown\/[^/]+\//, '').replace(/\.md$/, '')
+  if (!stem) return undefined
+  const segs = stem.split('/')
+  return segs.length === depth ? segs[depth - 1] : undefined
 }
 
 /** Collection route (catalog/item) from the sourceId declaration
@@ -245,6 +272,63 @@ function toEntryBase(note: Note): Entry {
       date,
       createdAt: note.createdAt,
       subtitle: note.catalog ?? segs[0],
+      ...(tags ? { tags } : {}),
+    }
+  }
+
+  // Dashboard note — its own kind so All-view rows carry the dashboard icon
+  // and open at /d/<slug> instead of masquerading as journal entries.
+  if (isDashboardNote(note)) {
+    const slug = corpusSlug(note, 1) ?? id
+    return {
+      id,
+      kind: 'dashboard',
+      sourceCatalog: 'dashboards',
+      sourceItem: slug,
+      sourceId: note.sourceId,
+      sourcePath: note.sourcePath,
+      title,
+      date: null,
+      createdAt: note.createdAt,
+      subtitle: note.catalog ?? 'dashboards',
+      ...(tags ? { tags } : {}),
+    }
+  }
+
+  // Effort-corpus note — the note twin of the registry entry; opens at
+  // /e/<slug> like a registry effort. Never classified as journal.
+  if (isEffortNote(note)) {
+    const slug = corpusSlug(note, 2) ?? id
+    const discipline = note.sourcePath?.match(/^markdown\/efforts\/([^/]+)\//)?.[1]
+    return {
+      id,
+      kind: 'effort',
+      sourceCatalog: 'efforts',
+      sourceItem: slug,
+      sourceId: note.sourceId,
+      sourcePath: note.sourcePath,
+      title,
+      date: null,
+      createdAt: note.createdAt,
+      subtitle: discipline,
+      effort: { slug },
+      ...(tags ? { tags } : {}),
+    }
+  }
+
+  // Equipment note — gear definitions; opens in the canonical note editor.
+  if (isEquipmentNote(note)) {
+    return {
+      id,
+      kind: 'equipment',
+      sourceCatalog: 'equipment',
+      sourceItem: corpusSlug(note, 1) ?? id,
+      sourceId: note.sourceId,
+      sourcePath: note.sourcePath,
+      title,
+      date: null,
+      createdAt: note.createdAt,
+      subtitle: 'equipment',
       ...(tags ? { tags } : {}),
     }
   }

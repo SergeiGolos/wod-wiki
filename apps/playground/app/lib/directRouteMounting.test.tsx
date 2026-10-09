@@ -2,7 +2,7 @@
  * directRouteMounting.test.tsx — Route cutover verification (Ticket 004).
  *
  * Verifies that:
- * 1. /journal, /collections, /feeds, /library, and /efforts mount directly
+ * 1. /journal, /collections, /feeds, and /efforts mount directly
  *    under the unified queriable stream (routeView classifies them as 'library').
  * 2. Each route resolves to its route-aware StreamProfile with canonical WQL defaults.
  * 3. Legacy query parameters and bookmarks seamlessly migrate into canonical WQL queries.
@@ -15,7 +15,6 @@ import {
   CATALOGS_STREAM_PROFILE,
   COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
-  LIBRARY_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
   resolveStreamProfile,
 } from '../views/stream/streamProfile'
@@ -57,13 +56,6 @@ describe('Direct route mounting classification (routeView)', () => {
     expect(v.shell).toEqual({ wrap: 'bare' })
   })
 
-  it('classifies /library directly to library with Library title', () => {
-    const v = resolveRouteView('/library', NO_PARAMS, makeDeps())
-    expect(v.page).toBe('library')
-    expect(v.workout.name).toBe('Library')
-    expect(v.shell).toEqual({ wrap: 'bare' })
-  })
-
   it('classifies /efforts directly to library with Efforts title', () => {
     const v = resolveRouteView('/efforts', NO_PARAMS, makeDeps())
     expect(v.page).toBe('library')
@@ -88,13 +80,10 @@ describe('Route-aware stream profile resolution', () => {
     expect(resolveStreamProfile('/collections').defaultWql).toBe(':collection{} by {tag}')
 
     expect(resolveStreamProfile('/catalogs')).toBe(CATALOGS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/catalogs').defaultWql).toBe(':catalog')
+    expect(resolveStreamProfile('/catalogs').defaultWql).toBe(':catalog{} by {tag}')
 
     expect(resolveStreamProfile('/feeds')).toBe(FEEDS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':catalog{} last 2w')
-
-    expect(resolveStreamProfile('/library')).toBe(LIBRARY_STREAM_PROFILE)
-    expect(resolveStreamProfile('/library').defaultWql).toBe(':collection{} last 4w')
+    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':collection{} last 2w')
 
     expect(resolveStreamProfile('/efforts')).toBe(EFFORTS_STREAM_PROFILE)
     expect(resolveStreamProfile('/efforts').defaultWql).toBe(':effort')
@@ -127,8 +116,8 @@ describe('Legacy parameter migration across unified stream routes', () => {
     }
   })
 
-  it('migrates legacy tri-state parameters on /library', () => {
-    const legacy = LIBRARY_STREAM_PROFILE.legacy!
+  it('migrates legacy tri-state parameters on /collections', () => {
+    const legacy = COLLECTIONS_STREAM_PROFILE.legacy!
     expect(legacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
     expect(legacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
     // post=on mapped to the now-excised feeds scope: unscoped, same window.

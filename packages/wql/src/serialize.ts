@@ -28,7 +28,7 @@
  *     comparison regex's plain-decimal domain.
  */
 
-import { WQL_NOTE_DEFAULT_SOURCES } from './vocabulary';
+import { WQL_TYPE_HEADS } from './vocabulary';
 import type { AnyParsedQuery, MetricPredicate, ParsedAggregateQuery, ParsedFindQuery, PipelineSource, ParsedPipelineQuery, QueryWindow, TagFilter } from './wql';
 
 /** `:note{…}` / `:session{…}` — always the target head with the filters in
@@ -36,22 +36,37 @@ import type { AnyParsedQuery, MetricPredicate, ParsedAggregateQuery, ParsedFindQ
  *  scope-alias head: the collapse can reorder/broaden (a :journal head on a
  *  session query) and it breaks composer's filterText editing, which maps
  *  serialized filter clauses back to AST positions. */
+/** A note-target AST in the exact shape the `:dashboard` alias head parses
+ *  to (first filter = literal `type:dashboard`, no source scope) — shared
+ *  by the head and scope serializers so both emit through the alias. */
+function isDashboardHeadShape(f: ParsedFindQuery): boolean {
+  const first = f.filters[0];
+  return f.target === 'note' && f.sourceScope === undefined
+    && !!first && first.key === 'type' && !first.negate
+    && first.values.length === 1 && !first.values[0]!.wildcard
+    && first.values[0]!.value === WQL_TYPE_HEADS.dashboard;
+}
+
 function serializeFindHead(f: ParsedFindQuery, extra: TagFilter[] = []): string {
+  // The type-alias head serializes back through its alias: reparse
+  // re-injects the type filter at the same first position.
+  if (isDashboardHeadShape(f)) {
+    const filters = [...f.filters.slice(1), ...extra];
+    return `:dashboard${filters.length ? `{${serializeFilters(filters)}}` : ''}`;
+  }
   const filters = [...f.filters, ...extra];
   return `:${f.target}${filters.length ? `{${serializeFilters(filters)}}` : ''}`;
 }
 
-/** Scope handling for the generic note head: `in all` exactly when the AST
- *  carries no scope at all (authored `:note in all`) — a bare `:note`
- *  would reparse to the journal|collections|playground default and silently
- *  narrow away guides. The default scope serializes as nothing; a manual
- *  non-canonical subset serializes as explicit source: filters (same
- *  execution semantics — the scope field itself has no text surface). */
+/** Scope handling for the generic note head. The note head is inclusive —
+ *  there is no default scope anymore, so no `in all` marker is emitted (the
+ *  legacy suffix still parses); a non-canonical sourceScope serializes as
+ *  explicit source: filters. */
 function serializeScopeInfo(f: ParsedFindQuery): { clause: string; scopeFilters: TagFilter[] } {
   if (f.target !== 'note' || f.filters.some((t) => t.key === 'source')) return { clause: '', scopeFilters: [] };
-  if (f.sourceScope === undefined) return { clause: 'in all', scopeFilters: [] };
-  if (f.sourceScope.length === WQL_NOTE_DEFAULT_SOURCES.length
-      && f.sourceScope.every((s) => WQL_NOTE_DEFAULT_SOURCES.some((d) => d === s))) return { clause: '', scopeFilters: [] };
+  // The alias head is scope-free by construction.
+  if (isDashboardHeadShape(f)) return { clause: '', scopeFilters: [] };
+  if (!f.sourceScope?.length) return { clause: '', scopeFilters: [] };
   return {
     clause: '',
     scopeFilters: [{ key: 'source', negate: false, values: f.sourceScope.map((v) => ({ value: v, wildcard: false })) }],

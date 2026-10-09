@@ -1,9 +1,11 @@
 /**
  * dashboardNotes — creation flow for dashboard notes (#907, format locked in
- * #899). A new dashboard is a plain vault note (`type: 'note'`, no journal
- * date) carrying the scaffold from packages/wql/src/dashboard/scaffold (canonical, ticket 19); creation marks
+ * #899). A new dashboard is a typed vault note (`type: 'dashboard'`,
+ * `sourceId: 'dashboards'`, no journal date) carrying the scaffold from
+ * packages/wql/src/dashboard/scaffold (canonical, ticket 19); creation marks
  * it active and clears `dashboard.active` from every other dashboard note so
- * the route's discovery (active wins, else first) always lands on the new one.
+ * the route's discovery (active wins, else first) always lands on the new
+ * one.
  */
 
 import type { INotePersistence } from '@/services/persistence';
@@ -29,9 +31,11 @@ export interface DashboardNotes {
 export function createDashboardNotes({ persistence, journal }: DashboardNotesDependencies): DashboardNotes {
   // Deactivate every other active dashboard so the just-created/cloned note
   // is the one the namespace lands on. Runs before the create so a failure
-  // leaves the vault's existing dashboards intact.
+  // leaves the vault's existing dashboards intact. Typed discovery — the
+  // V28 repair (IndexedDBStorage) guarantees legacy `dashboard: true` notes
+  // carry type 'dashboard' before any create can run.
   async function deactivateOthers(excludeId?: string): Promise<void> {
-    const notes = await persistence.listNotes({});
+    const notes = await persistence.listNotes({ kind: 'dashboard' });
     for (const note of notes) {
       if (excludeId && note.id === excludeId) continue;
       const { meta, body } = parseFrontmatter(note.rawContent);
@@ -45,7 +49,7 @@ export function createDashboardNotes({ persistence, journal }: DashboardNotesDep
   return {
     async createDashboard(title = DEFAULT_DASHBOARD_TITLE) {
       await deactivateOthers();
-      return journal.create({ title, rawContent: buildDashboardScaffold(title), type: 'note' });
+      return journal.create({ title, rawContent: buildDashboardScaffold(title), type: 'dashboard', sourceId: 'dashboards' });
     },
 
     async cloneDashboard(slug, seedRawContent, title) {
@@ -56,7 +60,7 @@ export function createDashboardNotes({ persistence, journal }: DashboardNotesDep
       const nextMeta: Record<string, string | number | string[]> = { ...meta, slug };
       if (title) nextMeta.title = title;
       const raw = `---\n${serializeFrontmatter(nextMeta)}\n---\n${body}`;
-      return journal.create({ title: typeof nextMeta.title === 'string' ? nextMeta.title : slug, rawContent: raw, type: 'note' });
+      return journal.create({ title: typeof nextMeta.title === 'string' ? nextMeta.title : slug, rawContent: raw, type: 'dashboard', sourceId: 'dashboards' });
     },
   };
 }

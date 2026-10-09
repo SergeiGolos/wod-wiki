@@ -61,6 +61,13 @@ import { ExplorerOptionsMenu } from './ExplorerOptionsMenu';
 import { SampleDataPrompt } from './SampleDataPrompt';
 import { cn } from '@/lib/utils';
 
+/** The /dashboards landing actually searches dashboards: `:dashboard{}` is
+ *  the note-head alias injecting type:dashboard (engine side), so the
+ *  landing renders dashboard notes through the shared find pipeline while
+ *  the full WQL workbench (aggregates, examples, Save-to-dashboard) stays
+ *  available above it. */
+const DASHBOARDS_LANDING_QUERY = ':dashboard{}';
+
 const DAY = 86_400_000;
 
 /** WQL grammar hint shown as the composer input's placeholder (issue #897 —
@@ -135,8 +142,12 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   useEffect(() => {
     startFieldCatalogBackfill();
   }, []);
+  // The /dashboards landing query — the annotation-9 dashboard search. A
+  // stored Route WQL Config default (Settings ▸ Query Defaults, legacy
+  // /dashboard key aliased) overrides it; deep links (?q=) still win.
+  const routeConfig = useMemo(() => readRouteWqlConfig('/dashboards'), []);
   const { draft, setDraft, submitted, submit, weeks: activeWeeks, setWeeks } =
-    useExplorerQueryState();
+    useExplorerQueryState({ defaultQuery: routeConfig.defaultWql ?? DASHBOARDS_LANDING_QUERY, runOnLanding: true });
   const { unit: preferredUnit } = useAnalyticsUnitPreference();
   const { forced: unitForced } = useMemo(
     () => getEffectiveAnalyticsUnit(submitted, preferredUnit),
@@ -155,7 +166,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const vocabulary = useExplorerVocabulary();
   // Route-configured type favorites (the /dashboards surface) prioritize the
   // composer's picker rows without excluding anything.
-  const preferredChoices = useMemo(() => readRouteWqlConfig('/dashboards').typeOptions, []);
+  const preferredChoices = routeConfig.typeOptions;
   const liveParsed = useMemo(() => parseQuery(draft), [draft]);
   const scopeLabel = sourceFilterLabel(isFindQuery(liveParsed) ? liveParsed.filters : []);
   const findWindowLabel = isFindQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;

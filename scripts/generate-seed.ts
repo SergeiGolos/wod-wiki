@@ -37,7 +37,13 @@
  * always carries a fresh seed. Idempotent: wipes the output dir first.
  */
 import { Glob } from 'bun';
-import { BLOCK_EFFORTS_CHUNK_PREFIX, BLOCK_INDEX_CHUNK_PREFIX, SEED_SCHEMA } from '@/types/seed';
+import {
+  BLOCK_EFFORTS_CHUNK_PREFIX,
+  BLOCK_INDEX_CHUNK_PREFIX,
+  SEED_SCHEMA,
+  TEMPLATE_CHUNK_ID,
+  canvasRouteSlug,
+} from '@/types/seed';
 import type { ChunkKind, ManifestChunk, SeedManifest, SeedRow } from '@/types/seed';
 import type { BlockEffort, BlockIndexRow, SegmentDataType } from '@/types/storage';
 import { parseScript } from '@bitcobblers/wod-wiki-lang';
@@ -122,8 +128,6 @@ export function chunkIdFor(relPath: string): string | null {
   }
 }
 
-const TEMPLATE_CHUNK_ID = 'template';
-
 // ── Collection ────────────────────────────────────────────────────────────
 
 /** Scan the markdown corpus; returns repo-relative POSIX paths of all .md files. */
@@ -201,21 +205,8 @@ export function feedDateToCreatedAt(dateKey: string): number {
   return Number.isNaN(ts) ? 0 : ts;
 }
 
-/**
- * Frontmatter `route:` of a canvas page, minus the leading slash; null when
- * absent, degenerate ('/'), or the file is not a canvas page (`template:
- * canvas` required — section fragments and snippets carry `title:`/`section:`
- * frontmatter instead and must never become Library entries). Mirrors the
- * runtime's route resolution (parseCanvasMarkdown: frontmatter wins), so a
- * guide's block-index noteId doubles as its deep-link path.
- */
-export function canvasRouteSlug(content: string): string | null {
-  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
-  if (fm?.[1] && !/^template:\s*canvas\s*$/m.test(fm[1])) return null;
-  const route = fm?.[1]?.match(/^route:\s*(\S+)\s*$/m)?.[1];
-  if (!route) return null;
-  return route.replace(/^\//, '') || null;
-}
+// canvasRouteSlug lives in @/types/seed — one derivation shared by the block
+// plane (here) and the note plane (SeedImporter).
 
 /** Rows per block-index chunk (~4k rows keeps fetch + transaction sizes sane). */
 const BLOCK_INDEX_ROWS_PER_CHUNK = 4000;

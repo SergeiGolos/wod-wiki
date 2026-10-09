@@ -259,11 +259,14 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
         return (
           <div
             key={rect.sectionId}
-            className="absolute right-1 z-10 flex items-center gap-1 pointer-events-auto -translate-y-1 sm:translate-y-0"
+            className="absolute right-1 z-10 flex items-end gap-1 pointer-events-auto"
             style={{
               // rect.top is document-space; subtract scrollTop to get the correct
               // position relative to .cm-note-editor as the editor scrolls.
-              top: rect.top - scrollTop + 2,
+              // Fill the (padded) fence line and bottom-align so the buttons
+              // can't cover the previous line or the block's first content line.
+              top: rect.top - scrollTop,
+              height: rect.firstLineHeight,
             }}
           >
             {visibleCommands.map((cmd) => (

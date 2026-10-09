@@ -38,9 +38,10 @@ export const ROUTE_PATTERNS = {
   collectionTarget: '/c/:collection/:workout',
   /** /e/:slug — effort detail (single-letter item prefix). */
   effortSlug: '/e/:slug',
-  /** /sessions, /sessions/:sessionId, /session/:date — the sessions family. */
+  /** /sessions list, /results/:sessionId detail, /session/:date — the sessions family. */
   sessions: '/sessions',
-  sessionDetail: '/sessions/:sessionId',
+  /** /results/:sessionId — one session's execution detail (canonical). */
+  sessionDetail: '/results/:sessionId',
   sessionDate: '/session/:date',
   /** /dashboards — dashboard list / WQL explorer landing. */
   dashboards: '/dashboards',
@@ -61,7 +62,6 @@ export const ROUTE_PATTERNS = {
   analyticsExplorer: '/analytics/explorer',
   dashboard: '/dashboard',
   dashboardView: '/dashboard/:slug',
-  library: '/library',
   settings: '/settings',
   settingsAppearance: '/settings/appearance',
   settingsProfile: '/settings/profile',
@@ -149,9 +149,9 @@ export function sessionsPath(): string {
   return '/sessions';
 }
 
-/** /sessions/:sessionId — one session's execution detail. */
+/** /results/:sessionId — one session's execution detail (canonical). */
 export function sessionDetailPath(sessionId: string): string {
-  return `/sessions/${encodeURIComponent(sessionId)}`;
+  return `/results/${encodeURIComponent(sessionId)}`;
 }
 
 /** /session/:date — the sessions from a given date. */

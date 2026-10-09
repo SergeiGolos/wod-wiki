@@ -22,7 +22,7 @@ import {
   matchFeedDetail,
 } from './routes'
 import { cleanRoutePath, isStreamRoute, streamRouteTitle } from '../views/stream/streamProfile'
-import { deriveNav, type RouteNavDeps } from './routeNav'
+import { deriveNav } from './routeNav'
 import { resolveJournalRoute, isNoteUuid } from './journalRoute'
 import { parseJournalDate } from '../services/parseJournalDate'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
@@ -221,7 +221,8 @@ function deriveWorkout(
   // Named routes without params
   const named: Record<string, string> = {
     '/': 'Home',
-    // /results kept for the legacy classification contract (router redirects it)
+    // Bare /results keeps its legacy classification name (the router
+    // redirects the bare path to the /sessions list)
     '/results': 'Results',
     '/results/segments': 'Segments',
     '/dashboard': 'Dashboards',
@@ -237,7 +238,7 @@ function deriveWorkout(
   if (namedMatch) {
     return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
   }
-  if (cleanPath.startsWith('/results/') || cleanPath.startsWith('/sessions/')) {
+  if (cleanPath.startsWith('/results/')) {
     return { name: 'Result', content: PLAYGROUND_CONTENT, category: 'Results' }
   }
   if (cleanPath === '/settings' || cleanPath.startsWith('/settings/')) {

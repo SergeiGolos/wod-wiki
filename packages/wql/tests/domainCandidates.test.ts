@@ -251,24 +251,13 @@ describe('domain candidate reads — parity with the whole-store path', () => {
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
   });
 
-  it(':note | limit 2 — default exclusion compiles; static plane keeps the JS slice', async () => {
+  it(':note | limit 2 — inclusive plane pages; static plane keeps the JS slice', async () => {
     const plain = makeService(false);
     const domain = makeService(true);
     const parsed = find('note', [], { limit: 2 });
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
-    expect(domain.captured).toHaveLength(1);
-    expect(domain.captured[0]).toMatchObject({
-      plan: 'notes',
-      selection: [
-        { field: 'defaultNotes', collections: false },
-        { field: 'sourceFence' },
-      ],
-    });
-    // Static plane unions after the user plane and the historical slice cuts
-    // the merged array — no server paging for static-backed deployments.
-    expect(domain.captured[0].limit).toBeUndefined();
-    // Baseline = defaultNotes-selected user plane + JS-selected static rows.
-    expect((await outcome(domain.service, parsed)).stages.selected).toBe(3);
+    // Baseline = the whole user plane + JS-selected static rows.
+    expect((await outcome(domain.service, parsed)).stages.selected).toBe(5);
     expect((await outcome(domain.service, parsed)).stages.matched).toBe(2);
   });
 

@@ -13,7 +13,7 @@
  */
 import { describe, expect, it, mock, afterEach } from 'bun:test'
 
-import { parseQuery } from '@bitcobblers/wod-wiki-engine'
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
 import type { BlockIndexRow, Note } from '@/types/storage'
 import type { Entry } from '../lib/entryMapper'
@@ -38,6 +38,7 @@ import {
   withWqlText,
   searchPaletteQuery,
   navigatePaletteResult,
+  PALETTE_SEED_QUERY,
 } from './wqlSearchSource'
 import { writeRouteWqlConfig, clearRouteWqlConfig, PALETTE_ROUTE_ID } from '../lib/routeWqlConfig'
 
@@ -213,8 +214,16 @@ describe('searchPaletteQuery', () => {
     clearRouteWqlConfig(PALETTE_ROUTE_ID)
   })
 
-  it('is the unbounded global default (all notes, no window)', () => {
-    expect(searchPaletteQuery()).toBe(':journal')
+  it('seed is an executable inclusive find query grouped by date', () => {
+    const parsed = parseQuery(searchPaletteQuery())
+    expect(parsed.error).toBeUndefined()
+    if (isFindQuery(parsed)) {
+      const source = parsed.filters.find(f => f.key === 'source' && !f.negate)
+      expect(source?.values.map(v => v.value)).toContain('journal')
+      expect(parsed.groupBy).toContain('date')
+    } else {
+      throw new Error('palette seed must be a find query')
+    }
   })
 
   it('uses the configured palette default when one is stored', () => {
@@ -224,6 +233,6 @@ describe('searchPaletteQuery', () => {
 
   it('falls back to the system seed when the stored default is only options', () => {
     writeRouteWqlConfig(PALETTE_ROUTE_ID, { typeOptions: ['notes'] })
-    expect(searchPaletteQuery()).toBe(':journal')
+    expect(searchPaletteQuery()).toBe(PALETTE_SEED_QUERY)
   })
 })

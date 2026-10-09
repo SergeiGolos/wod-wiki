@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'bun:test'
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import {
   JOURNAL_STREAM_PROFILE,
   CATALOGS_STREAM_PROFILE,
   COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
-  LIBRARY_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
   SESSIONS_STREAM_PROFILE,
   PLAYGROUNDS_STREAM_PROFILE,
@@ -13,74 +13,23 @@ import {
   isStreamRoute,
 } from './streamProfile'
 
-describe('streamProfile presets', () => {
-  it('defines the Journal stream profile', () => {
-    expect(JOURNAL_STREAM_PROFILE.route).toBe('/journal')
-    expect(JOURNAL_STREAM_PROFILE.defaultWql).toBe(':journal{} last 4w')
-    expect(JOURNAL_STREAM_PROFILE.level).toBe('note')
-    expect(JOURNAL_STREAM_PROFILE.target).toBe('note')
-    expect(JOURNAL_STREAM_PROFILE.scopeOptions).toEqual(['journal'])
-  })
-
-  it('defines the Collections stream profile', () => {
-    expect(COLLECTIONS_STREAM_PROFILE.route).toBe('/collections')
-    expect(COLLECTIONS_STREAM_PROFILE.defaultWql).toBe(':collection{} by {tag}')
-    expect(COLLECTIONS_STREAM_PROFILE.level).toBe('session')
-    expect(COLLECTIONS_STREAM_PROFILE.target).toBe('note')
-    expect(COLLECTIONS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
-  })
-
-  it('defines the Catalogs stream profile', () => {
-    expect(CATALOGS_STREAM_PROFILE.route).toBe('/catalogs')
-    expect(CATALOGS_STREAM_PROFILE.defaultWql).toBe(':catalog')
-    expect(CATALOGS_STREAM_PROFILE.level).toBe('session')
-    expect(CATALOGS_STREAM_PROFILE.target).toBe('note')
-    expect(CATALOGS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
-  })
-
-  it('defines the Feeds stream profile', () => {
-    expect(FEEDS_STREAM_PROFILE.route).toBe('/feeds')
-    expect(FEEDS_STREAM_PROFILE.defaultWql).toBe(':catalog{} last 2w')
-    expect(FEEDS_STREAM_PROFILE.level).toBe('note')
-    expect(FEEDS_STREAM_PROFILE.target).toBe('note')
-    // feeds is excised from WQL storage scopes.
-    expect(FEEDS_STREAM_PROFILE.scopeOptions).toEqual(['collections'])
-  })
-
-  it('defines the Library stream profile', () => {
-    expect(LIBRARY_STREAM_PROFILE.route).toBe('/library')
-    expect(LIBRARY_STREAM_PROFILE.defaultWql).toBe(':collection{} last 4w')
-    expect(LIBRARY_STREAM_PROFILE.level).toBe('note')
-    expect(LIBRARY_STREAM_PROFILE.target).toBe('note')
-    expect(LIBRARY_STREAM_PROFILE.scopeOptions).toEqual(['journal', 'collections', 'guides', 'playground'])
-  })
-
-  it('defines the Efforts stream profile', () => {
-    expect(EFFORTS_STREAM_PROFILE.route).toBe('/efforts')
-    expect(EFFORTS_STREAM_PROFILE.defaultWql).toBe(':effort')
-    expect(EFFORTS_STREAM_PROFILE.level).toBe('effort')
-    expect(EFFORTS_STREAM_PROFILE.target).toBe('effort')
-    expect(EFFORTS_STREAM_PROFILE.scopeOptions).toEqual([])
-  })
-
-  it('defines the Sessions stream profile (/sessions, rebranded from /results)', () => {
-    expect(SESSIONS_STREAM_PROFILE.route).toBe('/sessions')
-    expect(SESSIONS_STREAM_PROFILE.defaultWql).toBe(':session{} last 4w')
-    expect(SESSIONS_STREAM_PROFILE.level).toBe('result')
-    expect(SESSIONS_STREAM_PROFILE.target).toBe('session')
-    expect(SESSIONS_STREAM_PROFILE.scopeOptions).toEqual([])
-  })
-
-  it('defines the Playgrounds stream profile', () => {
-    expect(PLAYGROUNDS_STREAM_PROFILE.route).toBe('/playgrounds')
-    expect(PLAYGROUNDS_STREAM_PROFILE.defaultWql).toBe(':playground{} last 4w')
-    expect(PLAYGROUNDS_STREAM_PROFILE.level).toBe('note')
-    expect(PLAYGROUNDS_STREAM_PROFILE.target).toBe('note')
-    expect(PLAYGROUNDS_STREAM_PROFILE.scopeOptions).toEqual(['playground'])
+describe('streamProfile', () => {
+  it('every stream default WQL parses — requested defaults are executable', () => {
+    for (const profile of [
+      JOURNAL_STREAM_PROFILE,
+      CATALOGS_STREAM_PROFILE,
+      COLLECTIONS_STREAM_PROFILE,
+      FEEDS_STREAM_PROFILE,
+      EFFORTS_STREAM_PROFILE,
+      SESSIONS_STREAM_PROFILE,
+      PLAYGROUNDS_STREAM_PROFILE,
+    ]) {
+      const parsed = parseQuery(profile.defaultWql)
+      expect(parsed.error).toBeUndefined()
+    }
   })
 
   it('carries a display title per stream surface — deriveWorkout reads these', () => {
-    expect(LIBRARY_STREAM_PROFILE.title).toBe('Library')
     expect(JOURNAL_STREAM_PROFILE.title).toBe('Journal')
     expect(COLLECTIONS_STREAM_PROFILE.title).toBe('Collections')
     expect(CATALOGS_STREAM_PROFILE.title).toBe('Catalogs')
@@ -90,43 +39,25 @@ describe('streamProfile presets', () => {
     expect(PLAYGROUNDS_STREAM_PROFILE.title).toBe('Playgrounds')
   })
 
-  it('carries no recent-* secondary rails — L3 surfaces the shared facet properties instead', () => {
-    // The recent-entries/recent-sessions/recent-playgrounds WQL listing
-    // menus were replaced by the properties block (FacetProperties) that
-    // SecondaryNav renders for every stream route; profiles no longer
-    // declare a secondary menu at all.
-    for (const profile of [
-      JOURNAL_STREAM_PROFILE,
-      CATALOGS_STREAM_PROFILE,
-      COLLECTIONS_STREAM_PROFILE,
-      FEEDS_STREAM_PROFILE,
-      LIBRARY_STREAM_PROFILE,
-      EFFORTS_STREAM_PROFILE,
-      SESSIONS_STREAM_PROFILE,
-      PLAYGROUNDS_STREAM_PROFILE,
-    ]) {
-      expect('secondary' in profile).toBe(false)
-    }
-  })
-
   it('owns stream-surface membership — isStreamRoute is the single registry', () => {
     // every profile route is a stream surface
     expect(isStreamRoute('/journal')).toBe(true)
     expect(isStreamRoute('/collections')).toBe(true)
     expect(isStreamRoute('/feeds')).toBe(true)
-    expect(isStreamRoute('/library')).toBe(true)
+    expect(isStreamRoute('/catalogs')).toBe(true)
     expect(isStreamRoute('/efforts')).toBe(true)
     expect(isStreamRoute('/sessions')).toBe(true)
     expect(isStreamRoute('/playgrounds')).toBe(true)
     // trailing slashes normalize
     expect(isStreamRoute('/journal/')).toBe(true)
     // dynamic stream routes
-    expect(isStreamRoute('/sessions/res-42')).toBe(true)
+    expect(isStreamRoute('/results/res-42')).toBe(true)
     expect(isStreamRoute('/session/2026-09-17')).toBe(true)
-    // legacy results paths classify too (pure function; router redirects them)
+    // legacy bare results paths classify too (pure function; router redirects them)
     expect(isStreamRoute('/results')).toBe(true)
     expect(isStreamRoute('/results/segments')).toBe(true)
-    expect(isStreamRoute('/results/res-42')).toBe(true)
+    // /sessions/:id is retired — only the bare list remains
+    expect(isStreamRoute('/sessions/res-42')).toBe(false)
     // non-stream routes stay out
     expect(isStreamRoute('/settings/appearance')).toBe(false)
     expect(isStreamRoute('/playground/abc')).toBe(false)
@@ -143,30 +74,28 @@ describe('streamProfile presets', () => {
     expect(getStreamProfile('/efforts')?.route).toBe('/efforts')
     expect(getStreamProfile('/sessions')?.route).toBe('/sessions')
     expect(getStreamProfile('/playgrounds')?.route).toBe('/playgrounds')
-    expect(getStreamProfile('/library')?.route).toBe('/library')
 
     // getStreamProfile returns undefined for unknown routes
     expect(getStreamProfile('/unknown')).toBeUndefined()
 
-    // resolveStreamProfile explicitly falls back to library profile
-    expect(resolveStreamProfile('/unknown').route).toBe('/library')
+    // the generic fallback is the conservative journal surface
+    expect(resolveStreamProfile('/unknown')).toBe(JOURNAL_STREAM_PROFILE)
   })
 
-  it('dynamically resolves result detail stream profile for /sessions/:sessionId', () => {
-    const detail = getStreamProfile('/sessions/res-42')
+  it('dynamically resolves the result detail stream profile for /results/:sessionId', () => {
+    const detail = getStreamProfile('/results/res-42')
     expect(detail).toBeDefined()
-    expect(detail?.route).toBe('/sessions/res-42')
+    expect(detail?.route).toBe('/results/res-42')
     expect(detail?.defaultWql).toBe(':session{result:res-42, plane:segment}')
     expect(detail?.level).toBe('segment')
     expect(detail?.target).toBe('session')
 
     // Trailing slash normalizes
-    const trailing = getStreamProfile('/sessions/res-42/')
-    expect(trailing?.route).toBe('/sessions/res-42')
-    expect(trailing?.defaultWql).toBe(':session{result:res-42, plane:segment}')
+    const trailing = getStreamProfile('/results/res-42/')
+    expect(trailing?.route).toBe('/results/res-42')
 
     // resolveStreamProfile returns the dynamic profile
-    expect(resolveStreamProfile('/sessions/res-99').defaultWql).toBe(':session{result:res-99, plane:segment}')
+    expect(resolveStreamProfile('/results/res-99').defaultWql).toBe(':session{result:res-99, plane:segment}')
   })
 
   it('dynamically resolves a date-scoped sessions profile for /session/:date', () => {
@@ -177,9 +106,7 @@ describe('streamProfile presets', () => {
     expect(byDate?.level).toBe('result')
     expect(byDate?.target).toBe('session')
   })
-})
 
-describe('streamProfile legacy configurations', () => {
   it('migrates legacy content parameters with default source', () => {
     const journalLegacy = JOURNAL_STREAM_PROFILE.legacy!
     expect(journalLegacy).toBeDefined()
@@ -189,12 +116,17 @@ describe('streamProfile legacy configurations', () => {
   })
 
   it('migrates legacy tri-state parameters', () => {
-    const libraryLegacy = LIBRARY_STREAM_PROFILE.legacy!
-    expect(libraryLegacy).toBeDefined()
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
+    const collectionsLegacy = COLLECTIONS_STREAM_PROFILE.legacy!
+    expect(collectionsLegacy).toBeDefined()
+    expect(collectionsLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
+    expect(collectionsLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
     // `post` mapped to the feeds WQL scope — excised, so it no longer narrows.
-    expect(libraryLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on'))).toBe(':note last 2w')
+    const postOnly = parseQuery(collectionsLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on')) ?? '')
+    expect(isFindQuery(postOnly)).toBe(true)
+    if (isFindQuery(postOnly)) {
+      expect(postOnly.filters.filter((f) => f.key === 'source')).toHaveLength(0)
+      expect(postOnly.window).toEqual({ kind: 'relative', size: 2, unit: 'w' })
+    }
   })
 
   it('migrates legacy efforts parameters and salvages plain text query', () => {

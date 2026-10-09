@@ -210,14 +210,7 @@ describe('resolveRouteView — collection index nav', () => {
   })
 })
 
-describe('resolveRouteView — Library replaces the legacy list routes', () => {
-  it('classifies /library → library page', () => {
-    const view = resolveRouteView('/library', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('library')
-    expect(view.workout.name).toBe('Library')
-    expect(view.shell).toEqual({ wrap: 'bare' })
-  })
-
+describe('resolveRouteView — stream list routes', () => {
   it('/journal, /collections, /feeds, /efforts, /results, and /results/segments map directly to library page', () => {
     for (const route of ['/journal', '/collections', '/feeds', '/efforts', '/results', '/results/segments', '/results/res-42']) {
       const view = resolveRouteView(route, NO_PARAMS, makeDeps())
@@ -227,13 +220,13 @@ describe('resolveRouteView — Library replaces the legacy list routes', () => {
   })
 
   it('classifies bare routes → bare shell', () => {
-    expect(resolveRouteView('/library', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
+    expect(resolveRouteView('/collections', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).page).toBe('library')
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).workout.name).toBe('Efforts')
     expect(resolveRouteView('/effort/squat', NO_PARAMS, makeDeps()).page).toBe('effortDetail')
   })
 
-  it('classifies execution telemetry routes (/results, /results/segments, /results/:resultId)', () => {
+  it('classifies execution telemetry routes (/results list redirect source, /results/:resultId canonical detail)', () => {
     const resultsView = resolveRouteView('/results', NO_PARAMS, makeDeps())
     expect(resultsView.page).toBe('library')
     expect(resultsView.workout.name).toBe('Results')
@@ -357,7 +350,7 @@ describe('resolveRouteView — target-scheme routes (/c, /e, /sessions, /d, /p, 
     expect(listing.page).toBe('library')
     expect(listing.workout.name).toBe('Sessions')
 
-    const detail = resolveRouteView('/sessions/res-42', NO_PARAMS, makeDeps())
+    const detail = resolveRouteView('/results/res-42', NO_PARAMS, makeDeps())
     expect(detail.page).toBe('library')
     expect(detail.workout.name).toBe('Result')
 

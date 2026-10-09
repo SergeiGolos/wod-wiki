@@ -10,7 +10,7 @@
  * Settings → System can force a manual re-sync (`force: true`) and read the
  * local/remote version pair via `readSeedStatus`.
  */
-import { emptySeedMeta, SEED_BROADCAST_CHANNEL, type SeedMetaRecord } from '@/types/seed';
+import { emptySeedMeta, SEED_BROADCAST_CHANNEL, SEED_SCHEMA, type SeedMetaRecord } from '@/types/seed';
 import { SeedImporter } from './SeedImporter';
 import { HttpSeedSource } from './HttpSeedSource';
 import { IndexedDBSeedImportStorage, type SeedImportStorage } from './SeedImportStorage';
@@ -97,7 +97,12 @@ async function runSeedSyncInner(deps: SeedSyncDeps): Promise<SeedSyncOutcome> {
     const manifest = await source.fetchManifest();
     const decision = deps.force ? 'import' : decideSeedImport(stored?.seedVersion, manifest.version);
     if (decision === 'server-stale') return 'server-stale';
-    if (decision === 'current') return 'current';
+    // A stored checkpoint from a different seed schema migrates even when the
+    // manifest version is unchanged — the re-apply is the migration that
+    // repairs metadata on already-seeded rows (ownership still gates rows).
+    // Decided AFTER the version table so a rollback (server-stale) keeps its
+    // refusal: never migrate onto an older manifest.
+    if (decision === 'current' && stored?.schema === SEED_SCHEMA) return 'current';
 
     // Claim before the (potentially long) chunk imports.
     const claimed: SeedMetaRecord = { ...(stored ?? emptySeedMeta()), claim: { owner, at: now() } };

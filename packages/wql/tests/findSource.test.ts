@@ -32,6 +32,18 @@ const NOTES: Note[] = [
   { ...makeNote('pg-1', 'playground'), type: 'playground' },
   { ...makeNote('pg-legacy', undefined), id: 'pg-legacy', type: 'playground' },
   { ...makeNote('page-1', 'collection:crossfit-girls'), type: 'page' },
+  // ── Seed corpus shapes (SeedImporter attribution + legacy rows) ──
+  makeNote('seed-effort', 'efforts'),
+  { ...makeNote('legacy-effort', undefined), seedOrigin: 'seed', seedChunkId: 'efforts', sourcePath: 'markdown/efforts/fran.md' } as Note,
+  // User-edited legacy seed: seedOrigin flipped to 'user', provenance retained.
+  { ...makeNote('edited-effort', undefined), seedOrigin: 'user', seedChunkId: 'efforts', sourcePath: 'markdown/efforts/fran.md' } as Note,
+  // Legacy equipment row: sourceless, seed tree path only.
+  { ...makeNote('legacy-equipment', undefined), sourcePath: 'markdown/equipment/barbell.md' } as Note,
+  // Legacy catalog-only seed row (pre-provenance import).
+  { ...makeNote('legacy-catalog', undefined), catalog: 'girls' } as Note,
+  // Prebuilt dashboard, attributed; user vault dashboard, typed.
+  { ...makeNote('seed-dash', 'dashboards'), type: 'dashboard' },
+  { ...makeNote('user-dash', 'dashboards'), type: 'dashboard' },
 ];
 
 const BLOCKS: BlockIndexRow[] = [
@@ -58,10 +70,10 @@ describe('source: filter — runFind (Note[])', () => {
     expect(result.notes.map(n => n.id)).toEqual(['jrnl-1']);
   });
 
-  it('keeps only static collection notes when source:collection is set', async () => {
+  it('keeps collection-location notes when source:collection is set — pages included', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':note{source:collection} in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id)).toEqual(['coll-1']);
+    expect(result.notes.map(n => n.id)).toEqual(['coll-1', 'page-1']);
   });
 
   it('source:feed is no longer a supported source choice — feed notes never match', async () => {
@@ -72,10 +84,14 @@ describe('source: filter — runFind (Note[])', () => {
     expect(result.notes.map(n => n.id)).toEqual([]);
   });
 
-  it(':note default scope excludes feeds and guides', async () => {
+  it(':note is the inclusive plane — feeds, arbitrary sources, pages, typed dashboards', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':note') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    expect(result.notes.map(n => n.id).sort()).toEqual([
+      'coll-1', 'edited-effort', 'feed-1', 'guide-1', 'jrnl-1',
+      'legacy-catalog', 'legacy-effort', 'legacy-equipment', 'page-1',
+      'pg-1', 'pg-legacy', 'seed-dash', 'seed-effort', 'user-dash',
+    ]);
   });
 
   it('keeps only guide notes when source:guides is set', async () => {
@@ -89,10 +105,36 @@ describe('source: filter — runFind (Note[])', () => {
     expect(parsed.error).toBeUndefined();
   });
 
-  it('in all spans every WQL-addressable source kind — feeds stay excised', async () => {
+  it(':note{!source:playground} includes every note kind/source except playground', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery(':note in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);
+    const result = await service.runFind(parseQuery(':note{!source:playground}') as ParsedFindQuery);
+    const ids = result.notes.map(n => n.id);
+    expect(ids).toContain('jrnl-1');           // journal
+    expect(ids).toContain('coll-1');           // collections
+    expect(ids).toContain('guide-1');          // guides
+    expect(ids).toContain('feed-1');           // feeds (inclusive plane)
+    expect(ids).toContain('page-1');           // typed pages survive
+    expect(ids).toContain('seed-effort');      // attributed seed efforts
+    expect(ids).toContain('legacy-effort');    // sourceless legacy seed rows
+    expect(ids).toContain('legacy-equipment'); // path-classified equipment rows
+    expect(ids).toContain('seed-dash');        // typed dashboards (seeded + user)
+    expect(ids).toContain('user-dash');
+    expect(ids).not.toContain('pg-1');
+    expect(ids).not.toContain('pg-legacy');
+  });
+
+  it('regression: :journal{} never matches the seed corpus — imports leaked 1004 notes', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery(':journal{}') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id)).toEqual(['jrnl-1']);
+  });
+
+  it(':dashboard{} returns seeded and user dashboards and honors text', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery(':dashboard{}') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['seed-dash', 'user-dash']);
+    const titled = await service.runFind(parseQuery(':dashboard{text:user}') as ParsedFindQuery);
+    expect(titled.notes.map(n => n.id)).toEqual(['user-dash']);
   });
 
   it('source:all fails to parse with a hint', () => {

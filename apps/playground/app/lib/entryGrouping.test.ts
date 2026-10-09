@@ -79,6 +79,38 @@ describe('groupEntriesByDimension — ordered dimensions', () => {
   })
 })
 
+describe('groupEntriesByDimension — date (playground createdAt fallback)', () => {
+  it('groups playground notes by createdAt when no journal date exists', () => {
+    const groups = groupEntriesByDimension([
+      entry('p1', { sourceCatalog: 'playground', createdAt: Date.UTC(2026, 9, 8) }),
+      entry('p2', { sourceCatalog: 'playground', createdAt: Date.UTC(2026, 9, 8) }),
+      entry('p3', { sourceCatalog: 'playground', createdAt: Date.UTC(2026, 9, 7) }),
+    ], 'date')
+
+    const keys = groups.map(g => g.key)
+    expect(keys).toEqual(['2026-10-08', '2026-10-07'])
+    expect(groups[0]!.entries.map(e => e.id)).toEqual(['p1', 'p2'])
+  })
+
+  it('keeps undated collection sessions on the shelf while playgrounds date-group', () => {
+    const groups = groupEntriesByDimension([
+      entry('c1', { kind: 'session', sourceCatalog: 'crossfit-girls', date: null }),
+      entry('p1', { sourceCatalog: 'playground', createdAt: Date.UTC(2026, 9, 8) }),
+    ], 'date', { shelfVisible: true })
+
+    expect(groups[1]!.key).toBe('2026-10-08')
+    expect(groups[0]!.entries.map(e => e.id)).toEqual(['c1'])
+  })
+
+  it('leaves non-playground undated entries in the Undated bucket', () => {
+    const groups = groupEntriesByDimension([
+      entry('n1', { sourceCatalog: 'journal', date: null }),
+    ], 'date')
+
+    expect(groups.map(g => g.key)).toEqual(['undated'])
+  })
+})
+
 describe('parseGroupingDimensions — ordered', () => {
   it('reads every ordered dimension from the AST, lowercased in order', () => {
     expect(

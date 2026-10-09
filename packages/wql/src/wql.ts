@@ -22,10 +22,10 @@ import {
   WQL_EFFORT_FILTER_KEYS,
   WQL_FIND_TARGETS,
   WQL_FUNCTION_HEADS,
-  WQL_NOTE_DEFAULT_SOURCES,
   WQL_SOURCE_HEADS,
   WQL_SOURCE_HEAD_SCOPES,
   WQL_SOURCE_VALUES,
+  WQL_TYPE_HEADS,
   type WqlAggregator,
   type WqlChartHead,
   WQL_TAG_KEYS,
@@ -904,9 +904,10 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
   }
 
   const scope = WQL_SOURCE_HEAD_SCOPES[headName];
-  if (scope) {
-    // Source-scoped note head: the head IS the scope, injected as an
-    // authored filter (it intersects any explicit source: — plain AND).
+  const typeScope = WQL_TYPE_HEADS[headName];
+  if (scope || typeScope) {
+    // Scoped note head: the head IS the scope, injected as authored filters
+    // (they intersect any explicit source:/type: — plain AND).
     result.target = 'note';
   } else {
     result.target = headName;
@@ -922,6 +923,16 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
     }
   }
   result.filters = extractFilters(stage, text);
+  if (typeScope) {
+    // Position 0 is the head-authored slot — the serializer's alias-head
+    // collapse expects the injected filter first, matching the parse shape
+    // of `:dashboard{…}` (authored filters follow).
+    result.filters.unshift({
+      key: 'type',
+      negate: false,
+      values: [{ value: typeScope, wildcard: false }],
+    });
+  }
   if (scope) {
     result.filters.push({
       key: 'source',
@@ -952,12 +963,9 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
       values: [{ value: inScope, wildcard: false }],
     });
   }
-  // Generic `:note` default scope — journal|collections|playground — lives
-  // on the AST (never inside filters); explicit source: or `in all` opts out.
-  if (opts?.colon && result.target === 'note' && !scope && inScope !== 'all'
-      && !result.filters.some((f) => f.key === 'source')) {
-    result.sourceScope = [...WQL_NOTE_DEFAULT_SOURCES];
-  }
+  // The generic `:note` head carries NO default scope — it is the inclusive
+  // note plane (every row; authored source: filters and negations scope it).
+  // WQL_NOTE_DEFAULT_SOURCES remains exported (empty) for the serializer.
   const sourceError = validateSourceFilter(result.filters);
   if (sourceError) { result.error = sourceError; return result; }
   const findGrainError = retiredGrainRollup(result.filters);

@@ -54,12 +54,12 @@ const pathname = () => screen.getByTestId('pathname').textContent
 
 describe('useComposerQueryState', () => {
   it('native Back restores the query when the scratch navigation has not rendered', async () => {
-    window.history.replaceState(null, '', '/library')
+    window.history.replaceState(null, '', '/journal')
     try {
       render(<BrowserRouter><Probe /></BrowserRouter>)
       act(() => {
         captured.setQuery(':note{tags:strength}')
-        window.history.replaceState(null, '', '/library')
+        window.history.replaceState(null, '', '/journal')
         window.dispatchEvent(new window.PopStateEvent('popstate'))
       })
       await waitFor(() => expect(query()).toBe(DEFAULT_QUERY))
@@ -70,7 +70,7 @@ describe('useComposerQueryState', () => {
   })
 
   it('collapses an editing burst into one scratch entry — Back restores the landing', async () => {
-    renderAt(['/elsewhere', '/library'], 1)
+    renderAt(['/elsewhere', '/journal'], 1)
 
     // Each emission is flushed through a real render before the next — the
     // composer echoes resolved drafts synchronously, and the URL write must
@@ -90,7 +90,7 @@ describe('useComposerQueryState', () => {
   })
 
   it('a Back/Forward restore is committed — the next edit pushes a fresh spell', async () => {
-    renderAt(['/elsewhere', '/library'], 1)
+    renderAt(['/elsewhere', '/journal'], 1)
 
     act(() => captured.setQuery(':note{tags:strength}'))
     await waitFor(() => expect(qParam()).toBe(':note{tags:strength}'))
@@ -110,7 +110,7 @@ describe('useComposerQueryState', () => {
   })
 
   it('never writes an unparseable draft to the URL', async () => {
-    renderAt(['/library'])
+    renderAt(['/journal'])
     act(() => captured.setQuery(':note{source:collections} backproof'))
     expect(qParam()).toBe('')
     act(() => captured.setQuery(':note{tags:strength}'))
@@ -118,7 +118,7 @@ describe('useComposerQueryState', () => {
   })
 
   it('keeps a no-op edit from pushing a history entry', async () => {
-    renderAt(['/library'])
+    renderAt(['/journal'])
     const searchBefore = search()
 
     act(() => captured.setQuery(DEFAULT_QUERY))
@@ -131,7 +131,7 @@ describe('useComposerQueryState', () => {
   it('an unchanged-URL popstate (palette sentinel) keeps the exact local draft', async () => {
     // Real browser history: the valid edit reached the actual URL (the hook
     // writes it there); the INVALID continuation stays local only.
-    window.history.replaceState(null, '', '/library?q=:note{tags:strength}')
+    window.history.replaceState(null, '', '/journal?q=:note{tags:strength}')
     try {
       render(
         <BrowserRouter>
@@ -150,7 +150,7 @@ describe('useComposerQueryState', () => {
       })
       expect(query()).toBe(':note{tags:strength} backproof')
     } finally {
-      window.history.replaceState(null, '', '/library')
+      window.history.replaceState(null, '', '/journal')
     }
   })
 })

@@ -33,6 +33,10 @@ import {
   Layers,
   Dumbbell,
   Rss,
+  LayoutDashboard,
+  Wrench,
+  FlaskConical,
+  BookOpen,
 } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
 import { formatDuration } from '../../lib/entryMapper'
@@ -49,6 +53,8 @@ const KIND_ICON: Record<Entry['kind'], React.FC<{ className?: string }>> = {
   result: Trophy,
   segment: Layers,
   event: Activity,
+  dashboard: LayoutDashboard,
+  equipment: Wrench,
 }
 
 const KIND_LABEL: Record<Entry['kind'], string> = {
@@ -59,6 +65,8 @@ const KIND_LABEL: Record<Entry['kind'], string> = {
   result: 'Result',
   segment: 'Segment',
   event: 'Event',
+  dashboard: 'Dashboard',
+  equipment: 'Equipment',
 }
 
 /** Collapsed preview height: enough to read the workout's shape (schema,
@@ -162,7 +170,17 @@ export function StreamFeed({ groups, batch, onRunEntry, onSendToPlayground, stic
           />
           <div className="divide-y divide-border/30">
             {group.entries.map(entry => {
-              const Icon = KIND_ICON[entry.kind]
+              // Same note-flavor rule as LibraryRow: guides/playground notes
+              // carry their own icon/label inside the plain `note` kind.
+              const noteCatalog = entry.kind === 'note' ? entry.sourceCatalog : undefined
+              const Icon =
+                noteCatalog === 'playground' ? FlaskConical
+                : noteCatalog === 'guides' ? BookOpen
+                : KIND_ICON[entry.kind]
+              const kindLabel =
+                noteCatalog === 'playground' ? 'Playground'
+                : noteCatalog === 'guides' ? 'Guide'
+                : KIND_LABEL[entry.kind]
               const openHref = entryOpenHref(entry)
               const feedHref = entryCollectionFeedHref(entry)
               const sendToPlayground =
@@ -185,7 +203,7 @@ export function StreamFeed({ groups, batch, onRunEntry, onSendToPlayground, stic
                           </Link>
                         </h3>
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border border-border rounded-full px-1.5 py-0.5">
-                          {KIND_LABEL[entry.kind]}
+                          {kindLabel}
                         </span>
                         {entry.subtitle && (
                           <span className="text-[10px] text-muted-foreground/70 truncate">{entry.subtitle}</span>

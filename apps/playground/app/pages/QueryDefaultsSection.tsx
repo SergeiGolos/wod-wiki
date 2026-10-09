@@ -37,9 +37,9 @@ import {
 import { SaveWqlShortcutDialog } from '../components/organisms/wql/SaveWqlShortcutDialog'
 import {
   JOURNAL_STREAM_PROFILE,
+  CATALOGS_STREAM_PROFILE,
   COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
-  LIBRARY_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
   SESSIONS_STREAM_PROFILE,
   PLAYGROUNDS_STREAM_PROFILE,
@@ -53,16 +53,19 @@ interface ConfigurableSurface {
   profile?: StreamProfile
   /** Real library nav group — hosts the saved-shortcuts editor. */
   shortcuts?: boolean
+  /** Read-only fallback shown when the surface has no StreamProfile. */
+  systemDefaultWql?: string
 }
 
 const CONFIGURABLE_SURFACES: ConfigurableSurface[] = [
-  { id: LIBRARY_STREAM_PROFILE.route, label: 'Library', profile: LIBRARY_STREAM_PROFILE },
   { id: JOURNAL_STREAM_PROFILE.route, label: 'Journal', profile: JOURNAL_STREAM_PROFILE, shortcuts: true },
   { id: COLLECTIONS_STREAM_PROFILE.route, label: 'Collections', profile: COLLECTIONS_STREAM_PROFILE, shortcuts: true },
+  { id: CATALOGS_STREAM_PROFILE.route, label: 'Catalogs', profile: CATALOGS_STREAM_PROFILE },
   { id: FEEDS_STREAM_PROFILE.route, label: 'Feeds', profile: FEEDS_STREAM_PROFILE },
   { id: EFFORTS_STREAM_PROFILE.route, label: 'Efforts', profile: EFFORTS_STREAM_PROFILE, shortcuts: true },
   { id: SESSIONS_STREAM_PROFILE.route, label: 'Sessions', profile: SESSIONS_STREAM_PROFILE, shortcuts: true },
   { id: PLAYGROUNDS_STREAM_PROFILE.route, label: 'Playgrounds', profile: PLAYGROUNDS_STREAM_PROFILE, shortcuts: true },
+  { id: '/dashboards', label: 'Dashboards', systemDefaultWql: ':dashboard{}' },
   { id: PALETTE_ROUTE_ID, label: '⌘K Command Palette' },
 ]
 
@@ -164,7 +167,7 @@ function FavoriteOptionsEditor({
 }
 
 function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
-  const systemDefaultWql = surface.profile?.defaultWql ?? PALETTE_SEED_QUERY
+  const systemDefaultWql = surface.profile?.defaultWql ?? surface.systemDefaultWql ?? PALETTE_SEED_QUERY
   const systemTarget = surface.profile?.target
   const systemScopeOptions = surface.profile?.scopeOptions ?? []
 

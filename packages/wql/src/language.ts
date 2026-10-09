@@ -32,6 +32,7 @@ import {
   WQL_ROLLUP_PERIODS,
   WQL_SOURCE_HEADS,
   WQL_SOURCE_HEAD_SCOPES,
+  WQL_TYPE_HEADS,
   WQL_SOURCE_VALUES,
   WQL_STANDARD_DATASETS,
   WQL_FIND_TARGETS,
@@ -333,7 +334,9 @@ function resolveColonHead(name: string): Head {
     if (partial.length === 1) source = partial[0]!;
   }
   if ((WQL_SOURCE_HEADS as readonly string[]).includes(source)) {
-    return { family: 'find', target: (WQL_SOURCE_HEAD_SCOPES as Readonly<Record<string, string>>)[source] ? 'note' : source };
+    const scoped = (WQL_SOURCE_HEAD_SCOPES as Readonly<Record<string, string>>)[source]
+      || (WQL_TYPE_HEADS as Readonly<Record<string, string>>)[source];
+    return { family: 'find', target: scoped ? 'note' : source };
   }
   return { family: 'find' }; // partial or unknown — union key suggestions
 }

@@ -5,7 +5,10 @@
  *   - rows with seed provenance        → overwritten when their chunk hash
  *     changed; deleted when they vanish from the manifest;
  *   - user-owned rows (a Note with seedOrigin !== 'seed', or an IEffort with
- *     registrySource !== 'bundled') → never touched;
+ *     registrySource !== 'bundled') → title/content/provenance never touched;
+ *     a user-owned row whose seed sourcePath carries a broken or missing
+ *     sourceId still gets its real corpus family re-stamped (a sourceless
+ *     note classifies as `journal` — attribution is not user data);
  *   - per-chunk checkpoint in the `meta` store → idempotent re-imports and
  *     crash resume: a chunk whose sha matches the checkpoint is skipped.
  *
@@ -23,7 +26,16 @@
  * single transaction — see SeedImportStorage.
  */
 import type { ManifestChunk, SeedMetaRecord, SeedRow } from '@/types/seed';
-import { CANVAS_CHUNK_ID, EFFORTS_CHUNK_ID, emptySeedMeta, SEED_SCHEMA, seedSegmentId } from '@/types/seed';
+import {
+  CANVAS_CHUNK_ID,
+  DASHBOARDS_CHUNK_ID,
+  EFFORTS_CHUNK_ID,
+  SEED_SCHEMA,
+  catalogForChunkId,
+  emptySeedMeta,
+  seedNoteSourceId,
+  seedSegmentId,
+} from '@/types/seed';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import type { BlockEffort, BlockIndexRow, Note, NoteSegment, Page, PageNote } from '@/types/storage';
 import { parseEffortFile } from '@/repositories/effort-markdown';
@@ -58,13 +70,6 @@ function titleFromPath(path: string): string {
 }
 
 const KNOWN_TAG_TYPES = DEFAULT_TAG_TYPES.map((t) => t.name);
-
-/** `collection.crossfit-girls` → `crossfit-girls`; `_root`/non-catalog chunks → undefined. */
-function catalogForChunkId(chunkId: string): string | undefined {
-  const match = /^(?:collection|feed)\.(.+)$/.exec(chunkId);
-  const value = match?.[1];
-  return value && value !== '_root' ? value : undefined;
-}
 
 async function rowToRecords(
   row: SeedRow,
@@ -110,13 +115,20 @@ async function rowToRecords(
   }
 
   const tags = extractTypedFrontmatterTags(row.content, KNOWN_TAG_TYPES);
+  // Annotation 1: every imported row carries its real corpus family. A row
+  // without one would classify as `journal` — refuse it instead of leaking.
+  const sourceId = seedNoteSourceId(row.path, row.content, chunkId);
+  if (!sourceId) {
+    throw new Error(`[SeedImporter] chunk "${chunkId}" row "${row.path}" has no source family — refusing to import it as journal`);
+  }
   return {
     note: {
       id,
       title: titleFromPath(row.path),
       date,
       createdAt,
-      type: 'note',
+      type: chunkId === DASHBOARDS_CHUNK_ID ? 'dashboard' : 'note',
+      sourceId,
       catalog: catalogForChunkId(chunkId),
       seedOrigin: 'seed',
       seedVersion,
@@ -307,10 +319,20 @@ export class SeedImporter {
       const pages: Page[] = [];
       const pageNotes: PageNote[] = [];
       const noteTags: { noteId: string; tags: Array<string | { label: string; type?: string }> }[] = [];
-      for (const record of built) {
+      for (const [rowIndex, record] of built.entries()) {
         const existing = await this.storage.getNote(record.note.id);
         if (existing && existing.seedOrigin !== 'seed') {
           skippedUserOwned += 1;
+          // Attribution repair: ownership preserves the user's title,
+          // content, and provenance — not a broken source family. A seed-path
+          // row classified `journal` would leak into :journal{} forever.
+          const rowPath = rows[rowIndex].path;
+          if (
+            existing.sourceId !== record.note.sourceId &&
+            (!existing.sourcePath || existing.sourcePath === rowPath)
+          ) {
+            notes.push({ ...existing, sourceId: record.note.sourceId });
+          }
           continue;
         }
         notes.push(record.note);

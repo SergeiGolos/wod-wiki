@@ -124,10 +124,10 @@ describe('parseQuery — colon source heads', () => {
     expect(parsed.window).toBeUndefined();
   });
 
-  it('stamps the generic :note default scope on the AST, not the filters', () => {
+  it('carries no default scope on the generic :note head — the inclusive plane', () => {
     const parsed = _parseQuery(':note{tags:pr}');
     if (!isFindQuery(parsed)) throw new Error('expected find query');
-    expect(parsed.sourceScope).toEqual(['journal', 'collections', 'playground']);
+    expect(parsed.sourceScope).toBeUndefined();
     expect(parsed.filters).toEqual([
       { key: 'tags', negate: false, values: [{ value: 'pr', wildcard: false }] },
     ]);
@@ -278,6 +278,33 @@ describe('parseQuery — colon source heads', () => {
     expect(parsed.filters).toEqual([
       { key: 'source', negate: true, values: [{ value: 'guides', wildcard: false }] },
     ]);
+  });
+
+  it('parses the :dashboard head as target note + injected type:dashboard (no scope)', () => {
+    const parsed = _parseQuery(':dashboard{tags:pr}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.target).toBe('note');
+    expect(parsed.sourceScope).toBeUndefined();
+    expect(parsed.filters).toEqual([
+      { key: 'type', negate: false, values: [{ value: 'dashboard', wildcard: false }] },
+      { key: 'tags', negate: false, values: [{ value: 'pr', wildcard: false }] },
+    ]);
+  });
+
+  it('rewrites comma-separated bare values into one OR filter', () => {
+    const parsed = _parseQuery(':note{source:journal,collection} by {date}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.filters).toEqual([
+      { key: 'source', negate: false, values: [
+        { value: 'journal', wildcard: false },
+        { value: 'collection', wildcard: false },
+      ] },
+    ]);
+    expect(parsed.groupBy).toEqual(['date']);
+    // A colon-form after the comma stays a filter boundary.
+    const two = _parseQuery(':note{source:journal,collection:girls}');
+    if (!isFindQuery(two)) throw new Error('expected find query');
+    expect(two.filters).toHaveLength(2);
   });
 
   it('parses source: with a catalog-prefixed literal id', () => {

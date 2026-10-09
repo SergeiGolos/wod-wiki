@@ -12,7 +12,7 @@ import { usePaletteStore } from '@/components/organisms/command-palette/palette-
 import {
   EFFORTS_STREAM_PROFILE,
   JOURNAL_STREAM_PROFILE,
-  LIBRARY_STREAM_PROFILE,
+  PLAYGROUNDS_STREAM_PROFILE,
   SESSIONS_STREAM_PROFILE,
   createResultDetailProfile,
 } from './streamProfile'
@@ -169,11 +169,11 @@ describe('QueriableStreamView component', () => {
     expect(screen.queryByTestId('source-scope-radio')).toBeNull()
   })
 
-  it('hides scope radio on library stream profile since selection moved to nav menu', async () => {
+  it('hides scope radio on the journal stream profile since selection moved to nav menu', async () => {
     const engine = createMockEngine()
     render(
-      <MemoryRouter initialEntries={['/library']}>
-        <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
       </MemoryRouter>,
     )
 
@@ -431,7 +431,7 @@ describe('QueriableStreamView component', () => {
   })
 
   it('renders the feed layout with rich previews and working actions for playground entries', async () => {
-    writeViewSettings('/library', {
+    writeViewSettings('/playgrounds', {
       level: 'note',
       layout: 'feed',
       visibleFields: ['title', 'excerpt', 'date'],
@@ -468,8 +468,8 @@ describe('QueriableStreamView component', () => {
     })
 
     render(
-      <MemoryRouter initialEntries={[`/library?q=${encodeURIComponent(':note{source:playground}')}`]}>
-        <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+      <MemoryRouter initialEntries={[`/playgrounds?q=${encodeURIComponent(':note{source:playground}')}`]}>
+        <QueriableStreamView profile={PLAYGROUNDS_STREAM_PROFILE} queryEngine={engine} />
       </MemoryRouter>,
     )
 
@@ -489,11 +489,13 @@ describe('QueriableStreamView component', () => {
     const openLink = screen.getByTestId('stream-feed-open') as HTMLAnchorElement
     expect(openLink.getAttribute('href')).toBe('/playground/uuid-1')
 
-    // Playground scope: undated entries are labeled Undated, never shelved
-    // as "Catalog Sessions". Asserted BEFORE the Run click — Run navigates
-    // to /run/:id, which drops ?q and resets the composer to the profile
-    // default (in-app the view unmounts on that navigation).
-    expect(screen.getByText('Undated')).toBeDefined()
+    // Playground scope: the note has no journal date, so grouping falls back
+    // to createdAt — a real date group, never the "Catalog Sessions" shelf,
+    // never the "Undated" bucket. Asserted BEFORE the Run click — Run
+    // navigates to /run/:id, which drops ?q and resets the composer to the
+    // profile default (in-app the view unmounts on that navigation).
+    expect(screen.getByTestId('stream-feed-group-2023-11-14')).toBeDefined()
+    expect(screen.queryByText('Undated')).toBeNull()
     expect(screen.queryByText('Catalog Sessions')).toBeNull()
 
     // Run stages a pending runtime (what WallClockPage consumes) — retaining
@@ -534,7 +536,7 @@ describe('QueriableStreamView component', () => {
   })
 
   it('keeps grouping when switching layouts — groupBy survives mode changes', async () => {
-    writeViewSettings('/library', {
+    writeViewSettings('/journal', {
       level: 'note',
       layout: 'feed',
       visibleFields: ['title', 'date'],
@@ -556,8 +558,8 @@ describe('QueriableStreamView component', () => {
     const engine = createMockEngine(datedEntries)
 
     render(
-      <MemoryRouter initialEntries={['/library']}>
-        <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+      <MemoryRouter initialEntries={['/journal']}>
+        <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
       </MemoryRouter>,
     )
 
@@ -573,7 +575,7 @@ describe('QueriableStreamView component', () => {
   })
 
   it('feed Playground action persists via the intake helper before navigating', async () => {
-    writeViewSettings('/library', {
+    writeViewSettings('/journal', {
       level: 'note',
       layout: 'feed',
       visibleFields: ['title', 'date'],
@@ -601,8 +603,8 @@ describe('QueriableStreamView component', () => {
       const engine = createMockEngine([catalogEntry])
 
       render(
-        <MemoryRouter initialEntries={['/library']}>
-          <QueriableStreamView profile={LIBRARY_STREAM_PROFILE} queryEngine={engine} />
+        <MemoryRouter initialEntries={['/journal']}>
+          <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
         </MemoryRouter>,
       )
 

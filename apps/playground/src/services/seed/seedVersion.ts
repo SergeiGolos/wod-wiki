@@ -8,6 +8,7 @@
  * typeof guard yields 0 — which is also the pre-first-import stored version.
  */
 import type { SeedMetaRecord } from '@/types/seed';
+import { SEED_SCHEMA } from '@/types/seed';
 
 export const EMBEDDED_SEED_VERSION: number =
   typeof __SEED_VERSION__ === 'number' ? __SEED_VERSION__ : 0;
@@ -29,8 +30,11 @@ export function decideSeedImport(
   return 'server-stale';
 }
 
-/** True when the boot check can skip the manifest fetch entirely. */
+/** True when the boot check can skip the manifest fetch entirely. A stored
+ *  checkpoint from ANY other schema — older or newer — never skips: this
+ *  bundle can only apply its own schema, and the importer's re-apply is the
+ *  migration that re-attributes already-seeded rows, even unchanged. */
 export function storedSeedIsCurrent(meta: SeedMetaRecord | undefined, embeddedVersion: number): boolean {
-  if (meta?.schema !== undefined && meta.schema < 5) return false;
+  if (meta?.schema !== undefined && meta.schema !== SEED_SCHEMA) return false;
   return meta?.seedVersion != null && meta.seedVersion > 0 && meta.seedVersion === embeddedVersion;
 }

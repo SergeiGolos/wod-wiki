@@ -5,6 +5,8 @@ export interface SectionRect {
   sectionId: string;
   top: number;
   height: number;
+  /** Rendered height of the section's opening (fence) line — hosts the inline command bar. */
+  firstLineHeight?: number;
   type: EditorSection["type"];
   subtype?: EditorSection["subtype"];
   widgetName?: string;
@@ -50,11 +52,13 @@ class SectionGeometryPlugin {
 
         let top = 0;
         let bottom = 20;
+        let firstLineHeight: number | undefined;
 
         try {
           const topBlock = this.view.lineBlockAt(from);
           const bottomBlock = this.view.lineBlockAt(to);
           top = topBlock.top;
+          firstLineHeight = topBlock.height;
           bottom = bottomBlock.top + bottomBlock.height;
         } catch {
           // lineBlockAt fallback
@@ -66,6 +70,7 @@ class SectionGeometryPlugin {
           sectionId: sec.id,
           top,
           height,
+          firstLineHeight,
           type: sec.type,
           subtype: sec.subtype,
           widgetName: sec.widgetName,

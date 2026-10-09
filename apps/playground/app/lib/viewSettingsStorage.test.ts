@@ -69,14 +69,14 @@ describe('viewSettingsStorage — pure read/write/reset', () => {
   })
 
   it('persists groupBy across reload', () => {
-    writeViewSettings('/library', {
+    writeViewSettings('/journal', {
       level: 'note',
       layout: 'cards',
       visibleFields: ['title'],
       groupBy: 'week',
     })
 
-    const read = readViewSettings('/library', 'note')
+    const read = readViewSettings('/journal', 'note')
     expect(read.groupBy).toBe('week')
   })
 
@@ -86,12 +86,12 @@ describe('viewSettingsStorage — pure read/write/reset', () => {
       JSON.stringify({ level: 'note', layout: 'stream', visibleFields: ['title'] }),
     )
     window.localStorage.setItem(
-      `${VIEW_SETTINGS_STORAGE_PREFIX}/library`,
+      `${VIEW_SETTINGS_STORAGE_PREFIX}/efforts`,
       JSON.stringify({ level: 'note', layout: 'table', visibleFields: ['title'] }),
     )
 
     expect(readViewSettings('/journal', 'note').layout).toBe('cards')
-    expect(readViewSettings('/library', 'note').layout).toBe('rows')
+    expect(readViewSettings('/efforts', 'note').layout).toBe('rows')
   })
 
   it('isolates preferences across different routes', () => {
@@ -174,13 +174,13 @@ describe('useViewSettings hook', () => {
   })
 
   it('persists groupBy via setGroupBy', () => {
-    const { result } = renderHook(() => useViewSettings('/library', 'note'))
+    const { result } = renderHook(() => useViewSettings('/journal', 'note'))
 
     act(() => {
       result.current.setGroupBy('month')
     })
     expect(result.current.settings.groupBy).toBe('month')
-    expect(readViewSettings('/library', 'note').groupBy).toBe('month')
+    expect(readViewSettings('/journal', 'note').groupBy).toBe('month')
   })
 
   it('toggles individual fields visibility on and off and persists', () => {

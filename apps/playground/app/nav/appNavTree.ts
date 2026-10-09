@@ -22,10 +22,9 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, ListFilter, Tag, Library, Plus, UserRound } from 'lucide-react'
+import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, Layers, ListFilter, Tag, Library, Plus, UserRound } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
-import { scopeOfQuery } from '../lib/wqlEdits'
 import { JOURNAL_STREAM_PROFILE, CATALOGS_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
 import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
 
@@ -96,25 +95,34 @@ interface ListingZoneSpec {
   icon: NavItem['icon']
   route: string
   profile: StreamProfile
-  /** Extra panel rows appended after the presets (e.g. Feeds). */
+  /** Extra panel rows appended after the presets (e.g. Feeds, All). */
   extraChildren?: NavItem[]
   /** Whole zone route family (L1 activation). */
   familyActive: (loc: Location) => boolean
-  /** The legacy `/library` alias lights this zone for its `?q=` scope. */
-  aliasActive?: (loc: Location) => boolean
   createAction?: ConditionsPanelSpec['createAction']
-}
-
-/** The `/library` alias route resolves to the zone its `?q=` scope names;
- *  unscooped library landings stay in Collections (the library default is the
- *  collection listing). */
-function libraryScope(loc: Location): string | null {
-  if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return null
-  return scopeOfQuery(new URLSearchParams(loc.search).get('q') ?? '')
 }
 
 const startsWithAny = (pathname: string, ...prefixes: string[]): boolean =>
   prefixes.some(p => pathname === p || pathname.startsWith(`${p}/`))
+
+/**
+ * The inclusive All listing — every note kind and source except playground,
+ * resolved as a query view on the journal surface (`/journal?q=…`), not a
+ * route of its own. The exclusion is editable: removing the
+ * `!source:playground` filter in the stream composer includes playground.
+ */
+export const ALL_NOTES_WQL = ':note{!source:playground}'
+
+const allNotesChild: NavItem = {
+  id: 'journal-all-notes',
+  label: 'All',
+  level: 2,
+  icon: Layers,
+  action: { type: 'route', to: `/journal?q=${encodeURIComponent(ALL_NOTES_WQL)}` },
+  isActive: (loc: Location) =>
+    loc.pathname === ROUTE_PATTERNS.journal &&
+    new URLSearchParams(loc.search).get('q') === ALL_NOTES_WQL,
+}
 
 function listingZone(spec: ListingZoneSpec): NavItem {
   return {
@@ -123,7 +131,7 @@ function listingZone(spec: ListingZoneSpec): NavItem {
     level: 1,
     icon: spec.icon,
     action: { type: 'route', to: spec.route },
-    isActive: (loc: Location) => spec.familyActive(loc) || (spec.aliasActive?.(loc) ?? false),
+    isActive: (loc: Location) => spec.familyActive(loc),
     applyFooter: true,
     panel: createConditionsNavPanel({
       landingLabel: spec.landingLabel,
@@ -163,7 +171,7 @@ const listingZones: ListingZoneSpec[] = [
     route: ROUTE_PATTERNS.journal,
     profile: JOURNAL_STREAM_PROFILE,
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/journal'),
-    aliasActive: (loc: Location) => libraryScope(loc) === 'journal',
+    extraChildren: [allNotesChild],
     createAction: {
       label: 'New journal entry',
       testId: 'journal-create-entry',
@@ -192,11 +200,6 @@ const listingZones: ListingZoneSpec[] = [
     familyActive: (loc: Location) =>
       startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed') &&
       loc.pathname !== ROUTE_PATTERNS.catalogs,
-    aliasActive: (loc: Location) => {
-      if (loc.pathname !== ROUTE_PATTERNS.library && !loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`)) return false
-      const scope = libraryScope(loc)
-      return scope !== 'journal' && scope !== 'playground'
-    },
     extraChildren: [feedsChild, catalogCrosswalkChild],
     createAction: {
       label: 'New note',
@@ -215,7 +218,6 @@ const listingZones: ListingZoneSpec[] = [
     route: ROUTE_PATTERNS.playgrounds,
     profile: PLAYGROUNDS_STREAM_PROFILE,
     familyActive: (loc: Location) => startsWithAny(loc.pathname, '/playgrounds', '/playground'),
-    aliasActive: (loc: Location) => libraryScope(loc) === 'playground',
     createAction: {
       label: 'New playground',
       testId: 'playgrounds-create-playground',

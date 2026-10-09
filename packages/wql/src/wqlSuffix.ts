@@ -213,6 +213,47 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     window,
     legacyScope,
     conflicts: conflicts.length ? conflicts : undefined,
-    primaryText: text,
+    primaryText: normalizeCommaFilterValues(text),
   };
+}
+
+/** `key:v1,v2` → `key:v1|v2` — the annotation's comma multi-value spelling,
+ *  rewritten inside the structural filter braces before the grammar parse
+ *  (the grammar's comma separates filters). A comma merges into the running
+ *  filter only while the following segment is a bare value — no colon, no
+ *  quote — so `text:a,collection:x` stays two filters while
+ *  `source:journal,collection` becomes one OR. `by {…}` groups are already
+ *  peeled; quoted segments never merge. */
+function normalizeCommaFilterValues(text: string): string {
+  const open = text.indexOf('{');
+  const close = open === -1 ? -1 : text.lastIndexOf('}');
+  if (open === -1 || close <= open) return text;
+  const inside = text.slice(open + 1, close);
+  if (!inside.includes(',')) return text;
+  const parts: string[] = [];
+  let current = '';
+  let quoted = false;
+  for (const ch of inside) {
+    if (ch === '"') quoted = !quoted;
+    if (ch === ',' && !quoted) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  const merged: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    let part = parts[i]!;
+    while (i + 1 < parts.length) {
+      const next = parts[i + 1]!.trim();
+      if (next && !next.includes(':') && !next.includes('"')) {
+        part = `${part}|${next}`;
+        i++;
+      } else break;
+    }
+    merged.push(part);
+  }
+  return `${text.slice(0, open + 1)}${merged.join(',')}${text.slice(close)}`;
 }

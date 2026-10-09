@@ -3,7 +3,7 @@
  *
  * Encapsulates the routing, default WQL query, entity level, and presentation
  * metadata for each unified stream route (/journal, /collections, /feeds,
- * /library, /efforts, /results).
+ * /catalogs, /efforts, /sessions, /results/:sessionId).
  */
 import type { EntityLevel } from '../../lib/fieldProjection'
 import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
@@ -15,7 +15,7 @@ export function cleanRoutePath(route: string): string {
 }
 
 export interface StreamProfile {
-  /** Route path matching this stream (e.g. '/journal', '/library', '/efforts'). */
+  /** Route path matching this stream (e.g. '/journal', '/collections'). */
   route: string
   /** Default canonical WQL query loaded when no query param is present. */
   defaultWql: string
@@ -101,7 +101,7 @@ export const JOURNAL_STREAM_PROFILE: StreamProfile = {
 export const CATALOGS_STREAM_PROFILE: StreamProfile = {
   route: '/catalogs',
   title: 'Catalogs',
-  defaultWql: ':catalog',
+  defaultWql: ':catalog{} by {tag}',
   level: 'session',
   target: 'note',
   scopeOptions: ['collections'],
@@ -124,28 +124,12 @@ export const FEEDS_STREAM_PROFILE: StreamProfile = {
   route: '/feeds',
   title: 'Feeds',
   // Feeds is excised from WQL storage scopes: the route keeps reading feed
-  // notes, but its query uses the generic note head (no feed scope filter).
-  defaultWql: ':catalog{} last 2w',
+  // notes through the collection source the feed corpus lives under.
+  defaultWql: ':collection{} last 2w',
   level: 'note',
   target: 'note',
   scopeOptions: ['collections'],
   // No default source: `source:feeds` is no longer valid WQL.
-  legacy: createContentLegacyConfig(),
-}
-
-export const LIBRARY_STREAM_PROFILE: StreamProfile = {
-  route: '/library',
-  title: 'Library',
-  // The library landing surfaces the collection listing (not the journal
-  // stream); `?q=` deep links still override the default explicitly.
-  defaultWql: ':collection{} last 4w',
-  level: 'note',
-  target: 'note',
-  // Storage scopes minus the excised feeds; the old `notes`/`blocks` entries
-  // were the bare note head and a different target, not scopes, so they don't
-  // carry over.
-  scopeOptions: ['journal', 'collections', 'guides', 'playground'],
-  shelfVisible: true,
   legacy: createContentLegacyConfig(),
 }
 
@@ -163,7 +147,7 @@ export const EFFORTS_STREAM_PROFILE: StreamProfile = {
 export const SESSIONS_STREAM_PROFILE: StreamProfile = {
   route: '/sessions',
   title: 'Sessions',
-  defaultWql: ':session{} last 4w',
+  defaultWql: ':session{} last 1d',
   level: 'result',
   target: 'session',
   scopeOptions: [],
@@ -173,7 +157,8 @@ export const SESSIONS_STREAM_PROFILE: StreamProfile = {
 export const PLAYGROUNDS_STREAM_PROFILE: StreamProfile = {
   route: '/playgrounds',
   title: 'Playgrounds',
-  defaultWql: ':playground{} last 4w',
+  // `by {}` precedes the window — the grammar orders the suffixes that way.
+  defaultWql: ':playground{} by {date} last 1w',
   level: 'note',
   target: 'note',
   scopeOptions: ['playground'],
@@ -195,7 +180,7 @@ export function createSessionDateProfile(date: string): StreamProfile {
 
 export function createResultDetailProfile(resultId: string): StreamProfile {
   return {
-    route: `/sessions/${resultId}`,
+    route: `/results/${resultId}`,
     defaultWql: `:session{result:${resultId}, plane:segment}`,
     level: 'segment',
     target: 'session',
@@ -210,7 +195,6 @@ const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
   '/collections': COLLECTIONS_STREAM_PROFILE,
   '/feeds': FEEDS_STREAM_PROFILE,
   '/feed': FEEDS_STREAM_PROFILE,
-  '/library': LIBRARY_STREAM_PROFILE,
   '/efforts': EFFORTS_STREAM_PROFILE,
   '/sessions': SESSIONS_STREAM_PROFILE,
   '/playgrounds': PLAYGROUNDS_STREAM_PROFILE,
@@ -221,8 +205,8 @@ export function getStreamProfile(route: string): StreamProfile | undefined {
   const exact = PROFILES_BY_ROUTE[clean]
   if (exact) return exact
 
-  if (clean.startsWith('/sessions/')) {
-    const sessionId = clean.slice('/sessions/'.length)
+  if (clean.startsWith('/results/')) {
+    const sessionId = clean.slice('/results/'.length)
     if (sessionId) {
       return createResultDetailProfile(sessionId)
     }
@@ -239,7 +223,9 @@ export function getStreamProfile(route: string): StreamProfile | undefined {
 }
 
 export function resolveStreamProfile(route: string): StreamProfile {
-  return getStreamProfile(route) ?? LIBRARY_STREAM_PROFILE
+  // Generic fallback: an unclassified stream-classified path lands on the
+  // conservative journal surface (`?q=` still overrides the default).
+  return getStreamProfile(route) ?? JOURNAL_STREAM_PROFILE
 }
 
 /**
@@ -253,17 +239,16 @@ export function streamRouteTitle(pathname: string): string | undefined {
 /**
  * Stream-surface membership — the single registry `routeView` consults when
  * classifying a pathname as a list surface. Covers every profile route plus
- * the dynamic detail/date routes; legacy `/results*` paths classify too (the
- * router redirects them, but this function stays pure on the pathname).
+ * the dynamic detail/date routes; legacy bare `/results*` paths classify too
+ * (the router redirects them, but this function stays pure on the pathname).
  */
 export function isStreamRoute(pathname: string): boolean {
   const clean = cleanRoutePath(pathname)
   if (PROFILES_BY_ROUTE[clean]) return true
 
-  if (clean.startsWith('/sessions/')) return clean.slice('/sessions/'.length) !== ''
+  if (clean.startsWith('/results/')) return clean.slice('/results/'.length) !== ''
   if (clean.startsWith('/session/')) return clean.slice('/session/'.length) !== ''
   if (clean === '/results' || clean === '/results/segments') return true
-  if (clean.startsWith('/results/')) return true
 
   return false
 }

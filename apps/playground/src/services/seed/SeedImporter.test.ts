@@ -104,6 +104,56 @@ describe('SeedImporter', () => {
     expect(await seedNoteId('markdown/canvas/a.md')).toBe(await seedNoteId('markdown/canvas/a.md'));
     expect(await seedNoteId('markdown/canvas/a.md')).not.toBe(await seedNoteId('markdown/canvas/b.md'));
   });
+
+  it('stamps every imported note with its real non-journal source family', async () => {
+    const dashboardDoc = `---\ndashboard: true\ntags:\n  - training\n---\n\n# Recovery Readiness\n`;
+    const canvasRoutable = `---\ntemplate: canvas\nroute: /guide/syntax/basics\n---\n# Basics\n`;
+    const canvasFragment = `---\ntitle: Fragment\nsection: guide\n---\nFragment body\n`;
+    const { source } = makeSource(
+      {
+        'collection.girls': [row('markdown/collections/girls/README.md'), row('markdown/collections/girls/fran.md')],
+        'feed.log': [row('markdown/feeds/log/2026-01-02/entry.md')],
+        dashboards: [row('markdown/dashboards/recovery-readiness.md', dashboardDoc)],
+        canvas: [
+          row('markdown/canvas/guide/syntax/basics.md', canvasRoutable),
+          row('markdown/canvas/guide/fragment.md', canvasFragment),
+        ],
+        template: [row('apps/playground/app/templates/new-playground.md')],
+        [EFFORTS_CHUNK_ID]: [effortDoc('air-squat')],
+      },
+      1000,
+    );
+    const storage = new InMemorySeedStorage();
+    const { result } = await importAll(storage, source);
+
+    expect(result.status).toBe('imported');
+    const byPath = async (p: string) => {
+      const id = await seedNoteId(p);
+      return storage.allNotes().find((n) => n.id === id)!;
+    };
+
+    expect((await byPath('markdown/collections/girls/README.md')).sourceId).toBe('collection:girls');
+    expect((await byPath('markdown/collections/girls/fran.md')).sourceId).toBe('collection:girls/fran');
+    expect((await byPath('markdown/feeds/log/2026-01-02/entry.md')).sourceId).toBe('feed:feeds/log/2026-01-02/entry');
+    expect((await byPath('markdown/canvas/guide/syntax/basics.md')).sourceId).toBe('guides:guide/syntax/basics');
+    expect((await byPath('markdown/canvas/guide/fragment.md')).sourceId).toBe('guides:guide/fragment');
+    expect((await byPath('apps/playground/app/templates/new-playground.md')).sourceId).toBe('playground');
+    expect((await byPath('markdown/efforts/air-squat.md')).sourceId).toBe('efforts');
+
+    const dashboard = await byPath('markdown/dashboards/recovery-readiness.md');
+    expect(dashboard.sourceId).toBe('dashboards');
+    expect(dashboard.type).toBe('dashboard');
+    expect(storage.getTagsForNote(dashboard.id)).toEqual(['training']);
+    const segment = storage.allSegments().find((s) => s.noteId === dashboard.id);
+    expect(segment!.rawContent).toBe(dashboardDoc);
+
+    // The leak annotation-1 fixes: no imported note classifies as `journal`
+    // (`!sourceId || sourceId === 'journal'`).
+    for (const note of storage.allNotes()) {
+      expect(!!note.sourceId && note.sourceId !== 'journal').toBe(true);
+    }
+  });
+
   it('extracts typed frontmatter tags and leaves rawContent unchanged', async () => {
     const sampleContent = `---
 domain: crossfit
@@ -258,7 +308,7 @@ tags:
   });
 
   it('resumes after a crash: already-applied chunk shas are skipped, version still advances', async () => {
-    const v1 = makeSource({ a: [row('markdown/a.md')], b: [row('markdown/b.md')] }, 1000);
+    const v1 = makeSource({ 'collection.a': [row('markdown/collections/a/one.md')], 'collection.b': [row('markdown/collections/b/two.md')] }, 1000);
     const storage = new InMemorySeedStorage();
     await importAll(storage, v1.source);
 
@@ -267,11 +317,11 @@ tags:
     meta.seedVersion = 0;
     await storage.putSeedMeta(meta);
 
-    const v2 = makeSource({ a: [row('markdown/a.md')], b: [row('markdown/b.md', 'new')] }, 2000);
+    const v2 = makeSource({ 'collection.a': [row('markdown/collections/a/one.md')], 'collection.b': [row('markdown/collections/b/two.md', 'new')] }, 2000);
     const { result, counting } = await importAll(storage, v2.source);
 
     expect(result.status).toBe('imported');
-    expect(counting.fetchChunkCalls).toEqual(['chunks/b.json']);
+    expect(counting.fetchChunkCalls).toEqual(['chunks/collection.b.json']);
     expect((await storage.getSeedMeta())!.seedVersion).toBe(2000);
   });
 
@@ -398,6 +448,48 @@ describe('SeedImporter manual re-sync (forceAll)', () => {
     const after = storage.allNotes().find((n) => n.id === afterId);
     expect(after?.title).toBe('My A');
     expect(after?.seedOrigin).toBe('user');
+  });
+
+  it('repairs a user-owned legacy row\'s broken attribution without touching provenance', async () => {
+    const v1 = makeSource({ [EFFORTS_CHUNK_ID]: [effortDoc('dumbbell-snatch')] }, 1000);
+    const storage = new InMemorySeedStorage();
+    await importAll(storage, v1.source);
+
+    // Legacy DB state: imported before sourceId existed, then edited by the
+    // user — provenance flipped to 'user', seed sourcePath retained,
+    // attribution left broken (journal-classified).
+    const noteId = await seedNoteId('markdown/efforts/dumbbell-snatch.md');
+    const note = storage.allNotes().find((n) => n.id === noteId)!;
+    const originalContent = storage.allSegments().find((s) => s.noteId === noteId)!.rawContent;
+    await storage.applyChunk({
+      notes: [{ ...note, title: 'Feedback edited effort', seedOrigin: 'user', sourceId: undefined }],
+      segments: [],
+      efforts: [],
+      blocks: [],
+      blockEfforts: [],
+      deleteNoteIds: [],
+      deleteEffortSlugs: [],
+      deleteBlockIds: [],
+      deleteBlockEffortIds: [],
+      meta: (await storage.getSeedMeta())!,
+    });
+
+    // Same manifest, same hashes, same version — the schema migration
+    // re-applies anyway (root's live DB reload path).
+    const staleMeta = (await storage.getSeedMeta())!;
+    staleMeta.schema = SEED_SCHEMA - 1;
+    await storage.putSeedMeta(staleMeta);
+    const { result } = await importAll(storage, v1.source);
+
+    expect(result.status).toBe('imported');
+    const repaired = storage.allNotes().find((n) => n.id === noteId)!;
+    expect(repaired.title).toBe('Feedback edited effort');
+    expect(repaired.seedOrigin).toBe('user');
+    expect(repaired.sourceId).toBe('efforts');
+    // Content identity untouched by the repair.
+    const segment = storage.allSegments().find((s) => s.noteId === noteId)!;
+    expect(segment.rawContent).toBe(originalContent);
+    expect(repaired.sourceId !== 'journal').toBe(true);
   });
 });
 

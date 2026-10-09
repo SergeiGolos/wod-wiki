@@ -61,7 +61,7 @@ describe('linkPreview extension', () => {
     container.remove();
   });
 
-  it('shows a YouTube player for embed links in read mode and a pill in edit mode', () => {
+  it('shows a YouTube player for standalone embed links whenever the cursor is off the line', () => {
     const doc = '[Demo](https://youtu.be/dQw4w9WgXcQ)\n';
 
     const read = mount(doc, true);
@@ -72,14 +72,40 @@ describe('linkPreview extension', () => {
     read.view.destroy();
     read.container.remove();
 
-    // Edit mode: cursor is on line 1 (pos 0), so raw text shows; move off the line.
+    // Edit mode: cursor moves off the line -> player; back onto it -> raw text.
     const edit = mount(`${doc}More text.\n`);
     edit.view.dispatch({ selection: { anchor: edit.view.state.doc.length } });
-    const pill = edit.container.querySelector('.cm-link-pill');
-    expect(pill).not.toBeNull();
+    expect(edit.container.querySelector('.cm-youtube-player iframe')).not.toBeNull();
+    expect(edit.container.querySelector('.cm-link-pill')).toBeNull();
+    edit.view.dispatch({ selection: { anchor: 4 } });
     expect(edit.container.querySelector('.cm-youtube-player')).toBeNull();
+    expect(edit.container.textContent).toContain('[Demo](https://youtu.be/dQw4w9WgXcQ)');
     edit.view.destroy();
     edit.container.remove();
+  });
+
+  it('turns a bare URL on its own line into a player in edit mode', () => {
+    const doc = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ\n';
+    const { view, container } = mount(`${doc}Done.\n`);
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+
+    expect(container.querySelector('.cm-youtube-player iframe')).not.toBeNull();
+    view.destroy();
+    container.remove();
+  });
+
+  it('turns a list item holding only a YouTube link into a player', () => {
+    const doc = '- https://youtu.be/dQw4w9WgXcQ\n';
+    const { view, container } = mount(`${doc}Done.\n`);
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+
+    expect(container.querySelector('.cm-youtube-player iframe')).not.toBeNull();
+    // Cursor back on the list line restores the raw markdown.
+    view.dispatch({ selection: { anchor: 2 } });
+    expect(container.querySelector('.cm-youtube-player')).toBeNull();
+    expect(container.textContent).toContain('- https://youtu.be/dQw4w9WgXcQ');
+    view.destroy();
+    container.remove();
   });
 
   it('renders non-YouTube embed links as pills in read mode', () => {

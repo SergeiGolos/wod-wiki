@@ -2,8 +2,10 @@
  * Dashboard source resolution + catalog for the /dashboard/* namespace.
  *
  * A dashboard at /dashboard/:slug resolves to one of two sources:
- *  - vault: an editable note with `dashboard: true` frontmatter and a
- *    matching `slug:` — edits write back through journalNotes.update.
+ *  - vault: an editable note typed 'dashboard' (sourceId 'dashboards') with
+ *    a matching `slug:` — edits write back through journalNotes.update.
+ *    Discovery is typed (`listNotes({ kind: 'dashboard' })`); the V28 DB
+ *    repair retypes legacy `dashboard: true` notes before any query runs.
  *  - prebuilt: a read-only seed from the seeded corpus
  *    (markdown/dashboards/**, via the seed-content seam); a "Clone to
  *    vault" action turns it into an editable vault note.
@@ -75,9 +77,12 @@ export function useDashboardSource(
     let cancelled = false
     setLoading(true)
     notePersistence
-      .listNotes({})
+      .listNotes({ kind: 'dashboard' })
       .then((notes) => {
         if (cancelled) return
+        // Typed discovery — dashboards are notes typed 'dashboard' (V28
+        // repair guarantees legacy `dashboard: true` notes are typed); slug
+        // and title still read from frontmatter.
         const vault = dashboardsFromNotes(notes).find((d) => d.slug === slug)
         if (vault) {
           setSource({ slug, title: vault.title, rawContent: vault.rawContent, editable: true, noteId: vault.noteId })
@@ -113,7 +118,7 @@ export function useDashboardCatalog(): { items: DashboardListItem[]; loading: bo
   useEffect(() => {
     let cancelled = false
     notePersistence
-      .listNotes({})
+      .listNotes({ kind: 'dashboard' })
       .then((notes) => {
         if (cancelled) return
         const vault = dashboardsFromNotes(notes)

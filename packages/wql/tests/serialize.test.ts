@@ -85,6 +85,16 @@ describe('serialize (C6 structured interface)', () => {
     expect(structurallyEqual(parseQuery(serialize(a)), a)).toBe(true);
   });
 
+  it('serializes the :dashboard alias head back through the alias', () => {
+    expect(serialize(parseQuery(':dashboard{}'))).toBe(':dashboard');
+    expect(serialize(parseQuery(':dashboard{text:fran}'))).toBe(':dashboard{text:fran}');
+    // A user-authored :note shape with a non-first type filter stays on the
+    // generic head in authored order (no lossy reorder).
+    const authored = parseQuery(':note{text:fran,type:dashboard}');
+    expect(serialize(authored)).toBe(':note{text:fran,type:dashboard}');
+    expect(structurallyEqual(parseQuery(serialize(authored)), authored)).toBe(true);
+  });
+
   it('serializes hand-built find:session queries with scope filters and windows', () => {
     const a: ParsedFindQuery = {
       family: 'find', raw: '', target: 'session',
@@ -269,9 +279,8 @@ describe('serialize (C6 structured interface)', () => {
         family: 'find', raw: '',
         target: pick(rng, WQL_FIND_TARGETS),
         filters: genFilters(rng, int(rng, 0, 3)),
-        // Parser shape for a bare :note — never the all-sources shape, so
-        // generated queries never mix `in all` with a display unit.
-        sourceScope: ['journal', 'collections', 'playground'],
+        // The generic note head carries no default scope anymore — the
+        // inclusive plane needs no scope marker on the AST.
       };
       const w = genWindow(rng);
       if (w) f.window = w;

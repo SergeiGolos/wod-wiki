@@ -8,7 +8,9 @@
  *   Open  Session      → /c/:cat/:page-slug
  *   Open  Post         → /feeds/:feedSlug/:date/:item (transitional)
  *   Open  Effort       → /e/:slug
- *   Open  Result       → /sessions/:sessionId
+ *   Open  Result       → /results/:sessionId
+ *   Open  Dashboard    → /d/:slug (corpus) or /notes/:noteId (vault)
+ *   Open  Equipment    → /notes/:noteId
  *   Compare (any)      → /dashboards?q=:blockContentId
  *
  * Run is NOT a URL: WallClockPage only consumes pendingRuntimes, so the Run
@@ -63,6 +65,15 @@ export function entryOpenHref(entry: Entry): string {
           return `/c/${encodeURIComponent(entry.sourceCatalog)}`
         }
         return `/c/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
+      case 'dashboard':
+        // Corpus dashboards route by page slug (/d/<slug>); vault dashboards
+        // with no corpus path fall back to the canonical note editor.
+        return entry.sourceCatalog === 'dashboards' && entry.sourceItem
+          ? `/d/${encodePath(entry.sourceItem)}`
+          : noteByIdPath(entry.id)
+      case 'equipment':
+        if (entry.pageSlug) return `/p/${encodePath(entry.pageSlug)}`
+        return noteByIdPath(entry.id)
       case 'post': {
         const date = entry.date ?? ''
         return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`

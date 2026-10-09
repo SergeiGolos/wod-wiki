@@ -15,7 +15,7 @@ export interface CreateJournalNoteInput {
   tags?: string[];
   slug?: string;
   sourceId?: string;
-  type?: 'note' | 'playground' | 'journal';
+  type?: 'note' | 'playground' | 'journal' | 'dashboard';
 }
 
 export interface JournalNotes {

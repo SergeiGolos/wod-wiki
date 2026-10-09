@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, cleanup } from '@testing-library/react'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { DocumentTitleSync } from './DocumentTitleSync'
 
@@ -49,11 +49,6 @@ describe('DocumentTitleSync', () => {
     expect(document.title).toBe('Wod.Wiki - Collections')
   })
 
-  it('sets the base title for /library', () => {
-    renderAt('/library')
-    expect(document.title).toBe('Wod.Wiki - Library')
-  })
-
   it('derives rebranded stream titles from the profile registry', () => {
     renderAt('/c/dan-john')
     expect(document.title).toBe('Wod.Wiki - Collections')
@@ -100,8 +95,8 @@ describe('DocumentTitleSync', () => {
   })
 
   it('updates title on navigation and leaves exempt routes unchanged', () => {
-    const { unmount: u1 } = renderAt('/library')
-    expect(document.title).toBe('Wod.Wiki - Library')
+    const { unmount: u1 } = renderAt('/catalogs')
+    expect(document.title).toBe('Wod.Wiki - Catalogs')
     u1()
 
     const { unmount: u2 } = renderAt('/journal/2026-01-01')

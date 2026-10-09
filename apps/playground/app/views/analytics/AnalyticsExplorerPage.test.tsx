@@ -168,6 +168,17 @@ describe('AnalyticsExplorerPage', () => {
     expect(screen.getByTestId('wql-composer-input').getAttribute('placeholder')).toContain('agg:metric{filters}');
   });
 
+  it('the dashboards landing actually searches dashboards (:dashboard{} runs on landing)', async () => {
+    renderPage('');
+    await waitFor(() => expect(runFindCalls).toContain(':dashboard{}'));
+  });
+
+  it('a deep-linked ?q= wins over the landing search', async () => {
+    renderPage('sum:totalVolume{}');
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{}'));
+    expect(runFindCalls).not.toContain(':dashboard{}');
+  });
+
   it('runs example deep links; the examples themselves live in the L2 panel', async () => {
     // The L2 panel deep-links analyticsExplorerPath({ q }) — the page only
     // has to run whatever ?q= carries (the semantic example match lives in
@@ -379,7 +390,7 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('meta-line metric chip selection populates the composer and submits', async () => {
-    renderPage('');
+    renderPage('sum:reps{}');
 
     fireEvent.click(await waitFor(() => screen.getByText('tis')));
     await waitFor(() => expect(screen.getByTestId('token-slot-metric').textContent).toContain('tis'));

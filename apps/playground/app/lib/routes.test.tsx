@@ -225,7 +225,7 @@ describe('path builders', () => {
 
   it('sessionsPath, sessionDetailPath and sessionDatePath build the sessions family', () => {
     expect(sessionsPath()).toBe('/sessions')
-    expect(sessionDetailPath('res-1')).toBe('/sessions/res-1')
+    expect(sessionDetailPath('res-1')).toBe('/results/res-1')
     expect(sessionDatePath('2026-09-17')).toBe('/session/2026-09-17')
   })
 

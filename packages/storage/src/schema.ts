@@ -31,7 +31,7 @@ import type { StoreName } from './contract';
  * wild, so "version 26" is ambiguous — 27's presence-guarded repairs bring
  * every mixed DB to the same shape.
  */
-export const DB_VERSION = 27;
+export const DB_VERSION = 28;
 
 /**
  * Typed field metadata — column type per extracted field path, shared with

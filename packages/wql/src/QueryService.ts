@@ -101,12 +101,23 @@ export function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: s
  *  exact id. `playground` matches the playground intake's sourceId convention
  *  and, on the note plane, legacy rows typed 'playground' (playground pages
  *  saved before the sourceId convention existed — their sourceId is absent).
- *  `all` spans exactly the WQL source domain (feeds excised at the vocabulary).
- *  Exported so host mappers classify result rows with the exact predicate the
- *  `source:` filter applies. */
-export function sourceMatches(item: { id?: string; noteId?: string; sourceId?: string; type?: string }, kind: string): boolean {
+ *  `all` spans exactly the WQL source domain plus sourceless rows — identical
+ *  to the source fence. `journal` rejects the rest of the seed corpus: rows
+ *  with seed provenance (importer stamps, or surviving seedChunkId /
+ *  markdown/ sourcePath / catalog on legacy user-edited rows whose
+ *  seedOrigin flipped to 'user') and typed dashboards never journal — a user
+ *  journal note carries none of those markers. Exported so host mappers
+ *  classify result rows with the exact predicate the `source:` filter
+ *  applies. */
+export function sourceMatches(
+  item: {
+    id?: string; noteId?: string; sourceId?: string; type?: string;
+    seedOrigin?: string; seedChunkId?: string; sourcePath?: string; catalog?: string;
+  },
+  kind: string,
+): boolean {
   const sourceId = item.sourceId;
-  if (kind === 'all') return WQL_SOURCE_VALUES.some((k) => sourceMatches(item, k));
+  if (kind === 'all') return !sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(item, k));
   if (kind === 'journal') {
     if (
       item.type === 'playground' ||
@@ -117,7 +128,20 @@ export function sourceMatches(item: { id?: string; noteId?: string; sourceId?: s
     ) {
       return false;
     }
-    return !sourceId || sourceId === 'journal';
+    if (sourceId) return sourceId === 'journal';
+    // Sourceless rows stay journal unless the rest of the corpus owns them:
+    // importer-seeded rows (seedOrigin 'seed' — 'user' is a genuine user
+    // journal origin), user-edited imports whose seedChunkId / seed-tree
+    // sourcePath / catalog survive, and typed non-journal notes
+    // (dashboards, efforts, equipment). A user journal note carries none of
+    // those markers.
+    return item.type !== 'dashboard'
+      && item.type !== 'effort'
+      && item.type !== 'equipment'
+      && item.seedOrigin !== 'seed'
+      && item.seedChunkId === undefined
+      && !item.catalog
+      && !(!!item.sourcePath && item.sourcePath.startsWith('markdown/'));
   }
   if (kind === 'collection' || kind === 'collections') {
     return !!sourceId && (sourceId.startsWith('collection:') || sourceId.startsWith('page:collection:'));
@@ -161,10 +185,6 @@ const DOMAIN_SOURCE_KINDS: Record<string, true> = {
   playground: true,
 };
 
-/** Note kinds the default :note exclusion treats as page-like — the isPage
- *  composite's type half (its sourceId half is the WQL `page` source kind). */
-const PAGE_LIKE_NOTE_TYPES = ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'];
-
 /** Compiled domain candidate read for a content plane. `selection` carries
  *  the pre-count stages the wire performs before selectedCount (source
  *  clauses + the :note defaultNotes exclusion + the explicit WQL source
@@ -189,17 +209,9 @@ function compileContentRead(filters: TagFilter[], plane: 'note' | 'block', sourc
   const selection: WqlDomainPredicate[] = [];
   const compiled: WqlDomainPredicate[] = [];
   let residual = false;
-  let hasTypeFilter = false;
-  let hasCollectionSource = false;
   for (const filter of filters) {
     const literal = !filter.negate && filter.values.every((v) => !v.wildcard);
-    if (filter.key === 'type') hasTypeFilter = true;
     const values = literal ? filter.values.map((v) => v.value) : [];
-    // Mirrors applyNoteSelectionStages' branch predicate verbatim — any
-    // collection(s) value, any polarity, switches the defaultNotes variant.
-    if (filter.key === 'source' && filter.values.some(v => v.value === 'collection' || v.value === 'collections')) {
-      hasCollectionSource = true;
-    }
     if (filter.key === 'source' && literal && filter.values.every((v) => DOMAIN_SOURCE_KINDS[v.value] === true)) {
       selection.push({ field: 'source', values });
       continue;
@@ -209,8 +221,7 @@ function compileContentRead(filters: TagFilter[], plane: 'note' | 'block', sourc
       continue;
     }
     if (filter.key === 'page') {
-      // A page filter (any polarity) deactivates the default exclusion stage.
-      hasTypeFilter = true;
+      // A page filter (any polarity) is applied in JS.
       residual = true;
       continue;
     }
@@ -230,39 +241,26 @@ function compileContentRead(filters: TagFilter[], plane: 'note' | 'block', sourc
   if (plane === 'note' && sourceScope?.length) {
     selection.push({ field: 'source', values: sourceScope });
   }
-  // :note default page exclusion — active whenever no authored type/page
-  // filter exists, exactly the wire's defaultNotes clause (collections=true
-  // when an authored collection source clause rides along).
-  if (plane === 'note' && !hasTypeFilter) {
-    selection.push({ field: 'defaultNotes', collections: hasCollectionSource });
+  // The note plane is inclusive — no defaultNotes clause, no source fence
+  // (generic :note surfaces every row). The block plane keeps its
+  // historical fence: candidates come from the WQL source domain.
+  if (plane === 'block') {
+    selection.push({ field: 'sourceFence' });
   }
-  selection.push({ field: 'sourceFence' });
   return { selection, filters: compiled, residual };
 }
 
-/** :note pre-count selection stages — source clauses, parse-authored
- *  sourceScope, the WQL source fence, and the default page exclusion. Shared
- *  verbatim by the merged pipeline and the static-plane selected count so a
- *  domain-selected user plane and the JS static plane count identically. */
+/** :note pre-count selection stages — authored source clauses and the
+ *  parse-authored sourceScope, shared verbatim by the merged pipeline and
+ *  the static-plane selected count. The generic note plane is inclusive:
+ *  no default page exclusion and no source fence — feeds, arbitrary source
+ *  strings, typed pages and dashboards all surface; positive `source:`
+ *  filters and source negations do the scoping. */
 function applyNoteSelectionStages(notes: Note[], parsed: ParsedFindQuery): Note[] {
   let rows = applySourceFilter(notes, parsed.filters);
   if (parsed.sourceScope?.length) {
     const scope = parsed.sourceScope;
     rows = rows.filter((n) => scope.some((k) => sourceMatches(n, k)));
-  }
-  // WQL boundary: candidates come from the WQL source domain (feeds
-  // excised at the vocabulary); sourceless rows predate the sourceId
-  // convention and stay reachable — no legacy-marker classification here.
-  rows = rows.filter((n) => !n.sourceId || WQL_SOURCE_VALUES.some((k) => sourceMatches(n, k)));
-  const hasTypeFilter = parsed.filters.some(f => f.key === 'type' || f.key === 'page');
-  const hasCollectionSource = parsed.filters.some(f => f.key === 'source' && f.values.some(v => v.value === 'collection' || v.value === 'collections'));
-  const isPage = (n: Note) => n.type !== 'note' && (n.sourceId?.startsWith('page:') || n.sourceId?.startsWith('guides:') || PAGE_LIKE_NOTE_TYPES.includes(n.type ?? ''));
-  if (!hasTypeFilter) {
-    if (hasCollectionSource) {
-      rows = rows.filter(n => n.type !== 'page');
-    } else {
-      rows = rows.filter(n => !isPage(n));
-    }
   }
   return rows;
 }
@@ -1224,15 +1222,11 @@ export class QueryService {
     // fence) narrows before the wire's selectedCount; compiled positive
     // literal type/id clauses ride as post-count FILTERS — never selection —
     // so the wire count baselines the historical pre-filter stages.selected.
-    // The static plane is never domain-read: it is pre-selected through the
-    // SAME JS stages and its count composes onto the baseline.
+    // A static fallback must merge with complete canonical rows before
+    // filtering, or a filtered-out edited note could reappear as its seed.
     const read = compileContentRead(parsed.filters, 'note', parsed.sourceScope);
-    // Server paging composes exactly only when the merged population is the
-    // paged one — a static plane unions AFTER the user plane and the
-    // historical slice cuts the MERGED array, so static-backed queries take
-    // the complete fetch and slice in JS.
     const paging = domainPaging(parsed, options, read.residual || !!this.staticNoteStore);
-    const fetchedNotes = (read.filters.length > 0 || read.selection.length > 1 || paging.paged) && this.noteStore.queryDomain
+    const fetchedNotes = !this.staticNoteStore && (read.filters.length > 0 || read.selection.length > 0 || paging.paged) && this.noteStore.queryDomain
       ? await this.noteStore.queryDomain({
           plan: 'notes',
           selection: read.selection,
@@ -1244,12 +1238,15 @@ export class QueryService {
       : undefined;
     const domainNotes = fetchedNotes && fetchedNotes.plan === 'notes' ? fetchedNotes : undefined;
     let notes = domainNotes ? domainNotes.rows : await this.noteStore.getAllNotes();
-    let selectedFromDomain = domainNotes ? domainNotes.selectedCount : undefined;
+    const selectedFromDomain = domainNotes ? domainNotes.selectedCount : undefined;
     const notesPaged = !!domainNotes && paging.paged;
     if (this.staticNoteStore) {
       const staticRows = applyNoteSelectionStages(await this.staticNoteStore.getAllNotes(), parsed);
-      notes = notes.concat(staticRows);
-      if (selectedFromDomain !== undefined) selectedFromDomain += staticRows.length;
+      // Canonical noteStore rows win: a static corpus row mirroring an
+      // imported note (same id) is fallback-only, so the inclusive plane
+      // never double-counts an id.
+      const known = new Set(notes.map((n) => n.id));
+      notes = notes.concat(staticRows.filter((n) => !known.has(n.id)));
     }
     notes = applyNoteSelectionStages(notes, parsed);
     const selectedCount = selectedFromDomain ?? notes.length;

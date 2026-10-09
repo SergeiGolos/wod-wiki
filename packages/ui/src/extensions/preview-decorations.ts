@@ -138,6 +138,17 @@ const scriptBlockBaseTheme = EditorView.baseTheme({
   ".cm-wod-fence-open": {
     borderTop: "1px solid hsl(var(--border) / 0.5)",
     borderRadius: "6px 6px 0 0",
+    // The 44px inline command bar bottom-aligns with this line's bottom (= the
+    // ``` text row, no bottom padding), popping up into this padding so it
+    // can't cover the previous line or the block's first content line.
+    // 44px button - 22px text row = 22px overflow, +4px breathing room.
+    paddingTop: "26px",
+    // Tint only the heading row (1px border + 26px padding above the 22px
+    // cm-content line-height); the padding above shows the plain editor
+    // background.
+    backgroundColor: "transparent",
+    backgroundImage:
+      "linear-gradient(to bottom, transparent 27px, rgba(128, 128, 128, 0.05) 27px)",
   },
   ".cm-wod-fence-close": {
     borderBottom: "1px solid hsl(var(--border) / 0.5)",

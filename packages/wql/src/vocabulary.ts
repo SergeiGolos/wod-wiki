@@ -105,9 +105,10 @@ export type WqlGrain = (typeof WQL_GRAINS)[number];
 export const WQL_FIND_TARGETS = ['note', 'block', 'effort', 'session', 'segment', 'event'] as const;
 export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 
-/** Canonical source filter values: exactly the 4 allowed storage locations
- *  (feeds excised — feed URIs are no longer a WQL source). */
-export const WQL_SOURCE_VALUES = ['journal', 'collections', 'guides', 'playground'] as const;
+/** Canonical source filter values: the allowed storage locations (feeds
+ *  excised — feed URIs are no longer a WQL source). Seed corpus locations
+ *  joined the note plane: prebuilt dashboards and the effort library. */
+export const WQL_SOURCE_VALUES = ['journal', 'collections', 'guides', 'playground', 'dashboards', 'efforts'] as const;
 export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
 
 /** Colon source heads — the unprefixed `:<head>` names. Find targets map
@@ -117,6 +118,7 @@ export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
 export const WQL_SOURCE_HEADS = [
   'note', 'block', 'effort', 'session', 'segment', 'event',
   'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
+  'dashboard',
 ] as const;
 export type WqlSourceHead = (typeof WQL_SOURCE_HEADS)[number];
 
@@ -130,9 +132,19 @@ export const WQL_SOURCE_HEAD_SCOPES: Readonly<Record<string, WqlSourceValue>> = 
   playground: 'playground',
 };
 
-/** Generic `:note` default scope — applied only when no explicit `source:`
- *  filter was authored (guides are outside the default domain). */
-export const WQL_NOTE_DEFAULT_SOURCES: readonly WqlSourceValue[] = ['journal', 'collections', 'playground'];
+/** Type-alias note heads — `:<head>` parses to target 'note' plus an injected
+ *  `type:` filter (no storage scope, so the head never narrows by source).
+ *  `:dashboard` is the canonical member: dashboards are notes typed
+ *  'dashboard', findable with ordinary note tags/text/frontmatter filters. */
+export const WQL_TYPE_HEADS: Readonly<Record<string, string>> = {
+  dashboard: 'dashboard',
+};
+
+/** Former generic `:note` default scope — now EMPTY: the generic note head
+ *  is the inclusive note plane (every row). Kept exported (empty) so the
+ *  serializer and host surfaces keep a single name for "the default scope",
+ *  which no longer narrows anything. */
+export const WQL_NOTE_DEFAULT_SOURCES: readonly WqlSourceValue[] = [];
 
 /** Colon function heads — the unprefixed `:<fn>{metric:…}` aggregate stage. */
 export const WQL_FUNCTION_HEADS = WQL_AGGREGATORS;

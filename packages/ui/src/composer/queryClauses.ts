@@ -117,6 +117,8 @@ export const SOURCE_OPTIONS = WQL_SOURCE_VALUES.map((s) => ({
     collections: 'Curated collection notes',
     guides: 'Static guide pages',
     playground: 'Playground scratch pages',
+    dashboards: 'Dashboard notes',
+    efforts: 'Exercise library notes',
   }[s],
 }));
 

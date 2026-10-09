@@ -7,7 +7,7 @@
  * in the Library page, not the row.
  */
 import { useNavigate, Link } from 'react-router-dom'
-import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell, Rss } from 'lucide-react'
+import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell, Rss, LayoutDashboard, Wrench, FlaskConical, BookOpen } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref, entryCompareHref, entryCanAddToToday, entryCollectionFeedHref } from '../../lib/entryActions'
 import { entryCanRun } from '../../lib/entryRun'
@@ -47,6 +47,8 @@ const KIND_ICON: Record<Entry['kind'], React.FC<{ className?: string }>> = {
   result: Trophy,
   segment: Layers,
   event: Activity,
+  dashboard: LayoutDashboard,
+  equipment: Wrench,
 }
 
 const KIND_LABEL: Record<Entry['kind'], string> = {
@@ -57,6 +59,8 @@ const KIND_LABEL: Record<Entry['kind'], string> = {
   result: 'Result',
   segment: 'Segment',
   event: 'Event',
+  dashboard: 'Dashboard',
+  equipment: 'Equipment',
 }
 
 const KIND_TONE: Record<Entry['kind'], string> = {
@@ -67,6 +71,8 @@ const KIND_TONE: Record<Entry['kind'], string> = {
   result: 'bg-sky-500/10 text-sky-600 group-hover:bg-sky-500/20',
   segment: 'bg-indigo-500/10 text-indigo-600 group-hover:bg-indigo-500/20',
   event: 'bg-indigo-500/10 text-indigo-600 group-hover:bg-indigo-500/20',
+  dashboard: 'bg-cyan-500/10 text-cyan-600 group-hover:bg-cyan-500/20',
+  equipment: 'bg-orange-500/10 text-orange-600 group-hover:bg-orange-500/20',
 }
 
 export function LibraryRow({
@@ -80,7 +86,19 @@ export function LibraryRow({
   onRunStart,
 }: LibraryRowProps) {
   const navigate = useNavigate()
-  const Icon = KIND_ICON[entry.kind]
+  // Annotation 4 — plain `note` kind conflates journal/guide/playground by
+  // design; All-view rows pick the icon/label by the entry's source so each
+  // note kind shows its own type. Distinct kinds (dashboard/effort/…)
+  // resolve through the records directly.
+  const noteCatalog = entry.kind === 'note' ? entry.sourceCatalog : undefined
+  const Icon =
+    noteCatalog === 'playground' ? FlaskConical
+    : noteCatalog === 'guides' ? BookOpen
+    : KIND_ICON[entry.kind]
+  const kindLabel =
+    noteCatalog === 'playground' ? 'Playground'
+    : noteCatalog === 'guides' ? 'Guide'
+    : KIND_LABEL[entry.kind]
   const isPrimary = tone === 'primary'
   const feedHref = entryCollectionFeedHref(entry)
   const openHref = entryOpenHref(entry)
@@ -130,7 +148,7 @@ export function LibraryRow({
             </span>
           )}
           <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border border-border rounded-full px-1.5 py-0.5">
-            {KIND_LABEL[entry.kind]}
+            {kindLabel}
           </span>
           {entry.execution?.effortSlug && (
             <Link

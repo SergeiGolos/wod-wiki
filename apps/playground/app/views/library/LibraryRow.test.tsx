@@ -20,6 +20,28 @@ describe('LibraryRow — field projection adaptation', () => {
     date: '2026-09-02',
   }
 
+  it('labels note-kind rows by their source in the All view (playground/guide flavors)', () => {
+    render(
+      <MemoryRouter>
+        <LibraryRow entry={{ ...testEntry, id: 'pg-1', sourceCatalog: 'playground' }} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Playground')).toBeDefined()
+
+    cleanup()
+    render(
+      <MemoryRouter>
+        <LibraryRow entry={{ ...testEntry, id: 'g-1', sourceCatalog: 'guides' }} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Guide')).toBeDefined()
+
+    cleanup()
+    render(<MemoryRouter><LibraryRow entry={testEntry} /></MemoryRouter>)
+    // Journal notes keep the plain Note label.
+    expect(screen.getByText('Note')).toBeDefined()
+  })
+
   it('renders all details when visibleFieldIds is omitted (default behavior)', () => {
     render(
       <MemoryRouter>

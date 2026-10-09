@@ -104,7 +104,8 @@ describe('createDashboardNotes.createDashboard', () => {
     const { dashboards } = await setup();
     const note = await dashboards.createDashboard();
     expect(note.journalDate).toBeUndefined();
-    expect(note.type).toBe('note');
+    expect(note.type).toBe('dashboard');
+    expect(note.sourceId).toBe('dashboards');
   });
 
   it('deactivates the previously active dashboard', async () => {

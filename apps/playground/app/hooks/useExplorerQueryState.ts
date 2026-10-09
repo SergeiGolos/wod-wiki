@@ -60,21 +60,31 @@ export interface ExplorerQueryState {
 /** Explorer landing state: a valid, parseable aggregate draft (issue #897:
  * the old empty-metric default compiled to `sum:`, which surfaced a parser
  * error on first visit). Submitted state still starts empty, so nothing
- * runs until the user submits. */
+ * runs until the user submits — unless the surface opts into
+ * `runOnLanding` (the /dashboards landing executes its default query). */
 export const DEFAULT_EXPLORER_QUERY = 'sum:totalVolume{}'
+
+export interface ExplorerQueryStateOptions {
+  /** Landing draft when the URL carries no valid `?q=` (defaults to the
+   *  generic aggregate seed). */
+  defaultQuery?: string
+  /** Run the landing default immediately (no `?q=` deep link present). */
+  runOnLanding?: boolean
+}
 
 function parseWeeks(raw: string | null): ExplorerRangeWeeks {
   const n = Number.parseInt(raw ?? '', 10)
   return (EXPLORER_RANGE_OPTIONS as readonly number[]).includes(n) ? (n as ExplorerRangeWeeks) : DEFAULT_EXPLORER_WEEKS
 }
 
-export function useExplorerQueryState(): ExplorerQueryState {
+export function useExplorerQueryState(options: ExplorerQueryStateOptions = {}): ExplorerQueryState {
+  const { defaultQuery = DEFAULT_EXPLORER_QUERY, runOnLanding = false } = options
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
   const weeks = parseWeeks(searchParams.get('weeks'))
 
-  const [draft, setDraftState] = useState<string>(() => (q && !parseQuery(q).error ? q : DEFAULT_EXPLORER_QUERY))
-  const [submitted, setSubmitted] = useState(q)
+  const [draft, setDraftState] = useState<string>(() => (q && !parseQuery(q).error ? q : defaultQuery))
+  const [submitted, setSubmitted] = useState(q || (runOnLanding ? defaultQuery : ''))
 
   const draftRef = useRef(draft)
   draftRef.current = draft
@@ -101,9 +111,9 @@ export function useExplorerQueryState(): ExplorerQueryState {
     prevQRef.current = q
     if (draftRef.current === q) return
     urlIsCheckpoint.current = true
-    setDraftState(q && !parseQuery(q).error ? q : DEFAULT_EXPLORER_QUERY)
-    setSubmitted(q)
-  }, [q])
+    setDraftState(q && !parseQuery(q).error ? q : defaultQuery)
+    setSubmitted(q || (runOnLanding ? defaultQuery : ''))
+  }, [q, defaultQuery, runOnLanding])
 
   // Draft → URL. Replace within an editing spell; one scratch entry per
   // spell so checkpoints survive (never a history entry per keystroke).

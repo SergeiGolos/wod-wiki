@@ -58,7 +58,8 @@ export function EffortRedirect(): ReactNode {
   return <Navigate to={effortPath(slug!)} replace />
 }
 
-/** Redirect /results → /sessions, preserving any ?q= deep link. */
+/** Redirect the bare /results list to /sessions — the sessions list is the
+ *  canonical listing; /results/:sessionId is the canonical detail. */
 export function ResultsRedirect(): ReactNode {
   const { search } = useLocation()
   return <Navigate to={{ pathname: '/sessions', search }} replace />
@@ -67,12 +68,6 @@ export function ResultsRedirect(): ReactNode {
 /** Redirect /results/segments → /sessions with the segments query pre-filled. */
 export function SegmentsRedirect(): ReactNode {
   return <Navigate to={`/sessions?q=${encodeURIComponent(':segment{} last 8w')}`} replace />
-}
-
-/** Redirect /results/:resultId → /sessions/:sessionId */
-export function ResultDetailRedirect(): ReactNode {
-  const { resultId } = useParams<{ resultId: string }>()
-  return <Navigate to={sessionDetailPath(resultId!)} replace />
 }
 
 /** Redirect /dashboard → /dashboards, preserving any ?q=/?weeks= deep link. */
@@ -89,10 +84,10 @@ export function TrackerRedirect(): ReactNode {
 
 /**
  * Retired review routes (#946, Ticket 005): dedicated execution telemetry routes
- * live on `/sessions` and `/sessions/:sessionId`. Bookmarks land directly on
- * `/sessions/:sessionId` (or note-scoped `/sessions?q=...`):
- *   /review/:runtimeId                              → /sessions/:runtimeId
- *   /note/:noteId/review/:sectionId/:resultId       → /sessions/:resultId
+ * live on `/sessions` (list) and `/results/:sessionId` (detail). Bookmarks land
+ * directly on `/results/:sessionId` (or note-scoped `/sessions?q=...`):
+ *   /review/:runtimeId                              → /results/:runtimeId
+ *   /note/:noteId/review/:sectionId/:resultId       → /results/:resultId
  *   /note/:noteId/review[/…]                        → /sessions?q=:session{note:…}
  */
 export function ReviewRedirect(): ReactNode {

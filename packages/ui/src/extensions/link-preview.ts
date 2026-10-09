@@ -6,9 +6,10 @@
  *  - markdown links `[label](https://…)`
  *  - bare URLs `https://…`
  *
- * Standalone `[label](url)` lines (parsed as "embed" sections) get the same
- * pill treatment while editing; in read-only mode a YouTube URL renders as an
- * inline player instead of the pill.
+ * Standalone `[label](url)` lines, bare-URL lines, and list items holding only
+ * a link get the same pill treatment; a YouTube URL on such a line renders as
+ * an inline player whenever the cursor is elsewhere, reverting to raw text
+ * when the cursor moves onto the line.
  */
 
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
@@ -202,17 +203,22 @@ function buildLinkDecos(state: EditorState): DecorationSet {
       if (!readOnly && cursor >= line.from && cursor <= line.to) continue;
 
       const links = findLineLinks(line);
-      const leading = line.text.length - line.text.trimStart().length;
+      const trimmed = line.text.trimStart();
+      const leading = line.text.length - trimmed.length;
       const trailing = line.text.length - line.text.trimEnd().length;
+      // `- url` / `* url` / `+ url` items whose content is only the link count
+      // as standalone; the player replaces the whole line incl. the marker.
+      const bodyStart = leading + (trimmed.match(/^[-*+]\s+/)?.[0].length ?? 0);
 
       for (const link of links) {
-        // A line that is nothing but a link is a "embed"-style link: in read
-        // mode a YouTube URL becomes an inline player, anything else a pill.
+        // A standalone link line (bare URL, markdown link, or list item holding
+        // only the link) becomes a YouTube player when the cursor is elsewhere;
+        // the cursor's own line stays raw/editable (skip above).
         const wholeLine =
           links.length === 1 &&
-          link.from === line.from + leading &&
+          link.from === line.from + bodyStart &&
           link.to === line.to - trailing;
-        const videoId = wholeLine && readOnly ? extractYouTubeVideoId(link.url) : null;
+        const videoId = wholeLine ? extractYouTubeVideoId(link.url) : null;
 
         if (videoId) {
           builder.add(

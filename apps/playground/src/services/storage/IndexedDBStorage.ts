@@ -9,7 +9,7 @@ import type {
 } from './IStorage';
 import type { Session } from '@/types/storage';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import { DB_VERSION, USER_OWNED_STORES, stampUserOwned } from '@bitcobblers/wod-wiki-storage';
+import { DB_VERSION, USER_OWNED_STORES, stampUserOwned, type NoteSegment } from '@bitcobblers/wod-wiki-storage';
 
 const DB_NAME = 'wodwiki-db';
 
@@ -25,6 +25,10 @@ const DB_NAME = 'wodwiki-db';
 // by-note-tag on real databases, so version 26 became ambiguous. Every index
 // addition is presence-guarded (not oldVersion-gated), so a 26→27 upgrade
 // repairs exactly the missing pieces and a fresh DB is built complete.
+// V28: dashboard typing repair — notes whose frontmatter segment says
+// `dashboard: true` gain type 'dashboard' / sourceId 'dashboards' (legacy
+// user dashboards and pre-attribution seed dashboards; fields-only, never
+// rawContent).
 
 type IDBTransactionMode = 'readonly' | 'readwrite';
 
@@ -497,6 +501,28 @@ export class IndexedDBStorage implements IStorage {
         // its per-chunk checkpoints, and throws before mutating when a row's
         // sourcePath has no (ambiguous/missing) imported note — prior rows
         // stay untouched on failure. Journal history is never touched.
+
+        // V28: dashboard typing repair — every note whose frontmatter
+        // segment says `dashboard: true` becomes type 'dashboard' /
+        // sourceId 'dashboards' (legacy user dashboards saved as type
+        // 'note', and seed dashboards imported before attribution).
+        // Non-destructive: only those two storage fields flip, rawContent /
+        // tags / seed provenance untouched, and the pass is idempotent.
+        if (db.objectStoreNames.contains('notes') && db.objectStoreNames.contains('segments')) {
+          const segments = tx.objectStore('segments');
+          const notes = tx.objectStore('notes');
+          const repaired = new Set<string>();
+          for await (const cursor of segments) {
+            const segment = cursor.value as NoteSegment;
+            if (segment.dataType !== 'frontmatter' || repaired.has(segment.noteId)) continue;
+            if (typeof segment.rawContent !== 'string'
+                || !/(^|\n)dashboard:\s*["']?true["']?\s*(\n|$)/.test(segment.rawContent)) continue;
+            repaired.add(segment.noteId);
+            const note = await notes.get(segment.noteId);
+            if (!note || (note.type === 'dashboard' && note.sourceId === 'dashboards')) continue;
+            await notes.put({ ...note, type: 'dashboard', sourceId: note.sourceId ?? 'dashboards' });
+          }
+        }
       },
       blocked: (currentVersion, blockedVersion) => {
         console.warn(

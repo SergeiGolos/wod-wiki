@@ -1,7 +1,7 @@
 /** seedSync orchestrator: flag gate, fast path, claim, decision, broadcast. */
 import { describe, expect, it } from 'bun:test';
 import type { SeedMetaRecord, SeedRow } from '@/types/seed';
-import { emptySeedMeta } from '@/types/seed';
+import { emptySeedMeta, SEED_SCHEMA } from '@/types/seed';
 import { CountingSeedSource, InMemorySeedSource } from './InMemorySeedSource';
 import { InMemorySeedStorage } from './SeedImportStorage';
 import { isSeedImportEnabled, runSeedSync, SEED_BROADCAST_CHANNEL, SEED_IMPORT_FLAG } from './seedSync';
@@ -46,6 +46,36 @@ describe('runSeedSync', () => {
     });
     expect(outcome).toBe('current');
     expect(counting.fetchManifestCalls).toBe(0);
+  });
+
+  it('imports a stale-schema checkpoint even when the manifest version is unchanged', async () => {
+    const counting = new CountingSeedSource(source(1000));
+    const storage = new InMemorySeedStorage();
+    await storage.putSeedMeta(stored({ seedVersion: 1000, schema: SEED_SCHEMA - 1 }));
+    const outcome = await runSeedSync({
+      source: counting,
+      storage,
+      embeddedVersion: 1000,
+      isEnabled: () => true,
+    });
+    expect(outcome).toBe('imported');
+    expect(counting.fetchChunkCalls).toEqual(['chunks/canvas.json']);
+    expect((await storage.getSeedMeta())!.schema).toBe(SEED_SCHEMA);
+  });
+
+  it('keeps the server-stale refusal for a stale schema over an older manifest', async () => {
+    const counting = new CountingSeedSource(source(500));
+    const storage = new InMemorySeedStorage();
+    await storage.putSeedMeta(stored({ seedVersion: 1000, schema: SEED_SCHEMA - 1 }));
+    const outcome = await runSeedSync({
+      source: counting,
+      storage,
+      embeddedVersion: 1000,
+      isEnabled: () => true,
+    });
+    expect(outcome).toBe('server-stale');
+    expect(counting.fetchChunkCalls).toEqual([]);
+    expect((await storage.getSeedMeta())!.schema).toBe(SEED_SCHEMA - 1);
   });
 
   it('force re-sync bypasses the fast path and re-imports an unchanged seed', async () => {

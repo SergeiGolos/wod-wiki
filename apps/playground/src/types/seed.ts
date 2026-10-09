@@ -64,9 +64,12 @@ export interface SeedMetaRecord {
   claim?: { owner: string; at: number } | null;
 }
 
-/** v6 — static block rows carry sourcePath + routeId; forces one re-apply so
- *  existing static block rows are rebuilt mapped onto imported note UUIDs. */
-export const SEED_SCHEMA = 6;
+/** v7 — notes carry their real corpus `sourceId` (annotation 1: seed notes
+ *  leaked into :journal because sourceId was undefined) and dashboards chunk
+ *  rows type 'dashboard'. Stored checkpoints from v6 re-apply every chunk —
+ *  even unchanged hashes — so already-seeded notes are re-attributed, and
+ *  user-owned seed-path rows get their broken sourceId repaired. */
+export const SEED_SCHEMA = 7;
 /** The `meta`-store key holding the import checkpoint record. */
 export const SEED_META_KEY = 'seed';
 /**
@@ -83,6 +86,10 @@ export const SEED_BROADCAST_CHANNEL = 'wodwiki.seed';
 export const EFFORTS_CHUNK_ID = 'efforts';
 /** Canvas corpus chunk — the home page + every canvas route; applied first so first paint never waits for the library. */
 export const CANVAS_CHUNK_ID = 'canvas';
+/** Dashboards corpus chunk — `:dashboard{}` is a note-head alias for type:dashboard, never a find target. */
+export const DASHBOARDS_CHUNK_ID = 'dashboards';
+/** Playground template chunk — the new-playground template is playground intake, not journal content. */
+export const TEMPLATE_CHUNK_ID = 'template';
 /** Prefix of the split block-index chunks (`block-index.<n>`). */
 export const BLOCK_INDEX_CHUNK_PREFIX = 'block-index.';
 /** Prefix of the split block-efforts chunks (`block-efforts.<n>`). */
@@ -91,4 +98,58 @@ export const BLOCK_EFFORTS_CHUNK_PREFIX = 'block-efforts.';
 /** Empty checkpoint — pre-first-import state. */
 export function emptySeedMeta(): SeedMetaRecord {
   return { key: SEED_META_KEY, schema: SEED_SCHEMA, seedVersion: 0, builtAt: '', importedAt: 0, chunks: {}, claim: null };
+}
+
+/** `collection.crossfit-girls` → `crossfit-girls`; `_root`/non-catalog chunks → undefined. */
+export function catalogForChunkId(chunkId: string): string | undefined {
+  const match = /^(?:collection|feed)\.(.+)$/.exec(chunkId);
+  const value = match?.[1];
+  return value && value !== '_root' ? value : undefined;
+}
+
+/** Frontmatter `route:` of a canvas page, minus the leading slash; null when
+ *  absent, degenerate ('/'), or the file is not a canvas page (`template:
+ *  canvas` required — section fragments and snippets carry `title:`/`section:`
+ *  frontmatter instead and must never become Library entries). Mirrors the
+ *  runtime's route resolution (parseCanvasMarkdown: frontmatter wins), so a
+ *  guide's block-index noteId doubles as its deep-link path. Shared by the
+ *  compiler (block plane) and the importer (note plane). */
+export function canvasRouteSlug(content: string): string | null {
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
+  if (fm?.[1] && !/^template:\s*canvas\s*$/m.test(fm[1])) return null;
+  const route = fm?.[1]?.match(/^route:\s*(\S+)\s*$/m)?.[1];
+  if (!route) return null;
+  return route.replace(/^\//, '') || null;
+}
+
+/**
+ * Note-plane `sourceId` for one seed row — mirrors the block plane's per-file
+ * families exactly (`collection:<catalog>[/file]`, `feed:feeds/<dir>/<date>/<file>`,
+ * `guides:<route>`) so `source:` filters and catalog resolution classify
+ * identically on both planes. Dashboards and efforts are their own families;
+ * the template chunk belongs to the playground intake. `undefined` means the
+ * chunk family is unknown — callers must refuse to import such a row, since
+ * a sourceless note matches the `journal` source (annotation 1's leak).
+ */
+export function seedNoteSourceId(path: string, content: string, chunkId: string): string | undefined {
+  const parts = path.split('/');
+  const stem = (parts[parts.length - 1] ?? '').replace(/\.md$/i, '');
+  const under = parts.slice(2).map((p) => p.replace(/\.md$/i, '')).join('/');
+  if (chunkId === CANVAS_CHUNK_ID) {
+    const route = canvasRouteSlug(content);
+    return route ? `guides:${route}` : `guides:${under}`;
+  }
+  if (chunkId === DASHBOARDS_CHUNK_ID) return 'dashboards';
+  if (chunkId === EFFORTS_CHUNK_ID) return 'efforts';
+  if (chunkId === TEMPLATE_CHUNK_ID) return 'playground';
+  // ponytail: root chunks (`collection._root`/`feed._root`) have no corpus
+  // instances; `_root` keeps them non-journal with a stable literal — give
+  // them a real catalog family if such files ever ship.
+  if (chunkId.startsWith('collection.')) {
+    const catalog = catalogForChunkId(chunkId);
+    if (!catalog) return 'collection:_root';
+    return stem.toLowerCase() === 'readme' ? `collection:${catalog}` : `collection:${catalog}/${stem}`;
+  }
+  if (chunkId.startsWith('feed.')) return `feed:feeds/${under}`;
+  return undefined;
 }
