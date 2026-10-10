@@ -1,7 +1,6 @@
 ---
 date: 2012-07-24
-original_url: "http://zombiefit.org/2012/07/wod-072412-and-zombiefit-class/"
-wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2012/07/wod-072412-and-zombiefit-class/"
+url: "http://web.archive.org/web/2/http://zombiefit.org/2012/07/wod-072412-and-zombiefit-class/"
 domain: parkour
 format: intervals
 level: expert

@@ -1,7 +1,6 @@
 ---
 date: 2010-08-01
-original_url: "http://zombiefit.org/2010/07/wod-080110-50000-visitors/"
-wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2010/07/wod-080110-50000-visitors/"
+url: "http://web.archive.org/web/2/http://zombiefit.org/2010/07/wod-080110-50000-visitors/"
 domain: parkour
 format: for-time
 level: advanced

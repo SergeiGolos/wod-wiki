@@ -1,7 +1,6 @@
 ---
 date: 2010-09-28
-original_url: "http://zombiefit.org/2010/09/wod-092810-zombiefit-1-year-anniversary/"
-wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2010/09/wod-092810-zombiefit-1-year-anniversary/"
+url: "http://web.archive.org/web/2/http://zombiefit.org/2010/09/wod-092810-zombiefit-1-year-anniversary/"
 domain: parkour
 format: for-time
 level: expert
