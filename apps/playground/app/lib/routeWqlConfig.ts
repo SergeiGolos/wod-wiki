@@ -2,8 +2,8 @@
  * routeWqlConfig — user-configurable per-route WQL defaults (wayfinder: Route WQL defaults settings).
  *
  * Persists the user's override of a surface's landing default WQL, Where-stored
- * scope options, and fallback Group-By options in localStorage, one key per
- * route id, mirroring viewSettingsStorage. Absent fields fall back individually
+ * scope options, and fallback Group-By options, one key per route id — browser
+ * localStorage locally, namespaced meta rows on the server in api mode. Absent fields fall back individually
  * to the in-code system defaults (the route's StreamProfile, the palette seed,
  * the view settings dialog's fallback list); an empty array is a deliberate
  * "no predefined options" state and is preserved. An explicit URL `?q=` always
@@ -19,6 +19,7 @@
 import { WQL_FIND_TARGETS, WQL_SOURCE_VALUES } from '@bitcobblers/wod-wiki-engine'
 import type { StreamProfile } from '../views/stream/streamProfile'
 import { LocalStore } from '@/services/storage/LocalStore'
+import { apiPrefsMode, metaDeletePrefs, metaPrefBackend, metaSetPref } from '@/services/storage/metaStore'
 
 export interface RouteWqlConfig {
   /** Landing default WQL when the URL carries no `?q=`. */
@@ -39,7 +40,9 @@ export const PALETTE_ROUTE_ID = '/palette'
 
 export const ROUTE_WQL_STORAGE_PREFIX = 'wodwiki.routeWql.v1'
 
-export const routeWqlStore = new LocalStore(ROUTE_WQL_STORAGE_PREFIX)
+// api mode: reads come from the hydrated server rows; writes bypass the
+// error-swallowing LocalStore and flush through metaSetPref instead.
+export const routeWqlStore = new LocalStore(ROUTE_WQL_STORAGE_PREFIX, apiPrefsMode ? metaPrefBackend : undefined)
 
 /** Canonical Where-stored choices — the storage scopes a note surface offers. */
 export const SCOPE_OPTION_VALUES: readonly string[] = WQL_SOURCE_VALUES
@@ -154,19 +157,49 @@ export function readRouteWqlConfig(routeId: string, store: LocalStore = routeWql
   }
 }
 
-export function writeRouteWqlConfig(routeId: string, config: RouteWqlConfig, store: LocalStore = routeWqlStore): void {
+/**
+ * Persist one route's config. Resolves false only when persistence failed
+ * (api mode: the server row was not stored); local mode keeps the existing
+ * browser-backend semantics and always resolves true.
+ */
+export async function writeRouteWqlConfig(routeId: string, config: RouteWqlConfig, store: LocalStore = routeWqlStore): Promise<boolean> {
   const id = getRouteWqlStorageId(routeId)
-  store.set(id, {
+  const payload = {
     defaultWql: config.defaultWql?.trim() || undefined,
     typeOptions: sanitizeStringArray(config.typeOptions),
     groupByOptions: sanitizeStringArray(config.groupByOptions),
-  })
+  }
+  if (apiPrefsMode) {
+    try {
+      await metaSetPref(store.qualify(id), JSON.stringify(payload))
+    } catch (err) {
+      console.error('[routeWqlConfig] server write failed:', err)
+      return false
+    }
+    return true
+  }
+  store.set(id, payload)
+  return true
 }
 
-export function clearRouteWqlConfig(routeId: string, store: LocalStore = routeWqlStore): void {
+/** Discard the stored config — canonical key and its legacy rebrand alias
+ *  together, so a reset cannot resurrect the old override. Resolves false
+ *  when the server delete failed (api mode) — the stored override then
+ *  still stands. */
+export async function clearRouteWqlConfig(routeId: string, store: LocalStore = routeWqlStore): Promise<boolean> {
   const id = getRouteWqlStorageId(routeId)
   const legacyId = LEGACY_STORAGE_ALIASES[id]
+  if (apiPrefsMode) {
+    try {
+      await metaDeletePrefs(legacyId ? [store.qualify(id), store.qualify(legacyId)] : [store.qualify(id)])
+    } catch (err) {
+      console.error('[routeWqlConfig] server delete failed:', err)
+      return false
+    }
+    return true
+  }
   store.remove(id, legacyId)
+  return true
 }
 
 /**

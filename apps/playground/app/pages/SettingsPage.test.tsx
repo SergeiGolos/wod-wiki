@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { SettingsPage } from './SettingsPage'
 import { writeRouteWqlConfig, readRouteWqlConfig } from '../lib/routeWqlConfig'
@@ -212,7 +212,7 @@ describe('SettingsPage — Query Defaults tab', () => {
     }
   })
 
-  it('saves a landing default query override into routeWqlConfig storage', () => {
+  it('saves a landing default query override into routeWqlConfig storage', async () => {
     renderSettings('/settings/queries')
 
     fireEvent.change(screen.getByTestId('query-defaults-wql-/journal'), {
@@ -221,8 +221,10 @@ describe('SettingsPage — Query Defaults tab', () => {
     fireEvent.click(screen.getByTestId('query-defaults-save-/journal'))
     expect(screen.queryByTestId('query-defaults-wql-error-/journal')).toBeNull()
     expect(readRouteWqlConfig('/journal').defaultWql).toBe(':note{source:journal} last 52w')
-    // Saved state is no longer dirty — save disables.
-    expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true)
+    // Saved state is no longer dirty — save disables (after the async save settles).
+    await waitFor(() =>
+      expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true),
+    )
   })
 
   it('blocks saving an unparseable default query', () => {
@@ -235,18 +237,20 @@ describe('SettingsPage — Query Defaults tab', () => {
     expect((screen.getByTestId('query-defaults-save-/journal') as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('reset discards the stored override and returns to the system default', () => {
-    writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
+  it('reset discards the stored override and returns to the system default', async () => {
+    await writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
     renderSettings('/settings/queries')
 
     fireEvent.click(screen.getByTestId('query-defaults-reset-/journal'))
 
     expect(readRouteWqlConfig('/journal')).toEqual({})
-    expect((screen.getByTestId('query-defaults-wql-/journal') as HTMLTextAreaElement).value).toBe('')
+    await waitFor(() =>
+      expect((screen.getByTestId('query-defaults-wql-/journal') as HTMLTextAreaElement).value).toBe(''),
+    )
   })
 
-  it('persists custom scope options, including the emptied nudge state', () => {
-    writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
+  it('persists custom scope options, including the emptied nudge state', async () => {
+    await writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
     renderSettings('/settings/queries')
 
     // `notes` shows migrated to the canonical `note` target favorite.
@@ -279,8 +283,8 @@ describe('SettingsPage — Query Defaults tab', () => {
     expect(readRouteWqlConfig('/efforts').groupByOptions).toEqual(['week', 'discipline'])
   })
 
-  it('reports stored option ids that are neither canonical nor migratable', () => {
-    writeRouteWqlConfig('/collections', { typeOptions: ['rows', 'journal'] })
+  it('reports stored option ids that are neither canonical nor migratable', async () => {
+    await writeRouteWqlConfig('/collections', { typeOptions: ['rows', 'journal'] })
     renderSettings('/settings/queries')
 
     const report = screen.getByTestId('query-defaults-invalid-/collections')

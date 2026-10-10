@@ -1,32 +1,128 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Cloud, GitFork, Timer } from 'lucide-react'
-import { Button } from '@/components/atoms/primitives/button'
-import { Input } from '@/components/atoms/primitives/input'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Cloud, GitFork, MonitorSmartphone } from 'lucide-react'
 import { resetUserData } from '../../services/resetUserData'
-import { ROUTE_PATTERNS } from '../../lib/routes'
+import { ROUTE_PATTERNS, noteByIdPath } from '../../lib/routes'
+import { getTodayDateKey } from '../../services/dateUtils'
+import { journalNotes } from '../../services/journalNotes'
+import { telemetry, HOME_EVENTS } from '@/services/telemetry'
+import { TaglineHeader } from '../../tour/TaglineHeader'
+import { TOUR_ACCENTS } from '../../tour/tourConstants'
 
-// ponytail: hello@wod.wiki assumed — no contact address exists in the repo yet.
+// ponytail: form is a Google Form — swap for an in-app interest endpoint
+// when the API grows one.
 const REPO_URL = 'https://github.com/SergeiGolos/wod-wiki'
-const CONTACT_EMAIL = 'hello@wod.wiki'
+const FORM_URL = 'https://forms.gle/6YHpxwAJh6PAsyAQ6'
 
-function CardShell(props: { icon: typeof Timer; title: string; children: React.ReactNode }) {
+const quietLink = 'underline-offset-4 transition-colors hover:text-foreground hover:underline'
+
+function CardLink(props: { to?: string; href?: string; onClick?: () => void; children: React.ReactNode }) {
+  const className = 'inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 transition-colors hover:underline'
+  const inner = (
+    <>
+      {props.children}
+      <ArrowRight className="size-3.5 text-muted-foreground/50" aria-hidden />
+    </>
+  )
+  if (props.href !== undefined) {
+    return (
+      <a href={props.href} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    )
+  }
+  if (props.onClick !== undefined) {
+    return (
+      <button type="button" onClick={props.onClick} className={`text-left ${className}`}>
+        {inner}
+      </button>
+    )
+  }
+  return (
+    <Link to={props.to!} className={className}>
+      {inner}
+    </Link>
+  )
+}
+
+function Bullet({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2.5 text-sm leading-6 text-muted-foreground">
+      <span aria-hidden className="mt-[11px] size-1 shrink-0 rounded-full bg-muted-foreground/50" />
+      <span>{children}</span>
+    </li>
+  )
+}
+
+/** Line-rendering timer scene — monochrome token strokes, no fills. */
+function OfferingBanner() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 1500 170"
+      className="h-40 w-full"
+      preserveAspectRatio="xMidYMax meet"
+      fill="none"
+      strokeLinecap="round"
+    >
+      {/* stopwatch dial */}
+      <g stroke="hsl(var(--muted-foreground))">
+        <circle cx="750" cy="95" r="62" strokeOpacity="0.55" strokeWidth="2" />
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = (i * Math.PI) / 6
+          const x1 = 750 + Math.cos(a) * 54
+          const y1 = 95 + Math.sin(a) * 54
+          const x2 = 750 + Math.cos(a) * 62
+          const y2 = 95 + Math.sin(a) * 62
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} strokeOpacity="0.35" />
+        })}
+        {/* elapsed sweep (accent) + hand */}
+        <path d="M 750 23 A 72 72 0 0 1 812 40" stroke="hsl(var(--primary))" strokeWidth="3" strokeDasharray="4 7" strokeOpacity="0.8" />
+        <line x1="750" y1="95" x2="785" y2="55" stroke="hsl(var(--primary))" strokeWidth="3.5" strokeOpacity="0.9" />
+        <circle cx="750" cy="95" r="4" fill="hsl(var(--primary))" fillOpacity="0.9" stroke="none" />
+        {/* crown + side button */}
+        <rect x="740" y="14" width="20" height="11" rx="3" strokeOpacity="0.55" strokeWidth="2" />
+        <line x1="804" y1="44" x2="816" y2="32" strokeOpacity="0.55" strokeWidth="2" />
+      </g>
+      {/* kettlebell */}
+      <g stroke="hsl(var(--muted-foreground))" strokeOpacity="0.5" strokeWidth="2">
+        <circle cx="200" cy="96" r="26" />
+        <path d="M 184 74 q 16 -26 32 0" />
+      </g>
+      {/* barbell */}
+      <g stroke="hsl(var(--muted-foreground))" strokeOpacity="0.5" strokeWidth="2">
+        <line x1="1230" y1="86" x2="1330" y2="86" />
+        <rect x="1218" y="68" width="14" height="36" rx="5" />
+        <rect x="1328" y="68" width="14" height="36" rx="5" />
+      </g>
+      {/* floor line */}
+      <line x1="140" y1="150" x2="1360" y2="150" stroke="hsl(var(--border))" strokeWidth="2" strokeDasharray="2 10" />
+    </svg>
+  )
+}
+
+function OfferingCard(props: {
+  icon: typeof Cloud
+  title: string
+  text: string
+  children: React.ReactNode
+}) {
   const Icon = props.icon
   return (
-    <article className="flex flex-col rounded-2xl border border-zinc-200 bg-white/60 p-5 dark:border-zinc-700 dark:bg-zinc-900/60">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-        <Icon className="size-4 text-zinc-500 dark:text-zinc-400" aria-hidden="true" />
-        {props.title}
-      </h3>
-      {props.children}
+    <article className="flex flex-col rounded-xl border border-border bg-background p-5">
+      <span className="flex size-10 items-center justify-center rounded-lg bg-foreground text-background">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <h3 className="mt-4 text-base font-semibold text-foreground">{props.title}</h3>
+      <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{props.text}</p>
+      <div className="mt-4 flex flex-1 flex-col gap-2 text-sm">{props.children}</div>
     </article>
   )
 }
 
 export function OfferingTiers() {
-  const [email, setEmail] = useState('')
   const [clearing, setClearing] = useState(false)
-  const [interestSent, setInterestSent] = useState(false)
+  const navigate = useNavigate()
 
   const clearData = async () => {
     if (!window.confirm('Wipe every note, result, and setting stored in this browser? This cannot be undone.')) return
@@ -35,89 +131,78 @@ export function OfferingTiers() {
     window.location.reload()
   }
 
-  // ponytail: no interest-collection endpoint yet — hands off to the visitor's
-  // mail client; swap for POST /v1/interest when the API grows one.
-  const INTEREST_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('wod.wiki hosted — interested')}&body=`
+  const createJournal = async () => {
+    const today = getTodayDateKey()
+    const note = await journalNotes.create({ journalDate: today, title: today, rawContent: '' })
+    telemetry.record(HOME_EVENTS.noteCreated)
+    navigate(noteByIdPath(note.id))
+  }
 
   return (
-    <section aria-label="Ways to run Wod Wiki" className="mt-12">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-        Offerings
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-        Three ways to run Wod Wiki
-      </h2>
+    <section id="tour-section-offerings" data-testid="tour-section-offerings" aria-label="Ways to run Wod Wiki">
+      <TaglineHeader
+        index="06"
+        before="Run it "
+        accentText="your way"
+        after=""
+        accent={TOUR_ACCENTS.library}
+        blurb="One journal, three homes. Keep it in this browser, run the open-source server yourself, or let us host it — pick the custody model that fits."
+      />
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <CardShell icon={Timer} title="Playground">
-          <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-            This browser holds your data — clear it here and it&rsquo;s gone. No
-            account, no cloud copy. Share timer blocks as links. Everything you
-            see here, in its very ephemeral way, is yours.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button asChild size="sm">
-              <Link to={ROUTE_PATTERNS.playgroundRoot}>Open the playground</Link>
-            </Button>
-            <Button variant="destructive" size="sm" onClick={clearData} disabled={clearing}>
-              {clearing ? 'Clearing…' : 'Clear my data'}
-            </Button>
-          </div>
-        </CardShell>
+      <div className="mx-auto w-full max-w-[1500px] 2xl:max-w-[1720px] px-6 pb-16 pt-10 lg:px-12 xl:px-16">
+        <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/30 px-6 pt-3">
+          <OfferingBanner />
+        </div>
 
-        <CardShell icon={GitFork} title="Self-hosted">
-          <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-            Wod Wiki is open source. You are welcome to run and fiddle with
-            your own version.
-          </p>
-          <div className="mt-4">
-            <Button variant="outline" size="sm" asChild>
-              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                View source
-                <GitFork className="ml-1.5 size-3.5" aria-hidden="true" />
-              </a>
-            </Button>
-          </div>
-        </CardShell>
-
-        <CardShell icon={Cloud} title="Hosted by wod.wiki">
-          <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-            We run it for you — as nothing more than custodians of your data.
-            It stays yours; we just keep it safe.
-          </p>
-          <form
-            className="mt-4 flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              setInterestSent(true)
-              window.location.href = INTEREST_MAILTO + encodeURIComponent(email + '\n')
-            }}
+        <div className="relative z-10 mx-auto -mt-14 grid max-w-5xl grid-cols-1 gap-5 px-1 md:grid-cols-3">
+          <OfferingCard
+            icon={MonitorSmartphone}
+            title="In this browser"
+            text="Your journal lives on this device — no account, no server copy."
           >
-            <label
-              htmlFor="interest-email"
-              className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400"
+            <CardLink onClick={() => void createJournal()}>Create your journal</CardLink>
+            <CardLink to={ROUTE_PATTERNS.playgroundRoot}>Start Writing in a Playground</CardLink>
+            <CardLink to="/collections">Explore the collections</CardLink>
+            <button
+              type="button"
+              onClick={clearData}
+              disabled={clearing}
+              className={`mt-1 text-left text-xs text-muted-foreground disabled:opacity-50 ${quietLink}`}
             >
-              Email
-            </label>
-            <Input
-              id="interest-email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              aria-label="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Button type="submit" variant="outline" size="sm" className="shrink-0">
-              Show interest
-            </Button>
-          </form>
-          {interestSent && (
-            <p role="status" className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">
-              Your mail client should open — or write to {CONTACT_EMAIL} directly.
-            </p>
-          )}
-        </CardShell>
+              {clearing ? 'Clearing…' : 'Clear my data'}
+            </button>
+          </OfferingCard>
+
+          <OfferingCard
+            icon={GitFork}
+            title="Self-hosted"
+            text="Open source — run your own copy on your own infrastructure."
+          >
+            <CardLink href={REPO_URL}>View source</CardLink>
+            <span className="text-xs leading-5 text-muted-foreground">
+              One Bun server backed by a local SQLite file, Turso, or Postgres — run it yourself, keep every byte.
+            </span>
+          </OfferingCard>
+
+          <OfferingCard
+            icon={Cloud}
+            title="Hosted by wod.wiki"
+            text="We run it for you as custodians — your data stays yours. Plans are still taking shape."
+          >
+            <ul className="space-y-1.5">
+              <Bullet>Safe cloud storage and a personal page URL with a public feed.</Bullet>
+              <Bullet>Website hosting for your gym.</Bullet>
+              <Bullet>Coaches portal — aggregate athlete data, dashboards, competition timers.</Bullet>
+              <Bullet>Athlete portal — private journals that roll up to their coach.</Bullet>
+            </ul>
+            <div className="mt-auto pt-2">
+              <CardLink href={FORM_URL}>Answer the questionnaire</CardLink>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Two minutes — same form for athletes, gyms, and coaches.
+              </span>
+            </div>
+          </OfferingCard>
+        </div>
       </div>
     </section>
   )

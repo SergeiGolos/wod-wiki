@@ -1,0 +1,17 @@
+{
+  "name": "@bitcobblers/wod-wiki-api",
+  "version": "0.11.0",
+  "private": true,
+  "type": "module",
+  "description": "Bun API server for wod.wiki — SQLite/Turso/PostgreSQL-backed storage behind the same-origin playground SPA.",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "check": "bun check.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bitcobblers/wod-wiki-storage": "^0.11.0",
+    "@bitcobblers/wod-wiki-wql": "^0.11.0",
+    "@libsql/client": "^0.18.0"
+  }
+}

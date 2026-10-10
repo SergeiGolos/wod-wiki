@@ -10,6 +10,7 @@
  * after `setConsent(true)`. Consent persists in Storage.
  */
 import { SimpleEventBus } from '@/services/events/SimpleEventBus';
+import { apiPrefsMode, metaListRows, metaPutRow } from '@/services/storage/metaStore';
 
 export interface TelemetryEvent {
   name: string;
@@ -26,6 +27,13 @@ export interface TelemetryServiceOptions {
   forwarder?: TelemetryForwarder;
   /** Injectable for tests; defaults to globalThis.indexedDB. */
   idb?: IDBFactory;
+  /**
+   * Server-mode persistence: one meta row ({ key, value }) per event.
+   * When set, IndexedDB is never opened; consent stays browser-local.
+   */
+  sink?: (event: TelemetryEvent) => Promise<void>;
+  /** Server-mode read-back for list(); required whenever sink is set. */
+  load?: () => Promise<TelemetryEvent[]>;
 }
 
 const DB_NAME = 'wodwiki-telemetry';
@@ -39,6 +47,8 @@ export class TelemetryService {
   private storage?: Storage;
   private forwarder?: TelemetryForwarder;
   private idb?: IDBFactory;
+  private sink?: (event: TelemetryEvent) => Promise<void>;
+  private load?: () => Promise<TelemetryEvent[]>;
   private dbPromise?: Promise<IDBDatabase | null>;
   private _consent: boolean;
 
@@ -52,7 +62,9 @@ export class TelemetryService {
       options.storage ??
       (typeof globalThis.localStorage !== 'undefined' ? globalThis.localStorage : undefined);
     this.forwarder = options.forwarder;
-    this.idb = options.idb ?? (typeof indexedDB !== 'undefined' ? indexedDB : undefined);
+    this.idb = options.sink ? undefined : (options.idb ?? (typeof indexedDB !== 'undefined' ? indexedDB : undefined));
+    this.sink = options.sink;
+    this.load = options.load;
     this._consent = this.storage?.getItem(CONSENT_KEY) === 'granted';
   }
 
@@ -79,7 +91,9 @@ export class TelemetryService {
   /** Local-always record; forwards only when consent is granted. */
   record(name: string, payload?: Record<string, unknown>): void {
     const event: TelemetryEvent = { name, payload, at: Date.now() };
-    void this.persist(event);
+    // Persistence failure is logged, never an unhandled rejection and never
+    // a fallback to a different store.
+    void this.persist(event).catch((err) => console.error('[TelemetryService] persist failed:', err));
     this.events.emit(event);
     if (this._consent && this.forwarder) {
       try {
@@ -90,8 +104,10 @@ export class TelemetryService {
     }
   }
 
-  /** Read back locally recorded events (debug views, tests). */
+  /** Read back recorded events (debug views, tests) — the injected loader
+   *  in server mode, the local IndexedDB store otherwise. */
   async list(): Promise<TelemetryEvent[]> {
+    if (this.load) return this.load();
     const db = await this.open();
     if (!db) return [];
     const { promise, resolve, reject } = Promise.withResolvers<TelemetryEvent[]>();
@@ -106,6 +122,10 @@ export class TelemetryService {
   }
 
   private async persist(event: TelemetryEvent): Promise<void> {
+    if (this.sink) {
+      await this.sink(event);
+      return;
+    }
     const db = await this.open();
     if (!db) return;
     const { promise, resolve, reject } = Promise.withResolvers<void>();
@@ -141,5 +161,16 @@ export class TelemetryService {
     });
   }
 }
-/** App-wide telemetry singleton. The forwarder is wired by the playground shell (lib/telemetry-gtag). */
-export const telemetry = new TelemetryService();
+/** App-wide telemetry singleton. The forwarder is wired by the playground shell (lib/telemetry-gtag).
+ *  Server mode persists each event as a `telemetry:*` meta row and reads
+ *  them back through the same namespace; consent stays browser-local. */
+export const telemetry = apiPrefsMode
+  ? new TelemetryService({
+      sink: (event) =>
+        metaPutRow(`telemetry:${crypto.randomUUID()}`, { name: event.name, payload: event.payload, at: event.at }),
+      load: async () => {
+        const rows = await metaListRows<{ name: string; payload?: Record<string, unknown>; at: number }>('telemetry:');
+        return rows.map((r) => r.value).sort((a, b) => a.at - b.at);
+      },
+    })
+  : new TelemetryService();

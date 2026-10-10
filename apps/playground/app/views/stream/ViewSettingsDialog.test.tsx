@@ -159,8 +159,8 @@ describe('ViewSettingsDialog component', () => {
     expect(screen.getByTestId('view-settings-group-source')).toBeDefined()
   })
 
-  it('renders the configured Group-By options instead of the system list', () => {
-    writeRouteWqlConfig('/efforts', { groupByOptions: ['week', 'discipline'] })
+  it('renders the configured Group-By options instead of the system list', async () => {
+    await writeRouteWqlConfig('/efforts', { groupByOptions: ['week', 'discipline'] })
     try {
       render(
         <ViewSettingsDialog
@@ -180,7 +180,7 @@ describe('ViewSettingsDialog component', () => {
       expect(screen.getByTestId('view-settings-group-discipline')).toBeDefined()
       expect(screen.queryByTestId('view-settings-group-source')).toBeNull()
     } finally {
-      clearRouteWqlConfig('/efforts')
+      await clearRouteWqlConfig('/efforts')
     }
   })
 

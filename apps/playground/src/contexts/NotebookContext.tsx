@@ -13,6 +13,7 @@ import type { Notebook } from '@/types/notebook';
 import { toNotebookTag, fromNotebookTag } from '@/types/notebook';
 import { notebookService } from '@/hooks/useBrowserServices';
 import { matchesId } from '@/lib/idUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface NotebookContextState {
     notebooks: Notebook[];
@@ -20,9 +21,10 @@ interface NotebookContextState {
     activeNotebook: Notebook | null;
 
     setActiveNotebook: (id: string | null) => void;
-    createNotebook: (name: string, description?: string, icon?: string) => Notebook;
-    deleteNotebook: (id: string) => void;
-    updateNotebook: (id: string, patch: Partial<Pick<Notebook, 'name' | 'description' | 'icon'>>) => void;
+    /** null when the notebook could not be persisted (failure already toasted). */
+    createNotebook: (name: string, description?: string, icon?: string) => Promise<Notebook | null>;
+    deleteNotebook: (id: string) => Promise<void>;
+    updateNotebook: (id: string, patch: Partial<Pick<Notebook, 'name' | 'description' | 'icon'>>) => Promise<void>;
     refreshNotebooks: () => void;
 
     /** Get notebook tags for a given entry's tags array */
@@ -40,6 +42,16 @@ interface NotebookContextState {
 
 const NotebookContext = createContext<NotebookContextState | undefined>(undefined);
 
+/** User-initiated persistence failure: logged and toasted — never silent. */
+function persistError(action: string, err: unknown) {
+  console.error(`[NotebookContext] ${action} failed:`, err);
+  toast({
+    title: `${action} failed`,
+    description: 'The server did not confirm the change — nothing was saved.',
+    variant: 'destructive',
+  });
+}
+
 export const useNotebooks = (): NotebookContextState => {
     const ctx = useContext(NotebookContext);
     if (!ctx) throw new Error('useNotebooks must be used within a NotebookProvider');
@@ -51,7 +63,7 @@ interface NotebookProviderProps {
 }
 
 export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) => {
-    const [notebooks, setNotebooks] = useState<Notebook[]>([]);
+    const [notebooks, setNotebooks] = useState<Notebook[]>(() => notebookService.getAll());
     const [activeNotebookId, setActiveNotebookIdState] = useState<string | null>(null);
 
     const refreshNotebooks = useCallback(() => {
@@ -60,8 +72,10 @@ export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) 
 
     // Initialize on mount
     useEffect(() => {
-        notebookService.ensureDefault();
-        setNotebooks(notebookService.getAll());
+        notebookService
+            .ensureDefault()
+            .catch((err) => console.error('[NotebookContext] init failed:', err))
+            .finally(() => setNotebooks(notebookService.getAll()));
         // Don't auto-select — let the route determine the active notebook
         // activeNotebookId stays null ("All Workouts") unless the URL says otherwise
     }, []);
@@ -81,19 +95,33 @@ export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) 
 
         setActiveNotebookIdState(targetId);
         if (targetId) {
-            notebookService.touchNotebook(targetId);
+            // Freshness-only write: a failure is logged, not toasted — the
+            // authored notebook data itself is untouched.
+            void notebookService.touchNotebook(targetId).catch((err) =>
+                console.error('[NotebookContext] touch failed:', err),
+            );
             refreshNotebooks();
         }
     }, [refreshNotebooks]);
 
-    const createNotebook = useCallback((name: string, description = '', icon = '📓'): Notebook => {
-        const nb = notebookService.create(name, description, icon);
-        refreshNotebooks();
-        return nb;
+    const createNotebook = useCallback(async (name: string, description = '', icon = '📓'): Promise<Notebook | null> => {
+        try {
+            const nb = await notebookService.create(name, description, icon);
+            refreshNotebooks();
+            return nb;
+        } catch (err) {
+            persistError('Notebook creation', err);
+            return null;
+        }
     }, [refreshNotebooks]);
 
-    const deleteNotebook = useCallback((id: string) => {
-        notebookService.delete(id);
+    const deleteNotebook = useCallback(async (id: string) => {
+        try {
+            await notebookService.delete(id);
+        } catch (err) {
+            persistError('Notebook deletion', err);
+            return;
+        }
         refreshNotebooks();
         if (activeNotebookId === id) {
             const remaining = notebookService.getAll();
@@ -101,8 +129,13 @@ export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) 
         }
     }, [activeNotebookId, refreshNotebooks]);
 
-    const updateNotebook = useCallback((id: string, patch: Partial<Pick<Notebook, 'name' | 'description' | 'icon'>>) => {
-        notebookService.update(id, patch);
+    const updateNotebook = useCallback(async (id: string, patch: Partial<Pick<Notebook, 'name' | 'description' | 'icon'>>) => {
+        try {
+            await notebookService.update(id, patch);
+        } catch (err) {
+            persistError('Notebook update', err);
+            return;
+        }
         refreshNotebooks();
     }, [refreshNotebooks]);
 

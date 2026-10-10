@@ -39,6 +39,8 @@ export interface TourFlatStackProps {
   /** The inline run pane — same wiring as the sticky runways (no fullscreen). */
   timer: TourSectionTimerWiring
   session?: TourSectionSessionWiring
+  /** Rendered between Explore and Learn the Language (the offerings block). */
+  offeringsSlot?: ReactNode
 }
 
 export function TourFlatStack(props: TourFlatStackProps) {
@@ -184,6 +186,9 @@ export function TourFlatStack(props: TourFlatStackProps) {
         />
         <HomeAnalyticsSection />
       </section>
+
+      {/* Offerings (keep-scrolling teaser included) — see HomeTour */}
+      {props.offeringsSlot}
 
       {/* Syntax chapter picker */}
       <TourChapterPicker wodFiles={props.wodFiles ?? {}} theme={props.theme} chapters={props.chapters} allQuests={props.quests} onRun={props.onChapterRun} />

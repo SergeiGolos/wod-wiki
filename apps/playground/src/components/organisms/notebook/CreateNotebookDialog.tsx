@@ -15,13 +15,15 @@ import {
 import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
 import { NotebookService } from '@/hooks/useBrowserServices';
+import type { Notebook } from '@/types/notebook';
 
 const ICONS = NotebookService.ICONS;
 
 interface CreateNotebookDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onCreate: (name: string, description: string, icon: string) => void;
+    /** Failure returns null and leaves the draft open. */
+    onCreate: (name: string, description: string, icon: string) => Promise<Notebook | null>;
 }
 
 export const CreateNotebookDialog: React.FC<CreateNotebookDialogProps> = ({
@@ -32,20 +34,27 @@ export const CreateNotebookDialog: React.FC<CreateNotebookDialogProps> = ({
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [selectedIcon, setSelectedIcon] = useState('📓');
+    const [saving, setSaving] = useState(false);
 
-    const handleCreate = () => {
-        if (!name.trim()) return;
-        onCreate(name.trim(), description.trim(), selectedIcon);
-        setName('');
-        setDescription('');
-        setSelectedIcon('📓');
-        onOpenChange(false);
+    const handleCreate = async () => {
+        if (!name.trim() || saving) return;
+        setSaving(true);
+        try {
+            const nb = await onCreate(name.trim(), description.trim(), selectedIcon);
+            if (!nb) return;
+            setName('');
+            setDescription('');
+            setSelectedIcon('📓');
+            onOpenChange(false);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey && name.trim()) {
             e.preventDefault();
-            handleCreate();
+            void handleCreate();
         }
     };
 
@@ -139,10 +148,10 @@ export const CreateNotebookDialog: React.FC<CreateNotebookDialogProps> = ({
                         <Button
                             variant="default"
                             size="sm"
-                            onClick={handleCreate}
-                            disabled={!name.trim()}
+                            onClick={() => void handleCreate()}
+                            disabled={!name.trim() || saving}
                         >
-                            Create
+                            {saving ? 'Creating…' : 'Create'}
                         </Button>
                     </div>
                 </div>

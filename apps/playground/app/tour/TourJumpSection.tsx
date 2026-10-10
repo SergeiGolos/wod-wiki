@@ -1,8 +1,8 @@
 /**
  * TourJumpSection.tsx — the "Know where you're going?" direct-exit section.
  *
- * A ~half-viewport sliding section right under the hero: three eye-catching
- * cards that jump straight into the app's sub views (Feeds, the Collections
+ * A ~half-viewport sliding section right under the hero: three flat boxes
+ * that jump straight into the app's sub views (Feeds, the Collections
  * library, and creating a new journal note) for visitors who don't want the
  * full walkthrough. Feeds carries a small work-in-progress note.
  */
@@ -14,8 +14,33 @@ import { journalNotes } from '../services/journalNotes'
 import { noteByIdPath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
 
-const ITEM_BASE =
-  'group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary xl:px-5 xl:py-2.5 xl:text-base'
+const BOX_BASE =
+  'group flex flex-col rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+
+function BoxFace(props: {
+  icon: typeof Newspaper
+  title: string
+  description: string
+  action: string
+}) {
+  const Icon = props.icon
+  return (
+    <>
+      <span className="flex size-10 items-center justify-center rounded-lg bg-foreground text-background">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <span className="mt-4 text-base font-semibold">{props.title}</span>
+      <span className="mt-1 text-sm leading-6 text-muted-foreground">{props.description}</span>
+      <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium">
+        {props.action}
+        <ArrowRight
+          className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+          aria-hidden
+        />
+      </span>
+    </>
+  )
+}
 
 export function TourJumpSection() {
   const navigate = useNavigate()
@@ -48,41 +73,32 @@ export function TourJumpSection() {
         Know where you&apos;re going?
       </h2>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 xl:mt-6 xl:gap-3.5">
-        <Link
-          to="/feeds"
-          onClick={handleFeeds}
-          data-testid="jump-feeds"
-          className={ITEM_BASE}
-          title="Programming feeds you follow, newest first."
-        >
-          <Newspaper className="size-4 text-muted-foreground" />
-          Feeds
-          <ArrowRight className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+      <div className="mx-auto mt-4 grid w-full max-w-3xl grid-cols-1 gap-4 xl:mt-6 sm:grid-cols-3">
+        <Link to="/feeds" onClick={handleFeeds} data-testid="jump-feeds" className={BOX_BASE}>
+          <BoxFace
+            icon={Newspaper}
+            title="Feeds"
+            description="Programming feeds you follow, newest first."
+            action="Browse feeds"
+          />
         </Link>
 
-        <Link
-          to="/collections"
-          onClick={handleLibrary}
-          data-testid="jump-library"
-          className={ITEM_BASE}
-          title="Curated workouts and sessions, ready to run."
-        >
-          <Library className="size-4 text-muted-foreground" />
-          Collections library
-          <ArrowRight className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+        <Link to="/collections" onClick={handleLibrary} data-testid="jump-library" className={BOX_BASE}>
+          <BoxFace
+            icon={Library}
+            title="Collections library"
+            description="Curated workouts and sessions, ready to run."
+            action="Open the library"
+          />
         </Link>
 
-        <button
-          type="button"
-          onClick={handleNewNote}
-          data-testid="jump-new-note"
-          className={ITEM_BASE}
-          title="Create today's note and log your first workout."
-        >
-          <NotebookPen className="size-4 text-muted-foreground" />
-          Start your own journal
-          <ArrowRight className="size-3.5 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+        <button type="button" onClick={handleNewNote} data-testid="jump-new-note" className={BOX_BASE}>
+          <BoxFace
+            icon={NotebookPen}
+            title="Start your own journal"
+            description="Create today's note and log your first workout."
+            action="Create today's note"
+          />
         </button>
       </div>
 

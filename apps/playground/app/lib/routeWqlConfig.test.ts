@@ -25,9 +25,9 @@ describe('routeWqlConfig — pure read/write/clear', () => {
     expect(readRouteWqlConfig('/journal')).toEqual({})
   })
 
-  it('round-trips a config per route and isolates routes', () => {
-    writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
-    writeRouteWqlConfig('/collections', { typeOptions: ['journal'] })
+  it('round-trips a config per route and isolates routes', async () => {
+    await writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
+    await writeRouteWqlConfig('/collections', { typeOptions: ['journal'] })
 
     expect(readRouteWqlConfig('/journal')).toEqual({ defaultWql: ':note last 6w' })
     expect(readRouteWqlConfig('/collections')).toEqual({ typeOptions: ['journal'] })
@@ -39,13 +39,13 @@ describe('routeWqlConfig — pure read/write/clear', () => {
     expect(getRouteWqlStorageKey('journal')).toBe(`${ROUTE_WQL_STORAGE_PREFIX}/journal`)
   })
 
-  it('preserves an empty options array — a deliberate "no predefined options" state', () => {
-    writeRouteWqlConfig('/journal', { typeOptions: [] })
+  it('preserves an empty options array — a deliberate "no predefined options" state', async () => {
+    await writeRouteWqlConfig('/journal', { typeOptions: [] })
     expect(readRouteWqlConfig('/journal')).toEqual({ typeOptions: [] })
   })
 
-  it('drops blank entries and trims values on write', () => {
-    writeRouteWqlConfig('/journal', {
+  it('drops blank entries and trims values on write', async () => {
+    await writeRouteWqlConfig('/journal', {
       defaultWql: '  :note last 6w  ',
       typeOptions: ['notes', '  ', 'journal'],
       groupByOptions: ['week', ''],
@@ -92,8 +92,8 @@ describe('routeWqlConfig — pure read/write/clear', () => {
     expect(readRouteWqlConfig('/sessions')).toEqual({ defaultWql: 'rows:all{} last 4w' })
   })
 
-  it('never aliases the other direction — writes land on the new key only', () => {
-    writeRouteWqlConfig('/sessions', { defaultWql: 'rows:all{} last 4w' })
+  it('never aliases the other direction — writes land on the new key only', async () => {
+    await writeRouteWqlConfig('/sessions', { defaultWql: 'rows:all{} last 4w' })
     expect(window.localStorage.getItem(getRouteWqlStorageKey('/results'))).toBeNull()
   })
 
@@ -105,18 +105,18 @@ describe('routeWqlConfig — pure read/write/clear', () => {
     expect(readRouteWqlConfig('/journal')).toEqual({ typeOptions: ['note', 'journal'] })
   })
 
-  it('clear removes the stored config', () => {
-    writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
-    clearRouteWqlConfig('/journal')
+  it('clear removes the stored config', async () => {
+    await writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
+    await clearRouteWqlConfig('/journal')
     expect(readRouteWqlConfig('/journal')).toEqual({})
   })
 
-  it('clear on a renamed surface also clears the legacy key — a reset must not resurrect', () => {
+  it('clear on a renamed surface also clears the legacy key — a reset must not resurrect', async () => {
     window.localStorage.setItem(
       getRouteWqlStorageKey('/results'),
       JSON.stringify({ defaultWql: 'rows:all{} last 8w' }),
     )
-    clearRouteWqlConfig('/sessions')
+    await clearRouteWqlConfig('/sessions')
     expect(readRouteWqlConfig('/sessions')).toEqual({})
   })
 })
@@ -162,8 +162,8 @@ describe('routeWqlConfig — narrow favorites migration (work item 3)', () => {
 })
 
 describe('routeWqlConfig — resolution', () => {
-  it('overrides profile defaultWql and scopeOptions per field', () => {
-    writeRouteWqlConfig('/collections', { defaultWql: ':note{source:journal} last 1w' })
+  it('overrides profile defaultWql and scopeOptions per field', async () => {
+    await writeRouteWqlConfig('/collections', { defaultWql: ':note{source:journal} last 1w' })
     const applied = applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE)
 
     expect(applied.defaultWql).toBe(':note{source:journal} last 1w')
@@ -172,22 +172,22 @@ describe('routeWqlConfig — resolution', () => {
     expect(applied.route).toBe('/collections')
   })
 
-  it('replaces scopeOptions wholesale, including the empty nudge state', () => {
-    writeRouteWqlConfig('/collections', { typeOptions: [] })
+  it('replaces scopeOptions wholesale, including the empty nudge state', async () => {
+    await writeRouteWqlConfig('/collections', { typeOptions: [] })
     expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual([])
 
-    writeRouteWqlConfig('/collections', { typeOptions: ['guides'] })
+    await writeRouteWqlConfig('/collections', { typeOptions: ['guides'] })
     expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual(['guides'])
   })
 
-  it('treats migrated target favorites as inert for the scope overlay', () => {
+  it('treats migrated target favorites as inert for the scope overlay', async () => {
     // `notes` migrates to the canonical `note` target; the route's target is
     // fixed, so only scope entries overlay. An all-target stored list leaves
     // no scope favorites — the deliberate "no predefined options" nudge.
-    writeRouteWqlConfig('/collections', { typeOptions: ['notes'] })
+    await writeRouteWqlConfig('/collections', { typeOptions: ['notes'] })
     expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual([])
 
-    writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
+    await writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
     expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual(['journal'])
   })
 
@@ -195,17 +195,17 @@ describe('routeWqlConfig — resolution', () => {
     expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE)).toBe(COLLECTIONS_STREAM_PROFILE)
   })
 
-  it('exposes the palette as a configurable synthetic route id', () => {
+  it('exposes the palette as a configurable synthetic route id', async () => {
     expect(PALETTE_ROUTE_ID).toBe('/palette')
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':note{text:fran}' })
+    await writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':note{text:fran}' })
     expect(readRouteWqlConfig(PALETTE_ROUTE_ID).defaultWql).toBe(':note{text:fran}')
   })
 })
 
 describe('routeWqlConfig — type shape', () => {
-  it('stores only the three override fields', () => {
+  it('stores only the three override fields', async () => {
     const config: RouteWqlConfig = { defaultWql: ':note', typeOptions: ['notes'], groupByOptions: ['week'] }
-    writeRouteWqlConfig('/collections', config)
+    await writeRouteWqlConfig('/collections', config)
     expect(Object.keys(readRouteWqlConfig('/collections')).sort()).toEqual([
       'defaultWql',
       'groupByOptions',
@@ -215,11 +215,11 @@ describe('routeWqlConfig — type shape', () => {
 })
 
 describe('routeWqlConfig — dependency inversion', () => {
-  it('operates against an injected InMemoryBackend without window globals', () => {
+  it('operates against an injected InMemoryBackend without window globals', async () => {
     const inMemory = new LocalStore(ROUTE_WQL_STORAGE_PREFIX, new InMemoryBackend())
-    writeRouteWqlConfig('/custom', { defaultWql: ':note{source:journal}' }, inMemory)
+    await writeRouteWqlConfig('/custom', { defaultWql: ':note{source:journal}' }, inMemory)
     expect(readRouteWqlConfig('/custom', inMemory).defaultWql).toBe(':note{source:journal}')
-    clearRouteWqlConfig('/custom', inMemory)
+    await clearRouteWqlConfig('/custom', inMemory)
     expect(readRouteWqlConfig('/custom', inMemory)).toEqual({})
   })
 })

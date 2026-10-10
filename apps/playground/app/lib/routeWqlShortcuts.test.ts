@@ -44,10 +44,10 @@ describe('routeWqlShortcuts — persistence', () => {
     expect(readRouteShortcuts('/journal', storeOn(new InMemoryBackend()))).toEqual([])
   })
 
-  it('round-trips per route and survives a "reload" (fresh store, same backend)', () => {
+  it('round-trips per route and survives a "reload" (fresh store, same backend)', async () => {
     const backend = new InMemoryBackend()
-    writeRouteShortcuts('/journal', [SC], storeOn(backend))
-    writeRouteShortcuts('/efforts', [{ ...SC, id: 'x', wql: ':effort{}' }], storeOn(backend))
+    await writeRouteShortcuts('/journal', [SC], storeOn(backend))
+    await writeRouteShortcuts('/efforts', [{ ...SC, id: 'x', wql: ':effort{}' }], storeOn(backend))
 
     const reloaded = readRouteShortcuts('/journal', storeOn(backend))
     expect(reloaded).toEqual([SC])
@@ -55,17 +55,17 @@ describe('routeWqlShortcuts — persistence', () => {
     expect(readRouteShortcuts('/collections', storeOn(backend))).toEqual([])
   })
 
-  it('normalizes route ids without a leading slash', () => {
+  it('normalizes route ids without a leading slash', async () => {
     const backend = new InMemoryBackend()
-    writeRouteShortcuts('journal', [SC], storeOn(backend))
+    await writeRouteShortcuts('journal', [SC], storeOn(backend))
     expect(readRouteShortcuts('/journal', storeOn(backend))).toEqual([SC])
   })
 
-  it('reset discards the stored list so the built-in landing stands again', () => {
+  it('reset discards the stored list so the built-in landing stands again', async () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
-    writeRouteShortcuts('/journal', [defaultLandingShortcut('All entries', 'calendar'), SC], store)
-    resetRouteShortcuts('/journal', store)
+    await writeRouteShortcuts('/journal', [defaultLandingShortcut('All entries', 'calendar'), SC], store)
+    await resetRouteShortcuts('/journal', store)
     expect(readRouteShortcuts('/journal', store)).toEqual([])
   })
 })
@@ -81,24 +81,24 @@ describe('routeWqlShortcuts — built-in library-group links', () => {
     ])
   })
 
-  it('resolve to built-ins until stored, then the stored list is authoritative for user links', () => {
+  it('resolve to built-ins until stored, then the stored list is authoritative for user links', async () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
     expect(resolveRouteShortcuts('/journal', store)).toEqual(builtinShortcuts('/journal'))
 
     // Even a delete-all stored list keeps the permanent landing link.
-    expect(writeRouteShortcuts('/journal', [], store)).toBe(true)
+    expect(await writeRouteShortcuts('/journal', [], store)).toBe(true)
     expect(resolveRouteShortcuts('/journal', store)).toEqual([defaultLandingShortcut('All entries', 'calendar')])
 
-    resetRouteShortcuts('/journal', store)
+    await resetRouteShortcuts('/journal', store)
     expect(resolveRouteShortcuts('/journal', store)).toEqual(builtinShortcuts('/journal'))
   })
 
-  it('the landing link cannot be dropped: a stored list without it gets the built-in re-added at the front', () => {
+  it('the landing link cannot be dropped: a stored list without it gets the built-in re-added at the front', async () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
     // Legacy list written before the landing was protected.
-    writeRouteShortcuts('/journal', [SC], store)
+    await writeRouteShortcuts('/journal', [SC], store)
     expect(resolveRouteShortcuts('/journal', store).map(s => s.id)).toEqual([ALL_SHORTCUT_ID, SC.id])
     expect(resolveRouteShortcuts('/journal', store)[0]).toEqual({
       id: ALL_SHORTCUT_ID,
@@ -108,19 +108,19 @@ describe('routeWqlShortcuts — built-in library-group links', () => {
     })
   })
 
-  it('a stored landing row with a customized label/icon/wql is kept as stored', () => {
+  it('a stored landing row with a customized label/icon/wql is kept as stored', async () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
     const customized = { id: ALL_SHORTCUT_ID, label: 'This month', icon: 'star', wql: ':note{} last 4w' }
-    writeRouteShortcuts('/journal', [customized, SC], store)
+    await writeRouteShortcuts('/journal', [customized, SC], store)
     expect(resolveRouteShortcuts('/journal', store)).toEqual([customized, SC])
   })
 
-  it('a first user save keeps the built-ins (resolve feeds the upsert)', () => {
+  it('a first user save keeps the built-ins (resolve feeds the upsert)', async () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
     const next = [...resolveRouteShortcuts('/journal', store), SC]
-    expect(writeRouteShortcuts('/journal', next, store)).toBe(true)
+    expect(await writeRouteShortcuts('/journal', next, store)).toBe(true)
     expect(resolveRouteShortcuts('/journal', store).map(s => s.id)).toEqual([ALL_SHORTCUT_ID, SC.id])
   })
 })
@@ -165,10 +165,10 @@ describe('routeWqlShortcuts — validation on read', () => {
 })
 
 describe('routeWqlShortcuts — verified writes', () => {
-  it('reports failure and keeps prior data when the backend drops the write', () => {
+  it('reports failure and keeps prior data when the backend drops the write', async () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
-    expect(writeRouteShortcuts('/journal', [SC], store)).toBe(true)
+    expect(await writeRouteShortcuts('/journal', [SC], store)).toBe(true)
 
     const broken: StorageBackend = {
       getItem: key => backend.getItem(key),
@@ -178,30 +178,30 @@ describe('routeWqlShortcuts — verified writes', () => {
       removeItem: key => backend.removeItem(key),
     }
     const failing = storeOn(broken)
-    expect(writeRouteShortcuts('/journal', [{ ...SC, id: 'other' }], failing)).toBe(false)
+    expect(await writeRouteShortcuts('/journal', [{ ...SC, id: 'other' }], failing)).toBe(false)
     // The failing store shares the backend for reads: the prior list is
     // intact — a failed write loses no data and is not reported as saved.
     expect(readRouteShortcuts('/journal', failing)).toEqual([SC])
   })
 
-  it('silently-losing backends (no throw, no write) are detected as failures', () => {
+  it('silently-losing backends (no throw, no write) are detected as failures', async () => {
     const silent: StorageBackend = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
-    expect(writeRouteShortcuts('/journal', [SC], storeOn(silent))).toBe(false)
+    expect(await writeRouteShortcuts('/journal', [SC], storeOn(silent))).toBe(false)
   })
 
-  it('notifies subscribers only on successful writes', () => {
+  it('notifies subscribers only on successful writes', async () => {
     const store = storeOn(new InMemoryBackend())
     let notifications = 0
     const before = routeShortcutsVersion()
     const unsubscribe = subscribeRouteShortcuts(() => {
       notifications++
     })
-    writeRouteShortcuts('/journal', [SC], store)
+    await writeRouteShortcuts('/journal', [SC], store)
     expect(notifications).toBe(1)
     expect(routeShortcutsVersion()).toBe(before + 1)
 
     const silent: StorageBackend = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
-    writeRouteShortcuts('/journal', [SC], storeOn(silent))
+    await writeRouteShortcuts('/journal', [SC], storeOn(silent))
     expect(notifications).toBe(1)
     unsubscribe()
   })

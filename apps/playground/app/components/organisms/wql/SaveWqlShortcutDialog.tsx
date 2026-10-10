@@ -12,6 +12,7 @@
  */
 import { useEffect, useState, type FormEvent } from 'react'
 import { EditorDialog, resolveQueryDraft } from '@bitcobblers/wod-wiki-ui'
+import { apiPrefsMode } from '@/services/storage/metaStore'
 import { Button } from '@/components/atoms/primitives/button'
 
 import {
@@ -70,7 +71,7 @@ export function SaveWqlShortcutDialog({
   const labelError = trimmedLabel ? null : 'Label is required.'
   const canSave = !!trimmedLabel && !fixedBehaviour && (!queryRequired || !!trimmedWql) && !wqlError
 
-  const save = (event: FormEvent) => {
+  const save = async (event: FormEvent) => {
     event.preventDefault()
     if (!canSave) return
     const next: WqlShortcut = {
@@ -82,10 +83,11 @@ export function SaveWqlShortcutDialog({
     }
     // Resolve (built-ins included) so a first save never drops them.
     const others = resolveRouteShortcuts(route).filter(s => s.id !== next.id)
-    // Read-back-verified write: false means storage dropped it — keep the
-    // dialog open with the draft intact instead of claiming success.
-    if (!writeRouteShortcuts(route, [...others, next])) {
-      setStorageError('Couldn\u2019t save — browser storage is unavailable. Your input is kept.')
+    // Persistence-verified write: false means storage dropped it (browser
+    // quota locally, failed server request in api mode) — keep the dialog
+    // open with the draft intact instead of claiming success.
+    if (!(await writeRouteShortcuts(route, [...others, next]))) {
+      setStorageError('Couldn\u2019t save — storage is unavailable. Your input is kept.')
       return
     }
     onOpenChange(false)
@@ -96,7 +98,9 @@ export function SaveWqlShortcutDialog({
       open={open}
       onClose={() => onOpenChange(false)}
       title={editing ? 'Edit shortcut' : 'Save search shortcut'}
-      description="Saved shortcuts appear in this route's navigation panel. Stored in this browser only."
+      description={`Saved shortcuts appear in this route's navigation panel. Stored ${
+        apiPrefsMode ? 'on the server.' : 'in this browser only.'
+      }`}
       footer={
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>

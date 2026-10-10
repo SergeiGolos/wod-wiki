@@ -23,6 +23,7 @@ import {
 } from '@/components/atoms/primitives/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { useNotebooks } from '@/contexts/NotebookContext';
+import type { Notebook } from '@/types/notebook';
 import { CreateNotebookDialog } from './CreateNotebookDialog';
 
 interface NotebookMenuProps {
@@ -52,9 +53,10 @@ export const NotebookMenu: React.FC<NotebookMenuProps> = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const hasEntryContext = !!entryTags && !!onEntryToggle;
 
-    const handleCreate = (name: string, description: string, icon: string) => {
-        const nb = createNotebook(name, description, icon);
-        setActiveNotebook(nb.id);
+    const handleCreate = async (name: string, description: string, icon: string): Promise<Notebook | null> => {
+        const nb = await createNotebook(name, description, icon);
+        if (nb) setActiveNotebook(nb.id);
+        return nb;
     };
 
     return (

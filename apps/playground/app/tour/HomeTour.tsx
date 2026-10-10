@@ -784,6 +784,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           : {}),
       },
       { id: 'explore', label: 'Explore your analytics', level: 3, action: { type: 'scroll', sectionId: 'tour-section-explore' } },
+      { id: 'offerings', label: 'Run it your way', level: 3, action: { type: 'scroll', sectionId: 'tour-section-offerings' } },
       { id: 'learn', label: 'Learn the Language', level: 3, action: { type: 'scroll', sectionId: 'tour-chapter-picker' } },
     ]
     setL3Items(outline)
@@ -975,6 +976,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
     />
   )
 
+  // Offerings section + keep-scrolling teaser — sits above Learn the
+  // Language in both scroll paths (inline in the runway flow, via slot in
+  // the reduced-motion flat stack).
+  const offeringsBlock = (
+    <>
+      <OfferingTiers />
+      <p className="-mt-8 text-center font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 xl:text-[11px]">
+        — or keep scrolling for more wod wiki examples ↓
+      </p>
+    </>
+  )
+
   // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
   if (prefersReducedMotion) {
     return (
@@ -999,10 +1012,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
           onResetShared={handleClearShared}
           timer={timerWiring}
           session={{ ...sessionWiring, result: session }}
+          offeringsSlot={offeringsBlock}
         />
-        <div className="mx-auto w-full max-w-7xl px-6 pb-16 sm:px-8 lg:px-12">
-          <OfferingTiers />
-        </div>
         <GuideIndexFooter />
         <TourFooter />
         {fullscreen}
@@ -1198,6 +1209,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       {/* Analytics shares the canonical editor/timer sticky runway. */}
       <CelebrationBridge chapters={chapters} />
 
+      {offeringsBlock}
+
       {/* Learn the Language — single-slide chapter picker with a shared editor */}
       <TourChapterPicker
         wodFiles={wodFiles}
@@ -1206,9 +1219,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         theme={theme}
         onRun={handleChapterRun}
       />
-      <div className="mx-auto w-full max-w-7xl px-6 pb-16 sm:px-8 lg:px-12">
-        <OfferingTiers />
-      </div>
+      <OfferingTiers />
       <GuideIndexFooter />
       <TourFooter />
       {fullscreen}

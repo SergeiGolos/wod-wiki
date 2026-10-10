@@ -1,0 +1,45 @@
+# Keep the server image build context lean; everything the Dockerfile COPYs
+# must survive this list. Negations are specific re-includes.
+
+# VCS / CI
+.git
+.github
+codeql-custom-queries-javascript
+
+# Dependencies (installed inside the image)
+node_modules
+**/node_modules
+
+# Build outputs — rebuilt inside the image
+dist
+**/dist
+**/dist-api
+**/dist-storybook
+**/public/seed
+
+# Local data, secrets, certs — never baked into the image
+data
+.env
+.env.*
+*.ts.net.crt
+*.ts.net.key
+*.local
+
+# Tests, stories, docs, legacy relay — unused by the server build
+test
+**/tests
+e2e
+bench
+tools
+docs
+stories
+server
+pull
+playwright-report
+test-results
+
+# Root-level scratch: notes, plans, reports
+*.md
+!README.md
+*.html
+skills-lock.json

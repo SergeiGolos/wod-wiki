@@ -188,7 +188,7 @@ describe('wqlSearchSource', () => {
   it('finds plain words in the configured route default scope, not a hardcoded one', async () => {
     // A block-target stored default: neither the seed scope (journal|
     // collection) nor a hardcoded ':note' head can produce this identity.
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':block{type:wod}' })
+    await writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':block{type:wod}' })
     setup(corpusExecutor([JOURNAL_ROW, FEED_ROW]))
     const results = await wqlSearchSource().search('ladder')
 
@@ -387,13 +387,13 @@ describe('searchPaletteQuery', () => {
     }
   })
 
-  it('uses the configured palette default when one is stored', () => {
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':journal{} last 4w' })
+  it('uses the configured palette default when one is stored', async () => {
+    await writeRouteWqlConfig(PALETTE_ROUTE_ID, { defaultWql: ':journal{} last 4w' })
     expect(searchPaletteQuery()).toBe(':journal{} last 4w')
   })
 
-  it('falls back to the system seed when the stored default is only options', () => {
-    writeRouteWqlConfig(PALETTE_ROUTE_ID, { typeOptions: ['notes'] })
+  it('falls back to the system seed when the stored default is only options', async () => {
+    await writeRouteWqlConfig(PALETTE_ROUTE_ID, { typeOptions: ['notes'] })
     expect(searchPaletteQuery()).toBe(PALETTE_SEED_QUERY)
   })
 })

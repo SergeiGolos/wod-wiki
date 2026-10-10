@@ -12,7 +12,7 @@
  * A stored id that is neither canonical nor migratable is reported on the
  * card instead of silently turning into a query clause. An emptied custom
  * option list is the deliberate "no predefined options" state. Stored in
- * this browser only.
+ * this browser locally, on the server in api mode.
  */
 import { useMemo, useState } from 'react'
 import { resolveQueryDraft, SOURCE_OPTIONS, TARGET_OPTIONS } from '@bitcobblers/wod-wiki-ui'
@@ -34,6 +34,7 @@ import {
   writeRouteShortcuts,
   type WqlShortcut,
 } from '../lib/routeWqlShortcuts'
+import { apiPrefsMode } from '@/services/storage/metaStore'
 import { SaveWqlShortcutDialog } from '../components/organisms/wql/SaveWqlShortcutDialog'
 import {
   JOURNAL_STREAM_PROFILE,
@@ -173,6 +174,7 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
 
   const [state, setState] = useState<EditorState>(() => stateFromConfig(readRouteWqlConfig(surface.id)))
   const [savedConfig, setSavedConfig] = useState<RouteWqlConfig>(() => readRouteWqlConfig(surface.id))
+  const [storageError, setStorageError] = useState<string | null>(null)
 
   const wqlError = useMemo(() => {
     const text = state.defaultWql.trim()
@@ -190,16 +192,24 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
 
   // Text-first validation: the save action validates the current draft with
   // the shared parser rather than relying on render-time state visibility.
-  const save = () => {
+  const save = async () => {
     if (!dirty) return
     const text = state.defaultWql.trim()
     if (text && resolveQueryDraft(text).error) return
-    writeRouteWqlConfig(surface.id, nextConfig)
+    if (!(await writeRouteWqlConfig(surface.id, nextConfig))) {
+      setStorageError('Save failed — storage is unavailable; the previous default still stands.')
+      return
+    }
+    setStorageError(null)
     setSavedConfig(readRouteWqlConfig(surface.id))
   }
 
-  const reset = () => {
-    clearRouteWqlConfig(surface.id)
+  const reset = async () => {
+    if (!(await clearRouteWqlConfig(surface.id))) {
+      setStorageError('Reset failed — storage is unavailable; the stored override still stands.')
+      return
+    }
+    setStorageError(null)
     setSavedConfig({})
     setState(stateFromConfig({}))
   }
@@ -307,6 +317,12 @@ function RouteWqlEditor({ surface }: { surface: ConfigurableSurface }) {
 
       {surface.shortcuts && <RouteShortcutsEditor surface={surface} />}
 
+      {storageError && (
+        <p className="text-xs text-destructive" data-testid={`query-defaults-storage-error-${surface.id}`} role="alert">
+          {storageError}
+        </p>
+      )}
+
       <div className="flex items-center justify-between gap-2">
         <Button
           size="sm"
@@ -343,10 +359,10 @@ function RouteShortcutsEditor({ surface }: { surface: ConfigurableSurface }) {
   const [editor, setEditor] = useState<{ editing: WqlShortcut | null } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const remove = (shortcut: WqlShortcut) => {
+  const remove = async (shortcut: WqlShortcut) => {
     setError(null)
-    if (!writeRouteShortcuts(surface.id, shortcuts.filter(s => s.id !== shortcut.id))) {
-      setError('Delete failed — browser storage is unavailable. Nothing was lost; the link remains.')
+    if (!(await writeRouteShortcuts(surface.id, shortcuts.filter(s => s.id !== shortcut.id)))) {
+      setError('Delete failed — storage is unavailable. Nothing was lost; the link remains.')
     }
   }
 
@@ -426,8 +442,8 @@ export function QueryDefaultsSection() {
         <p className="text-sm text-muted-foreground">
           Override the landing query and the Where-stored / arrangement options per surface. An empty query
           uses the system default; an emptied options list nudges you to pick instead of presetting one.
-          Option lists are favorites — they reorder choices, they don't change what queries mean. Stored in
-          this browser only.
+          Option lists are favorites — they reorder choices, they don't change what queries mean. Stored{' '}
+          {apiPrefsMode ? 'on the server.' : 'in this browser only.'}
         </p>
       </div>
       {CONFIGURABLE_SURFACES.map(surface => (

@@ -5,9 +5,9 @@
   "type": "module",
   "description": "The wod.wiki web application — workout journal, canvas editor, review surfaces, and Chromecast receiver built on the Whiteboard Language packages.",
   "scripts": {
-    "dev": "bun ../../scripts/generate-seed.ts && vite",
-    "build": "bun ../../scripts/generate-seed.ts && vite build && bun ../../scripts/generate-static-shells.ts",
-    "build:api": "bun ../../scripts/generate-seed.ts && VITE_STORAGE=api vite build",
+    "dev": "bun ../../scripts/generate-seed.ts && VITE_STORAGE=indexed-db vite",
+    "build": "bun ../../scripts/generate-seed.ts && VITE_STORAGE=indexed-db vite build && bun ../../scripts/generate-static-shells.ts",
+    "build:api": "bun ../../scripts/generate-seed.ts && VITE_STORAGE=api VITE_API_URL=/api vite build --outDir dist-api",
     "preview": "vite preview",
     "test": "bun tests/run-isolated.ts ./src ./app --preload ./tests/unit-setup.ts",
     "test:markdown": "bun test tests/wods/all-wods.test.ts tests/canvas/syntax-source-markdown.test.ts --preload ./tests/setup.ts",
@@ -15,11 +15,12 @@
     "test:all": "bun run test && bun run test:components",
     "test:coverage": "bun tests/run-isolated.ts ./src ./app --preload ./tests/unit-setup.ts",
     "test:perf": "bun test tests/performance",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist dist-api",
     "typecheck": "echo '[skip] Playground compiles via Vite/esbuild without a tsc gate; strict tsc adoption tracked as follow-up'"
   },
   "files": [
-    "dist"
+    "dist",
+    "dist-api"
   ],
   "dependencies": {
     "@bitcobblers/wod-wiki-core": "^0.11.0",

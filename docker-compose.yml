@@ -1,0 +1,22 @@
+# wod.wiki server — Bun API + same-origin playground SPA.
+# Defaults run local SQLite on a named volume. To select Turso/libsql or
+# PostgreSQL, set DB_DRIVER / DATABASE_URL / LIBSQL_AUTH_TOKEN in .env or the
+# shell (compose passes them through); never commit real credentials.
+services:
+  server:
+    build: .
+    image: wod-wiki-server:latest
+    restart: unless-stopped
+    ports:
+      # Host side follows PORT (default 3000); the container always listens
+      # on 3000 internally.
+      - "${PORT:-3000}:3000"
+    volumes:
+      - wodwiki-data:/data
+    environment:
+      DB_DRIVER: ${DB_DRIVER:-sqlite}
+      SQLITE_PATH: ${SQLITE_PATH:-/data/wodwiki.db}
+      DATABASE_URL: ${DATABASE_URL:-}
+      LIBSQL_AUTH_TOKEN: ${LIBSQL_AUTH_TOKEN:-}
+volumes:
+  wodwiki-data:

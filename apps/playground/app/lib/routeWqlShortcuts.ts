@@ -15,11 +15,13 @@
  * match (the serializer's canonical form over a sorted AST), while
  * negation, windows and pipes remain part of the query's identity — so a
  * base All link never matches a custom filter and an unmatched query is
- * Custom. Storage mirrors routeWqlConfig: one LocalStore key per route id
- * in this browser only. Writes verify the read-back — the shared browser
- * backend swallows quota/private-mode failures, so a silent no-op must not
- * be reported as saved. Reactive: useRouteShortcuts re-reads on any
- * successful write (panel/Settings update live, no reload).
+ * Custom. Storage mirrors routeWqlConfig: one key per route id — browser
+ * localStorage locally, a namespaced meta row on the server in api mode.
+ * Writes verify persistence before reporting success: local mode re-reads
+ * the shared backend (quota/private-mode failures are swallowed there), api
+ * mode awaits the server row (a failed request must not claim saved).
+ * Reactive: useRouteShortcuts re-reads on any successful write (panel/
+ * Settings update live, no reload).
  */
 import { useSyncExternalStore } from 'react'
 import {
@@ -40,6 +42,7 @@ import {
 } from 'lucide-react'
 import { isFindQuery, parseQuery, serialize, type AnyParsedQuery } from '@bitcobblers/wod-wiki-engine'
 import { LocalStore } from '@/services/storage/LocalStore'
+import { apiPrefsMode, metaPrefBackend, metaSetPref } from '@/services/storage/metaStore'
 
 export interface WqlShortcut {
   id: string
@@ -75,7 +78,9 @@ export const SHORTCUT_ICONS: Record<string, LucideIcon> = {
 
 export const ROUTE_SHORTCUTS_STORAGE_PREFIX = 'wodwiki.routeWqlShortcuts.v1'
 
-export const routeShortcutsStore = new LocalStore(ROUTE_SHORTCUTS_STORAGE_PREFIX)
+// api mode: reads come from the hydrated server rows; LocalStore writes are
+// bypassed (they swallow errors) — flushes go through metaSetPref instead.
+export const routeShortcutsStore = new LocalStore(ROUTE_SHORTCUTS_STORAGE_PREFIX, apiPrefsMode ? metaPrefBackend : undefined)
 
 /** The built-in landing link (nav-tree label/icon vocabulary). */
 export function defaultLandingShortcut(label: string, icon: string): WqlShortcut {
@@ -175,26 +180,44 @@ export function resolveRouteShortcuts(routeId: string, store: LocalStore = route
 }
 
 /**
- * Persist one route's shortcut list. Returns false WITHOUT notifying when
- * the backend dropped the write (quota / private mode) — callers must treat
- * false as not-saved, never claim success.
+ * Persist one route's shortcut list. Resolves false WITHOUT notifying when
+ * persistence dropped the write (quota / private mode locally, failed
+ * server request in api mode — resolved only after the row is stored) —
+ * callers must treat false as not-saved, never claim success.
  */
-export function writeRouteShortcuts(
+export async function writeRouteShortcuts(
   routeId: string,
   shortcuts: readonly WqlShortcut[],
   store: LocalStore = routeShortcutsStore,
-): boolean {
+): Promise<boolean> {
   const id = normalizeRouteId(routeId)
   const clean = sanitizeShortcuts(shortcuts)
+  if (apiPrefsMode) {
+    try {
+      await metaSetPref(store.qualify(id), JSON.stringify(clean))
+    } catch (err) {
+      console.error('[routeWqlShortcuts] server write failed:', err)
+      return false
+    }
+    notifyRouteShortcuts()
+    return true
+  }
   store.set(id, clean)
   if (store.getRaw(id) !== JSON.stringify(clean)) return false
   notifyRouteShortcuts()
   return true
 }
 
-/** Discard the stored list — the built-in links stand again. */
-export function resetRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): void {
-  store.remove(normalizeRouteId(routeId))
+/** Discard the stored list — the built-in links stand again. Api mode
+ *  throws on a failed server delete (no silent local-only reset); local
+ *  mode keeps the browser-backend semantics. */
+export async function resetRouteShortcuts(routeId: string, store: LocalStore = routeShortcutsStore): Promise<void> {
+  const id = normalizeRouteId(routeId)
+  if (apiPrefsMode) {
+    await metaSetPref(store.qualify(id), null)
+  } else {
+    store.remove(id)
+  }
   notifyRouteShortcuts()
 }
 

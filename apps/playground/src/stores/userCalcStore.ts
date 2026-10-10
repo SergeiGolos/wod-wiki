@@ -1,22 +1,26 @@
 /**
- * UserCalcStore — IndexedDB persistence for user-authored calc lines (#880).
+ * UserCalcStore — persistence for user-authored calc lines (#880).
  *
  * Stores each custom calculation as its author-facing line-form source
  * (`compileLineForm`'s input), so edits round-trip losslessly and the store
  * never goes stale against compiler changes. Hydration compiles stored
  * sources back into `CalculationDefinition` records for registration.
  *
- * A dedicated tiny database (`wodwiki-user-calcs`) keeps this isolated from
- * the main V15 schema; user calcs are an opt-in authoring concern.
+ * Local mode keeps a dedicated tiny IndexedDB database
+ * (`wodwiki-user-calcs`); server mode (VITE_STORAGE=api) persists the same
+ * records as `user-calc:*` meta rows so they survive a fresh browser.
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { compileLineForm, LineFormScope } from '@bitcobblers/wod-wiki-engine';
 import { CalculationDefinition } from '@bitcobblers/wod-wiki-engine';
+import { apiPrefsMode, metaDeleteRow, metaGetRow, metaListRows, metaPutRow } from '@/services/storage/metaStore';
 
 const DB_NAME = 'wodwiki-user-calcs';
 const DB_VERSION = 1;
 const STORE = 'calcs';
+/** Server-mode namespace in the shared meta store ({ key, value } rows). */
+const META_PREFIX = 'user-calc:';
 
 export interface UserCalcRecord {
   id: string;
@@ -63,6 +67,10 @@ const DEFAULT_LINE_SCOPE: LineFormScope = { scope: 'segment' };
 
 /** List all stored user calc records, newest-first. */
 export async function listUserCalcs(): Promise<UserCalcRecord[]> {
+  if (apiPrefsMode) {
+    const rows = await metaListRows<UserCalcRecord>(META_PREFIX);
+    return rows.map((r) => r.value).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
   const db = await open();
   const all = await db.getAll(STORE);
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -70,12 +78,21 @@ export async function listUserCalcs(): Promise<UserCalcRecord[]> {
 
 /** Get a single stored calc by id, if present. */
 export async function getUserCalc(id: string): Promise<UserCalcRecord | undefined> {
+  if (apiPrefsMode) return metaGetRow<UserCalcRecord>(META_PREFIX + id);
   const db = await open();
   return db.get(STORE, id);
 }
 
 /** Insert or replace a calc record. */
 export async function saveUserCalc(record: UserCalcRecord): Promise<void> {
+  if (apiPrefsMode) {
+    await metaPutRow(META_PREFIX + record.id, {
+      id: record.id,
+      lineForm: record.lineForm,
+      updatedAt: record.updatedAt ?? Date.now(),
+    });
+    return;
+  }
   const db = await open();
   await db.put(STORE, {
     ...record,
@@ -85,6 +102,7 @@ export async function saveUserCalc(record: UserCalcRecord): Promise<void> {
 
 /** Remove a calc record. */
 export async function deleteUserCalc(id: string): Promise<void> {
+  if (apiPrefsMode) return metaDeleteRow(META_PREFIX + id);
   const db = await open();
   await db.delete(STORE, id);
 }

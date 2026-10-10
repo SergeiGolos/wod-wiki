@@ -438,10 +438,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
             <CreateNotebookDialog
                 open={showCreateNotebook}
                 onOpenChange={setShowCreateNotebook}
-                onCreate={(name, description, icon) => {
-                    createNotebook(name, description, icon);
-                    setShowCreateNotebook(false);
-                }}
+                onCreate={createNotebook}
             />
         </HistoryLayout>
     );

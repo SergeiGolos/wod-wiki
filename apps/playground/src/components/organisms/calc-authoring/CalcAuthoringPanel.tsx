@@ -69,15 +69,25 @@ segmentVolume = reps * resistance (library) when has(reps) and has(resistance)
 
   const handleSave = async () => {
     if (!valid) { setNotice('Cannot save: fix the errors first.'); return; }
-    await saveUserCalc({ id, lineForm: src, updatedAt: Date.now() });
-    await refresh();
-    setNotice(`Saved "${id}".`);
+    try {
+      await saveUserCalc({ id, lineForm: src, updatedAt: Date.now() });
+      await refresh();
+      setNotice(`Saved "${id}".`);
+    } catch (err) {
+      console.error('[CalcAuthoringPanel] save failed:', err);
+      setNotice(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   const handleDelete = async (rid: string) => {
-    await deleteUserCalc(rid);
-    await refresh();
-    setNotice(`Deleted "${rid}".`);
+    try {
+      await deleteUserCalc(rid);
+      await refresh();
+      setNotice(`Deleted "${rid}".`);
+    } catch (err) {
+      console.error('[CalcAuthoringPanel] delete failed:', err);
+      setNotice(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   const handleLoad = (rec: UserCalcRecord) => {

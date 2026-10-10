@@ -4,7 +4,99 @@
 
 WOD Wiki is a TypeScript monorepo toolkit for parsing, executing, and analyzing workouts written in Whiteboard Language (`wod` / `time` blocks) embedded in ordinary Markdown. It includes CodeMirror 6 editor integrations, a Just-In-Time compiler, a reactive execution runtime, and a training-analytics engine.
 
-> 📚 **Documentation:** [`docs/`](./docs/README.md), [`docs/domain-model/`](./docs/domain-model/), and [`docs/domain-model/WQL-Domain-Query-Composition.md`](./docs/domain-model/WQL-Domain-Query-Composition.md).
+> Documentation: [`docs/`](./docs/README.md), [`docs/domain-model/`](./docs/domain-model/), and [WQL query composition](./docs/prototypes/WQL-Domain-Query-Composition.md).
+
+---
+
+## Getting started
+
+WOD Wiki has two hosting levels. Both run the same playground application; the difference is where your data lives. A container runs server mode, not a third storage mode.
+
+| Hosting level | Data storage | How to run it |
+|---|---|---|
+| Playground | IndexedDB in each browser. No API or database server required. | [Bun playground](#run-the-playground-with-bun) |
+| Server | SQL behind the Bun API. Browsers connecting to the same server use the same backend data. | [Bun server](#run-the-server-with-bun) or [container](#run-the-server-in-a-container) |
+
+Choose Playground for browser-local use and development. Choose Server to keep durable app data outside the browser. Switching modes does not move existing browser data into SQL.
+
+### Run the playground with Bun
+
+Install [Bun](https://bun.sh/) v1.4 or newer, then run these commands from the repository root:
+
+```bash
+bun install
+bun run playground
+```
+
+Open the Vite URL printed in the terminal, normally [http://localhost:5173](http://localhost:5173). This command builds the packages, lints the playground, and starts the development server with hot reload. Your journal and workout data stay in that browser's IndexedDB; clearing browser storage removes them.
+
+### Run the server with Bun
+
+With Bun installed, run from the repository root:
+
+```bash
+bun install
+bun run server
+```
+
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The command builds the packages and API-enabled playground into `apps/playground/dist-api`, then starts [`apps/api`](./apps/api/) to serve both the app and API from one origin. The default database is `./data/wodwiki.db`, a local SQLite file accessed through `@libsql/client`, the same driver used for Turso.
+
+Keep the `data` directory to preserve your data between launches. After a build, `bun run start:server` starts the server without rebuilding. Ordinary playground builds use `apps/playground/dist`, separate from the server build.
+
+See [database configuration](#configure-the-server-database) to use remote Turso or PostgreSQL, or override the local SQLite path.
+
+### Run the server in a container
+
+Install [Docker Engine](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/). From the repository root:
+
+```bash
+docker compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000). Docker builds the API-enabled playground and runs it with the Bun API. Bun is not required on the host. If Bun is installed, `bun run docker` runs the same command.
+
+The default SQLite database is `/data/wodwiki.db` inside the container, persisted in the Compose `wodwiki-data` named volume. Stop the application with `docker compose down`; the volume remains. `docker compose down -v` deletes that volume and its local database.
+
+[`docker-compose.yml`](./docker-compose.yml) reads `DB_DRIVER`, `DATABASE_URL`, `LIBSQL_AUTH_TOKEN`, `SQLITE_PATH`, and the host `PORT` from your shell or a root `.env` file. Copy the settings you need from [`.env.example`](./.env.example). For local SQLite, keep the container path under `/data` so it remains on the persistent volume. For PostgreSQL, the connection URL must point to a database reachable from the container; `localhost` refers to the container itself.
+
+### Configure the server database
+
+Local SQLite is the default. To select another database for a Bun launch, set its environment variables inline or export them in your shell:
+
+```bash
+# Local SQLite at a chosen path
+SQLITE_PATH=./data/training.db bun run server
+
+# Remote Turso
+DB_DRIVER=turso DATABASE_URL=libsql://your-db.turso.io LIBSQL_AUTH_TOKEN=your-token bun run server
+
+# PostgreSQL, using an existing database
+DB_DRIVER=postgres DATABASE_URL=postgres://user:password@localhost:5432/wodwiki bun run server
+```
+
+For a container launch, use the same database variables with `docker compose up --build`, or set them in the root `.env` file. Do not commit database credentials. [`.env.example`](./.env.example) also documents `HOST`, `PORT`, and `PLAYGROUND_DIST` for native Bun launches.
+
+A fresh database uses the current schema version. The server refuses incompatible schemas and does not import legacy Rust `wod-wiki-api` databases.
+
+In server mode, durable app data lives in SQL: journal, collections, efforts, sessions, notebooks, query shortcuts, calculators, and telemetry. Theme, audio, onboarding, cast pairing, telemetry consent, and per-route view settings stay browser-local.
+
+### Before exposing a server
+
+The server is a single-user trusted deployment without authentication. Native Bun binds to `127.0.0.1` by default. Docker binds to `0.0.0.0` inside the container, and Compose publishes the port on the host. Add access control before exposing it publicly. Connecting several browsers does not create separate user accounts.
+
+### Development tools and checks
+
+Storybook is a separate component workbench, not another hosting level:
+
+```bash
+bun run storybook       # http://localhost:6006
+bun run test
+bun run check:server
+```
+
+`check:server` exercises CRUD, transactions, domain queries, static serving, and database reopen against a temporary SQLite file. To check PostgreSQL or Turso, set `DB_DRIVER`, `DATABASE_URL`, any `LIBSQL_AUTH_TOKEN`, and `WOD_CHECK_ALLOW_REMOTE=1`. Use a disposable database: this check wipes its data.
+
+See [monorepo scripts](#monorepo-scripts) for other commands, [architecture at a glance](#architecture-at-a-glance) for the package map, and the [architecture overview](./docs/architecture/overview.md) for the workout-processing pipeline.
 
 ---
 
@@ -18,19 +110,7 @@ At each stage the system **adds metrics** — it never overwrites. A metric reco
 
 ---
 
-## Quick start
-
-**Prerequisites:** [Bun](https://bun.sh) (v1.4+)
-
-```bash
-bun install               # install monorepo workspace dependencies
-bun run build:packages    # compile TypeScript packages (@bitcobblers/wod-wiki-*)
-bun run playground        # wod.wiki app dev server  → http://localhost:5173
-bun run storybook         # component workbench      → http://localhost:6006
-bun run test              # packages + playground + storybook + seed suites
-```
-
-Monorepo layout: `packages/{core,lang,wql,engine,ui}` publish to npm as `@bitcobblers/wod-wiki-*`; `apps/playground` is the web app; `apps/storybook` is the component workbench. Vite source-aliasing gives instant HMR from `packages/*/src` into both apps with zero build step during development.
+## Using the playground
 
 The home tour starts workouts only when Run is pressed. Each run saves a fresh playground note, and Stop, completion, or leaving the timer saves its results once. Home analytics uses labelled, in-memory example data without adding sessions to your journal; select This run to inspect the current note's results. Desktop, mobile, and reduced-motion layouts share the same run and analytics behavior.
 
@@ -40,7 +120,7 @@ Each filter value has one button that cycles Off, Include, and Exclude. Expanded
 
 The mobile drawer fills the screen width. Selecting an L1 destination keeps it open for L2 filtering. Filters update immediately; Apply closes the drawer. Full-query shortcuts such as All and Feeds navigate and close it immediately.
 
-Result-identity catalogs are hidden from their own library filters. Supported section headers have a Group checkbox that adds or removes that dimension from the current WQL. Save the query from its toolbar or the Custom navigation item with a label and icon; manage these browser-local shortcuts in Settings > Query Defaults. Unmatched queries select Custom above New shortcut. Equivalent queries select the same shortcut regardless of filter or grouping order.
+Result-identity catalogs are hidden from their own library filters. Supported section headers have a Group checkbox that adds or removes that dimension from the current WQL. Save the query from its toolbar or the Custom navigation item with a label and icon; manage these shortcuts in Settings > Query Defaults. Unmatched queries select Custom above New shortcut. Equivalent queries select the same shortcut regardless of filter or grouping order.
 
 ---
 
@@ -120,7 +200,7 @@ The app is a continuous loop. The same metric flows through every phase.
 - **Journal** (`/journal`, `/journal/:date`) — long-term training log grouped by date pages.
 - **Dashboards** (`/dashboard`, `/dashboard/:slug`) — custom widgets and Datadog-style WQL queries (`<agg>:<metric>{filters} by {dim}`).
 
-Details: [`docs/app/screens-and-workflow.md`](./docs/app/screens-and-workflow.md), [`docs/language/wql-reference.md`](./docs/language/wql-reference.md), and [`docs/domain-model/WQL-Domain-Query-Composition.md`](./docs/domain-model/WQL-Domain-Query-Composition.md).
+Details: [`docs/app/screens-and-workflow.md`](./docs/app/screens-and-workflow.md), [`docs/language/wql-reference.md`](./docs/language/wql-reference.md), and [WQL query composition](./docs/prototypes/WQL-Domain-Query-Composition.md).
 
 ---
 
@@ -131,7 +211,7 @@ markdown ─▶ PARSE (lezer grammar)          → CodeStatements   (parser metr
          ─▶ SEMANTICS (dialects)            → hints + dialect metrics
          ─▶ COMPILE (JIT strategies)        → runtime blocks + behaviors
          ─▶ RUNTIME (stack + clock)         → OutputStatements (runtime/user metrics)
-         ─▶ PERSISTENCE (IndexedDB v23)     → events, sessions, notes, page_notes, tags
+         ─▶ PERSISTENCE (IndexedDB or SQL)  → events, sessions, notes, page_notes, tags
          ─▶ ANALYTICS (WQL QueryService)    → fact aggregations, rollups, and joins
          ─▶ PRESENTATION (editor/clock/journal/dashboard)
 ```
@@ -145,6 +225,7 @@ markdown ─▶ PARSE (lezer grammar)          → CodeStatements   (parser metr
 | `packages/engine` | `@bitcobblers/wod-wiki-engine` | Runtime orchestration, CLI runner, and umbrella exports |
 | `apps/playground` | *private* | Full React web application (journal, editor, settings, dashboards) |
 | `apps/storybook` | *private* | Component workbench and visual testing workshop |
+| `apps/api` | *private* | Bun API and static playground hosting with SQLite, Turso, or PostgreSQL |
 
 Full map: [`docs/architecture/overview.md`](./docs/architecture/overview.md).
 
@@ -165,6 +246,12 @@ Full map: [`docs/architecture/overview.md`](./docs/architecture/overview.md).
 | `bun run typecheck:packages` | Type checks all packages |
 | `bun run lint:playground` | Lints playground source with ESLint |
 | `bun run build` | Compiles packages and production builds of both apps |
+| `bun run server` | Builds packages + API SPA (`dist-api`) and starts the Bun API server |
+| `bun run start:server` | Starts the API server from an existing build |
+| `bun run build:server` | Builds packages + API SPA only (no server launch) |
+| `bun run docker` | Builds and starts the Docker Compose server stack |
+| `bun run check:server` | Runs the assert-based API check suite (`apps/api/check.ts`) |
+| `bun run typecheck:server` | Type checks `apps/api` |
 
 ### Deployed E2E verification
 
@@ -207,6 +294,7 @@ packages/
 apps/
   playground/   Vite + React application (journal, note editor, analytics, settings)
   storybook/    Component Storybook workbench
+  api/          Bun API server (SQLite/Turso/PostgreSQL storage, serves dist-api SPA)
 markdown/       Corpus workout collections, feeds, and canvas guides
 scripts/        Seed compiler, release stampers, and doc link checkers
 docs/           Architecture specs, domain models, and WQL query guides
