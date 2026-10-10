@@ -1,4 +1,5 @@
-import path from 'node:path';
+import { fileURLToPath } from "node:url";
+import path, { dirname } from 'node:path';
 import type { StorybookConfig } from '@storybook/react-vite';
 import { CODEMIRROR_SINGLETON_DEPS, workspaceAliases } from '../aliases.ts';
 
@@ -10,12 +11,12 @@ const config: StorybookConfig = {
   ],
   staticDirs: ['../public'],
   addons: [
-    '@storybook/addon-docs',
-    '@storybook/addon-vitest',
-    '@storybook/addon-a11y',
+    getAbsolutePath("@storybook/addon-docs"),
+    getAbsolutePath("@storybook/addon-vitest"),
+    getAbsolutePath("@storybook/addon-a11y"),
   ],
   framework: {
-    name: '@storybook/react-vite',
+    name: getAbsolutePath("@storybook/react-vite"),
     options: {
       builder: {
         viteConfigPath: path.resolve(import.meta.dirname, '../vite.config.ts'),
@@ -41,3 +42,7 @@ const config: StorybookConfig = {
 };
 
 export default config;
+
+function getAbsolutePath(value: string): any {
+  return dirname(fileURLToPath(import.meta.resolve(`${value}/package.json`)));
+}

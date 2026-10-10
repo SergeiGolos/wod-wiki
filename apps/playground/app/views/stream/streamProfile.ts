@@ -204,7 +204,7 @@ export function createCollectionCatalogProfile(catalogSlug: string): StreamProfi
     target: 'note',
     scopeOptions: ['collections'],
     shelfVisible: false,
-    defaultLayout: 'rows',
+    defaultLayout: 'cards',
     catalog: catalogSlug,
     legacy: createContentLegacyConfig('collections'),
   }

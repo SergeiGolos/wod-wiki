@@ -90,7 +90,7 @@ describe('streamProfile', () => {
     expect(profile?.title).toBe('Dan John')
     expect(profile?.defaultWql).toBe(':collection{catalog:dan-john} by {date}')
     expect(profile?.catalog).toBe('dan-john')
-    expect(profile?.defaultLayout).toBe('rows')
+    expect(profile?.defaultLayout).toBe('cards')
     expect(profile?.level).toBe('session')
   })
 

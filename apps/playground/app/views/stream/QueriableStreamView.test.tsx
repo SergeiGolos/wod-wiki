@@ -807,7 +807,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
     expect(state.isOpen).toBe(true)
     expect(state.request?.wql?.initialQuery).toBe(authored)
   })
-  it('renders with collection catalog profile and default rows layout', async () => {
+  it('renders with collection catalog profile and default cards layout', async () => {
     const profile = createCollectionCatalogProfile('dan-john')
     const { engine } = stubEngine(() => DATED_NOTE_ENTRIES)
 
@@ -819,7 +819,7 @@ describe('QueriableStreamView — query truth and retained state', () => {
 
     expect(screen.getByTestId('wql-composer')).toBeDefined()
     await waitFor(() => {
-      expect(screen.getByTestId('property-table')).toBeDefined()
+      expect(screen.getByTestId('stream-dated-content')).toBeDefined()
     })
   })
 })
