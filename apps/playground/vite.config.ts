@@ -61,9 +61,10 @@ const receiverRedirectPlugin: Plugin = {
 };
 
 /**
- * Read the seed manifest version stamped by scripts/generate-seed.ts (which
- * runs before vite in both dev and build). 0 when missing — the runtime then
- * always consults the manifest instead of trusting the skip-fetch fast path.
+ * Read the seed manifest version stamped by scripts/sync-seed.ts (which runs
+ * before vite in both dev and build, compiling the sibling wod-wiki-seed
+ * repo). 0 when missing — the runtime then always consults the manifest
+ * instead of trusting the skip-fetch fast path.
  */
 function seedManifestVersion(): number {
     try {

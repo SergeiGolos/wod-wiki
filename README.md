@@ -178,7 +178,7 @@ A workout is plain Markdown; WOD Wiki interprets fenced ` ```time ` (and ` ```lo
   :30 Rest
 ```
 
-Dialects recognize keywords like `EMOM`, `AMRAP`, `FOR TIME`, `TABATA`, `STRENGTH`, `RUN/ROW/BIKE/SWIM` and tag blocks accordingly. Full reference: [`docs/language/syntax-reference.md`](./docs/language/syntax-reference.md). Sample workout libraries live in [`markdown/collections/`](./markdown/collections).
+Dialects recognize keywords like `EMOM`, `AMRAP`, `FOR TIME`, `TABATA`, `STRENGTH`, `RUN/ROW/BIKE/SWIM` and tag blocks accordingly. Full reference: [`docs/language/syntax-reference.md`](./docs/language/syntax-reference.md). Sample workout libraries live in the sibling [`wod-wiki-seed`](../wod-wiki-seed) repo (`markdown/collections/` there).
 
 ---
 
@@ -295,8 +295,7 @@ apps/
   playground/   Vite + React application (journal, note editor, analytics, settings)
   storybook/    Component Storybook workbench
   api/          Bun API server (SQLite/Turso/PostgreSQL storage, serves dist-api SPA)
-markdown/       Corpus workout collections, feeds, and canvas guides
-scripts/        Seed compiler, release stampers, and doc link checkers
+scripts/        Seed sync (from the sibling wod-wiki-seed repo), release stampers
 docs/           Architecture specs, domain models, and WQL query guides
 ```
 

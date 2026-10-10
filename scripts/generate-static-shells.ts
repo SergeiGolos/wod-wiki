@@ -23,7 +23,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 
 const ROOT = join(import.meta.dir, '..')
-const MARKDOWN = join(ROOT, 'markdown')
+// The corpus lives in the sibling wod-wiki-seed repo; this post-build step
+// reads it from the synced seed artifact (sync-seed runs before vite build).
+const SEED_CHUNKS = join(ROOT, 'apps', 'playground', 'public', 'seed', 'chunks')
 const DIST = join(ROOT, 'apps', 'playground', 'dist')
 const SITE_URL = (process.env.SITE_URL ?? 'https://wod.wiki').replace(/\/+$/, '')
 const OG_IMAGE = `${SITE_URL}/images/wod-wiki-logo-light.png`
@@ -84,15 +86,28 @@ function buildShell(template: string, title: string, desc: string, route: string
     .replace('</head>', `${meta}</head>`)
 }
 
+interface SeedRowRef {
+  path: string
+  content: string
+}
+
+/** Read every `{path, content}` row from the content-hashed seed note chunks matching a glob (e.g. `canvas.*.json`). */
+function* readChunkRows(chunkGlob: string): Generator<SeedRowRef> {
+  for (const file of new Glob(chunkGlob).scanSync(SEED_CHUNKS)) {
+    const rows = JSON.parse(readFileSync(join(SEED_CHUNKS, file), 'utf8')) as SeedRowRef[]
+    yield* rows
+  }
+}
+
 /** Collect { route, title, desc } for every finite public content route. */
 function collectRoutes(): { route: string; title: string; desc: string }[] {
   const out: { route: string; title: string; desc: string }[] = []
   const defaultDesc = 'Query and explore your training data on Wod.Wiki.'
 
-  // Canvas/guide pages: frontmatter `route:` + `template: canvas`.
-  for (const path of new Glob('canvas/**/*.md').scanSync(MARKDOWN)) {
-    const raw = readFileSync(join(MARKDOWN, path), 'utf8')
-    const { meta, body } = parseFrontmatter(raw)
+  // Canvas/guide pages: frontmatter `route:` + `template: canvas` (the whole
+  // `canvas` chunk is the markdown/canvas corpus).
+  for (const { content } of readChunkRows('canvas.*.json')) {
+    const { meta, body } = parseFrontmatter(content)
     if (String(meta['template']) !== 'canvas' || !meta['route']) continue
     const route = meta['route'].startsWith('/') ? meta['route'] : `/${meta['route']}`
     const title = firstTitle(body) ?? 'Wod.Wiki guide'
@@ -100,12 +115,13 @@ function collectRoutes(): { route: string; title: string; desc: string }[] {
     out.push({ route, title, desc })
   }
 
-  // Collection pages: markdown/collections/<slug>/README.md → /collections/<slug>.
-  for (const path of new Glob('collections/**/README.md').scanSync(MARKDOWN)) {
+  // Collection pages: markdown/collections/<slug>/README.md → /collections/<slug>
+  // (the root collections README is a corpus overview, not a catalog page).
+  for (const { path, content } of readChunkRows('collection.*.json')) {
     const parts = path.split('/')
-    const slug = parts[parts.length - 2]!
-    const raw = readFileSync(join(MARKDOWN, path), 'utf8')
-    const { body } = parseFrontmatter(raw)
+    if (parts.length !== 4 || !parts[3]!.toLowerCase().endsWith('readme.md')) continue
+    const slug = parts[2]!
+    const { body } = parseFrontmatter(content)
     const title = firstTitle(body) ?? slug
     const desc = firstDescription(body) ?? defaultDesc
     out.push({ route: `/collections/${slug}`, title, desc })

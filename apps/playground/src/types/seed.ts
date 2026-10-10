@@ -1,7 +1,8 @@
 /**
- * Seed contract — shared between the build-time compiler
- * (scripts/generate-seed.ts) and the runtime importer (src/services/seed/).
- * See docs/prototypes/seed-data-unification.md.
+ * Seed contract — consumer side. The producer copy lives in the wod-wiki-seed
+ * repo (src/contract.ts there); the two MUST stay shape-compatible. The
+ * runtime importer is src/services/seed/. See
+ * docs/prototypes/seed-data-unification.md.
  *
  * Type-only + pure constants: safe to import from both the Bun script and
  * the Vite bundle.
@@ -40,8 +41,18 @@ export interface ManifestChunk {
 export interface SeedManifest {
   /** Seed format version — bump on incompatible row-shape changes. */
   schema: number;
-  /** Monotonic: builtAt epoch ms. */
+  /**
+   * Monotonic import-order version — the wod-wiki-seed repo's commit count
+   * (`git rev-list --count HEAD`); advances with every merged content MR.
+   * The import decision only ever compares magnitude/equality.
+   */
   version: number;
+  /** Human-readable seed repo version (`git describe --long --always --dirty`) — producer-side metadata, unused by the import decision. */
+  versionLabel?: string;
+  /** Full HEAD sha of the seed repo the artifact was built from. */
+  commit?: string;
+  /** True when the seed repo had uncommitted changes at build time. */
+  dirty?: boolean;
   builtAt: string;
   chunks: ManifestChunk[];
 }
