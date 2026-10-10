@@ -23,7 +23,7 @@ import { pendingRuntimes } from '../runtimeStore'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useNotePageNav } from './shared/useNotePageNav'
 import {
-  NoteContextLinks,
+  NoteContextNav,
   noteOwnership,
   provenanceLink,
   useNoteContextLinks,
@@ -249,7 +249,7 @@ export function NoteByIdPage({ noteId, theme }: NoteByIdPageProps) {
           actions={pageActions}
           editor={
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-6 min-w-0 max-w-full">
-              <NoteContextLinks data={contextLinks} up={ownership.up} />
+              <NoteContextNav data={contextLinks} up={ownership.up} />
               {(entry.journalDate || entry.slug || entry.sourceId) && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   {entry.journalDate && (

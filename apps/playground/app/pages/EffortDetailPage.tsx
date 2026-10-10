@@ -30,7 +30,7 @@ import type { Session } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
 import {
-  NoteContextLinks,
+  NoteContextNav,
   noteOwnership,
   useNoteContextLinks,
 } from './shared/noteContextLinks';
@@ -504,9 +504,7 @@ export function EffortDetailPage() {
               commands={commands}
               onBlocksChange={setScriptBlocks}
             />
-            <div className="px-6 lg:px-10 pb-4">
-              <NoteContextLinks data={contextData} up={ownership?.up} relatedLabel="Used in" />
-            </div>
+            <NoteContextNav data={contextData} up={ownership?.up} relatedLabel="Used in" />
           </div>
         }
       />

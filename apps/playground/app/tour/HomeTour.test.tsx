@@ -481,6 +481,7 @@ describe('HomeTour', () => {
               setStreamControls: () => {},
               openCreateJournal: () => {},
               registerCreateJournal: () => {},
+              setContextNav: () => {},
             }}
           >
             <HomeTour wodFiles={wodFiles} theme="light" quests={homeQuests} chapters={chapters} />

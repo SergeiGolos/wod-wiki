@@ -140,15 +140,22 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
-  const { tree, navState, dispatch } = useNav()
+  const { tree, navState, dispatch, contextNav } = useNav()
+  const location = useLocation()
   const resolvedNav = useResolvedMenu(navSpec)
 
   // Find which L1 is currently active
   const activeL1 = (tree ?? []).find(item => item?.id === navState.activeL1Id) ?? null
 
+  // Route-scoped context nav (e.g. note relationships): while its pathname
+  // matches, it replaces both the L1 listing panel and the route navSpec —
+  // even when its spec is empty.
+  const contextPanel = contextNav?.pathname === location.pathname ? contextNav : null
+
   // Render the L2 zone for the active L1 — same on desktop and in the
   // mobile drawer (the drawer wraps it beside the shared icon rail).
   const renderL2 = () => {
+    if (contextPanel) return null
     if (!activeL1) return null
 
     // Custom panel (Journal, Collections, Search)
@@ -188,12 +195,20 @@ export function NavSidebar({ navSpec }: { navSpec?: MenuSpec }) {
       <SidebarBody>
         {/* L2 — context-specific panel or doc children */}
         {renderL2()}
-        {/* Route-declared nav panel (zone 2 contract) — same standardized
-            rendering as the secondary rail. */}
-        {resolvedNav.length > 0 && (
+        {contextPanel ? (
+          /* Route-scoped context nav (zone 2 contract) — replaces the
+             listing panel and route navSpec for its pathname. */
           <div className="pt-1">
-            <MenuList entries={resolvedNav} />
+            <MenuList entries={contextPanel.spec} />
           </div>
+        ) : (
+          /* Route-declared nav panel (zone 2 contract) — same standardized
+              rendering as the secondary rail. */
+          resolvedNav.length > 0 && (
+            <div className="pt-1">
+              <MenuList entries={resolvedNav} />
+            </div>
+          )
         )}
       </SidebarBody>
     </Sidebar>

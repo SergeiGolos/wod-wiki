@@ -229,6 +229,7 @@ describe('DashboardViewPage L3 outline', () => {
             setSecondarySpec: () => {},
             scrollToSection: () => {},
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           <Routes>

@@ -30,6 +30,7 @@ function renderHomeNav(l3Items: NavItemL3[], scrollToSection = mock(() => {}), p
             setSecondarySpec: () => {},
             scrollToSection,
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           <SecondaryNav pageAction={pageAction} />
@@ -139,6 +140,7 @@ describe('SecondaryNav on home page', () => {
               setStreamControls: () => {},
               scrollToSection: () => {},
               registerScrollFn: () => {},
+              setContextNav: () => {},
             }}
           >
             <SecondaryNav />

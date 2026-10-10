@@ -92,6 +92,14 @@ export interface StreamNavControls {
   level: EntityLevel
 }
 
+/** Route-scoped static L2 content registered by a page (e.g. note
+ *  relationships). The sidebar renders it instead of the active L1's panel
+ *  while `pathname` matches the current location. */
+export interface ContextNav {
+  pathname: string
+  spec: MenuSpec
+}
+
 export interface NavContextValue {
   tree: NavItem[]
   navState: NavState
@@ -100,6 +108,8 @@ export interface NavContextValue {
   setL3Items: (items: NavItemL3[]) => void
   secondarySpec?: MenuSpec
   setSecondarySpec: (spec?: MenuSpec) => void
+  contextNav?: ContextNav
+  setContextNav: (nav?: ContextNav) => void
   streamControls?: StreamNavControls | null
   setStreamControls: (controls: StreamNavControls | null) => void
   scrollToSection: (id: string) => void
@@ -129,6 +139,8 @@ export const NavContext = createContext<NavContextValue>({
   setL3Items: () => {},
   secondarySpec: undefined,
   setSecondarySpec: () => {},
+  contextNav: undefined,
+  setContextNav: () => {},
   streamControls: null,
   setStreamControls: () => {},
   scrollToSection: defaultScroll,
@@ -167,6 +179,7 @@ export function NavProvider({ tree, children }: NavProviderProps) {
   const [navState, dispatch] = useReducer(navReducer, initialNavState)
   const [l3Items, setL3ItemsInternal] = useState<NavItemL3[]>([])
   const [secondarySpec, setSecondarySpec] = useState<MenuSpec | undefined>(undefined)
+  const [contextNav, setContextNav] = useState<ContextNav | undefined>(undefined)
   const [streamControls, setStreamControls] = useState<StreamNavControls | null>(null)
   const location = useLocation()
 
@@ -238,6 +251,8 @@ export function NavProvider({ tree, children }: NavProviderProps) {
       setL3Items,
       secondarySpec,
       setSecondarySpec,
+      contextNav,
+      setContextNav,
       streamControls,
       setStreamControls,
       scrollToSection,
@@ -245,7 +260,7 @@ export function NavProvider({ tree, children }: NavProviderProps) {
       openCreateJournal,
       registerCreateJournal,
     }),
-    [tree, navState, l3Items, setL3Items, secondarySpec, streamControls, scrollToSection, registerScrollFn, openCreateJournal, registerCreateJournal],
+    [tree, navState, l3Items, setL3Items, secondarySpec, contextNav, setContextNav, streamControls, scrollToSection, registerScrollFn, openCreateJournal, registerCreateJournal],
   )
   return (
     <NavContext.Provider value={value}>

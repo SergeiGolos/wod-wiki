@@ -174,7 +174,7 @@
 <h2 id="chrome" data-whiteboard-anchor>2 · Shared chrome</h2>
 
 <h3 id="wb-h3-977dfe2a685145d1891bc15bd24483f9" data-whiteboard-anchor>Left sidebar — L1 / L2 / L3</h3>
-<p id="wb-p-529f479ada664caabebd497ea747e96a" data-whiteboard-anchor>The sidebar shows the static L1 tree from <code>appNavTree.ts</code>; the L2 list is the children of whichever L1 is active for the current pathname (auto-synced in <code>NavContext</code>). L3 is <em>never</em> static — each note page publishes its own "On this page" index at runtime.</p>
+<p id="wb-p-529f479ada664caabebd497ea747e96a" data-whiteboard-anchor>The sidebar shows the L1 tree from <code>appNavTree.ts</code>. Listings show the active L1's L2 query controls. Individual note pages replace those controls with <strong>Up</strong>, <strong>Source</strong> when present, <strong>Efforts</strong>, <strong>Journal copies</strong>, and <strong>Related workouts</strong> or <strong>Used in</strong> links. These relationships live only in L2, on desktop and in the mobile navigation drawer, not above the editor. Links open their canonical destinations; leaving the note restores the listing panel. L3 remains the current page's "On this page" outline.</p>
 
 <table>
   <tr><th id="wb-th-877f748c96c347e2bdef82bbdf91295a" data-whiteboard-anchor>L1</th><th id="wb-th-b2c8c0e3220a477295f4703b3737e37d" data-whiteboard-anchor>L2 items (type of link)</th></tr>
@@ -193,7 +193,7 @@
   <li id="wb-li-ec24071378d74ecbac34b2dbcca81d9a" data-whiteboard-anchor>One entry per <code>```log</code> fence — <strong>display-only</strong> (badge yes, Run affordance no, #891/#894).</li>
   <li id="wb-li-43d103b8159a4aea99db175a3efac8b8" data-whiteboard-anchor>Rendered inside the ⋮ ActionsMenu ("On this page") below 2xl; owned by the secondary rail from 2xl up.</li>
 </ul>
-<div class="note">Deep link <code>/notes/:noteId</code> matches no L1 <code>isActive</code> predicate, so no L2 zone is expanded there — the sidebar shows L1 items only.</div>
+<div class="note">Deep links to <code>/notes/:noteId</code> use the loaded note's source to select L1 and publish its parent and relationship links in L2. Navigation is scoped to the current pathname; links from the previous note do not carry over.</div>
 
 <div class="proposal">
   <span class="proposal-tag">Proposed · navigation review 2026-10-04</span>
@@ -253,7 +253,7 @@
   <p class="sub" id="wb-p-b924f54e69a943f2ace15076c9a04274" data-whiteboard-anchor>Source-agnostic fallback for every note kind (journal, collection item, playground, feed, effort shadow…). Deliberately plain: source does <em>not</em> change display here.</p>
   <div class="lbl">Data displayed</div>
   <p id="wb-p-98c7b80b04264a1eac31581dd3eb700f" data-whiteboard-anchor>Note title + note id path; raw markdown body in the editor (read mode default). Loading / "Note not found." states.</p>
-  <div class="lbl">L2 (left)</div><p id="wb-p-d67050c0299b4a83adfd59dbf62d164a" data-whiteboard-anchor>None — pathname lights no L1 zone.</p>
+  <div class="lbl">L2 (left)</div><p id="wb-p-d67050c0299b4a83adfd59dbf62d164a" data-whiteboard-anchor>Source-aware parent, efforts, journal-copy backlinks, and related workouts replace the owning list's query controls.</p>
   <div class="lbl">L3</div><p id="wb-p-12f5ef3d283d4677946ca43b96f9951c" data-whiteboard-anchor>Page index from the note's headings + time/log fences (no result badges wired, no Run on this page).</p>
   <div class="lbl">Time/log buttons</div><p id="wb-p-dba7aa0da1c442419f82faad75e6bcad" data-whiteboard-anchor><strong>None</strong> — no command matrix is mounted on this page.</p>
   <div class="lbl">Sticky header</div><p id="wb-p-734596c76efd4a92b43eecddd5e21c27" data-whiteboard-anchor><strong>Values:</strong> title = entry title, subtitle = <code>/notes/:noteId</code>. <strong>Functions:</strong> Edit ↔ Read mode toggle; Back button on missing note. Autosave via content provider on idle/blur in edit mode.</p>
@@ -295,7 +295,7 @@
   <p class="sub" id="wb-p-e5a8fe732c0f4f9f98087737c21e4af0" data-whiteboard-anchor>Personal sandbox note. IDB-first with bundled fallback; only source with Reset + custom widgets.</p>
   <div class="lbl">Data displayed</div>
   <p id="wb-p-64ee0350192b497d8a33f57fe52428f2" data-whiteboard-anchor>Formatted page title; markdown body with custom widget components (run-tip, attention, code-example, syntax-group); per-note results; <code>$CURSOR</code> placement.</p>
-  <div class="lbl">L2 (left)</div><p id="wb-p-9a0f949feda94598aad470a18bcddb43" data-whiteboard-anchor>Library zone: Playgrounds highlighted.</p>
+  <div class="lbl">L2 (left)</div><p id="wb-p-9a0f949feda94598aad470a18bcddb43" data-whiteboard-anchor>Up to Playgrounds, source provenance when present, efforts, journal-copy backlinks, and related workouts.</p>
   <div class="lbl">L3</div><p id="wb-p-918fcb0a79034ec1adb039db54e53363" data-whiteboard-anchor>Page index with Run secondary + result badges (results wired on this page).</p>
   <div class="lbl">Time/log buttons</div><p id="wb-p-2c5dcec66cb54b8dafdbb66c8a1ea9f9" data-whiteboard-anchor><code>playground</code> matrix: <span class="btn primary">Play</span><span class="btn log">Log</span><span class="btn">Share</span><span class="btn">Today</span><span class="btn">Schedule</span>.</p>
   <div class="lbl">Sticky header</div><p id="wb-p-a269c9a821f84462bb6858fd8605a7ad" data-whiteboard-anchor><strong>Values:</strong> title = playground page title. <strong>Functions:</strong> <span class="btn warn">New</span> create note · <span class="btn warn">Reset</span> restore default template · Search · Cast · ⋮ menu · <strong>Move to journal</strong> (promotes the same UUID into the journal, clearing the playground source).</p>
@@ -316,7 +316,7 @@
   <p class="sub" id="wb-p-6a2f97b7c5a7468dbf7a1eb58c0d19a8" data-whiteboard-anchor>Bundled collection item. Read-first; viewing must not mint a note (seeding off at source, #856).</p>
   <div class="lbl">Data displayed</div>
   <p id="wb-p-ef9a40723ffb4cd6a11f5316b525dd6b" data-whiteboard-anchor>Workout name title; markdown body; page nav index; sourceNote stamping on journal copies.</p>
-  <div class="lbl">L2 (left)</div><p id="wb-p-7dfc12d6e7194572bddbf87341a9d75d" data-whiteboard-anchor>Library zone: Collections highlighted.</p>
+  <div class="lbl">L2 (left)</div><p id="wb-p-7dfc12d6e7194572bddbf87341a9d75d" data-whiteboard-anchor>Up to the collection, efforts, journal-copy backlinks, and related workouts replace collection filters.</p>
   <div class="lbl">L3</div><p id="wb-p-26edfb04d8204ef78d543bdbe4b28db7" data-whiteboard-anchor>Page index (headings + time/log fences) with Run secondary.</p>
   <div class="lbl">Time/log buttons</div><p id="wb-p-96840c29ec6b45ce98ec3a5be46ed794" data-whiteboard-anchor><code>collection-readonly</code> matrix: <span class="btn primary">Play</span><span class="btn log">Log</span><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span> (+ Add-to-today wired). Run appends to today's journal then auto-starts — except <code>syntax</code> category, which runs in a popup.</p>
   <div class="lbl">Sticky header</div><p id="wb-p-b480a331e2a747b68453d69b2c7d2bc4" data-whiteboard-anchor><strong>Values:</strong> title = workout name. <strong>Functions:</strong> Edit ↔ Read toggle (default read) · Search · Cast · ⋮ menu (incl. Download Markdown).</p>
@@ -337,7 +337,7 @@
   <p class="sub" id="wb-p-d6103e82c1c7449fb1683563b41e7c72" data-whiteboard-anchor>Feed workouts are immutable at source; local edits survive as a scratch overlay keyed <code>feed/{slug}/{date}/{item}</code>. No seeding on view (#856).</p>
   <div class="lbl">Data displayed</div>
   <p id="wb-p-e2dd2d844015424ebf03b5cb6a5e02c2" data-whiteboard-anchor>Feed item name title; markdown body; "Feed item not found." fallback.</p>
-  <div class="lbl">L2 (left)</div><p id="wb-p-ccffa42c0656432bb09d831c1cbd037b" data-whiteboard-anchor>Library zone: Feeds highlighted.</p>
+  <div class="lbl">L2 (left)</div><p id="wb-p-ccffa42c0656432bb09d831c1cbd037b" data-whiteboard-anchor>Up to the feed, efforts, journal-copy backlinks, and related workouts replace collection filters.</p>
   <div class="lbl">L3</div><p id="wb-p-25e57bb0043844438e8b496a0d55474a" data-whiteboard-anchor>Page index with Run secondary.</p>
   <div class="lbl">Time/log buttons</div><p id="wb-p-c0c6908ba02443a793448667df687498" data-whiteboard-anchor><code>collection-readonly</code> matrix: <span class="btn primary">Play</span><span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Today</span><span class="btn">Schedule</span>. Run Now clones into today's journal and auto-starts.</p>
   <div class="lbl">Sticky header</div><p id="wb-p-2d7f39c706be449a96c13ddee110ca3b" data-whiteboard-anchor><strong>Values:</strong> title = item name. <strong>Functions:</strong> Search · Cast · ⋮ menu (Download Markdown of the feed content).</p>
@@ -421,7 +421,7 @@
   <p class="sub" id="wb-p-5e83dd88db6a4cc7bbfb1ebb3901b679" data-whiteboard-anchor>Effort registry object rendered as a note document: YAML frontmatter + markdown body. <code>registrySource</code> is the editability rule — bundled is read-only until first edit auto-clones to <code>&lt;slug&gt;-custom</code> (user tier).</p>
   <div class="lbl">Data displayed</div>
   <p id="wb-p-063d64809b9b45be85b715a0161772f1" data-whiteboard-anchor>Effort label title; <strong>Bundled / Custom</strong> source badge; frontmatter rendered as a table (met, discipline, intensityTier, aliases, derivation); markdown body; "Effective Resolution" widget (effective MET with base-delta warning, discipline factor, applied-modifier badges, parent slug) toggled by Show Resolved.</p>
-  <div class="lbl">L2 (left)</div><p id="wb-p-138201d8f84946d59d8033155f052648" data-whiteboard-anchor>Efforts zone.</p>
+  <div class="lbl">L2 (left)</div><p id="wb-p-138201d8f84946d59d8033155f052648" data-whiteboard-anchor>Up to the effort catalog, journal-copy backlinks, and Used in links replace effort-list filters.</p>
   <div class="lbl">L3</div><p id="wb-p-0b1c31598ebe41e495bd0cd19e955251" data-whiteboard-anchor>Page index from the effort document (headings + time/log fences).</p>
   <div class="lbl">Time/log buttons</div><p id="wb-p-d7c833ea22a24516a9460130e7b8f849" data-whiteboard-anchor><code>collection-readonly</code> matrix: <span class="btn primary">Play</span> (→ <code>/run/:runtimeId</code>) <span class="btn">Playground</span><span class="btn">Share</span><span class="btn">Schedule</span> (schedule clones into the journal, category <code>effort</code>).</p>
   <div class="lbl">Sticky header</div><p id="wb-p-c11cd43383904c3cabd48d0d7adfaac8" data-whiteboard-anchor><strong>Values:</strong> title = effort label, accessory = Bundled/Custom badge. <strong>Functions:</strong> <span class="btn primary">Clone</span> (bundled → editable custom copy) · Back to catalog · Show/Hide Resolved · live editing (debounced save to registry + shadow note) · Search · Cast · ⋮ menu.</p>

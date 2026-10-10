@@ -70,6 +70,7 @@ function renderRail(at = '/collections', streamControls?: StreamNavControls | nu
             registerScrollFn: () => {},
             openCreateJournal: () => {},
             registerCreateJournal: () => () => {},
+            setContextNav: () => {},
           }}
         >
           <SecondaryNav />

@@ -90,7 +90,7 @@ describe('noteOwnership — source-aware zone / up / stamps', () => {
   it('effort shadow note: efforts zone, catalog up, /e/ stamp', () => {
     const own = noteOwnership({ id: 'effort/grace', type: 'collection' })
     expect(own.zone).toBe('efforts')
-    expect(own.up).toMatchObject({ title: 'Efforts', to: '/e/grace' })
+    expect(own.up).toMatchObject({ title: 'Efforts', to: '/efforts' })
     expect(own.stamps).toEqual(['/e/grace'])
   })
 

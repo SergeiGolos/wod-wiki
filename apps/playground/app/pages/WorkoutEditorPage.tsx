@@ -26,7 +26,7 @@ import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import {
-  NoteContextLinks,
+  NoteContextNav,
   noteOwnership,
   useNoteContextLinks,
 } from './shared/noteContextLinks'
@@ -209,7 +209,7 @@ export function WorkoutEditorPage({
         editor={
           /* Reconfigure read-only state without discarding cursor or undo history. */
           <div className="flex flex-col gap-3 px-4 py-6 sm:px-6">
-            <NoteContextLinks data={contextData} up={ownership?.up} />
+            <NoteContextNav data={contextData} up={ownership?.up} />
             <NoteEditor
               value={content}
               onChange={onChange}

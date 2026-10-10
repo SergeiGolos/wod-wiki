@@ -44,6 +44,7 @@ function renderNav(scriptBlocks: ScriptBlock[]): PageNavLink[] {
           setL3Items: () => {},
           scrollToSection: () => {},
           registerScrollFn: () => {},
+          setContextNav: () => {},
         }}
       >
         <Harness />

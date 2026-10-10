@@ -28,7 +28,7 @@ import { pendingRuntimes } from '../runtimeStore';
 import { noteByIdPath, runPath, journalEntryAutoStartPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import {
-  NoteContextLinks,
+  NoteContextNav,
   noteOwnership,
   useNoteContextLinks,
 } from './shared/noteContextLinks';
@@ -194,7 +194,7 @@ export function FeedItemPage({
         }
         editor={
           <div className="flex flex-col gap-3 px-4 py-6 sm:px-6">
-            <NoteContextLinks data={contextData} up={ownership.up} />
+            <NoteContextNav data={contextData} up={ownership.up} />
             <NoteEditor
               value={content}
               onChange={onChange}

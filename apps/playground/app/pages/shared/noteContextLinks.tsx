@@ -9,19 +9,21 @@
  *     (block_efforts, block_index by-note/by-content/by-effort, notes.sourceId).
  *
  * Pure functions are exported for tests; `useNoteContextLinks` + the
- * `NoteContextLinks` row are the view surface every note page composes.
+ * `NoteContextNav` registration are the view surface every note page composes.
  */
-import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { storageService } from '@/services/storage'
 import type { BlockEffort, BlockIndexRow, Note } from '@/types/storage'
 import type { HistoryEntry } from '@/types/history'
 import { parseNoteId } from '@/lib/noteIdentity'
 import { noteRefToPath } from '../../lib/noteIdentity'
-import { canGoBack } from './pageUtils'
+import { useNav } from '../../nav/NavContext'
+import type { MenuSpec } from '../../nav/menuModel'
 import {
   collectionPath,
   effortPath,
+  effortsPath,
   feedDetailPath,
   journalDatePath,
   noteByIdPath,
@@ -59,7 +61,7 @@ export interface NoteContextData {
 }
 
 const EMPTY_CONTEXT: NoteContextData = { efforts: [], related: [], backlinks: [] }
-/** ponytail: cap chips so benchmark blocks (cloned everywhere) stay one row; raise when a page wants full lists. */
+/** ponytail: cap related links so the L2 nav section stays scannable; raise when a page wants full lists. */
 const MAX_RELATED = 8
 
 // ── Source-aware ownership ───────────────────────────────────────────────────
@@ -105,7 +107,7 @@ export function noteOwnership(entry: Pick<HistoryEntry, 'id' | 'type' | 'sourceI
     if (ref.category === 'effort') {
       return {
         zone: 'efforts',
-        up: { id: ref.id, title: 'Efforts', to: effortPath(ref.id) },
+        up: { id: 'efforts', title: 'Efforts', to: effortsPath() },
         stamps: [effortPath(ref.id)],
       }
     }
@@ -136,7 +138,7 @@ export function noteOwnership(entry: Pick<HistoryEntry, 'id' | 'type' | 'sourceI
 }
 
 /**
- * Resolve a stamped `sourceId` for the provenance chip: app paths link
+ * Resolve a stamped `sourceId` to a provenance link: app paths link
  * directly (that's what journal-copy stamping writes); bare values are note
  * ids the caller resolves through the content provider. Stamps are
  * user-editable storage data — decoding is throw-safe on malformed input.
@@ -241,7 +243,11 @@ export interface UseNoteContextLinksOptions {
 /** Load the three context datasets over the existing IDB indexes. */
 export function useNoteContextLinks({ noteId, stamps, effortSlug }: UseNoteContextLinksOptions): NoteContextData {
   const stampKey = stamps.join('\n')
-  const [data, setData] = useState<NoteContextData>(EMPTY_CONTEXT)
+  // Key results by route inputs: while inputs change, render EMPTY_CONTEXT —
+  // a new note never shows the previous note's still-in-flight relationships.
+  const [result, setResult] = useState<{ key: string; data: NoteContextData }>({ key: '', data: EMPTY_CONTEXT })
+  const routeKey = `${noteId}\u0000${stampKey}\u0000${effortSlug ?? ''}`
+  const data = result.key === routeKey ? result.data : EMPTY_CONTEXT
 
   useEffect(() => {
     let cancelled = false
@@ -280,76 +286,56 @@ export function useNoteContextLinks({ noteId, stamps, effortSlug }: UseNoteConte
         }
       })
       .then(next => {
-        if (!cancelled && next) setData(next)
+        if (!cancelled && next) setResult({ key: routeKey, data: next })
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [noteId, stampKey, effortSlug])
+  }, [noteId, stampKey, effortSlug, routeKey])
 
   return data
 }
 
-// ── Presentational row ───────────────────────────────────────────────────────
+// ── L2 registration ──────────────────────────────────────────────────────────
 
-const chipClass =
-  'rounded-pill border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors'
-
-const groupLabelClass = 'text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70'
-
-function ChipGroup({ label, items }: { label: string; items: ContextNoteLink[] }) {
-  if (items.length === 0) return null
-  return (
-    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className={groupLabelClass}>{label}</span>
-      {items.map(item => (
-        <Link key={`${label}:${item.id}`} to={item.to} className={chipClass}>
-          {item.title}
-        </Link>
-      ))}
-    </span>
-  )
-}
-
-export interface NoteContextLinksProps {
+export interface NoteContextNavProps {
   data: NoteContextData
-  /** Owning-list link ("Up") — rendered first when present. */
+  /** Owning-list link ("Up") — first section when present. */
   up?: ContextNoteLink | null
-  /** Extra leading content (e.g. prev/next journal date links). */
-  leading?: ReactNode
-  /** Label override for the `related` group (e.g. "Used in" on effort pages). */
+  /** Provenance link for a stamped sourceId — section after Up when present. */
+  source?: ContextNoteLink | null
+  /** Label override for the `related` section (e.g. "Used in" on effort pages). */
   relatedLabel?: string
-  className?: string
 }
 
-/** The contextual chips row every note view renders above its editor. The
- *  Up chip prefers history.back() (returns to the listing with its query,
- *  grouping and scroll state intact) and falls back to the canonical
- *  owning-list link on deep loads. */
-export function NoteContextLinks({ data, up, leading, relatedLabel = 'Related workouts', className }: NoteContextLinksProps) {
-  const navigate = useNavigate()
-  const hasAnything = !!up || !!leading || data.efforts.length > 0 || data.backlinks.length > 0 || data.related.length > 0
-  if (!hasAnything) return null
-  return (
-    <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs ${className ?? ''}`}>
-      {leading}
-      {up && (
-        <span className="flex items-center gap-x-2">
-          <span className={groupLabelClass}>Up</span>
-          <button
-            type="button"
-            onClick={() => (canGoBack() ? navigate(-1) : navigate(up.to))}
-            title={up.title}
-            className={chipClass}
-          >
-            {up.title}
-          </button>
-        </span>
-      )}
-      <ChipGroup label="Efforts" items={data.efforts} />
-      <ChipGroup label="Journal copies" items={data.backlinks} />
-      <ChipGroup label={relatedLabel} items={data.related} />
-    </div>
-  )
+/** Registers the note's relationships as the L2 sidebar content for the
+ *  current route (replacing the listing panel). Renders nothing itself: the
+ *  sidebar consumes the static MenuSpec. Links navigate to their canonical
+ *  `to` — no history.back. */
+export function NoteContextNav({ data, up, source, relatedLabel = 'Related workouts' }: NoteContextNavProps) {
+  const { setContextNav } = useNav()
+  const location = useLocation()
+
+  useEffect(() => {
+    const spec: MenuSpec = []
+    const section = (id: string, label: string, items: ContextNoteLink[]) => {
+      if (items.length === 0) return
+      spec.push({
+        kind: 'section',
+        id,
+        label,
+        entries: items.map(item => ({ kind: 'link' as const, id: `${id}:${item.id}`, label: item.title, to: item.to })),
+      })
+    }
+    section('note-context-up', 'Up', up ? [up] : [])
+    section('note-context-source', 'Source', source ? [source] : [])
+    section('note-context-efforts', 'Efforts', data.efforts)
+    section('note-context-backlinks', 'Journal copies', data.backlinks)
+    section('note-context-related', relatedLabel, data.related)
+    setContextNav({ pathname: location.pathname, spec })
+    return () => setContextNav(undefined)
+  }, [data, up, source, relatedLabel, location.pathname, setContextNav])
+
+  return null
 }

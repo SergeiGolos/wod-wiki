@@ -2,6 +2,7 @@
 
 import * as Headless from '@headlessui/react'
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Plus, SlidersHorizontal } from 'lucide-react'
 import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import { NavbarItem } from '@/components/organisms/layout/Navbar'
@@ -37,10 +38,11 @@ function CloseMenuIcon() {
  * button only dismisses the drawer — no draft/commit transaction.
  */
 function DrawerApplyFooter() {
-  const { tree, navState } = useNav()
+  const { tree, navState, contextNav } = useNav()
+  const location = useLocation()
   const close = useCloseNavigationDrawer()
   const active = tree.find(item => item.id === navState.activeL1Id)
-  if (!active?.applyFooter) return null
+  if (!active?.applyFooter || contextNav?.pathname === location.pathname) return null
   return (
     <div className="shrink-0 border-t border-border/50 bg-card p-3">
       <button

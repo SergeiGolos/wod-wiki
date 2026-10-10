@@ -381,6 +381,7 @@ describe('QueriableStreamView component', () => {
             setL3Items,
             scrollToSection: () => {},
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           <QueriableStreamView profile={JOURNAL_STREAM_PROFILE} queryEngine={engine} />
@@ -415,6 +416,7 @@ describe('QueriableStreamView component', () => {
             setL3Items: setL3Discipline,
             scrollToSection: () => {},
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           <QueriableStreamView

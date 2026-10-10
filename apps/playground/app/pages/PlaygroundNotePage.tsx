@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import { v7 as uuidv7 } from 'uuid'
@@ -29,7 +29,7 @@ import { noteByIdPath, runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import {
-  NoteContextLinks,
+  NoteContextNav,
   noteOwnership,
   useNoteContextLinks,
 } from './shared/noteContextLinks'
@@ -47,8 +47,7 @@ import { localDateKey } from '../views/queriable-list/JournalDateScroll'
 import { useOnboardingEvents } from '../hooks/useOnboardingEvents'
 import { CalendarPlus } from 'lucide-react'
 import { ResponsiveActions } from '../nav/ResponsiveActions'
-import { provenanceLink } from './shared/noteContextLinks'
-import type { ReactNode } from 'react'
+import { provenanceLink, type ContextNoteLink } from './shared/noteContextLinks'
 
 export interface PlaygroundNotePageProps {
   theme: string
@@ -231,23 +230,13 @@ export function PlaygroundNotePage({
 
   // Spawn provenance — "Open in Playground" stamps the source page path into
   // sourceId (path-like); the bare 'playground' intake marker renders nothing.
-  const [spawnLink, setSpawnLink] = useState<ReactNode>(null)
+  const [spawnLink, setSpawnLink] = useState<{ noteId: string; link: ContextNoteLink } | null>(null)
   useEffect(() => {
     let cancelled = false
-    setSpawnLink(null)
     storageService.getNote(runtimeNoteId).then((note) => {
       if (cancelled || !note?.sourceId) return
       const stamped = provenanceLink(note.sourceId)
-      if (stamped) {
-        setSpawnLink(
-          <span className="flex items-center gap-x-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">Source</span>
-            <Link to={stamped.to} className="rounded-pill border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-              {stamped.title}
-            </Link>
-          </span>,
-        )
-      }
+      if (stamped) setSpawnLink({ noteId: runtimeNoteId, link: stamped })
     }).catch(() => {})
     return () => { cancelled = true }
   }, [runtimeNoteId])
@@ -367,7 +356,7 @@ export function PlaygroundNotePage({
         actions={headerActions}
         editor={
           <div className="flex flex-col gap-3 px-4 py-6 sm:px-6">
-            <NoteContextLinks data={contextData} up={ownership.up} leading={spawnLink} />
+            <NoteContextNav data={contextData} up={ownership.up} source={spawnLink?.noteId === runtimeNoteId ? spawnLink.link : null} />
             <NoteEditor
               value={content}
               onChange={onChange}

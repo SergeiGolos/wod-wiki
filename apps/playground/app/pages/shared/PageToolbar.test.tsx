@@ -18,6 +18,7 @@ function renderWithNav(l3Items: NavItemL3[], scrollToSection = mock(() => {})) {
           setL3Items: () => {},
           scrollToSection,
           registerScrollFn: () => {},
+          setContextNav: () => {},
         }}
       >
         <ActionsMenu currentWorkout={{ name: 'Test', content: '' }} />
@@ -83,6 +84,7 @@ describe('ActionsMenu', () => {
             setL3Items: () => {},
             scrollToSection: () => {},
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           <ActionsMenu currentWorkout={{ name: 'Test', content: '# Test' }} onDownload={onDownload} />
@@ -122,6 +124,7 @@ describe('ActionsMenu', () => {
             setSecondarySpec: () => {},
             scrollToSection,
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           <ActionsMenu currentWorkout={{ name: 'Test', content: '' }} items={[]} />
@@ -190,6 +193,7 @@ describe('L3 fallback uniformity (⋯ menu mirrors the rail)', () => {
             setStreamControls: () => {},
             scrollToSection: () => {},
             registerScrollFn: () => {},
+            setContextNav: () => {},
           }}
         >
           {ui}
