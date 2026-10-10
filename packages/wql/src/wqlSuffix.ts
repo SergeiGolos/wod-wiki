@@ -195,7 +195,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   if (bys.length) {
     groupBy = bys[bys.length - 1][1]
       .split(',')
-      .map((d) => d.trim())
+      .map((d) => d.trim().toLowerCase())
       .filter(Boolean);
   }
   const inSourceMatches = stripRepeated(IN_SOURCE_RE);

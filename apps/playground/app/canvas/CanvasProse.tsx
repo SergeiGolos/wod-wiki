@@ -342,7 +342,7 @@ const heroLeadComponents: Components = {
         </span>
       )
     }
-    return <strong className="font-black text-primary">{children}</strong>
+    return <strong className="font-black text-foreground">{children}</strong>
   },
 }
 

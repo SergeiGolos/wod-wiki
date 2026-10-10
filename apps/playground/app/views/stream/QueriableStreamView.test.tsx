@@ -15,6 +15,7 @@ import {
   PLAYGROUNDS_STREAM_PROFILE,
   SESSIONS_STREAM_PROFILE,
   createResultDetailProfile,
+  createCollectionCatalogProfile,
 } from './streamProfile'
 import { journalNotes } from '../../services/journalNotes'
 import { NavContext, initialNavState } from '../../nav/NavContext'
@@ -805,5 +806,20 @@ describe('QueriableStreamView — query truth and retained state', () => {
     const state = usePaletteStore.getState()
     expect(state.isOpen).toBe(true)
     expect(state.request?.wql?.initialQuery).toBe(authored)
+  })
+  it('renders with collection catalog profile and default rows layout', async () => {
+    const profile = createCollectionCatalogProfile('dan-john')
+    const { engine } = stubEngine(() => DATED_NOTE_ENTRIES)
+
+    render(
+      <MemoryRouter initialEntries={['/c/dan-john']}>
+        <QueriableStreamView profile={profile} queryEngine={engine} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTestId('wql-composer')).toBeDefined()
+    await waitFor(() => {
+      expect(screen.getByTestId('property-table')).toBeDefined()
+    })
   })
 })

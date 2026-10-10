@@ -137,6 +137,17 @@ describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', 
       expect(screen.getByText('reps')).toBeDefined();
       expect(screen.getByText('Total Reps')).toBeDefined();
     });
+
+    it('caps display precision at 3 significant digits (620.447 -> 620, 0.938 stays)', () => {
+      const tis = scalarResult('avg:tis{}', 620.447123, 'pts');
+      render(<QueryValue result={tis} label="Avg TIS" />);
+      expect(screen.getByText('620')).toBeDefined();
+      cleanup();
+
+      const adherence = scalarResult('avg:calc.adherence{}', 0.938, '');
+      render(<QueryValue result={adherence} label="Adherence" />);
+      expect(screen.getByText('0.938')).toBeDefined();
+    });
   });
 
   describe('3. WqlTimeseries', () => {

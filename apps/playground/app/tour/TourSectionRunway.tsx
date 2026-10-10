@@ -291,10 +291,13 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
                section; every runway registers 'editor.window', so a shared
                registry lets later sections steal earlier ones' ring targets
                (ring drawn around an off-screen window). */
-            <div ref={canvasInnerRingRef} className="absolute inset-0">
+            <div ref={canvasInnerRingRef} className="absolute inset-0 flex flex-col justify-center">
               <RingTargetsProvider>
               <RingElementRegistrar ringKey="editor.window" el={canvasEl} />
-              <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-0">
+              {/* Card hugs a sane cap instead of impersonating the full
+                  dwell window — on tall viewports the demo stops stretching
+                  into mostly-empty chrome (audit F3). */}
+              <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="relative h-full max-h-[760px]">
                 {/* The pane is a scroll gate: its inner scrollers (editor)
                     yield to the page track until the user edits inside. */}
                 <ScrollGate gateId={`${id}-pane`} segmentId={id} className="relative h-full">
@@ -349,11 +352,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
               {tvStageId && <TourTvCard ref={tvCardRef} runtime={tvRuntime ?? null} />}
 
               <TourRing
-                target={
-                  !slice.ring?.key
-                    ? null
-                    : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }
-                }
+                target={!slice.ring?.key ? null : { key: slice.ring.key as RingTargetKey }}
                 accent={slice.stage.accent ?? TOUR_ACCENTS.editor}
                 canvasRef={canvasInnerRef}
               />

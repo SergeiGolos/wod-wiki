@@ -227,6 +227,47 @@ export function ScrollGate({
   children: ReactNode
 }) {
   const track = useScrollTrack()
+  const paneRef = useRef<HTMLDivElement | null>(null)
+  // The toggle only matters when the gated content can actually scroll; a
+  // roomy pane renders no control (finding 1 — an affordance that never
+  // applies reads as a stray label).
+  const [overflowing, setOverflowing] = useState(false)
+  useEffect(() => {
+    const pane = paneRef.current
+    if (!pane || typeof ResizeObserver === 'undefined') return
+    // The gated scrollers the CSS freezes (see [data-scroll-gate] rules);
+    // absolute-positioned panes never overflow their wrapper themselves.
+    const check = () => {
+      const inner = pane.querySelectorAll('.cm-scroller, [data-scroll-pane], .overflow-auto, .overflow-y-auto')
+      setOverflowing(
+        pane.scrollHeight > pane.clientHeight + 1
+        || [...inner].some((el) => el.scrollHeight > el.clientHeight + 1),
+      )
+    }
+    const ro = new ResizeObserver(check)
+    ro.observe(pane)
+    // Stage captions swap children (childList) while CodeMirror settles by
+    // rewriting inline styles (attributes); re-check both, then again after
+    // the layout settles so a transiently-tall measure never sticks.
+    let settle = 0
+    const mo = new MutationObserver(() => {
+      check()
+      window.clearTimeout(settle)
+      settle = window.setTimeout(check, 400)
+    })
+    mo.observe(pane, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] })
+    window.addEventListener('resize', check)
+    // One delayed pass: fonts and CodeMirror settle after mount without
+    // further mutations, which would otherwise pin a transient tall measure.
+    const settleAll = window.setTimeout(check, 1200)
+    check()
+    return () => {
+      window.clearTimeout(settle)
+      window.clearTimeout(settleAll)
+      ro.disconnect(); mo.disconnect()
+      window.removeEventListener('resize', check)
+    }
+  }, [])
   if (!track) {
     return <div className={className}>{children}</div>
   }
@@ -249,21 +290,23 @@ export function ScrollGate({
         }
       }}
     >
-      <div className="relative min-h-0 flex-1">{children}</div>
-      <button
-        type="button"
-        className="min-h-11 self-start rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary"
-        aria-label={`Scroll ${gateId.replace(/-/g, ' ')} content`}
-        aria-pressed={mode === 'captured'}
-        onClick={() => mode === 'captured'
-          ? track.releaseGate(gateId)
-          : track.captureGate(gateId, segmentId ?? null)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') track.releaseGate(gateId)
-        }}
-      >
-        {mode === 'captured' ? 'Scroll page' : 'Scroll panel'}
-      </button>
+      <div ref={paneRef} className="relative min-h-0 flex-1">{children}</div>
+      {(overflowing || mode === 'captured') && (
+        <button
+          type="button"
+          className="min-h-11 self-start rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary"
+          aria-label={`Scroll ${gateId.replace(/-/g, ' ')} content`}
+          aria-pressed={mode === 'captured'}
+          onClick={() => mode === 'captured'
+            ? track.releaseGate(gateId)
+            : track.captureGate(gateId, segmentId ?? null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') track.releaseGate(gateId)
+          }}
+        >
+          {mode === 'captured' ? 'Scroll page' : 'Scroll panel'}
+        </button>
+      )}
     </div>
   )
 }

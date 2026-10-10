@@ -1173,7 +1173,7 @@ export function findTargetAdvisories(query: ParsedFindQuery): string[] {
   }
   if (query.groupBy?.length) {
     const dimensions = wqlGroupingDimensions(target, 'find');
-    const unsupported = query.groupBy.filter(dim => !dimensions.includes(dim));
+    const unsupported = query.groupBy.filter(dim => !dimensions.some(d => d.toLowerCase() === dim.toLowerCase()));
     if (target === 'note' || target === 'block') {
       if (unsupported.length) advisories.push(`:${target} cannot group by ${unsupported.join(', ')}; grouped by tag instead. Valid alternatives: ${dimensions.join(', ')}.`);
     } else if (target === 'segment' || target === 'event') {

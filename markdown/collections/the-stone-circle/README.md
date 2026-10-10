@@ -39,8 +39,6 @@ Progress is tested at **Level 3 of the Rite of the Wolf** (90 explosive reps in 
 | Berserker | Bodyweight |
 | Warlord | Bodyweight + 25 lb |
 
-{{workouts}}
-
 ## How to Use This Collection
 
 Each workout file contains:

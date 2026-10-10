@@ -1,4 +1,5 @@
 ---
+title: International IM Preparation
 domain: swimming
 quality:
   - endurance

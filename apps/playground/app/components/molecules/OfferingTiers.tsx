@@ -26,6 +26,7 @@ function CardShell(props: { icon: typeof Timer; title: string; children: React.R
 export function OfferingTiers() {
   const [email, setEmail] = useState('')
   const [clearing, setClearing] = useState(false)
+  const [interestSent, setInterestSent] = useState(false)
 
   const clearData = async () => {
     if (!window.confirm('Wipe every note, result, and setting stored in this browser? This cannot be undone.')) return
@@ -50,9 +51,9 @@ export function OfferingTiers() {
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <CardShell icon={Timer} title="Playground">
           <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-            This browser holds your data — clear it here and it&rsquo;s gone 🤯.
-            Share timer blocks as links. Everything you see here, in its very
-            ephemeral way, is yours.
+            This browser holds your data — clear it here and it&rsquo;s gone. No
+            account, no cloud copy. Share timer blocks as links. Everything you
+            see here, in its very ephemeral way, is yours.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button asChild size="sm">
@@ -88,10 +89,18 @@ export function OfferingTiers() {
             className="mt-4 flex items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault()
+              setInterestSent(true)
               window.location.href = INTEREST_MAILTO + encodeURIComponent(email + '\n')
             }}
           >
+            <label
+              htmlFor="interest-email"
+              className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400"
+            >
+              Email
+            </label>
             <Input
+              id="interest-email"
               type="email"
               required
               placeholder="you@example.com"
@@ -103,6 +112,11 @@ export function OfferingTiers() {
               Show interest
             </Button>
           </form>
+          {interestSent && (
+            <p role="status" className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">
+              Your mail client should open — or write to {CONTACT_EMAIL} directly.
+            </p>
+          )}
         </CardShell>
       </div>
     </section>

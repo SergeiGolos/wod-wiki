@@ -211,7 +211,7 @@ export function ScrollRunwaySection({
               )}
             </EditorWindow>
             {slice.ring && !interactive && stageTextLoaded && (
-              <ScrollRing tag={slice.ring.tag} accent={activeAccent} lines={slice.ring.lines} />
+              <ScrollRing accent={activeAccent} lines={slice.ring.lines} />
             )}
           </div>
         }

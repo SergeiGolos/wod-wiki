@@ -6,28 +6,28 @@
 <title>Library Pages, Default WQL &amp; Content Crosswalk Review</title>
 <style>
   :root {
-    --bg: #0b0f19;
-    --surface: #121826;
-    --surface-card: #182234;
-    --surface-hover: #1e2c42;
-    --line: #22314a;
-    --line-strong: #2f4468;
-    --text: #e2e8f0;
-    --text-muted: #94a3b8;
-    --text-faint: #64748b;
-    --blue: #38bdf8;
-    --blue-soft: rgba(56, 189, 248, 0.12);
-    --green: #34d399;
-    --green-soft: rgba(52, 211, 153, 0.12);
-    --amber: #fbbf24;
-    --amber-soft: rgba(251, 191, 36, 0.12);
-    --rose: #fb7185;
-    --rose-soft: rgba(251, 113, 133, 0.12);
-    --purple: #c084fc;
-    --purple-soft: rgba(192, 132, 252, 0.12);
-    --indigo: #818cf8;
-    --indigo-soft: rgba(129, 140, 248, 0.12);
-    --code-bg: #080c14;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-card: #f1f5f9;
+    --surface-hover: #e2e8f0;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --blue: #0284c7;
+    --blue-soft: rgba(2, 132, 199, 0.12);
+    --green: #059669;
+    --green-soft: rgba(5, 150, 105, 0.12);
+    --amber: #d97706;
+    --amber-soft: rgba(217, 119, 6, 0.12);
+    --rose: #e11d48;
+    --rose-soft: rgba(225, 29, 72, 0.12);
+    --purple: #9333ea;
+    --purple-soft: rgba(147, 51, 234, 0.12);
+    --indigo: #4f46e5;
+    --indigo-soft: rgba(79, 70, 229, 0.12);
+    --code-bg: #f1f5f9;
   }
   * { box-sizing: border-box; }
   body {
@@ -51,7 +51,7 @@
     font-weight: 700;
     margin: 0 0 10px;
     letter-spacing: -0.025em;
-    color: #f8fafc;
+    color: #0f172a;
   }
   .subtitle {
     font-size: 16px;
@@ -82,19 +82,19 @@
     padding-top: 12px;
     border-top: 1px solid var(--line);
     letter-spacing: -0.015em;
-    color: #f1f5f9;
+    color: #0f172a;
   }
   h3 {
     font-size: 17px;
     font-weight: 600;
     margin: 24px 0 12px;
-    color: #cbd5e1;
+    color: #334155;
   }
   h4 {
     font-size: 14px;
     font-weight: 600;
     margin: 16px 0 8px;
-    color: #94a3b8;
+    color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -108,7 +108,7 @@
     border: 1px solid var(--line);
     border-radius: 4px;
     padding: 2px 6px;
-    color: #e2e8f0;
+    color: #1e293b;
   }
   pre code {
     background: transparent;
@@ -143,8 +143,8 @@
     vertical-align: top;
   }
   th {
-    background: #0f1523;
-    color: #cbd5e1;
+    background: #f1f5f9;
+    color: #334155;
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
@@ -160,12 +160,12 @@
     border-radius: 9999px;
     border: 1px solid transparent;
   }
-  .badge-blue { background: var(--blue-soft); border-color: rgba(56, 189, 248, 0.3); color: var(--blue); }
-  .badge-green { background: var(--green-soft); border-color: rgba(52, 211, 153, 0.3); color: var(--green); }
-  .badge-amber { background: var(--amber-soft); border-color: rgba(251, 191, 36, 0.3); color: var(--amber); }
-  .badge-rose { background: var(--rose-soft); border-color: rgba(251, 113, 133, 0.3); color: var(--rose); }
-  .badge-purple { background: var(--purple-soft); border-color: rgba(192, 132, 252, 0.3); color: var(--purple); }
-  .badge-indigo { background: var(--indigo-soft); border-color: rgba(129, 140, 248, 0.3); color: var(--indigo); }
+  .badge-blue { background: var(--blue-soft); border-color: rgba(2, 132, 199, 0.3); color: var(--blue); }
+  .badge-green { background: var(--green-soft); border-color: rgba(5, 150, 105, 0.3); color: var(--green); }
+  .badge-amber { background: var(--amber-soft); border-color: rgba(217, 119, 6, 0.3); color: var(--amber); }
+  .badge-rose { background: var(--rose-soft); border-color: rgba(225, 29, 72, 0.3); color: var(--rose); }
+  .badge-purple { background: var(--purple-soft); border-color: rgba(147, 51, 234, 0.3); color: var(--purple); }
+  .badge-indigo { background: var(--indigo-soft); border-color: rgba(79, 70, 229, 0.3); color: var(--indigo); }
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -193,7 +193,7 @@
     padding: 16px;
   }
   .stat-card h4 { margin: 0 0 6px; font-size: 12px; }
-  .stat-card .val { font-size: 20px; font-weight: 700; color: #f8fafc; font-family: ui-monospace, monospace; }
+  .stat-card .val { font-size: 20px; font-weight: 700; color: #0f172a; font-family: ui-monospace, monospace; }
   .stat-card .desc { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
   .status-tag {
     display: inline-flex;
@@ -203,9 +203,10 @@
     font-size: 12px;
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; }
-  .dot-green { background: #34d399; box-shadow: 0 0 8px #34d399; }
-  .dot-rose { background: #fb7185; box-shadow: 0 0 8px #fb7185; }
-  .dot-amber { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+  .dot-green { background: var(--green); box-shadow: 0 0 8px rgba(5, 150, 105, 0.5); }
+  .dot-rose { background: var(--rose); box-shadow: 0 0 8px rgba(225, 29, 72, 0.5); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 8px rgba(217, 119, 6, 0.5); }
+  .dot-blue { background: var(--blue); box-shadow: 0 0 8px rgba(2, 132, 199, 0.5); }
 </style>
 <!-- whiteboard-html:style -->
 <meta name="whiteboard-source" content="/home/serge/Projects/wod-wiki/docs/library-wql-content-crosswalk.html">

@@ -138,10 +138,14 @@ async function rowToRecords(
   if (!sourceId) {
     throw new Error(`[SeedImporter] chunk "${chunkId}" row "${row.path}" has no source family — refusing to import it as journal`);
   }
+  // Documented corpus override (markdown/collections/README.md): frontmatter
+  // `title:` wins when the filename humanizes poorly.
+  const metaTitle = typeof meta['title'] === 'string' ? meta['title'].trim() : '';
+  const title = metaTitle || titleFromPath(row.path);
   return {
     note: {
       id,
-      title: titleFromPath(row.path),
+      title,
       date,
       createdAt,
       type: chunkId === DASHBOARDS_CHUNK_ID ? 'dashboard' : 'note',

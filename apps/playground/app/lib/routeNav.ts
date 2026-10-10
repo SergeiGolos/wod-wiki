@@ -78,26 +78,9 @@ export function deriveNav(pathname: string, deps: RouteNavDeps): PageNavLink[] {
           })
         }
 
-        if (isCollection && collectionSlug && getSectionProse(s).includes('{{workouts}}')) {
-          links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
-          const collectionItems = workoutItems.filter(
-            item => item.category === collectionSlug && item.name.toLowerCase() !== 'readme',
-          )
-          collectionItems.forEach(item => {
-            links.push({
-              id: `workout-${item.id}`,
-              label: item.name,
-              type: 'time',
-              onRun: () => selectWorkout(item),
-              runIcon: 'link' as const,
-            })
-          })
-        }
       })
 
-    // Fallback: collection with no `{{workouts}}` tag — list items appended at the bottom.
-    const hasWorkoutsTag = canvasPage.sections.some(s => getSectionProse(s).includes('{{workouts}}'))
-    if (isCollection && collectionSlug && !hasWorkoutsTag) {
+    if (isCollection && collectionSlug) {
       links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
       const collectionItems = workoutItems.filter(
         item => item.category === collectionSlug && item.name.toLowerCase() !== 'readme',

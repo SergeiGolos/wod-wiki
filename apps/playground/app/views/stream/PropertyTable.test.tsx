@@ -183,4 +183,28 @@ afterEach(() => {
     fireEvent.click(effortLink)
     expect(handleRowClick).not.toHaveBeenCalled()
   })
+  it('sorts entries when clicking column headers', () => {
+    render(
+      <MemoryRouter>
+        <PropertyTable entries={sampleEntries} level="effort" />
+      </MemoryRouter>,
+    )
+
+    const header = screen.getByTestId('property-table-header-label')
+    // Default order: Back Squat, Pull-up
+    let rows = screen.getAllByTestId(/^property-table-row-/)
+    expect(rows[0].getAttribute('data-testid')).toBe('property-table-row-eff-1')
+    expect(rows[1].getAttribute('data-testid')).toBe('property-table-row-eff-2')
+
+    // Click once: sort asc (Back Squat, Pull-up)
+    fireEvent.click(header)
+    rows = screen.getAllByTestId(/^property-table-row-/)
+    expect(rows[0].getAttribute('data-testid')).toBe('property-table-row-eff-1')
+
+    // Click again: sort desc (Pull-up, Back Squat)
+    fireEvent.click(header)
+    rows = screen.getAllByTestId(/^property-table-row-/)
+    expect(rows[0].getAttribute('data-testid')).toBe('property-table-row-eff-2')
+    expect(rows[1].getAttribute('data-testid')).toBe('property-table-row-eff-1')
+  })
 })

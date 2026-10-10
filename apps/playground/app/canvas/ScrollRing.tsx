@@ -19,8 +19,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
 export interface ScrollRingProps {
-  /** Corner tag text (e.g. the syntax token being highlighted). */
-  tag?: string
   /** Accent color of the active stage. */
   accent?: string
   /** 1-based inclusive doc lines to focus; omit to frame the whole editor panel. */
@@ -100,7 +98,7 @@ function measurePanel(container: HTMLElement, editor: HTMLElement | null): Box |
   }
 }
 
-export function ScrollRing({ tag, accent, lines }: ScrollRingProps) {
+export function ScrollRing({ accent, lines }: ScrollRingProps) {
   const color = accent ?? 'hsl(var(--foreground))'
   const ringRef = useRef<HTMLDivElement | null>(null)
   const [box, setBox] = useState<Box | null>(null)
@@ -144,14 +142,6 @@ export function ScrollRing({ tag, accent, lines }: ScrollRingProps) {
       data-testid="scroll-ring"
       data-ring-lines={lines ? `${lines[0]}-${lines[1]}` : undefined}
     >
-      {tag && (
-        <span
-          className="absolute -top-3 left-4 rounded-full px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] text-background"
-          style={{ background: color }}
-        >
-          {tag}
-        </span>
-      )}
     </div>
   )
 }

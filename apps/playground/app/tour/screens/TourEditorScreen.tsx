@@ -268,7 +268,9 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
             }}
           />
         )}
-        <div className="absolute bottom-2.5 right-3 z-20">
+        {/* Bottom-left on mobile: the thumb-dock search FAB owns the
+            bottom-right corner and overlapped this cluster (audit F10). */}
+        <div className="absolute bottom-2.5 left-3 z-20 lg:left-auto lg:right-3">
           <button
             type="button"
             title="Copy share link"

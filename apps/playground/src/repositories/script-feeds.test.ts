@@ -194,6 +194,17 @@ describe('fileToDisplayName', () => {
     expect(fileToDisplayName('day-10-warmup.md')).toBe('Warmup');
     expect(fileToDisplayName('day-31-workout.md')).toBe('Workout');
   });
+
+  it('lowercases mid-title stop words but never the first word', () => {
+    expect(fileToDisplayName('jerk-technique-and-endurance.md')).toBe('Jerk Technique and Endurance');
+    expect(fileToDisplayName('the-stone-circle.md')).toBe('The Stone Circle');
+  });
+
+  it('keeps race-distance dots without touching dates or rep ladders', () => {
+    expect(fileToDisplayName('half-ironman-70-3-building.md')).toBe('Half Ironman 70.3 Building');
+    expect(fileToDisplayName('2009-12-01.md')).toBe('2009 12 01');
+    expect(fileToDisplayName('2012-12-02-advanced.md')).toBe('2012 12 02 Advanced');
+  });
 });
 
 describe('getFeedDateKeys', () => {

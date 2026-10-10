@@ -6,9 +6,11 @@
  * /catalogs, /efforts, /sessions, /results/:sessionId).
  */
 import type { EntityLevel } from '../../lib/fieldProjection'
+import type { LayoutMode } from '../../lib/viewSettingsStorage'
 import { EFFORTS_LEGACY_CONFIG } from '../../hooks/useEffortsComposerState'
 import type { ComposerLegacyConfig } from '../../hooks/useComposerQueryState'
 import type { WqlFindTarget, WqlSourceValue } from '@bitcobblers/wod-wiki-engine'
+import { toDisplayName } from '@/repositories/groupings'
 
 export function cleanRoutePath(route: string): string {
   return route.endsWith('/') && route.length > 1 ? route.slice(0, -1) : route
@@ -39,6 +41,10 @@ export interface StreamProfile {
   /** Display name for breadcrumbs/crumbs — `routeView.deriveWorkout` reads
    *  it instead of keeping its own route-name map. */
   title?: string
+  /** Specific catalog identifier when scoped to a collection catalog. */
+  catalog?: string
+  /** Preferred initial layout mode (defaults to level standard if omitted). */
+  defaultLayout?: LayoutMode
   /** Legacy parameter and salvage configuration for URL migration. */
   legacy?: StreamProfileLegacyConfig
 }
@@ -188,6 +194,22 @@ export function createResultDetailProfile(resultId: string): StreamProfile {
     emptyMessage: `No segment records found for result ${resultId}.`,
   }
 }
+/** /c/:slug — collection stream profile for a catalog */
+export function createCollectionCatalogProfile(catalogSlug: string): StreamProfile {
+  return {
+    route: `/c/${catalogSlug}`,
+    title: toDisplayName(catalogSlug),
+    defaultWql: `:collection{catalog:${catalogSlug}} by {date}`,
+    level: 'session',
+    target: 'note',
+    scopeOptions: ['collections'],
+    shelfVisible: false,
+    defaultLayout: 'rows',
+    catalog: catalogSlug,
+    legacy: createContentLegacyConfig('collections'),
+  }
+}
+
 
 const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
   '/journal': JOURNAL_STREAM_PROFILE,
@@ -218,6 +240,12 @@ export function getStreamProfile(route: string): StreamProfile | undefined {
       return createSessionDateProfile(date)
     }
   }
+  if (clean.startsWith('/c/')) {
+    const slug = clean.slice('/c/'.length)
+    if (slug && !slug.includes('/')) {
+      return createCollectionCatalogProfile(slug)
+    }
+  }
 
   return undefined
 }
@@ -233,7 +261,15 @@ export function resolveStreamProfile(route: string): StreamProfile {
  * this instead of a parallel route-name map.
  */
 export function streamRouteTitle(pathname: string): string | undefined {
-  return PROFILES_BY_ROUTE[cleanRoutePath(pathname)]?.title
+  const exact = PROFILES_BY_ROUTE[cleanRoutePath(pathname)]?.title
+  if (exact) return exact
+  if (cleanRoutePath(pathname).startsWith('/c/')) {
+    const slug = cleanRoutePath(pathname).slice('/c/'.length)
+    if (slug && !slug.includes('/')) {
+      return toDisplayName(slug)
+    }
+  }
+  return undefined
 }
 
 /**
@@ -249,6 +285,10 @@ export function isStreamRoute(pathname: string): boolean {
   if (clean.startsWith('/results/')) return clean.slice('/results/'.length) !== ''
   if (clean.startsWith('/session/')) return clean.slice('/session/'.length) !== ''
   if (clean === '/results' || clean === '/results/segments') return true
+  if (clean.startsWith('/c/')) {
+    const slug = clean.slice('/c/'.length)
+    return Boolean(slug && !slug.includes('/'))
+  }
 
   return false
 }

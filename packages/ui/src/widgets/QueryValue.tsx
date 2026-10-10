@@ -33,7 +33,7 @@ export function QueryValue({ result, unit: unitProp, label, thresholds }: QueryV
       {result.series.length > 0 && !result.parsed.error && (
         <>
           <div className={`text-5xl font-bold tabular-nums ${colorClass}`}>
-            {value.toLocaleString()}
+            {value.toLocaleString(undefined, { maximumSignificantDigits: 3 })}
             <span className="text-lg font-normal text-muted-foreground ml-1">{unit}</span>
           </div>
           <div className="text-xs text-muted-foreground mt-2 text-center">{label}</div>

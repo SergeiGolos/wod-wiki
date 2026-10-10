@@ -165,8 +165,8 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
           shifts the clock or controls above it. */}
       <div className={`flex h-[26px] flex-shrink-0 items-center gap-2 px-2.5 text-[10px] text-muted-foreground ${outputCount > 0 ? "border-t border-border bg-muted/20" : ""}`}>
         {outputCount > 0 && (
-          <span>
-            {outputCount} result{outputCount !== 1 ? "s" : ""} captured
+          <span className="whitespace-nowrap">
+            {`${outputCount} ${outputCount !== 1 ? 'results' : 'result'} captured`}
           </span>
         )}
         {outputCount > 0 && createdAt && (

@@ -726,7 +726,6 @@ function splitProseForWidgets(text: string): ProseChunk[] {
   if (!text) return []
   const tokens = [
     { token: '{{hero-carousel}}', widget: 'hero-carousel' as const },
-    { token: '{{workouts}}', widget: 'workouts-list' as const },
   ]
 
   let chunks: ProseChunk[] = [{ kind: 'prose', text }]

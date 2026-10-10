@@ -25,7 +25,6 @@ export interface CanvasRoute {
 /** Pure derivation over the seeded corpus (canvas pages + collection READMEs). */
 export function buildCanvasRoutes(files: SeedContentFiles): CanvasRoute[] {
   const canvas: CanvasRoute[] = []
-  const collectionReadmes: CanvasRoute[] = []
   for (const [path, raw] of Object.entries(files)) {
     const canvasMatch = path.match(/^markdown\/canvas\/(.+\.md)$/)
     if (canvasMatch) {
@@ -33,15 +32,8 @@ export function buildCanvasRoutes(files: SeedContentFiles): CanvasRoute[] {
       if (page) canvas.push({ route: page.route, page })
       continue
     }
-    const readmeMatch = path.match(/^markdown\/collections\/([^/]+)\/README\.md$/)
-    if (readmeMatch) {
-      // markdown/collections/dan-john/README.md -> /c/dan-john (the rebranded
-      // collection landing; /collections/:slug redirects there)
-      const page = parseCanvasMarkdown(raw, `/c/${readmeMatch[1]}`)
-      if (page) collectionReadmes.push({ route: page.route, page })
-    }
   }
-  return [...canvas, ...collectionReadmes]
+  return canvas
 }
 
 /** Exact lookup against normalized route keys — rebranded prefixes absorbed. */

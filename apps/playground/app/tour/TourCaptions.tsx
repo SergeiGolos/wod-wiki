@@ -108,7 +108,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Start with a Blank Page.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Type-ahead & freeform Markdown.</em>
+        <em className="italic text-foreground/80">Type-ahead & freeform Markdown.</em>
       </>
     ),
     body: 'Write freeform Markdown and fenced workout blocks. Typeahead suggests fence names, frontmatter properties, and tags. Workout lines are parsed live; movement names are not autocompleted.',
@@ -130,7 +130,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Every Line Collects Metrics.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Fenced ```time syntax.</em>
+        <em className="italic text-foreground/80">Fenced ```time syntax.</em>
       </>
     ),
     body: 'Open a fenced block with triple backticks — ```time. Each line defines the metrics collected: rep scaling (21-15-9), distance (400m Run), load resistance (24kg, 225lb), and rest (*:30 Rest).',
@@ -150,7 +150,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Press Run to Execute.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Launch the step-through clock.</em>
+        <em className="italic text-foreground/80">Launch the step-through clock.</em>
       </>
     ),
     body: 'Click Run in the editor top bar to execute the block — the step-through Clock launches and every line starts generating collected metrics.',
@@ -171,7 +171,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         What Happens When It Runs.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The script becomes the clock.</em>
+        <em className="italic text-foreground/80">The script becomes the clock.</em>
       </>
     ),
     body: 'The Clock runs whatever you wrote — stepping through each line of the edited workout at your own pace, with no forced time limits.',
@@ -192,7 +192,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Next Advances the Workout.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>Every click locks a time.</em>
+        <em className="italic text-foreground/80">Every click locks a time.</em>
       </>
     ),
     body: 'Click Next to advance to the next movement or round at your own pace — each click locks the elapsed time into the collected metrics as a split. Click all the way through and the run completes, carrying your data onward.',
@@ -212,7 +212,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Cast to the Big Screen.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The room paces together.</em>
+        <em className="italic text-foreground/80">The room paces together.</em>
       </>
     ),
     body: 'Tap the cast button in the timer header and the running clock mirrors to any Chromecast — the receiver shows the movement stack and the live clock, so the whole room follows the same rep without crowding your screen.',
@@ -232,7 +232,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Every line tracks an effort.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The registry speaks movement.</em>
+        <em className="italic text-foreground/80">The registry speaks movement.</em>
       </>
     ),
     body: 'Back Squat, Pullups, a 500m Row — each tracked thing is an effort, drawn from the movement registry with its tags and discipline. Efforts are the nouns your training is written in.',
@@ -256,7 +256,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Every effort collects measures.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Reps, load, distance, rest.</em>
+        <em className="italic text-foreground/80">Reps, load, distance, rest.</em>
       </>
     ),
     body: 'The same lines carry micro data points: 5 reps at 225lb, a 400m distance, timed rest. Each measure is typed by the runtime — no forms, no manual entry.',
@@ -269,7 +269,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Efforts × measures compound into facts.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Analytics becomes arithmetic.</em>
+        <em className="italic text-foreground/80">Analytics becomes arithmetic.</em>
       </>
     ),
     body: 'Effort × load rolls up to tonnage; effort × distance to pace; every Next click locks a split. Because everything is structured from the start, WQL queries and dashboards are just rollups of what you already logged.',
@@ -282,7 +282,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Query what you just did.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Every result is one query away.</em>
+        <em className="italic text-foreground/80">Every result is one query away.</em>
       </>
     ),
     body: 'WQL turns your journal into queryable facts. Pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The labelled example dataset powers these dashboards without adding workouts to your journal.',
@@ -302,7 +302,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Read it as a list.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>One query, one ranked table.</em>
+        <em className="italic text-foreground/80">One query, one ranked table.</em>
       </>
     ),
     body: 'Sum total reps grouped by effort to get a ranked table. Start with Example data, or select This run to query only the workout you recorded. Switch the query and the table updates.',
@@ -320,7 +320,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         See it as trends.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>A graph is a rollup away.</em>
+        <em className="italic text-foreground/80">A graph is a rollup away.</em>
       </>
     ),
     body: 'Roll the same facts up by week and they become a timeseries — is tonnage rising, is training polarized? A graph is not a feature you enable; it is a rollup away.',
@@ -340,7 +340,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Compose a dashboard.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>N queries on one screen.</em>
+        <em className="italic text-foreground/80">N queries on one screen.</em>
       </>
     ),
     body: 'A dashboard is N queries on one screen. These are the app’s seeded boards, using the same DashboardView, range selector, and widget Inspect as /dashboard. Example data stays separate from your journal; each metric keeps its own unit.',
@@ -358,7 +358,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         It’s your data.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Query anything, your way.</em>
+        <em className="italic text-foreground/80">Query anything, your way.</em>
       </>
     ),
     body: 'Every widget here runs the same WQL against the example dataset — log work of your own and the identical queries answer with your data. Open the Dashboards tab to query anything, your way.',

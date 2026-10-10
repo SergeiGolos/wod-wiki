@@ -45,17 +45,17 @@ export function getRouteStorageKey(route: string): string {
   return viewSettingsStore.qualify(cleanRoute)
 }
 
-export function getDefaultViewSettings(level: EntityLevel): ViewSettings {
+export function getDefaultViewSettings(level: EntityLevel, defaultLayout?: LayoutMode): ViewSettings {
   return {
     level,
-    layout: 'cards',
+    layout: defaultLayout ?? 'cards',
     visibleFields: getDefaultVisibleFieldIds(level),
     groupBy: undefined,
   }
 }
 
-export function readViewSettings(route: string, level: EntityLevel, store: LocalStore = viewSettingsStore): ViewSettings {
-  const defaults = getDefaultViewSettings(level)
+export function readViewSettings(route: string, level: EntityLevel, store: LocalStore = viewSettingsStore, defaultLayout?: LayoutMode): ViewSettings {
+  const defaults = getDefaultViewSettings(level, defaultLayout)
   const cleanRoute = route.startsWith('/') ? route : `/${route}`
   const legacyRoute = LEGACY_ROUTE_ALIASES[cleanRoute]
   const parsed = store.get<Partial<ViewSettings>>(cleanRoute, { alias: legacyRoute })
@@ -101,13 +101,13 @@ export function resetViewSettings(route: string, level: EntityLevel, store: Loca
 /**
  * React hook for consuming and updating per-route view settings with client storage persistence.
  */
-export function useViewSettings(route: string, level: EntityLevel) {
-  const [settings, setSettings] = useState<ViewSettings>(() => readViewSettings(route, level))
+export function useViewSettings(route: string, level: EntityLevel, defaultLayout?: LayoutMode) {
+  const [settings, setSettings] = useState<ViewSettings>(() => readViewSettings(route, level, viewSettingsStore, defaultLayout))
 
   // Synchronize when route or level changes
   useEffect(() => {
-    setSettings(readViewSettings(route, level))
-  }, [route, level])
+    setSettings(readViewSettings(route, level, viewSettingsStore, defaultLayout))
+  }, [route, level, defaultLayout])
 
   const update = useCallback(
     (updater: (prev: ViewSettings) => ViewSettings) => {

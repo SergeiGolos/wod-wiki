@@ -274,7 +274,7 @@ export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({
 
                           <div className="flex-1 min-w-0">
                             <h3 className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
-                              {entry.item.name}
+                              {entry.item.displayName ?? entry.item.name}
                             </h3>
                             {entry.preview ? (
                               <p className="text-xs text-muted-foreground font-medium truncate mt-1">

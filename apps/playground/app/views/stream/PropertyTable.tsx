@@ -4,7 +4,7 @@
  * Dynamically adapts column headers and row cells to the active entity level
  * and visible fields. Supports interactive row navigation and custom row click handlers.
  */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref, entryCollectionFeedHref } from '../../lib/entryActions'
@@ -64,6 +64,47 @@ export function PropertyTable({
       navigate(entryOpenHref(entry))
     }
   }
+  const [sortFieldId, setSortFieldId] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  const handleHeaderClick = (fieldId: string) => {
+    if (sortFieldId === fieldId) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortFieldId(fieldId)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedEntries = useMemo(() => {
+    if (!sortFieldId) return entries
+    const field = allFields.find(f => f.id === sortFieldId)
+    if (!field) return entries
+
+    return [...entries].sort((a, b) => {
+      const valA = field.getValue(a)
+      const valB = field.getValue(b)
+
+      if (valA == null && valB == null) return 0
+      if (valA == null) return sortDir === 'asc' ? 1 : -1
+      if (valB == null) return sortDir === 'asc' ? -1 : 1
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDir === 'asc' ? valA - valB : valB - valA
+      }
+
+      if (Array.isArray(valA) && Array.isArray(valB)) {
+        const strA = valA.join(', ')
+        const strB = valB.join(', ')
+        return sortDir === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA)
+      }
+
+      const strA = String(valA)
+      const strB = String(valB)
+      return sortDir === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA)
+    })
+  }, [entries, sortFieldId, sortDir, allFields])
+
 
   if (entries.length === 0) {
     return (
@@ -98,17 +139,29 @@ export function PropertyTable({
                 <th
                   key={field.id}
                   scope="col"
-                  className={`px-4 py-3 font-semibold uppercase tracking-wider text-[11px] text-muted-foreground whitespace-nowrap border-b border-border ${stickyHeaderTop !== undefined ? 'bg-muted/95 backdrop-blur-sm' : 'bg-muted/30'} ${alignClass}`}
+                  onClick={() => handleHeaderClick(field.id)}
+                  className={`px-4 py-3 font-semibold uppercase tracking-wider text-[11px] text-muted-foreground whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors group/th ${stickyHeaderTop !== undefined ? 'bg-muted/95 backdrop-blur-sm' : 'bg-muted/30'} ${alignClass}`}
                   data-testid={`property-table-header-${field.id}`}
                 >
-                  {field.label}
+                  <div className={`inline-flex items-center gap-1.5 ${alignClass === 'text-right' ? 'justify-end' : alignClass === 'text-center' ? 'justify-center' : 'justify-start'}`}>
+                    <span>{field.label}</span>
+                    {sortFieldId === field.id ? (
+                      <span className="text-primary font-bold text-xs" aria-label={sortDir === 'asc' ? 'sorted ascending' : 'sorted descending'}>
+                        {sortDir === 'asc' ? '↑' : '↓'}
+                      </span>
+                    ) : (
+                      <span className="opacity-0 group-hover/th:opacity-40 text-muted-foreground text-[10px]" aria-hidden="true">
+                        ↕
+                      </span>
+                    )}
+                  </div>
                 </th>
               )
             })}
           </tr>
         </thead>
         <tbody className="divide-y divide-border/60">
-          {entries.map(entry => {
+          {sortedEntries.map(entry => {
             const feedHref = entryCollectionFeedHref(entry)
             const openHref = entryOpenHref(entry)
             return (

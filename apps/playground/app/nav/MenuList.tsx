@@ -124,7 +124,7 @@ function MenuRow({
           {entry.timestamp}
         </span>
       )}
-      <span className="min-w-0 flex-1 truncate" title={entry.label}>{entry.label}</span>
+      <span className="min-w-0 flex-1 line-clamp-2 break-words" title={entry.label}>{entry.label}</span>
       {entry.badge && (
         <span className="shrink-0 font-mono text-[10px] text-muted-foreground/50">{entry.badge}</span>
       )}

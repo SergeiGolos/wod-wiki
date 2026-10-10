@@ -137,7 +137,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
     ? { width: `calc(100% - ${editorWidth})`, flexBasis: `calc(100% - ${editorWidth})`, maxWidth: `calc(100% - ${editorWidth})` }
     : {}
 
-  const collectionList = isCollection && !hasWorkoutsTag && collectionSlug && workoutItems ? (
+  const collectionList = isCollection && collectionSlug && workoutItems ? (
     <div id="collection-workouts" className="border-b border-border/50 bg-card">
       <div className="w-full mx-auto">
         <CollectionWorkoutsList

@@ -5,6 +5,9 @@
  * the active target relative to its canvas and positions itself with a CSS
  * transition — position changes are discrete (stage/beat boundaries), never
  * per-frame layout thrash.
+ *
+ * The ring draws only the box — no label chip. The stage caption already
+ * names the target; a chip just covered the highlighted control.
  */
 
 import {
@@ -106,7 +109,7 @@ export function RingElementRegistrar({
 // ── Ring ────────────────────────────────────────────────────────────────────
 
 export interface TourRingProps {
-  target?: { key: RingTargetKey; tag?: string } | null
+  target?: { key: RingTargetKey } | null
   accent: string
   canvasRef: React.RefObject<HTMLElement | null>
 }
@@ -192,18 +195,6 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
         boxShadow: `0 0 0 2px ${accent}`,
       }}
     >
-      {target.tag && (
-        <span
-          className={`absolute rounded-full px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] text-background ${
-            box.y < 24
-              ? 'top-1 left-2 lg:top-full lg:mt-1 lg:left-4'
-              : 'top-1 left-2 lg:-top-3 lg:left-4'
-          }`}
-          style={{ background: accent }}
-        >
-          {target.tag}
-        </span>
-      )}
     </div>
   )
 }

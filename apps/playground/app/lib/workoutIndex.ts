@@ -9,11 +9,15 @@
  */
 import { useMemo } from 'react'
 import { getScalar, parseFrontmatter } from '@/lib/frontmatter'
+import { fileToDisplayName } from '@/repositories/groupings'
 import { useSeedContent, type SeedContentFiles } from '@/services/content/seedContent'
 
 export interface WorkoutItem {
   id: string
+  /** Routing identity — the raw filename stem; never humanize this. */
   name: string
+  /** Human-readable list title; falls back to the humanized filename. Frontmatter `title:` wins. */
+  displayName?: string
   category: string
   content: string
   /** Frontmatter `date` (YYYY-MM-DD) as epoch ms (noon UTC); undefined when absent. */
@@ -53,9 +57,13 @@ export function buildWorkoutItems(
     const parts = path.split('/')
     const fileName = parts[parts.length - 1]!.replace('.md', '')
     const raw = fileContent as string
+    const titleOverride = getScalar(parseFrontmatter(raw).meta, 'title')
     return {
       id: path,
       name: fileName,
+      displayName: typeof titleOverride === 'string' && titleOverride.trim()
+        ? titleOverride.trim()
+        : fileToDisplayName(fileName),
       category: deriveCategory(parts),
       content: raw,
       date: deriveDate(raw),

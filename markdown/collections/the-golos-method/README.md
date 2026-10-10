@@ -38,8 +38,6 @@ Ballistic kettlebell work for full-body power and conditioning. The clean & pres
 ### 5. Sandbag Over-the-Shoulder & Bear-Hug Carries
 Odd-object lifting and loaded carries with an unstable sandbag. Builds real-world strength, core bracing, and grip integrity that transfers directly to grappling, manual labor, and outdoor work.
 
-{{workouts}}
-
 ## How to Use This Collection
 
 Each pillar has its own detailed file containing:

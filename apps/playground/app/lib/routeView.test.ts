@@ -144,7 +144,7 @@ describe('resolveRouteView — collection workout', () => {
 })
 
 describe('resolveRouteView — collection index nav', () => {
-  function makeCollectionPage(prose = '{{workouts}}'): ParsedCanvasPage {
+  function makeCollectionPage(prose = 'Collection overview.'): ParsedCanvasPage {
     return {
       frontmatter: {},
       template: 'canvas',
@@ -165,7 +165,7 @@ describe('resolveRouteView — collection index nav', () => {
     } as unknown as ParsedCanvasPage
   }
 
-  it('derives workout links with onRun + link icon from a {{workouts}} tag', () => {
+  it('derives workout links with onRun + link icon for collection pages', () => {
     const selectWorkout = mock((_item: SelectWorkoutItem) => {})
     const item = {
       id: '../../markdown/collections/crossfit-games/2024-08-10-event-05.md',
@@ -331,11 +331,10 @@ describe('resolveRouteView — target-scheme routes (/c, /e, /sessions, /d, /p, 
     expect(view.noteById).toBeUndefined()
   })
 
-  it('wraps a /c/:slug canvas landing in the collection shell', () => {
-    const canvasPage = { route: '/collections/girls', sections: [] } as unknown as ParsedCanvasPage
-    const view = resolveRouteView('/c/girls', { collection: 'girls' }, makeDeps({ canvasPage }))
-    expect(view.page).toBe('canvas')
-    expect(view.shell.subheader).toBe('filter-collection-workouts')
+  it('classifies /c/:slug as a stream collection landing', () => {
+    const view = resolveRouteView('/c/girls', { collection: 'girls' }, makeDeps())
+    expect(view.page).toBe('library')
+    expect(view.workout.name).toBe('Girls')
   })
 
   it('classifies /e/:slug as the effort detail page', () => {

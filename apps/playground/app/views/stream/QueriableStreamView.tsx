@@ -63,6 +63,12 @@ import { addEntryToTodayInput } from '../../lib/addToToday'
 import { startEntryRun } from '../../lib/entryRun'
 import { playgroundPath } from '../../lib/routes'
 import type { StreamProfile } from './streamProfile'
+import { CanvasProse } from '../../canvas/CanvasProse'
+import { seedNoteId } from '@/services/seed/SeedImporter'
+import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
+import { useSeedContent } from '@/services/content/seedContent'
+
+const contentProvider = new IndexedDBContentProvider()
 
 const ALL_STREAM_GROUP_DIMS: readonly { id: string; label: string }[] = [
   { id: 'date', label: 'Date' },
@@ -215,6 +221,7 @@ export function QueriableStreamView({
   const { settings, setLayout, toggleField, setGroupBy, resetSettings } = useViewSettings(
     profile.route,
     profile.level,
+    profile.defaultLayout,
   )
 
   const [entries, setEntries] = useState<Entry[]>([])
@@ -244,6 +251,49 @@ export function QueriableStreamView({
       f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'playground'),
     )
   }, [parsed])
+  const catalogSlug = useMemo(() => {
+    if (profile.catalog) return profile.catalog
+    if (profile.route.startsWith('/c/')) {
+      const slug = profile.route.slice(3)
+      if (slug && !slug.includes('/')) return slug
+    }
+    if (!parsed.error && isFindQuery(parsed)) {
+      const cat = parsed.filters.find(f => f.key === 'catalog' && !f.negate)?.values[0]?.value
+      if (cat) return cat
+    }
+    return undefined
+  }, [profile, parsed])
+
+  const seedFiles = useSeedContent()
+  const [readmeContent, setReadmeContent] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!catalogSlug) {
+      setReadmeContent(null)
+      return
+    }
+    const seedPath = `markdown/collections/${catalogSlug}/README.md`
+    const raw = seedFiles?.[seedPath]
+    if (raw) {
+      setReadmeContent(raw.replace(/\{\{workouts\}\}/g, '').trim())
+    }
+
+    let cancelled = false
+    void seedNoteId(seedPath).then(async (id) => {
+      try {
+        const entry = await contentProvider.getEntry(id)
+        if (!cancelled && entry?.rawContent) {
+          setReadmeContent(entry.rawContent.replace(/\{\{workouts\}\}/g, '').trim())
+        }
+      } catch {
+        // fallback to seedFiles
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [catalogSlug, seedFiles])
+
 
   // Feed mode attaches note block info (excerpt + wod content id) via the same
   // engine's block-plane companion query — never a second query-state seam.
@@ -770,6 +820,16 @@ export function QueriableStreamView({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/* Read-only view of the collection readme note */}
+      {readmeContent && (
+        <div
+          className="border-b border-border/60 bg-card/20 px-6 py-4 max-h-80 overflow-y-auto"
+          data-testid="collection-readme-note"
+        >
+          <CanvasProse prose={readmeContent} />
         </div>
       )}
 

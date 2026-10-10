@@ -53,6 +53,8 @@ describe('streamProfile', () => {
     // dynamic stream routes
     expect(isStreamRoute('/results/res-42')).toBe(true)
     expect(isStreamRoute('/session/2026-09-17')).toBe(true)
+    expect(isStreamRoute('/c/dan-john')).toBe(true)
+    expect(isStreamRoute('/c/dan-john/fran')).toBe(false)
     // legacy bare results paths classify too (pure function; router redirects them)
     expect(isStreamRoute('/results')).toBe(true)
     expect(isStreamRoute('/results/segments')).toBe(true)
@@ -81,6 +83,17 @@ describe('streamProfile', () => {
     // the generic fallback is the conservative journal surface
     expect(resolveStreamProfile('/unknown')).toBe(JOURNAL_STREAM_PROFILE)
   })
+  it('dynamically resolves the collection stream profile for /c/:catalogSlug', () => {
+    const profile = getStreamProfile('/c/dan-john')
+    expect(profile).toBeDefined()
+    expect(profile?.route).toBe('/c/dan-john')
+    expect(profile?.title).toBe('Dan John')
+    expect(profile?.defaultWql).toBe(':collection{catalog:dan-john} by {date}')
+    expect(profile?.catalog).toBe('dan-john')
+    expect(profile?.defaultLayout).toBe('rows')
+    expect(profile?.level).toBe('session')
+  })
+
 
   it('dynamically resolves the result detail stream profile for /results/:sessionId', () => {
     const detail = getStreamProfile('/results/res-42')

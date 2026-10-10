@@ -39,4 +39,25 @@ describe('buildWorkoutItems', () => {
     const [item] = buildWorkoutItems({ 'markdown/collections/crossfit-girls/fran.md': NO_DATE })
     expect(item!.date).toBeUndefined()
   })
+
+  it('humanizes displayName while keeping name as routing identity', () => {
+    const files = {
+      'markdown/collections/swimming-triathlete/half-ironman-70-3-building.md': NO_DATE,
+      'markdown/collections/zombiefit/jerk-technique-and-endurance.md': NO_DATE,
+    }
+    const items = Object.fromEntries(
+      buildWorkoutItems(files).map(i => [i.name, i]),
+    )
+    expect(items['half-ironman-70-3-building']!.displayName).toBe('Half Ironman 70.3 Building')
+    expect(items['jerk-technique-and-endurance']!.displayName).toBe('Jerk Technique and Endurance')
+  })
+
+  it('prefers frontmatter title: over the humanized filename', () => {
+    const [item] = buildWorkoutItems({
+      'markdown/collections/swimming-post-college/international-im-preparation.md':
+        '---\ntitle: International IM Preparation\n---\n# IM\n',
+    })
+    expect(item!.name).toBe('international-im-preparation')
+    expect(item!.displayName).toBe('International IM Preparation')
+  })
 })
