@@ -14,7 +14,7 @@ Syntax conversion rules (rounds, `?` placeholders, AMRAP/EMOM shapes) live in `w
 
 ### 1. Research the year
 
-Pull the event list from the official page: `https://games.crossfit.com/workouts/games/<year>` (individuals tab). It carries dates, time caps, loads, and cut lines. If a read returns truncated event detail, re-source from `https://en.wikipedia.org/wiki/<year>_CrossFit_Games` — do not retry pagination.
+Pull the event list from the official page: `https://games.crossfit.com/workouts/games/<year>` (individuals tab). It carries dates, time caps, loads, and cut lines. Pre-2014 archive pages may have broken day tabs and unnumbered events — use Wikipedia's day-grouped event sections to establish competition order and numbering instead. If a read returns truncated event detail, re-source from `https://en.wikipedia.org/wiki/<year>_CrossFit_Games` — do not retry pagination.
 
 Build the inventory before writing anything. One row per **separately scored** event (e.g. 2019 Ringer 1 and Ringer 2 are two events → 12 for that year): event number, official name, date, format, time cap, cut after.
 
