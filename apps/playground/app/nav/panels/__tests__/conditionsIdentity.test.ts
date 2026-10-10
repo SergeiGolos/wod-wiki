@@ -6,7 +6,7 @@
  *      cross-target relations and stay);
  *   2. collection/journal/playground heads parse to target 'note' + an
  *      injected source scope, so the note plane covers all three pages —
- *      the per-result Note catalog (`:collection{} by {tag}` listing every
+ *      the per-result Note catalog (`:feed{} by {tag}` listing every
  *      collection row) must read as suppressed;
  *   3. suppression is occurrence-aware: an explicitly authored identity
  *      filter keeps its section so tri-state rows stay removable.
@@ -31,7 +31,7 @@ describe('resultIdentityKey target-aware suppression', () => {
   })
 
   it('suppresses the note catalog on scoped note pages unless authored', () => {
-    for (const q of [':collection{} by {tag}', ':journal{}', ':note{source:playground}']) {
+    for (const q of [':feed{} by {tag}', ':journal{}', ':note{source:playground}']) {
       const parsed = findOf(q)
       expect(parsed.target).toBe('note')
       expect(occurrencesForKey(parsed, resultIdentityKey(parsed.target)!)).toHaveLength(0)

@@ -27,7 +27,7 @@ import { storageService } from '@/services/storage'
 import { staticNoteStore } from '@/services/content/staticBlockIndex'
 
 import { publishStreamResults, type StreamResultSnapshot } from '../../../views/stream/streamResults'
-import { COLLECTIONS_STREAM_PROFILE } from '../../../views/stream/streamProfile'
+import { FEEDS_STREAM_PROFILE } from '../../../views/stream/streamProfile'
 import type { Entry } from '../../../lib/entryMapper'
 
 import {
@@ -66,7 +66,7 @@ const EFFORT_MEMBERSHIP = new Map<string, string[]>([
   ['collection:x/one', ['fran', 'thruster']],
 ])
 
-const DEFAULT_Q = COLLECTIONS_STREAM_PROFILE.defaultWql
+const DEFAULT_Q = FEEDS_STREAM_PROFILE.defaultWql
 
 function findOf(parsed: AnyParsedQuery): ParsedFindQuery | null {
   return !parsed.error && isFindQuery(parsed) ? parsed : null
@@ -91,14 +91,14 @@ function PathTracker() {
 }
 
 const ConditionsPanel = createConditionsNavPanel({
-  landingLabel: 'All collections',
+  landingLabel: 'All feeds',
   icon: undefined,
-  route: '/collections',
-  profile: COLLECTIONS_STREAM_PROFILE,
+  route: '/feeds',
+  profile: FEEDS_STREAM_PROFILE,
   familyActive: () => true,
 })
 
-function renderPanel(at = '/collections', drawerClose?: () => void) {
+function renderPanel(at = '/feeds', drawerClose?: () => void) {
   return render(
     <MemoryRouter initialEntries={[at]}>
       <PathTracker />
@@ -131,8 +131,8 @@ afterEach(() => {
 
 describe('conditionsFacets toggling', () => {
   it('merges values into the existing occurrence (OR within key) and keeps structural clauses', () => {
-    const once = findOf(parseQuery(addFacetValue(':collection{} by {tag} last 4w', 'tags', 'strength')))!
-    // The serializer canonicalizes the :collection head to source:collections.
+    const once = findOf(parseQuery(addFacetValue(':feed{} by {tag} last 4w', 'tags', 'strength')))!
+    // The serializer canonicalizes the :feed head to source:feeds.
     expect(tagsValues(once)).toEqual(['strength'])
     expect(once.groupBy).toEqual(['tag'])
     expect(once.window).toBeDefined()
@@ -143,7 +143,7 @@ describe('conditionsFacets toggling', () => {
   })
 
   it('removes one value occurrence-exactly and splices the clause when it empties', () => {
-    const q = serialize(findOf(parseQuery(':collection{tags:strength|endurance} by {tag} last 4w'))!)
+    const q = serialize(findOf(parseQuery(':feed{tags:strength|endurance} by {tag} last 4w'))!)
     const selected = selectedValuesFor(findOf(parseQuery(q))!, 'tags')
     const withoutStrength = findOf(parseQuery(removeFacetValue(q, 'tags', selected.find(row => row.display === 'strength')!)))!
     expect(tagsValues(withoutStrength)).toEqual(['endurance'])
@@ -164,31 +164,31 @@ describe('conditionsFacets toggling', () => {
   })
 
   it('keeps the source scope a radio (replace, not AND)', () => {
-    const replaced = findOf(parseQuery(addFacetValue(':collection{source:collections}', 'source', 'journal')))!
+    const replaced = findOf(parseQuery(addFacetValue(':feed{source:feeds}', 'source', 'journal')))!
     expect(sourceValues(replaced)).toEqual(['journal'])
     expect(replaced.sourceScope).toBeUndefined()
-    const added = findOf(parseQuery(addFacetValue(':journal{}', 'source', 'collections')))!
-    expect(sourceValues(added)).toContain('collections')
+    const added = findOf(parseQuery(addFacetValue(':journal{}', 'source', 'feeds')))!
+    expect(sourceValues(added)).toContain('feeds')
     // Negated source occurrences are independent clauses — a scope write
     // replaces only the head-scope slot and the positive occurrence.
-    const withNegated = findOf(parseQuery(setSourceScopeValue(':note{source:journal,!source:guides}', 'collections')))!
-    expect(sourceValues(withNegated)).toEqual(['collections'])
+    const withNegated = findOf(parseQuery(setSourceScopeValue(':note{source:journal,!source:guides}', 'feeds')))!
+    expect(sourceValues(withNegated)).toEqual(['feeds'])
     expect(withNegated.filters.some(f => f.key === 'source' && f.negate && f.values.some(v => v.value === 'guides'))).toBe(true)
     // Head-authored scope clears to all sources, negations surviving.
-    const cleared = findOf(parseQuery(setSourceScopeValue(':collection{!source:guides} by {tag}', null)))!
+    const cleared = findOf(parseQuery(setSourceScopeValue(':feed{!source:guides} by {tag}', null)))!
     expect(sourceValues(cleared)).toEqual([])
     expect(cleared.filters.some(f => f.key === 'source' && f.negate)).toBe(true)
     expect(cleared.groupBy).toEqual(['tag'])
     // A user-authored scope under a scoped head survives the head-slot clear.
-    const mixed = findOf(parseQuery(setSourceScopeValue(':journal{source:collections}', null)))!
-    expect(sourceValues(mixed)).toEqual(['collections'])
+    const mixed = findOf(parseQuery(setSourceScopeValue(':journal{source:feeds}', null)))!
+    expect(sourceValues(mixed)).toEqual(['feeds'])
   })
 
   it('preserves sibling source occurrences on a targeted scope replace', () => {
     // Duplicate positives: the FIRST occurrence is the composer-targeted
     // scope slot; later positives and negations are never silently deleted.
-    const multi = findOf(parseQuery(setSourceScopeValue(':note{source:journal,source:collections,!source:guides}', 'playground')))!
-    expect(sourceValues(multi)).toEqual(['playground', 'collections'])
+    const multi = findOf(parseQuery(setSourceScopeValue(':note{source:journal,source:feeds,!source:guides}', 'playground')))!
+    expect(sourceValues(multi)).toEqual(['playground', 'feeds'])
     expect(multi.filters.some(f => f.key === 'source' && f.negate && f.values.some(v => v.value === 'guides'))).toBe(true)
   })
 
@@ -230,7 +230,7 @@ function textValues(parsed: ParsedFindQuery): string[] {
 
 describe('setTextCondition', () => {
   it('appends, rewrites and clears the positive text condition losslessly', () => {
-    const base = ':collection{} by {tag} last 4w'
+    const base = ':feed{} by {tag} last 4w'
     const added = findOf(parseQuery(setTextCondition(base, 'squat')))!
     expect(textValues(added)).toEqual(['squat'])
     expect(added.groupBy).toEqual(['tag'])
@@ -248,11 +248,11 @@ describe('setTextCondition', () => {
   })
 
   it('survives negated occurrences and collapses ANDed positives', () => {
-    const withNegation = findOf(parseQuery(setTextCondition(':collection{!text:junk}', 'squat')))!
+    const withNegation = findOf(parseQuery(setTextCondition(':feed{!text:junk}', 'squat')))!
     expect(textValues(withNegation)).toEqual(['squat'])
     expect(withNegation.filters.some(f => f.key === 'text' && f.negate)).toBe(true)
 
-    const anded = findOf(parseQuery(setTextCondition(':collection{text:a | text:b}', 'squat')))!
+    const anded = findOf(parseQuery(setTextCondition(':feed{text:a | text:b}', 'squat')))!
     expect(textValues(anded)).toEqual(['squat'])
   })
 
@@ -279,7 +279,7 @@ function routedQuery(): string {
 describe('ConditionsNavPanel', () => {
   it('toggles include/off on stable rows and narrows counts', async () => {
     renderPanel()
-    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    publish({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
 
     // Open the Tag section and read the option rows over the full results.
     fireEvent.click(await waitFor(() => screen.getByText('Tag')))
@@ -298,7 +298,7 @@ describe('ConditionsNavPanel', () => {
 
     // …and the narrowed published result set keeps empty selectors visible with count 0 and faded styling.
     publish({
-      pathname: '/collections',
+      pathname: '/feeds',
       query: routedQuery(),
       entries: ENTRIES.filter(e => e.id === 'n1'),
     })
@@ -315,7 +315,7 @@ describe('ConditionsNavPanel', () => {
     // exclude, which must land (matching run published) before the next click.
     fireEvent.click(stateButton('tags', 'strength'))
     publish({
-      pathname: '/collections',
+      pathname: '/feeds',
       query: routedQuery(),
       entries: ENTRIES.filter(e => e.id === 'c/one'),
     })
@@ -327,21 +327,21 @@ describe('ConditionsNavPanel', () => {
 
   it('excludes values, keeps them listed past their result support, and recovers', async () => {
     renderPanel()
-    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    publish({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
     fireEvent.click(await waitFor(() => screen.getByText('Tag')))
     await waitFor(() => expect(screen.getByTestId('conditions-row-tags:barbell')).toBeTruthy())
 
     // Cycle: off → include → exclude; the matching run must land between
     // steps (controls disable while a fresh execution is pending).
     fireEvent.click(stateButton('tags', 'barbell'))
-    publish({ pathname: '/collections', query: routedQuery(), entries: ENTRIES })
+    publish({ pathname: '/feeds', query: routedQuery(), entries: ENTRIES })
     await waitFor(() => expect(stateButton('tags', 'barbell').dataset.state).toBe('include'))
     fireEvent.click(stateButton('tags', 'barbell'))
     await waitFor(() => expect(routedQuery()).toContain('!tags:barbell'))
     expect(stateButton('tags', 'barbell').dataset.state).toBe('exclude')
 
     // Zero results: the exclusion stays listed with its removal control…
-    publish({ pathname: '/collections', query: routedQuery(), entries: [] })
+    publish({ pathname: '/feeds', query: routedQuery(), entries: [] })
     await waitFor(() => {
       expect(screen.getByTestId('conditions-row-tags:barbell')).toBeTruthy()
       expect(stateButton('tags', 'barbell').disabled).toBe(false)
@@ -356,21 +356,21 @@ describe('ConditionsNavPanel', () => {
 
   it('restores selections from the URL alone and keeps them removable at zero results', async () => {
     // Restoration: the selection renders from the routed q= with NO snapshot.
-    renderPanel('/collections?q=%3Acollection%7Btags%3Astrength%7D%20by%20%7Btag%7D')
+    renderPanel('/feeds?q=%3Afeed%7Btags%3Astrength%7D%20by%20%7Btag%7D')
     expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy()
     expect(stateButton('tags', 'strength').dataset.state).toBe('include')
 
     // Selected-zero recovery: an empty result set keeps the selection listed…
     publish({
-      pathname: '/collections',
-      query: ':collection{tags:strength} by {tag}',
+      pathname: '/feeds',
+      query: ':feed{tags:strength} by {tag}',
       entries: [],
     })
     await waitFor(() => expect(screen.getByTestId('conditions-row-tags:strength')).toBeTruthy())
     // …removable back to a tags-free query (canonical head scope remains);
     // the cycle steps through exclude once its matching run lands.
     fireEvent.click(stateButton('tags', 'strength'))
-    publish({ pathname: '/collections', query: routedQuery(), entries: [] })
+    publish({ pathname: '/feeds', query: routedQuery(), entries: [] })
     await waitFor(() => expect(stateButton('tags', 'strength').dataset.state).toBe('exclude'))
     fireEvent.click(stateButton('tags', 'strength'))
     await waitFor(() => expect(tagsValues(findOf(parseQuery(routedQuery()))!)).toEqual([]))
@@ -392,7 +392,7 @@ describe('ConditionsNavPanel', () => {
 
   it('retains prior rows visibly disabled while a matching execution is pending', async () => {
     renderPanel()
-    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    publish({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
     fireEvent.click(await waitFor(() => screen.getByText('Tag')))
     await waitFor(() => expect(stateButton('tags', 'strength').disabled).toBe(false))
 
@@ -407,7 +407,7 @@ describe('ConditionsNavPanel', () => {
 
     // Matching snapshot lands → controls re-enable on the fresh counts (empty selectors stay with count 0).
     publish({
-      pathname: '/collections',
+      pathname: '/feeds',
       query: routedQuery(),
       entries: ENTRIES.filter(e => e.id === 'n1'),
     })
@@ -419,10 +419,10 @@ describe('ConditionsNavPanel', () => {
 
   it('renders a jump to WQL link for text search and adds freeform values for identifiers', async () => {
     let closed = 0
-    renderPanel('/collections', () => {
+    renderPanel('/feeds', () => {
       closed += 1
     })
-    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    publish({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
     expect(screen.getByTestId('conditions-jump-wql-text')).toBeTruthy()
     fireEvent.click(screen.getByTestId('conditions-jump-wql-text'))
     expect(closed).toBe(1)
@@ -430,7 +430,7 @@ describe('ConditionsNavPanel', () => {
 
   it('shows no count badge on the live text row while categorical counts remain', async () => {
     renderPanel()
-    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    publish({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
     // Open the tags accordion via its section wrapper — no label wording pin.
     fireEvent.click(await waitFor(() => {
       const button = screen.getByTestId('conditions-section-tags').querySelector('button')
@@ -452,10 +452,10 @@ describe('ConditionsNavPanel', () => {
 
   it('closes the drawer on full-query shortcuts only, never on facet edits', async () => {
     let closed = 0
-    renderPanel('/collections', () => {
+    renderPanel('/feeds', () => {
       closed += 1
     })
-    publish({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    publish({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
 
     // Facet edits ride the current query — the drawer stays open.
     fireEvent.click(await waitFor(() => screen.getByText('Tag')))
@@ -491,7 +491,7 @@ describe('ConditionsNavPanel', () => {
 // Guard: every toggle result must stay a parseable find query.
 describe('conditionsFacets invariants', () => {
   it('always yields a valid find AST with the target intact', () => {
-    let q = ':collection{} by {tag} last 4w | limit 20'
+    let q = ':feed{} by {tag} last 4w | limit 20'
     for (const value of ['strength', 'fran*', 'endurance']) {
       q = addFacetValue(q, 'tags', value)
       const parsed = parseQuery(q)

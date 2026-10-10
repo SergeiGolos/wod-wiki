@@ -512,7 +512,7 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
     {
       id: 'crossfit-girls',
       title: 'CrossFit Girls',
-      type: 'collection',
+      type: 'feed',
       sourceId: 'page:collection:crossfit-girls',
       catalog: 'crossfit-girls',
       tags: ['benchmark', 'classic'],
@@ -530,7 +530,7 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
     {
       id: 'dan-john',
       title: 'Dan John Workouts',
-      type: 'collection',
+      type: 'feed',
       sourceId: 'page:collection:dan-john',
       catalog: 'dan-john',
       tags: ['strength'],
@@ -574,8 +574,8 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
       raw: ':catalog',
       target: 'note',
       filters: [
-        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
-        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'feed', wildcard: false }] },
       ],
     });
     expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls', 'dan-john']);
@@ -588,8 +588,8 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
       target: 'note',
       filters: [
         { key: 'effort', negate: false, values: [{ value: 'pull-up', wildcard: false }] },
-        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
-        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'feed', wildcard: false }] },
       ],
     });
     expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls']);
@@ -602,8 +602,8 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
       target: 'note',
       filters: [
         { key: 'effort', negate: false, values: [{ value: 'clean', wildcard: false }] },
-        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
-        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'feed', wildcard: false }] },
       ],
     });
     expect(result.notes.map(n => n.id)).toEqual(['dan-john']);
@@ -616,8 +616,8 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
       target: 'note',
       filters: [
         { key: 'tags', negate: false, values: [{ value: 'for-time', wildcard: false }] },
-        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
-        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'feed', wildcard: false }] },
       ],
     });
     expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls']);
@@ -630,8 +630,8 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
       target: 'note',
       filters: [
         { key: 'text', negate: false, values: [{ value: 'fran', wildcard: false }] },
-        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
-        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'feed', wildcard: false }] },
       ],
     });
     expect(result.notes.map(n => n.id)).toEqual(['crossfit-girls']);
@@ -644,8 +644,8 @@ describe(':catalog search by efforts, tags, text, etc.', () => {
       target: 'note',
       filters: [
         { key: 'effort', negate: false, values: [{ value: 'snatch', wildcard: false }] },
-        { key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }] },
-        { key: 'type', negate: false, values: [{ value: 'collection', wildcard: false }] },
+        { key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }] },
+        { key: 'type', negate: false, values: [{ value: 'feed', wildcard: false }] },
       ],
     });
     expect(result.notes).toEqual([]);

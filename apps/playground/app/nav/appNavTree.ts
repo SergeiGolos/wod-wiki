@@ -5,11 +5,12 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Collections, Playgrounds, Dashboard, Efforts, Sessions,
- *       Settings (Feeds folds into Collections — feed routes light Collections)
+ *   L1: Home, Journal, Feeds, Playgrounds, Dashboard, Efforts, Sessions,
+ *       Settings (catalog landing + item routes light Feeds; /catalogs is
+ *       its own zone)
  *   L2 of Home:        the consolidated Guide chapters (markdown/canvas/guide/**;
  *                      the old syntax/behaviors/analytics pillars are folded in)
- *   L2 of the five stream routes (Journal/Collections/Playgrounds/Efforts/
+ *   L2 of the five stream routes (Journal/Feeds/Playgrounds/Efforts/
  *                      Sessions): the shared ConditionsNavPanel — current-result
  *                      `{}` condition accordion plus grouping presets over the
  *                      CURRENT query; Feeds rides under Collections
@@ -22,10 +23,10 @@
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, Dumbbell, Rss, Folder, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, Layers, ListFilter, Tag, Library, Plus, UserRound } from 'lucide-react'
+import { ChartBarIcon, Dumbbell, Rss, Calendar, Settings, Paintbrush, Sliders, FlaskConical, ClipboardList, Layers, ListFilter, Tag, Library, Plus, UserRound } from 'lucide-react'
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
-import { JOURNAL_STREAM_PROFILE, CATALOGS_STREAM_PROFILE, COLLECTIONS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
+import { JOURNAL_STREAM_PROFILE, CATALOGS_STREAM_PROFILE, FEEDS_STREAM_PROFILE, PLAYGROUNDS_STREAM_PROFILE, EFFORTS_STREAM_PROFILE, SESSIONS_STREAM_PROFILE, type StreamProfile } from '../views/stream/streamProfile'
 import { ROUTE_PATTERNS, isEffortsPath } from '../lib/routes'
 
 import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
@@ -85,10 +86,10 @@ function buildHomeChildren(routes: CanvasRoute[]): NavItem[] {
 // ─── Listing zones (flattened Library) ────────────────────────────────────────
 
 /**
- * Journal / Collections / Playgrounds are top-level L1 rows — the old Library
- * wrapper is gone and Feeds folds into Collections (feed routes light the
- * Collections zone). Each zone's L2 is the shared ConditionsNavPanel; there
- * are no static preset children to keep in sync.
+ * Journal / Feeds / Playgrounds are top-level L1 rows — the old Library
+ * wrapper is gone (catalog landing + item routes light the Feeds zone;
+ * /catalogs keeps its own zone). Each zone's L2 is the shared
+ * ConditionsNavPanel; there are no static preset children to keep in sync.
  */
 interface ListingZoneSpec {
   id: string
@@ -97,7 +98,7 @@ interface ListingZoneSpec {
   icon: NavItem['icon']
   route: string
   profile: StreamProfile
-  /** Extra panel rows appended after the presets (e.g. Feeds, All). */
+  /** Extra panel rows appended after the presets (e.g. All, catalog crosswalk). */
   extraChildren?: NavItem[]
   /** Whole zone route family (L1 activation). */
   familyActive: (loc: Location) => boolean
@@ -147,15 +148,6 @@ function listingZone(spec: ListingZoneSpec): NavItem {
   }
 }
 
-const feedsChild: NavItem = {
-  id: 'collections-feeds',
-  label: 'Feeds',
-  level: 2,
-  icon: Rss,
-  action: { type: 'route', to: ROUTE_PATTERNS.feeds },
-  isActive: (loc: Location) => startsWithAny(loc.pathname, '/feeds', '/feed'),
-}
-
 const catalogCrosswalkChild: NavItem = {
   id: 'collections-catalog-crosswalk',
   label: 'Catalog crosswalk',
@@ -193,22 +185,22 @@ const listingZones: ListingZoneSpec[] = [
     familyActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.catalogs,
   },
   {
-    id: 'collections',
-    label: 'Collections',
-    landingLabel: 'All collections',
-    icon: Folder,
-    route: ROUTE_PATTERNS.collections,
-    profile: COLLECTIONS_STREAM_PROFILE,
+    id: 'feeds',
+    label: 'Feeds',
+    landingLabel: 'All feeds',
+    icon: Rss,
+    route: ROUTE_PATTERNS.feeds,
+    profile: FEEDS_STREAM_PROFILE,
     familyActive: (loc: Location) =>
-      startsWithAny(loc.pathname, '/collections', '/c', '/feeds', '/feed') &&
+      startsWithAny(loc.pathname, '/feeds', '/feed', '/c') &&
       loc.pathname !== ROUTE_PATTERNS.catalogs,
-    extraChildren: [feedsChild, catalogCrosswalkChild],
+    extraChildren: [catalogCrosswalkChild],
     createAction: {
       label: 'New note',
       testId: 'collections-create-note',
       onClick: ({ openCreateJournal, navigate }) => {
         if (openCreateJournal) openCreateJournal({ mode: 'source' })
-        else navigate('/collections?create=1&mode=source')
+        else navigate('/feeds?create=1&mode=source')
       },
     },
   },

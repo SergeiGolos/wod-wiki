@@ -162,7 +162,7 @@ export function OfferingTiers() {
           >
             <CardLink onClick={() => void createJournal()}>Create your journal</CardLink>
             <CardLink to={ROUTE_PATTERNS.playgroundRoot}>Start Writing in a Playground</CardLink>
-            <CardLink to="/collections">Explore the collections</CardLink>
+            <CardLink to="/feeds">Explore the feeds</CardLink>
             <button
               type="button"
               onClick={clearData}

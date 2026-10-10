@@ -79,9 +79,9 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     await page.screenshot({ path: 'e2e/screenshots/smoke-efforts.png', fullPage: false });
   });
 
-  test('/collections loads without critical page errors', async ({ page }) => {
-    await probeRoute(page, '/collections');
-    await page.screenshot({ path: 'e2e/screenshots/smoke-collections.png', fullPage: false });
+  test('/feeds loads without critical page errors', async ({ page }) => {
+    await probeRoute(page, '/feeds');
+    await page.screenshot({ path: 'e2e/screenshots/smoke-feeds.png', fullPage: false });
   });
 
   test('/chapters/basics redirects and renders without critical page errors', async ({ page }) => {

@@ -216,7 +216,7 @@ export function PropertyTable({
                               to={openHref}
                               data-testid="property-table-details-link"
                               className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted border border-border transition-colors"
-                              title="View collection details"
+                              title="View catalog details"
                             >
                               Details
                             </Link>
@@ -224,7 +224,7 @@ export function PropertyTable({
                               to={feedHref}
                               data-testid="property-table-feed-link"
                               className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
-                              title="View collection feed"
+                              title="View feed"
                             >
                               Feed
                             </Link>

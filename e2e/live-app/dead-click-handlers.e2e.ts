@@ -11,8 +11,8 @@ test.describe('Live App Click Handler Navigation', () => {
       await page.setViewportSize(viewport.size);
 
       // Navigate directly to a known collection workout detail route.
-      // The list route /collections now redirects to /library per #813;
-      // the sidebar collection navigation (CollectionsNavPanel) is retired.
+      // The bare /collections listing redirects to /feeds (collections→feeds
+      // rename); the /collections/... item aliases still land on the /c view.
       await page.goto('/collections/crossfit-girls/fran', { waitUntil: 'domcontentloaded' });
 
       // The workout editor mounts its CodeMirror content area.

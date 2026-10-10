@@ -36,6 +36,7 @@ export const VIEW_SETTINGS_STORAGE_PREFIX = 'wodwiki.viewSettings.v1'
  *  new one. The current key always wins when both exist. */
 const LEGACY_ROUTE_ALIASES: Record<string, string> = {
   '/sessions': '/results',
+  '/feeds': '/collections',
 }
 
 export const viewSettingsStore = new LocalStore(VIEW_SETTINGS_STORAGE_PREFIX)

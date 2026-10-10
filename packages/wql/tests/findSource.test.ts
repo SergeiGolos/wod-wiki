@@ -70,18 +70,16 @@ describe('source: filter — runFind (Note[])', () => {
     expect(result.notes.map(n => n.id)).toEqual(['jrnl-1']);
   });
 
-  it('keeps collection-location notes when source:collection is set — pages included', async () => {
+  it('keeps feed-location notes when source:feeds is set — pages included', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery(':note{source:collection} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':note{source:feeds} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id)).toEqual(['coll-1', 'page-1']);
   });
 
-  it('source:feed is no longer a supported source choice — feed notes never match', async () => {
+  it('source:feed matches the same collection-prefixed rows as source:feeds', async () => {
     const service = makeService();
-    // Parse may reject outright or execute to an empty match; either way the
-    // retired feeds surface is not queryable.
     const result = await service.runFind(parseQuery(':note{source:feed} in all') as ParsedFindQuery);
-    expect(result.notes.map(n => n.id)).toEqual([]);
+    expect(result.notes.map(n => n.id)).toEqual(['coll-1', 'page-1']);
   });
 
   it(':note is the inclusive plane — feeds, arbitrary sources, pages, typed dashboards', async () => {
@@ -110,7 +108,7 @@ describe('source: filter — runFind (Note[])', () => {
     const result = await service.runFind(parseQuery(':note{!source:playground}') as ParsedFindQuery);
     const ids = result.notes.map(n => n.id);
     expect(ids).toContain('jrnl-1');           // journal
-    expect(ids).toContain('coll-1');           // collections
+    expect(ids).toContain('coll-1');           // feeds
     expect(ids).toContain('guide-1');          // guides
     expect(ids).toContain('feed-1');           // feeds (inclusive plane)
     expect(ids).toContain('page-1');           // typed pages survive
@@ -183,16 +181,16 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
     expect(result.blocks.map(b => b.noteId)).toEqual(['jrnl-1']);
   });
 
-  it('keeps only collection blocks when source:collection is set', async () => {
+  it('keeps only feed blocks when source:feeds is set', async () => {
     const service = makeService();
-    const result = await service.runFind(parseQuery(':block{source:collection} in all') as ParsedFindQuery);
+    const result = await service.runFind(parseQuery(':block{source:feeds} in all') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
   });
 
-  it('source:feed is no longer a supported source choice — feed blocks never match', async () => {
+  it('source:feed matches the same collection-prefixed blocks as source:feeds', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':block{source:feed} in all') as ParsedFindQuery);
-    expect(result.blocks.map(b => b.noteId)).toEqual([]);
+    expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
   });
 
   it('supports exact catalog-prefixed sourceId matching', async () => {
@@ -201,7 +199,7 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
     expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
   });
 
-  it('default (no source filter) returns blocks from the allowed source kinds only — feeds excised', async () => {
+  it('default (no source filter) returns blocks from the allowed source kinds only — collections retired', async () => {
     const service = makeService();
     const result = await service.runFind(parseQuery(':block') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'guide-1', 'jrnl-1', 'pg-1', 'pg-legacy']);

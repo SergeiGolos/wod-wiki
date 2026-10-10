@@ -296,7 +296,7 @@ export function setTextCondition(query: string, value: string): string {
 export function setSourceScopeValue(query: string, scope: string | null): string {
   const parsed = parseQuery(query)
   if (parsed.error || !isFindQuery(parsed)) return query
-  // Scoped heads (`:collection{source:collections}`) make the parser emit the
+  // Scoped heads (`:feed{source:feeds}`) make the parser emit the
   // head scope AND the authored filter — identical positive duplicates that
   // AND to the same result. Collapse them first (lossless) so the targeted
   // replacement hits the one real scope slot; distinct user-authored
@@ -326,7 +326,7 @@ export function setSourceScopeValue(query: string, scope: string | null): string
     })
     return serialize({ ...parsed, sourceScope: undefined, filters })
   }
-  const scopeHead = scope === 'journal' ? ':journal' : scope === 'collections' ? ':catalog' : scope === 'playground' ? ':playground' : `:note{source:${scope}}`
+  const scopeHead = scope === 'journal' ? ':journal' : scope === 'feeds' ? ':catalog' : scope === 'playground' ? ':playground' : `:note{source:${scope}}`
   const authored = parseQuery(scopeHead.startsWith(':note') ? scopeHead : `${scopeHead}{}`)
   if (authored.error || !isFindQuery(authored) || !authored.filters.length) return query
   const firstPositive = normalized.findIndex(f => f.key === 'source' && !f.negate)

@@ -82,7 +82,7 @@ export function staticTagIndexFromBlocks(blocks: BlockIndexRow[]): Map<string, S
 /**
  * Pure projection of a block_index into static Notes — one Note per distinct
  * noteId. `id` stays the canonical storage identity (UUID for imported rows);
- * `catalog` and collection-landing status come from the sourceId route via
+ * `catalog` and feed-landing status come from the sourceId route via
  * the shared `staticCatalogRoute` (`catalog` is undefined for UUID-keyed rows
  * without a route — never a UUID). The catalog (e.g. `crossfit-girls`) is
  * what the Library's panel uses to target the `+ Filter → Catalog` menu.
@@ -101,7 +101,7 @@ export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
                 id: block.noteId,
                 title: block.noteTitle,
                 createdAt: block.createdAt,
-                type: route.landing ? 'collection' : 'note',
+                type: route.landing ? 'feed' : 'note',
                 sourceId: route.sourceId,
                 catalog: route.catalog,
                 sourcePath: block.sourcePath,
@@ -120,8 +120,8 @@ export function loadStaticNotes(): Promise<Note[]> {
     if (!staticNotesPromise) {
         staticNotesPromise = loadCorpusBlocks().then(async (blocks) => {
             const notes = staticNotesFromBlocks(blocks);
-            const hasCollectionPages = notes.some(n => n.type === 'collection' && n.sourceId?.startsWith('page:collection:'));
-            if (!hasCollectionPages) {
+            const hasFeedLandingPages = notes.some(n => n.type === 'feed' && n.sourceId?.startsWith('page:collection:'));
+            if (!hasFeedLandingPages) {
                 try {
                     const collections = await getScriptCollections();
                     for (const col of collections) {
@@ -129,7 +129,7 @@ export function loadStaticNotes(): Promise<Note[]> {
                             id: col.id,
                             title: col.name,
                             createdAt: 0,
-                            type: 'collection',
+                            type: 'feed',
                             sourceId: `page:collection:${col.id}`,
                             catalog: col.id,
                             tags: col.categories,

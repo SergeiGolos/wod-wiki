@@ -180,7 +180,7 @@ export function WorkoutEditorPage({
   // Contextual links (efforts in script, sibling workouts sharing blocks,
   // journal copies) — only for real collection items, not journal/syntax ids.
   const ownership = useMemo(
-    () => (isCollection ? noteOwnership({ id: noteId, type: 'collection' }) : null),
+    () => (isCollection ? noteOwnership({ id: noteId, type: 'feed' }) : null),
     [isCollection, noteId],
   )
   const contextData = useNoteContextLinks({

@@ -333,7 +333,7 @@ export function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefO
     if (view.shell.wrap === 'bare') return inner
     const subheader =
       view.shell.subheader === 'filter-collection-workouts'
-        ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" />
+        ? <TextFilterStrip placeholder="Filter catalog workouts… Press / to start filtering" />
         : undefined
     return (
       <CanvasPage

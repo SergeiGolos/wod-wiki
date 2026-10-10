@@ -267,7 +267,7 @@ describe('toEntry → entryOpenHref seam (slug routing regressions)', () => {
   })
 
   it('routes a UUID landing to the collection root and links its feed filter', () => {
-    const entry = toEntry(note({ sourceId: 'page:collection:crossfit-girls', type: 'collection' }))
+    const entry = toEntry(note({ sourceId: 'page:collection:crossfit-girls', type: 'feed' }))
     expect(entryOpenHref(entry)).toBe('/c/crossfit-girls')
     expect(entryCollectionFeedHref(entry)).toBe('/feeds?q=%3Acatalog%7Bcatalog%3Acrossfit-girls%7D')
   })

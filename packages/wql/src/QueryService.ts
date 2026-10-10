@@ -102,8 +102,10 @@ export function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: s
 /** Match a single row against one source filter value. The `journal` kind matches
  *  rows with no sourceId, the literal 'journal', or UUID / journal/date lineage
  *  pointing to the original note. Lineage also passes corpus exclusions below.
- *  The collection / guide kinds match
- *  rows whose sourceId starts with the kind. A `kind:id` literal matches the
+ *  The feed / guide kinds match
+ *  rows whose sourceId starts with the kind (storage identities keep their
+ *  `collection:`/`page:collection:` prefixes — only the query vocabulary
+ *  was renamed). A `kind:id` literal matches the
  *  exact id. `playground` matches the playground intake's sourceId convention
  *  and, on the note plane, legacy rows typed 'playground' (playground pages
  *  saved before the sourceId convention existed — their sourceId is absent).
@@ -136,7 +138,7 @@ export function sourceMatches(
       && !item.catalog
       && !(!!item.sourcePath && item.sourcePath.startsWith('markdown/'));
   }
-  if (kind === 'collection' || kind === 'collections') {
+  if (kind === 'feed' || kind === 'feeds') {
     return !!sourceId && (sourceId.startsWith('collection:') || sourceId.startsWith('page:collection:'));
   }
   if (kind === 'page' || kind === 'pages') {
@@ -169,8 +171,8 @@ function applySourceFilter<T extends { sourceId?: string; type?: string }>(items
  *  whole WQL domain — queries naming them stay fully residual so the JS
  *  predicate stays the sole decider. */
 const DOMAIN_SOURCE_KINDS: Record<string, true> = {
-  collection: true,
-  collections: true,
+  feed: true,
+  feeds: true,
   page: true,
   pages: true,
   guide: true,
@@ -1202,9 +1204,9 @@ export class QueryService {
       return this.runFindTable(parsed, options);
     }
     const isCatalogHead = parsed.target === 'note'
-      && parsed.filters.some(f => f.key === 'type' && !f.negate && f.values.some(v => v.value === 'collection'))
-      && (parsed.filters.some(f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'collection' || v.value === 'collections'))
-          || parsed.sourceScope?.includes('collections'));
+      && parsed.filters.some(f => f.key === 'type' && !f.negate && f.values.some(v => v.value === 'feed'))
+      && (parsed.filters.some(f => f.key === 'source' && !f.negate && f.values.some(v => v.value === 'feed' || v.value === 'feeds'))
+          || parsed.sourceScope?.includes('feeds'));
     if (isCatalogHead) {
       const notes = (await this.noteStore.getAllNotes()).concat(
         this.staticNoteStore ? await this.staticNoteStore.getAllNotes() : [],
@@ -2221,17 +2223,17 @@ export class QueryService {
    */
   private async runFindCatalog(parsed: ParsedFindQuery, options: FindOptions, allNotes: Note[]): Promise<FindQueryResult> {
     const ctx = runContext(options);
-    const collectionNotes = allNotes.filter(n => sourceMatches(n, 'collections') || (n.catalog && !n.sourceId));
+    const feedNotes = allNotes.filter(n => sourceMatches(n, 'feeds') || (n.catalog && !n.sourceId));
 
-    let catalogNotes = collectionNotes.filter(n => n.type === 'collection' || n.sourceId?.startsWith('page:collection:'));
+    let catalogNotes = feedNotes.filter(n => n.type === 'feed' || n.sourceId?.startsWith('page:collection:'));
     const existingCatIds = new Set(catalogNotes.map(n => catalogOfItem(n) ?? n.id));
-    for (const n of collectionNotes) {
+    for (const n of feedNotes) {
       const cat = catalogOfItem(n);
       if (cat && !existingCatIds.has(cat)) {
         catalogNotes.push({
           id: cat,
           title: cat,
-          type: 'collection',
+          type: 'feed',
           sourceId: `page:collection:${cat}`,
           catalog: cat,
           createdAt: n.createdAt ?? 0,
@@ -2245,7 +2247,7 @@ export class QueryService {
       const catId = catalogOfItem(catNote) ?? catNote.id;
       membersByCat.set(catId, [catNote]);
     }
-    for (const n of collectionNotes) {
+    for (const n of feedNotes) {
       const catId = catalogOfItem(n);
       if (catId) {
         const list = membersByCat.get(catId);
@@ -2258,8 +2260,8 @@ export class QueryService {
     }
 
     const criteriaFilters = parsed.filters.filter(f =>
-      !(f.key === 'source' && !f.negate && f.values.some(v => v.value === 'collections' || v.value === 'collection')) &&
-      !(f.key === 'type' && !f.negate && f.values.some(v => v.value === 'collection'))
+      !(f.key === 'source' && !f.negate && f.values.some(v => v.value === 'feeds' || v.value === 'feed')) &&
+      !(f.key === 'type' && !f.negate && f.values.some(v => v.value === 'feed'))
     );
 
     let matchingCatalogs = [...catalogNotes];

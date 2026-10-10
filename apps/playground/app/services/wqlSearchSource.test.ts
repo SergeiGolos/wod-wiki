@@ -147,13 +147,13 @@ describe('wqlSearchSource', () => {
       result.blocks = [STATIC_BLOCK]
       return result
     })
-    const results = await wqlSearchSource().search(':block{type:wod} in collections')
+    const results = await wqlSearchSource().search(':block{type:wod} in feeds')
 
     expect(results).toHaveLength(1)
     const item = results[0]!
     expect(item.id).toBe('entry:girl-wods/fran')
     expect(item.label).toBe('Fran')
-    expect(item.category).toBe('Collections')
+    expect(item.category).toBe('Feeds')
     const entry = item.payload as Entry
     expect(entry.kind).toBe('session')
     expect(entry.sourceCatalog).toBe('girl-wods')
@@ -172,8 +172,8 @@ describe('wqlSearchSource', () => {
     const prose = await wqlSearchSource().search('workout in the park last week', { scopeWql: ':note in journal' })
     expect(prose.map(r => r.id)).toEqual(['entry:journal/2026-07-30'])
 
-    // The corpus is journal-only: a collections scope fabricates nothing.
-    const other = await wqlSearchSource().search('pushup', { scopeWql: ':note in collections' })
+    // The corpus is journal-only: a feeds scope fabricates nothing.
+    const other = await wqlSearchSource().search('pushup', { scopeWql: ':note in feeds' })
     expect(other).toEqual([])
   })
 
@@ -271,7 +271,7 @@ describe('scopedTextQuery', () => {
   it('quotes multiword terms and keeps the scope structure', () => {
     const merged = findOf(scopedTextQuery(findOf(PALETTE_SEED_QUERY)!, 'two words'))!
     expect(textFiltersOf(merged)).toEqual(['two words'])
-    expect(sourceValuesOf(merged)).toEqual(['journal', 'collection'])
+    expect(sourceValuesOf(merged)).toEqual(['journal', 'feeds'])
     expect(merged.groupBy).toContain('date')
   })
 

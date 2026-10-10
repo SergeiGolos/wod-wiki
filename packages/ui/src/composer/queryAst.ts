@@ -90,7 +90,7 @@ export function wqlToPills(wql: string): QueryClause[] | null {
 }
 
 function filterText(filter: TagFilter): string {
-  // Canonical heads vary with the filter (`:journal{`, `:collection{`, …);
+  // Canonical heads vary with the filter (`:journal{`, `:feed{`, …);
   // strip whatever head the serializer chose. The serializer quotes values
   // containing whitespace, which the grammar requires. sourceScope mirrors
   // the generic :note default so serialize never appends a scope suffix.

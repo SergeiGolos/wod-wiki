@@ -231,7 +231,7 @@ export function CollectionListTemplate<TQuery, TRecord, TItem>({
       <div className={cn('flex flex-col h-full overflow-hidden bg-card', className)}>
         {loadingState ?? (
           <div className="flex flex-1 items-center justify-center p-20 text-sm font-medium text-muted-foreground">
-            Loading collections…
+            Loading feeds…
           </div>
         )}
       </div>
@@ -263,7 +263,7 @@ export function CollectionListTemplate<TQuery, TRecord, TItem>({
         {groups.every(group => group.items.length === 0) ? (
           renderedEmptyState ?? (
             <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-              <p className="text-sm font-medium">No collections found.</p>
+              <p className="text-sm font-medium">No feeds found.</p>
             </div>
           )
         ) : (

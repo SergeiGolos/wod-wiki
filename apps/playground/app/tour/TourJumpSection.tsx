@@ -2,13 +2,13 @@
  * TourJumpSection.tsx — the "Know where you're going?" direct-exit section.
  *
  * A ~half-viewport sliding section right under the hero: three flat boxes
- * that jump straight into the app's sub views (Feeds, the Collections
- * library, and creating a new journal note) for visitors who don't want the
+ * that jump straight into the app's sub views (Feeds, the Feeds library,
+ * and creating a new journal note) for visitors who don't want the
  * full walkthrough. Feeds carries a small work-in-progress note.
  */
 import { useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Library, Newspaper, NotebookPen } from 'lucide-react'
+import { ArrowRight, Rss, Newspaper, NotebookPen } from 'lucide-react'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import { journalNotes } from '../services/journalNotes'
 import { noteByIdPath } from '../lib/routes'
@@ -83,10 +83,10 @@ export function TourJumpSection() {
           />
         </Link>
 
-        <Link to="/collections" onClick={handleLibrary} data-testid="jump-library" className={BOX_BASE}>
+        <Link to="/feeds" onClick={handleLibrary} data-testid="jump-library" className={BOX_BASE}>
           <BoxFace
-            icon={Library}
-            title="Collections library"
+            icon={Rss}
+            title="Feeds library"
             description="Curated workouts and sessions, ready to run."
             action="Open the library"
           />

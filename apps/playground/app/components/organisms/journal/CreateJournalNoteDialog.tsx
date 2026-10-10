@@ -302,7 +302,7 @@ export function CreateJournalNoteDialog({
               <>
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="journal-create-source-group" className="text-sm font-medium">
-                    Collection or feed
+                    Feed
                   </label>
                   <select
                     id="journal-create-source-group"
@@ -315,10 +315,10 @@ export function CreateJournalNoteDialog({
                     className={fieldClass}
                   >
                     <option value="">
-                      {sources === null ? 'Loading…' : 'Choose a collection or feed…'}
+                      {sources === null ? 'Loading…' : 'Choose a feed…'}
                     </option>
                     {sources && sources.collections.length > 0 && (
-                      <optgroup label="Collections">
+                      <optgroup label="Feeds">
                         {sources.collections.map(c => (
                           <option key={c.id} value={`collection:${c.id}`}>
                             {c.name}
@@ -349,7 +349,7 @@ export function CreateJournalNoteDialog({
                     className={fieldClass}
                   >
                     <option value="">
-                      {activeGroup ? 'Choose an item…' : 'Choose a collection or feed first'}
+                      {activeGroup ? 'Choose an item…' : 'Choose a feed first'}
                     </option>
                     {activeGroup?.group.items.map(item => (
                       <option key={item.path} value={item.path}>

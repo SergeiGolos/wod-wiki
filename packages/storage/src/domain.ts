@@ -7,7 +7,7 @@ export type DomainPredicate =
   | { field: 'text'; value: string }
   | { field: 'date'; start: number; end: number; endExclusive?: boolean }
   | { field: 'page'; value: boolean }
-  | { field: 'defaultNotes'; collections: boolean }
+  | { field: 'defaultNotes'; feeds: boolean }
   | { field: 'sourceFence' };
 
 export type DomainOrder = {

@@ -13,7 +13,6 @@ import {
   CalendarIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  FolderIcon,
   Plus,
   SlidersHorizontal,
   TriangleAlertIcon,
@@ -885,7 +884,7 @@ export function QueriableStreamView({
                           ) : (
                             <ChevronRightIcon className="size-3.5 text-muted-foreground" />
                           )}
-                          <FolderIcon className="size-3.5 text-amber-500" />
+                          <Rss className="size-3.5 text-amber-500" />
                           <span className="text-xs font-bold text-foreground">{group.label}</span>
                           <span className="text-[10px] font-bold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded-full">
                             {totalInGroup}

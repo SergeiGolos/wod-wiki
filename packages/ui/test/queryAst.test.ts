@@ -34,9 +34,9 @@ describe('lossless targeted WQL edits', () => {
 
   it('storage scope does not change target or unrelated filters', () => {
     const query = ':block{source:journal,text:snatch}';
-    const result = edit(query, 'source', 'collections|guides');
+    const result = edit(query, 'source', 'feeds|guides');
     expect(result.ast).toMatchObject({ family: 'find', target: 'block', filters: [
-      { key: 'source', values: [{ value: 'collections', wildcard: false }, { value: 'guides', wildcard: false }] },
+      { key: 'source', values: [{ value: 'feeds', wildcard: false }, { value: 'guides', wildcard: false }] },
       { key: 'text', values: [{ value: 'snatch', wildcard: false }] },
     ] });
   });

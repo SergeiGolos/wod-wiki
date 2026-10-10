@@ -10,7 +10,7 @@
  * pill-expressibility (unexpressible-but-valid queries ride its free-text
  * escape hatch).
  *
- * Consumed by QueriableStreamView stream profiles (Library/Collections/Feeds/Journal
+ * Consumed by QueriableStreamView stream profiles (Library/Feeds/Journal
  * legacy tri-state migration #813) and the Efforts catalog (`useEffortsComposerState`)
  * — so the seam is real.
  *

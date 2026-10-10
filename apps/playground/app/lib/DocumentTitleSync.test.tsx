@@ -46,12 +46,12 @@ describe('DocumentTitleSync', () => {
 
   it('sets the base title for /collections deep detail routes', () => {
     renderAt('/collections/cardio')
-    expect(document.title).toBe('Wod.Wiki - Collections')
+    expect(document.title).toBe('Wod.Wiki - Feeds')
   })
 
   it('derives rebranded stream titles from the profile registry', () => {
     renderAt('/c/dan-john')
-    expect(document.title).toBe('Wod.Wiki - Collections')
+    expect(document.title).toBe('Wod.Wiki - Feeds')
 
     renderAt('/sessions')
     expect(document.title).toBe('Wod.Wiki - Sessions')

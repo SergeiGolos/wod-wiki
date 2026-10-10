@@ -80,15 +80,15 @@ describe('noteOwnership — source-aware zone / up / stamps', () => {
     expect(own.stamps).toEqual(['018f3c2a-9b7c-7d4e-8f1a-2b3c4d5e6f70'])
   })
 
-  it('collection workout: collections zone, collection root up, /c/ stamp', () => {
-    const own = noteOwnership({ id: 'crossfit-girls/fran', type: 'collection' })
-    expect(own.zone).toBe('collections')
+  it('collection workout: feeds zone, collection root up, /c/ stamp', () => {
+    const own = noteOwnership({ id: 'crossfit-girls/fran', type: 'feed' })
+    expect(own.zone).toBe('feeds')
     expect(own.up).toMatchObject({ title: 'crossfit-girls', to: '/c/crossfit-girls' })
     expect(own.stamps).toEqual(['/c/crossfit-girls/fran'])
   })
 
   it('effort shadow note: efforts zone, catalog up, /e/ stamp', () => {
-    const own = noteOwnership({ id: 'effort/grace', type: 'collection' })
+    const own = noteOwnership({ id: 'effort/grace', type: 'feed' })
     expect(own.zone).toBe('efforts')
     expect(own.up).toMatchObject({ title: 'Efforts', to: '/efforts' })
     expect(own.stamps).toEqual(['/e/grace'])
@@ -101,9 +101,9 @@ describe('noteOwnership — source-aware zone / up / stamps', () => {
     expect(own.stamps).toEqual(['/playground/018f3c2a-0000-7000-8000-000000000001'])
   })
 
-  it('feed item: collections zone, feed listing up, item-level stamp', () => {
-    const own = noteOwnership({ id: 'feeds/dan-john/2026-01-12/day-01', type: 'collection' })
-    expect(own.zone).toBe('collections')
+  it('feed item: feeds zone, feed listing up, item-level stamp', () => {
+    const own = noteOwnership({ id: 'feeds/dan-john/2026-01-12/day-01', type: 'feed' })
+    expect(own.zone).toBe('feeds')
     expect(own.up).toMatchObject({ title: 'dan-john', to: '/feeds/dan-john' })
     expect(own.stamps).toEqual(['/feeds/dan-john/2026-01-12/day-01'])
   })

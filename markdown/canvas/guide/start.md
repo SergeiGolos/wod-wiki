@@ -151,11 +151,11 @@ Everything you create lives in one place, addressed one way:
 | **Session** | one recorded run | `{noteId, resultId, block}` triple |
 | **Journal** | your saved notes | `source:journal`; promotion target |
 | **Playground** | experiment surface (home, learning runs) | `source:playground` |
-| **Collection** | catalog of benchmark sessions | `source:collections`; clone into journal |
-| **Feed** | dated posts | `source:feeds` |
+| **Catalog** | catalog of benchmark sessions | `source:feeds`; clone into journal |
+| **Feed** | dated posts | — |
 | **Dashboard** | a note with `dashboard: true`; its query blocks render as widgets | [Dashboards](/guide/dashboards) |
 
-**`source:` scope** — five plural values: `journal`, `collections`, `feeds`, `guides`, `playground`. Omitting `source:` searches all of them; pin one catalog with `collection:<id>`. Learning runs record with origin `'playground'` until promoted to the journal — a query pinned to `source:journal` excludes playground experiments by design ([WQL sources](/guide/wql?h=sources)).
+**`source:` scope** — plural values: `journal`, `feeds`, `guides`, `playground` (plus `dashboards`, `efforts`). Omitting `source:` searches all of them; pin one catalog with `catalog:<id>`. Learning runs record with origin `'playground'` until promoted to the journal — a query pinned to `source:journal` excludes playground experiments by design ([WQL sources](/guide/wql?h=sources)).
 
 **Session vs template vs sample vs revert.** A **session** is immutable recorded facts from one run. A **template** is read-only source content — the examples on these pages; running one copies it into your own snapshot, it never mutates. A **sample dataset** is the badged fallback you see before you have facts of your own. **Revert** discards view state only — it never deletes saved sessions.
 

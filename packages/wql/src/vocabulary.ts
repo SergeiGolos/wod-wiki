@@ -105,19 +105,20 @@ export type WqlGrain = (typeof WQL_GRAINS)[number];
 export const WQL_FIND_TARGETS = ['note', 'block', 'effort', 'session', 'segment', 'event'] as const;
 export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 
-/** Canonical source filter values: the allowed storage locations (feeds
- *  excised — feed URIs are no longer a WQL source). Seed corpus locations
+/** Canonical source filter values: the allowed storage locations (the
+ *  former `collections` spelling is retired — renamed to feeds; storage
+ *  identities keep their `collection:` prefixes). Seed corpus locations
  *  joined the note plane: prebuilt dashboards and the effort library. */
-export const WQL_SOURCE_VALUES = ['journal', 'collections', 'guides', 'playground', 'dashboards', 'efforts'] as const;
+export const WQL_SOURCE_VALUES = ['journal', 'feeds', 'guides', 'playground', 'dashboards', 'efforts'] as const;
 export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
 
 /** Colon source heads — the unprefixed `:<head>` names. Find targets map
- *  1:1 to the content planes; journal/collection(s)/playground are
+ *  1:1 to the content planes; journal/feed(s)/catalog(s)/playground are
  *  source-scoped note heads (they parse to target 'note' plus an injected
  *  `source:` filter). */
 export const WQL_SOURCE_HEADS = [
   'note', 'block', 'effort', 'session', 'segment', 'event',
-  'journal', 'collection', 'collections', 'catalog', 'catalogs', 'playground',
+  'journal', 'feed', 'feeds', 'catalog', 'catalogs', 'playground',
   'dashboard',
 ] as const;
 export type WqlSourceHead = (typeof WQL_SOURCE_HEADS)[number];
@@ -125,10 +126,10 @@ export type WqlSourceHead = (typeof WQL_SOURCE_HEADS)[number];
 /** Storage scope a source-scoped note head binds (undefined = plain target). */
 export const WQL_SOURCE_HEAD_SCOPES: Readonly<Record<string, WqlSourceValue>> = {
   journal: 'journal',
-  collection: 'collections',
-  collections: 'collections',
-  catalog: 'collections',
-  catalogs: 'collections',
+  feed: 'feeds',
+  feeds: 'feeds',
+  catalog: 'feeds',
+  catalogs: 'feeds',
   playground: 'playground',
 };
 

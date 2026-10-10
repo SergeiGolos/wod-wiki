@@ -178,7 +178,7 @@ export { segmentSource } from '@/components/organisms/command-palette/segmentSou
 export function collectionListSource(): PaletteDataSource {
   return {
     id: 'collection-list',
-    label: 'Collections',
+    label: 'Feeds',
     search: async (query) => {
       const { getScriptCollections } = await import('@/repositories/script-collections');
       const collections = await getScriptCollections();
@@ -189,7 +189,7 @@ export function collectionListSource(): PaletteDataSource {
           id: c.id,
           label: c.name,
           sublabel: `${c.count} workout${c.count !== 1 ? 's' : ''}`,
-          category: 'Collections',
+          category: 'Feeds',
           type: 'collection' as const,
           payload: c,
         }));

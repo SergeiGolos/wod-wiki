@@ -208,7 +208,7 @@ describe('serialize (C6 structured interface)', () => {
     const KEYS = ['tags', 'discipline', 'effort', 'text', 'category'] as const;
     // Aggregate filter sides only accept fact-resolvable tag keys (parse validates).
     const AGG_KEYS = ['tags', 'discipline', 'effort', 'intensity', 'grade'] as const;
-    const SOURCES = ['journal', 'collections', 'guides', 'playground', 'collection:crossfit-girls'];
+    const SOURCES = ['journal', 'feeds', 'guides', 'playground', 'collection:crossfit-girls'];
     const METRICS = ['totalVolume', 'tis', 'calc.acwr', 'maxHeartRate'];
     const DIMS = ['week', 'day', 'session', 'round', 'effort'];
     const DATES = ['2026-01-01', '2026-03-31', '2025-11-30'];

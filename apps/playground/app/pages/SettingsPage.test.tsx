@@ -207,7 +207,7 @@ describe('SettingsPage — Query Defaults tab', () => {
     renderSettings('/settings/queries')
 
     expect(screen.getByTestId('query-defaults-section')).toBeDefined()
-    for (const id of ['/journal', '/collections', '/catalogs', '/feeds', '/efforts', '/sessions', '/playgrounds', '/dashboards', '/palette']) {
+    for (const id of ['/journal', '/catalogs', '/feeds', '/efforts', '/sessions', '/playgrounds', '/dashboards', '/palette']) {
       expect(screen.getByTestId(`query-defaults-card-${id}`)).toBeDefined()
     }
   })
@@ -250,26 +250,26 @@ describe('SettingsPage — Query Defaults tab', () => {
   })
 
   it('persists custom scope options, including the emptied nudge state', async () => {
-    await writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
+    await writeRouteWqlConfig('/feeds', { typeOptions: ['notes', 'journal'] })
     renderSettings('/settings/queries')
 
     // `notes` shows migrated to the canonical `note` target favorite.
-    fireEvent.click(screen.getByTestId('query-defaults-type-/collections-remove-note'))
-    fireEvent.click(screen.getByTestId('query-defaults-type-/collections-remove-journal'))
-    expect(screen.getByTestId('query-defaults-type-empty-/collections')).toBeDefined()
-    fireEvent.click(screen.getByTestId('query-defaults-save-/collections'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/feeds-remove-note'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/feeds-remove-journal'))
+    expect(screen.getByTestId('query-defaults-type-empty-/feeds')).toBeDefined()
+    fireEvent.click(screen.getByTestId('query-defaults-save-/feeds'))
 
-    expect(readRouteWqlConfig('/collections').typeOptions).toEqual([])
+    expect(readRouteWqlConfig('/feeds').typeOptions).toEqual([])
   })
 
   it('adds a supported scope option and persists it', () => {
     renderSettings('/settings/queries')
 
-    fireEvent.click(screen.getByTestId('query-defaults-type-custom-/collections'))
-    fireEvent.click(screen.getByTestId('query-defaults-type-/collections-add-playground'))
-    fireEvent.click(screen.getByTestId('query-defaults-save-/collections'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-custom-/feeds'))
+    fireEvent.click(screen.getByTestId('query-defaults-type-/feeds-add-playground'))
+    fireEvent.click(screen.getByTestId('query-defaults-save-/feeds'))
 
-    expect(readRouteWqlConfig('/collections').typeOptions).toEqual(['playground'])
+    expect(readRouteWqlConfig('/feeds').typeOptions).toEqual(['playground'])
   })
 
   it('restricts Group-By favorites to the supported arrangement dimensions', () => {
@@ -284,13 +284,13 @@ describe('SettingsPage — Query Defaults tab', () => {
   })
 
   it('reports stored option ids that are neither canonical nor migratable', async () => {
-    await writeRouteWqlConfig('/collections', { typeOptions: ['rows', 'journal'] })
+    await writeRouteWqlConfig('/feeds', { typeOptions: ['rows', 'journal'] })
     renderSettings('/settings/queries')
 
-    const report = screen.getByTestId('query-defaults-invalid-/collections')
+    const report = screen.getByTestId('query-defaults-invalid-/feeds')
     expect(report.textContent).toContain('rows')
     // The invalid id never becomes a favorite — only the canonical scope does.
-    expect(screen.queryByTestId('query-defaults-type-/collections-chip-rows')).toBeNull()
-    expect(screen.getByTestId('query-defaults-type-/collections-chip-journal')).toBeDefined()
+    expect(screen.queryByTestId('query-defaults-type-/feeds-chip-rows')).toBeNull()
+    expect(screen.getByTestId('query-defaults-type-/feeds-chip-journal')).toBeDefined()
   })
 })

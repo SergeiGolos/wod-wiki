@@ -221,8 +221,8 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
  *  rewritten inside the structural filter braces before the grammar parse
  *  (the grammar's comma separates filters). A comma merges into the running
  *  filter only while the following segment is a bare value — no colon, no
- *  quote — so `text:a,collection:x` stays two filters while
- *  `source:journal,collection` becomes one OR. `by {…}` groups are already
+ *  quote — so `text:a,feed:x` stays two filters while
+ *  `source:journal,feeds` becomes one OR. `by {…}` groups are already
  *  peeled; quoted segments never merge. */
 function normalizeCommaFilterValues(text: string): string {
   const open = text.indexOf('{');

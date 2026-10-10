@@ -10,7 +10,7 @@ import {
   PALETTE_ROUTE_ID,
   type RouteWqlConfig,
 } from './routeWqlConfig'
-import { COLLECTIONS_STREAM_PROFILE } from '../views/stream/streamProfile'
+import { FEEDS_STREAM_PROFILE } from '../views/stream/streamProfile'
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -27,10 +27,10 @@ describe('routeWqlConfig — pure read/write/clear', () => {
 
   it('round-trips a config per route and isolates routes', async () => {
     await writeRouteWqlConfig('/journal', { defaultWql: ':note last 6w' })
-    await writeRouteWqlConfig('/collections', { typeOptions: ['journal'] })
+    await writeRouteWqlConfig('/feeds', { typeOptions: ['journal'] })
 
     expect(readRouteWqlConfig('/journal')).toEqual({ defaultWql: ':note last 6w' })
-    expect(readRouteWqlConfig('/collections')).toEqual({ typeOptions: ['journal'] })
+    expect(readRouteWqlConfig('/feeds')).toEqual({ typeOptions: ['journal'] })
     expect(readRouteWqlConfig('/efforts')).toEqual({})
   })
 
@@ -84,6 +84,15 @@ describe('routeWqlConfig — pure read/write/clear', () => {
     )
     expect(readRouteWqlConfig('/dashboards')).toEqual({ defaultWql: 'rows:all{} last 12w' })
 
+    // The /collections listing renamed to /feeds — overrides saved under the
+    // old surface id still resolve (and their WQL migrates off the retired
+    // grammar).
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/collections'),
+      JSON.stringify({ defaultWql: ':collection{} last 2w', typeOptions: ['collections'] }),
+    )
+    expect(readRouteWqlConfig('/feeds')).toEqual({ defaultWql: ':feed{} last 2w', typeOptions: ['feeds'] })
+
     // The new key always wins when both exist
     window.localStorage.setItem(
       getRouteWqlStorageKey('/sessions'),
@@ -124,18 +133,50 @@ describe('routeWqlConfig — pure read/write/clear', () => {
 describe('routeWqlConfig — narrow favorites migration (work item 3)', () => {
   it('migrates persisted plural-noun ids to canonical singular targets', () => {
     window.localStorage.setItem(
-      getRouteWqlStorageKey('/collections'),
+      getRouteWqlStorageKey('/feeds'),
       JSON.stringify({ typeOptions: ['notes', 'blocks', 'efforts'] }),
     )
-    expect(readRouteWqlConfig('/collections')).toEqual({ typeOptions: ['note', 'block', 'effort'] })
+    expect(readRouteWqlConfig('/feeds')).toEqual({ typeOptions: ['note', 'block', 'effort'] })
   })
 
-  it('keeps storage scopes as scopes, preserving priority order and deduping', () => {
+  it('migrates the retired collections scope to feeds, preserving order and deduping', () => {
     window.localStorage.setItem(
-      getRouteWqlStorageKey('/collections'),
+      getRouteWqlStorageKey('/feeds'),
       JSON.stringify({ typeOptions: ['journal', 'notes', 'collections', 'journal'] }),
     )
-    expect(readRouteWqlConfig('/collections')).toEqual({ typeOptions: ['journal', 'note', 'collections'] })
+    expect(readRouteWqlConfig('/feeds')).toEqual({ typeOptions: ['journal', 'note', 'feeds'] })
+  })
+
+  it('migrates stored default WQL from the retired collections grammar', () => {
+    // Hard break on the old spellings: heads, scope filters and type values
+    // rewrite to the feeds forms; storage-identity spellings stay put.
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/feeds'),
+      JSON.stringify({ defaultWql: ':collection{} last 2w' }),
+    )
+    expect(readRouteWqlConfig('/feeds')).toEqual({ defaultWql: ':feed{} last 2w' })
+
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/catalogs'),
+      JSON.stringify({ defaultWql: ':collections{source:collections} by {tag}' }),
+    )
+    expect(readRouteWqlConfig('/catalogs')).toEqual({ defaultWql: ':feeds{source:feeds} by {tag}' })
+
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/journal'),
+      JSON.stringify({ defaultWql: ':note{type:collection}' }),
+    )
+    expect(readRouteWqlConfig('/journal')).toEqual({ defaultWql: ':note{type:feed}' })
+
+    // Storage identities pass through: `collection:`-prefixed source ids and
+    // `:catalog`/`catalog:` filters are untouched.
+    window.localStorage.setItem(
+      getRouteWqlStorageKey('/c/fran'),
+      JSON.stringify({ defaultWql: ':feed{catalog:fran, source:collection:fran} last 4w' }),
+    )
+    expect(readRouteWqlConfig('/c/fran')).toEqual({
+      defaultWql: ':feed{catalog:fran, source:collection:fran} last 4w',
+    })
   })
 
   it('reports stored ids that are neither canonical nor migratable', () => {
@@ -163,36 +204,36 @@ describe('routeWqlConfig — narrow favorites migration (work item 3)', () => {
 
 describe('routeWqlConfig — resolution', () => {
   it('overrides profile defaultWql and scopeOptions per field', async () => {
-    await writeRouteWqlConfig('/collections', { defaultWql: ':note{source:journal} last 1w' })
-    const applied = applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE)
+    await writeRouteWqlConfig('/feeds', { defaultWql: ':note{source:journal} last 1w' })
+    const applied = applyRouteWqlConfig(FEEDS_STREAM_PROFILE)
 
     expect(applied.defaultWql).toBe(':note{source:journal} last 1w')
     // Unconfigured fields keep the system value.
-    expect(applied.scopeOptions).toEqual(COLLECTIONS_STREAM_PROFILE.scopeOptions)
-    expect(applied.route).toBe('/collections')
+    expect(applied.scopeOptions).toEqual(FEEDS_STREAM_PROFILE.scopeOptions)
+    expect(applied.route).toBe('/feeds')
   })
 
   it('replaces scopeOptions wholesale, including the empty nudge state', async () => {
-    await writeRouteWqlConfig('/collections', { typeOptions: [] })
-    expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual([])
+    await writeRouteWqlConfig('/feeds', { typeOptions: [] })
+    expect(applyRouteWqlConfig(FEEDS_STREAM_PROFILE).scopeOptions).toEqual([])
 
-    await writeRouteWqlConfig('/collections', { typeOptions: ['guides'] })
-    expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual(['guides'])
+    await writeRouteWqlConfig('/feeds', { typeOptions: ['guides'] })
+    expect(applyRouteWqlConfig(FEEDS_STREAM_PROFILE).scopeOptions).toEqual(['guides'])
   })
 
   it('treats migrated target favorites as inert for the scope overlay', async () => {
     // `notes` migrates to the canonical `note` target; the route's target is
     // fixed, so only scope entries overlay. An all-target stored list leaves
     // no scope favorites — the deliberate "no predefined options" nudge.
-    await writeRouteWqlConfig('/collections', { typeOptions: ['notes'] })
-    expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual([])
+    await writeRouteWqlConfig('/feeds', { typeOptions: ['notes'] })
+    expect(applyRouteWqlConfig(FEEDS_STREAM_PROFILE).scopeOptions).toEqual([])
 
-    await writeRouteWqlConfig('/collections', { typeOptions: ['notes', 'journal'] })
-    expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE).scopeOptions).toEqual(['journal'])
+    await writeRouteWqlConfig('/feeds', { typeOptions: ['notes', 'journal'] })
+    expect(applyRouteWqlConfig(FEEDS_STREAM_PROFILE).scopeOptions).toEqual(['journal'])
   })
 
   it('returns the same profile object when no config exists', () => {
-    expect(applyRouteWqlConfig(COLLECTIONS_STREAM_PROFILE)).toBe(COLLECTIONS_STREAM_PROFILE)
+    expect(applyRouteWqlConfig(FEEDS_STREAM_PROFILE)).toBe(FEEDS_STREAM_PROFILE)
   })
 
   it('exposes the palette as a configurable synthetic route id', async () => {
@@ -205,8 +246,8 @@ describe('routeWqlConfig — resolution', () => {
 describe('routeWqlConfig — type shape', () => {
   it('stores only the three override fields', async () => {
     const config: RouteWqlConfig = { defaultWql: ':note', typeOptions: ['notes'], groupByOptions: ['week'] }
-    await writeRouteWqlConfig('/collections', config)
-    expect(Object.keys(readRouteWqlConfig('/collections')).sort()).toEqual([
+    await writeRouteWqlConfig('/feeds', config)
+    expect(Object.keys(readRouteWqlConfig('/feeds')).sort()).toEqual([
       'defaultWql',
       'groupByOptions',
       'typeOptions',

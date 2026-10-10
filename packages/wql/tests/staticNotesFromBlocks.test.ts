@@ -64,7 +64,7 @@ describe('staticNotesFromBlocks', () => {
     expect(notes[0].type).toBe('note');
     expect(notes[0].catalog).toBe('crossfit-girls');
     expect(notes[0].sourceId).toBe('collection:crossfit-girls/fran');
-    expect(notes[1].type).toBe('collection');
+    expect(notes[1].type).toBe('feed');
     expect(notes[1].catalog).toBe('crossfit-girls');
     expect(notes[1].sourceId).toBe('page:collection:crossfit-girls');
     expect(notes[2].type).toBe('note');

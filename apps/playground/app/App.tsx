@@ -23,6 +23,7 @@ import {
   NotePlaygroundRedirect,
   WorkoutRedirect,
   CollectionItemRedirect,
+  CollectionsRedirect,
   EffortRedirect,
   ResultsRedirect,
   SegmentsRedirect,
@@ -188,7 +189,8 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.catalogs} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* Bare /collections redirects to the renamed /feeds listing. */}
+                  <Route path={ROUTE_PATTERNS.collections} element={<CollectionsRedirect />} />
                   {/* /collections item paths redirect into the /c prefix (note UUIDs → /notes/:noteId). */}
                   <Route path="/collections/:slug" element={<CollectionItemRedirect />} />
                   <Route path="/collections/:slug/:target" element={<CollectionItemRedirect />} />

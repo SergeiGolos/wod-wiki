@@ -44,7 +44,7 @@ export function staticCatalogRoute(block: Pick<BlockIndexRow, 'noteId' | 'source
 /**
  * Pure projection of a block_index into static Notes — one Note per distinct
  * noteId. `id` stays the canonical storage identity (UUID for imported rows);
- * `catalog` and collection-landing status come from the sourceId route, not
+ * `catalog` and feed-landing status come from the sourceId route, not
  * the noteId path. The catalog (e.g. `crossfit-girls`) is what the Library's
  * panel uses to target the `+ Filter → Catalog` menu.
  */
@@ -57,7 +57,7 @@ export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
       id: block.noteId,
       title: block.noteTitle,
       createdAt: block.createdAt,
-      type: route.landing ? 'collection' : 'note',
+      type: route.landing ? 'feed' : 'note',
       sourceId: route.sourceId,
       catalog: route.catalog,
     });

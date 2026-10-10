@@ -119,7 +119,7 @@ function namedSlug(value: unknown): string | undefined {
 function isCollection(note: Note): boolean {
   return !!note.sourceId?.startsWith('collection:')
     || !!note.sourceId?.startsWith('page:collection:')
-    || note.type === 'collection'
+    || note.type === 'feed'
     || /^markdown\/collections\/[^/]+\/.+/.test(note.sourcePath ?? '')
 }
 
@@ -232,7 +232,7 @@ function toEntryBase(note: Note): Entry {
   if (isCollection(note)) {
     const cleanId = id.replace(/^page:collection:/, '')
     const { catalog, item } = collectionRoute(note)
-    const isLanding = !item || note.type === 'collection' || note.type === 'page'
+    const isLanding = !item || note.type === 'feed' || note.type === 'page'
     return {
       id: cleanId,
       kind: 'session',

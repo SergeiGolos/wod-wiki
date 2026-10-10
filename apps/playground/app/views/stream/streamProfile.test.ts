@@ -3,7 +3,6 @@ import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import {
   JOURNAL_STREAM_PROFILE,
   CATALOGS_STREAM_PROFILE,
-  COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
   SESSIONS_STREAM_PROFILE,
@@ -18,7 +17,6 @@ describe('streamProfile', () => {
     for (const profile of [
       JOURNAL_STREAM_PROFILE,
       CATALOGS_STREAM_PROFILE,
-      COLLECTIONS_STREAM_PROFILE,
       FEEDS_STREAM_PROFILE,
       EFFORTS_STREAM_PROFILE,
       SESSIONS_STREAM_PROFILE,
@@ -31,18 +29,17 @@ describe('streamProfile', () => {
 
   it('carries a display title per stream surface — deriveWorkout reads these', () => {
     expect(JOURNAL_STREAM_PROFILE.title).toBe('Journal')
-    expect(COLLECTIONS_STREAM_PROFILE.title).toBe('Collections')
-    expect(CATALOGS_STREAM_PROFILE.title).toBe('Catalogs')
     expect(FEEDS_STREAM_PROFILE.title).toBe('Feeds')
+    expect(CATALOGS_STREAM_PROFILE.title).toBe('Catalogs')
     expect(EFFORTS_STREAM_PROFILE.title).toBe('Efforts')
     expect(SESSIONS_STREAM_PROFILE.title).toBe('Sessions')
     expect(PLAYGROUNDS_STREAM_PROFILE.title).toBe('Playgrounds')
   })
 
   it('owns stream-surface membership — isStreamRoute is the single registry', () => {
-    // every profile route is a stream surface
+    // every profile route is a stream surface (bare /collections is a
+    // redirect route now — the listing resolves under /feeds)
     expect(isStreamRoute('/journal')).toBe(true)
-    expect(isStreamRoute('/collections')).toBe(true)
     expect(isStreamRoute('/feeds')).toBe(true)
     expect(isStreamRoute('/catalogs')).toBe(true)
     expect(isStreamRoute('/efforts')).toBe(true)
@@ -70,7 +67,6 @@ describe('streamProfile', () => {
   it('resolves stream profile by route using getStreamProfile and resolveStreamProfile', () => {
     expect(getStreamProfile('/journal')?.route).toBe('/journal')
     expect(getStreamProfile('/journal/')?.route).toBe('/journal')
-    expect(getStreamProfile('/collections')?.route).toBe('/collections')
     expect(getStreamProfile('/catalogs')?.route).toBe('/catalogs')
     expect(getStreamProfile('/feeds')?.route).toBe('/feeds')
     expect(getStreamProfile('/efforts')?.route).toBe('/efforts')
@@ -88,7 +84,7 @@ describe('streamProfile', () => {
     expect(profile).toBeDefined()
     expect(profile?.route).toBe('/c/dan-john')
     expect(profile?.title).toBe('Dan John')
-    expect(profile?.defaultWql).toBe(':collection{catalog:dan-john} by {date}')
+    expect(profile?.defaultWql).toBe(':feed{catalog:dan-john} by {date}')
     expect(profile?.catalog).toBe('dan-john')
     expect(profile?.defaultLayout).toBe('cards')
     expect(profile?.level).toBe('session')
@@ -129,12 +125,12 @@ describe('streamProfile', () => {
   })
 
   it('migrates legacy tri-state parameters', () => {
-    const collectionsLegacy = COLLECTIONS_STREAM_PROFILE.legacy!
-    expect(collectionsLegacy).toBeDefined()
-    expect(collectionsLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
-    expect(collectionsLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
+    const feedsLegacy = FEEDS_STREAM_PROFILE.legacy!
+    expect(feedsLegacy).toBeDefined()
+    expect(feedsLegacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
+    expect(feedsLegacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
     // `post` mapped to the feeds WQL scope — excised, so it no longer narrows.
-    const postOnly = parseQuery(collectionsLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on')) ?? '')
+    const postOnly = parseQuery(feedsLegacy.toQuery(new URLSearchParams('note=hide&session=hide&post=on')) ?? '')
     expect(isFindQuery(postOnly)).toBe(true)
     if (isFindQuery(postOnly)) {
       expect(postOnly.filters.filter((f) => f.key === 'source')).toHaveLength(0)

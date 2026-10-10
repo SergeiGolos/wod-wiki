@@ -204,7 +204,7 @@ async function suite(dir: string): Promise<void> {
     { op: 'put', store: 'notes', value: { id: u1, title: 'Fran Bench', date: 20261004, createdAt: 100, userId: 'default' } },
     { op: 'put', store: 'notes', value: { id: u2, title: 'Annie Row', date: 20261005, createdAt: 101, userId: 'default' } },
     { op: 'put', store: 'notes', value: { id: u3, title: 'Page Home', type: 'page', sourceId: 'page:home', createdAt: 102 } },
-    { op: 'put', store: 'notes', value: { id: u4, title: 'Collection G', type: 'collection', sourceId: 'collection:g', createdAt: 103 } },
+    { op: 'put', store: 'notes', value: { id: u4, title: 'Feed G', type: 'feed', sourceId: 'collection:g', createdAt: 103 } },
     { op: 'put', store: 'notes', value: { id: u5, title: 'No Date', createdAt: 500 } },
     { op: 'put', store: 'segments', value: { id: 's1', version: 1, noteId: u1, position: 0, dataType: 'markdown', data: null, rawContent: 'OLDSPANKE', createdAt: 50, isHistory: true } },
     { op: 'put', store: 'segments', value: { id: 's1', version: 2, noteId: u1, position: 0, dataType: 'markdown', data: null, rawContent: 'spank clean', createdAt: 60, isHistory: false } },
@@ -219,14 +219,14 @@ async function suite(dir: string): Promise<void> {
 
   const entries = await q({
     plan: 'entries',
-    selection: [{ field: 'defaultNotes', collections: false }],
+    selection: [{ field: 'defaultNotes', feeds: false }],
     filters: [{ field: 'text', value: 'spank' }],
   });
   assert.equal(entries.status, 200, String(entries.json));
   const entryRows = entries.json as { selectedCount: number; matchedCount: number; rows: {
     note: { id: string }; segments: { version: number; rawContent: string }[]; tags: { label: string }[]; links: unknown[]; pages: unknown[];
   }[] };
-  assert.equal(entryRows.selectedCount, 3, 'page + collection excluded pre-count; dateless u5 stays');
+  assert.equal(entryRows.selectedCount, 3, 'page + feed excluded pre-count; dateless u5 stays');
   assert.equal(entryRows.matchedCount, 1);
   assert.equal(entryRows.rows[0].note.id, u1);
   assert.equal(entryRows.rows[0].segments.length, 1, 'history filtered');
@@ -240,7 +240,7 @@ async function suite(dir: string): Promise<void> {
   // paging counts run before limit/offset
   const paged = await q({
     plan: 'notes',
-    selection: [{ field: 'defaultNotes', collections: false }],
+    selection: [{ field: 'defaultNotes', feeds: false }],
     order: [{ field: 'date', direction: 'asc' }],
     limit: 1,
     offset: 1,
@@ -251,9 +251,9 @@ async function suite(dir: string): Promise<void> {
   assert.equal(pagedRows.rows.length, 1);
   assert.equal(pagedRows.rows[0].id, u2, 'raw date asc NULLS LAST: u1,u2 then dateless u5; offset 1 lands on u2');
 
-  assert.deepEqual(await q({ plan: 'notes', selection: [{ field: 'defaultNotes', collections: true }] }).then((r) => (r.json as { selectedCount: number }).selectedCount), 4, 'collections=true excludes only page rows');
+  assert.deepEqual(await q({ plan: 'notes', selection: [{ field: 'defaultNotes', feeds: true }] }).then((r) => (r.json as { selectedCount: number }).selectedCount), 4, 'feeds=true excludes only page rows');
   assert.deepEqual(await q({ plan: 'notes', selection: [{ field: 'catalog', values: ['g'], negate: true }] }).then((r) => (r.json as { matchedCount: number }).matchedCount), 4, 'NULL-safe catalog negation');
-  assert.deepEqual(await q({ plan: 'notes', selection: [{ field: 'source', values: ['collections'], negate: true }] }).then((r) => (r.json as { matchedCount: number }).matchedCount), 4, 'negated source never drops NULL sourceId');
+  assert.deepEqual(await q({ plan: 'notes', selection: [{ field: 'source', values: ['feeds'], negate: true }] }).then((r) => (r.json as { matchedCount: number }).matchedCount), 4, 'negated source never drops NULL sourceId');
   const journals = await q({ plan: 'notes', selection: [{ field: 'source', values: ['journal'] }] });
   assert.deepEqual((journals.json as { rows: { id: string }[] }).rows.map((r) => r.id).sort(), [u1, u2, u5].sort(), 'journal matches every sourceless UUID note');
   assert.deepEqual(await q({ plan: 'notes', selection: [{ field: 'date', start: 20261004, end: 20261004 }] }).then((r) => (r.json as { matchedCount: number }).matchedCount), 1);

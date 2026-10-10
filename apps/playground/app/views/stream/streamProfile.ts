@@ -2,8 +2,8 @@
  * streamProfile — profile contract and presets for QueriableStreamView (Ticket 003).
  *
  * Encapsulates the routing, default WQL query, entity level, and presentation
- * metadata for each unified stream route (/journal, /collections, /feeds,
- * /catalogs, /efforts, /sessions, /results/:sessionId).
+ * metadata for each unified stream route (/journal, /feeds, /catalogs,
+ * /efforts, /sessions, /results/:sessionId).
  */
 import type { EntityLevel } from '../../lib/fieldProjection'
 import type { LayoutMode } from '../../lib/viewSettingsStorage'
@@ -64,7 +64,7 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
       if (hasTriState) {
         const visible: string[] = []
         if ((search.get('note') ?? 'include') !== 'hide') visible.push('journal')
-        if ((search.get('session') ?? 'include') !== 'hide') visible.push('collections')
+        if ((search.get('session') ?? 'include') !== 'hide') visible.push('feeds')
         // `post` mapped to the feeds storage scope — excised from WQL, so it
         // no longer narrows the migrated query.
         if (visible.length === 1) {
@@ -85,7 +85,7 @@ export function createContentLegacyConfig(defaultSource?: string): StreamProfile
       let head = ':note'
       const otherFilters = [textClause, tagsClause].filter(Boolean)
       if (sourceFilter === 'source:journal') head = ':journal'
-      else if (sourceFilter === 'source:collections') head = ':catalog'
+      else if (sourceFilter === 'source:feeds') head = ':catalog'
       else if (sourceFilter === 'source:playground') head = ':playground'
       else if (sourceFilter) otherFilters.unshift(sourceFilter)
       const braces = otherFilters.length ? `{${otherFilters.join(',')}}` : ''
@@ -110,33 +110,19 @@ export const CATALOGS_STREAM_PROFILE: StreamProfile = {
   defaultWql: ':catalog{} by {tag}',
   level: 'session',
   target: 'note',
-  scopeOptions: ['collections'],
+  scopeOptions: ['feeds'],
   shelfVisible: false,
-  legacy: createContentLegacyConfig('collections'),
-}
-
-export const COLLECTIONS_STREAM_PROFILE: StreamProfile = {
-  route: '/collections',
-  title: 'Collections',
-  defaultWql: ':collection{} by {tag}',
-  level: 'session',
-  target: 'note',
-  scopeOptions: ['collections'],
-  shelfVisible: false,
-  legacy: createContentLegacyConfig('collections'),
+  legacy: createContentLegacyConfig('feeds'),
 }
 
 export const FEEDS_STREAM_PROFILE: StreamProfile = {
   route: '/feeds',
   title: 'Feeds',
-  // Feeds is excised from WQL storage scopes: the route keeps reading feed
-  // notes through the collection source the feed corpus lives under.
-  defaultWql: ':collection{} last 2w',
+  defaultWql: ':feed{} last 2w',
   level: 'note',
   target: 'note',
-  scopeOptions: ['collections'],
-  // No default source: `source:feeds` is no longer valid WQL.
-  legacy: createContentLegacyConfig(),
+  scopeOptions: ['feeds'],
+  legacy: createContentLegacyConfig('feeds'),
 }
 
 export const EFFORTS_STREAM_PROFILE: StreamProfile = {
@@ -199,14 +185,14 @@ export function createCollectionCatalogProfile(catalogSlug: string): StreamProfi
   return {
     route: `/c/${catalogSlug}`,
     title: toDisplayName(catalogSlug),
-    defaultWql: `:collection{catalog:${catalogSlug}} by {date}`,
+    defaultWql: `:feed{catalog:${catalogSlug}} by {date}`,
     level: 'session',
     target: 'note',
-    scopeOptions: ['collections'],
+    scopeOptions: ['feeds'],
     shelfVisible: false,
     defaultLayout: 'cards',
     catalog: catalogSlug,
-    legacy: createContentLegacyConfig('collections'),
+    legacy: createContentLegacyConfig('feeds'),
   }
 }
 
@@ -214,7 +200,6 @@ export function createCollectionCatalogProfile(catalogSlug: string): StreamProfi
 const PROFILES_BY_ROUTE: Record<string, StreamProfile> = {
   '/journal': JOURNAL_STREAM_PROFILE,
   '/catalogs': CATALOGS_STREAM_PROFILE,
-  '/collections': COLLECTIONS_STREAM_PROFILE,
   '/feeds': FEEDS_STREAM_PROFILE,
   '/feed': FEEDS_STREAM_PROFILE,
   '/efforts': EFFORTS_STREAM_PROFILE,

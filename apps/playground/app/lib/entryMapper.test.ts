@@ -239,7 +239,7 @@ describe('toEntry — collection route derivation (sourceId/sourcePath, never UU
   })
 
   it('maps a page:collection: UUID landing to the collection landing', () => {
-    const entry = toEntry(makeNote({ id: UUID, sourceId: 'page:collection:crossfit-girls', type: 'collection' }))
+    const entry = toEntry(makeNote({ id: UUID, sourceId: 'page:collection:crossfit-girls', type: 'feed' }))
     expect(entry.sourceCatalog).toBe('crossfit-girls')
     expect(entry.sourceItem).toBe('')
     expect(entry.noteId).toBe(UUID)
@@ -270,7 +270,7 @@ describe('toEntry — collection route derivation (sourceId/sourcePath, never UU
   })
 
   it('falls back to the executor catalog as landing when no route info exists', () => {
-    const entry = toEntry(makeNote({ id: UUID, type: 'collection', catalog: 'crossfit-girls' }))
+    const entry = toEntry(makeNote({ id: UUID, type: 'feed', catalog: 'crossfit-girls' }))
     expect(entry.sourceCatalog).toBe('crossfit-girls')
     expect(entry.sourceItem).toBe('')
   })

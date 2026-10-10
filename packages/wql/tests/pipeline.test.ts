@@ -300,7 +300,7 @@ describe('runPipeline — source-scoped content resolution', () => {
     expect(result.series![0]!.points[0]!.value).toBe(42);
   });
 
-  it(':note default scope restricts to journal|collections|playground', async () => {
+  it(':note default scope restricts to journal|feeds|playground', async () => {
     const feedNote = { id: 'feed-1', title: 'Feed', createdAt: T0, type: 'note', sourceId: 'feed:x' } as Note;
     const store: EventStore = { ...explodingStore(), getEventsForNote: async (noteId) => NOTE_EVENTS[noteId] ?? [] };
     const result = await noteService([...NOTES, feedNote], store).runPipeline(':note{} | :sum{metric:tis}');

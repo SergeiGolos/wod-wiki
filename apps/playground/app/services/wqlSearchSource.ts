@@ -22,12 +22,12 @@ const MAX_RESULTS = 20;
 
 /** The palette's in-code system default query — the single source of truth;
  *  the Settings palette card displays it as the read-only fallback. Journal
- *  and collection notes grouped by date (comma multi-value `source:` filter
- *  — engine-owned grammar). */
-export const PALETTE_SEED_QUERY = ':note{source:journal,collection} by {date}';
+ *  and feed notes grouped by date (comma multi-value `source:` filter —
+ *  engine-owned grammar; storage identities keep `collection:` prefixes). */
+export const PALETTE_SEED_QUERY = ':note{source:journal,feeds} by {date}';
 const KIND_CATEGORY: Record<EntryKind, string> = {
   note: 'Journal',
-  session: 'Collections',
+  session: 'Feeds',
   post: 'Feeds',
   effort: 'Efforts',
   result: 'Results',

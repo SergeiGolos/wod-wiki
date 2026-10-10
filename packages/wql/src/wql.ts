@@ -189,7 +189,7 @@ export interface ParsedFindQuery {
   target: string;
   filters: TagFilter[];
   /** Implicit default source scope for the generic `:note` head —
-   *  journal | collections | playground. NOT a filter: authored filters stay
+   *  journal | feeds | playground. NOT a filter: authored filters stay
    *  untouched (composer pills never see it); the executor ANDs it in only
    *  when no explicit `source:` filter was written. */
   sourceScope?: string[];
@@ -562,17 +562,17 @@ function validateSourceFilter(filters: TagFilter[]): string | undefined {
     for (const v of f.values) {
       const val = v.value;
       if (val === 'page' || val === 'pages') {
-        return `source:${val} is retired — page-ness is handled by type: (e.g. type:collection or source:guides).`;
+        return `source:${val} is retired — page-ness is handled by type: (e.g. type:feed or source:guides).`;
       }
       if (val === 'all') {
         return `source:all is retired — omit the source: filter to query all sources.`;
       }
-      if (val === 'feed' || val === 'feeds' || val.startsWith('feed:')) {
-        return `source:${val} is retired — feeds are no longer a WQL source.`;
+      if (val === 'collection' || val === 'collections') {
+        return `source:${val} is retired — collections were renamed to feeds; use source:feeds or :feed{}.`;
       }
       if (
         (WQL_SOURCE_VALUES as readonly string[]).includes(val) ||
-        val === 'collection' ||
+        val === 'feed' ||
         val.startsWith('collection:')
       ) {
         continue;
@@ -912,7 +912,7 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
   } else {
     result.target = headName;
     if (result.target === 'page') {
-      result.error = 'find:page is retired — page-ness is handled by type: (e.g. :note{source:guides} or type:collection).';
+      result.error = 'find:page is retired — page-ness is handled by type: (e.g. :note{source:guides} or type:feed).';
       return result;
     }
     // C7: closed target enum — unknown targets error at parse instead of
@@ -943,7 +943,7 @@ function parseFindQuery(raw: string, opts?: { colon?: boolean }): ParsedFindQuer
       result.filters.push({
         key: 'type',
         negate: false,
-        values: [{ value: 'collection', wildcard: false }],
+        values: [{ value: 'feed', wildcard: false }],
       });
     }
   }

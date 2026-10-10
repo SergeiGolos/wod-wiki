@@ -1,7 +1,7 @@
 /**
  * routeWqlShortcuts — the behaviors the shortcut seam must never lose:
  * persistence across reloads (fresh store over the same backend), built-in
- * library-group links (landing, Feeds route action) with stored-list
+ * library-group landing links with stored-list
  * authority, shape validation on read, read-back-verified writes (storage
  * failures are NOT successes and lose no data), reactive notification, and
  * full-query matching that is PERMUTATION-INSENSITIVE on WHERE filter items
@@ -16,7 +16,6 @@ import { describe, it, expect } from 'bun:test'
 import { LocalStore, InMemoryBackend, type StorageBackend } from '@/services/storage/LocalStore'
 import {
   ALL_SHORTCUT_ID,
-  FEEDS_ID,
   ROUTE_SHORTCUTS_STORAGE_PREFIX,
   builtinShortcuts,
   readRouteShortcuts,
@@ -52,7 +51,7 @@ describe('routeWqlShortcuts — persistence', () => {
     const reloaded = readRouteShortcuts('/journal', storeOn(backend))
     expect(reloaded).toEqual([SC])
     expect(readRouteShortcuts('/efforts', storeOn(backend))).toHaveLength(1)
-    expect(readRouteShortcuts('/collections', storeOn(backend))).toEqual([])
+    expect(readRouteShortcuts('/feeds', storeOn(backend))).toEqual([])
   })
 
   it('normalizes route ids without a leading slash', async () => {
@@ -71,13 +70,12 @@ describe('routeWqlShortcuts — persistence', () => {
 })
 
 describe('routeWqlShortcuts — built-in library-group links', () => {
-  it('derive the landing plus the zone route action (Collections: Feeds)', () => {
+  it('derive the landing link per surface (Feeds zone: All feeds)', () => {
     expect(builtinShortcuts('/journal')).toEqual([
       { id: ALL_SHORTCUT_ID, label: 'All entries', icon: 'calendar', wql: '' },
     ])
-    expect(builtinShortcuts('/collections')).toEqual([
-      { id: ALL_SHORTCUT_ID, label: 'All collections', icon: 'folder', wql: '' },
-      { id: FEEDS_ID, label: 'Feeds', icon: 'rss', wql: '', to: '/feeds' },
+    expect(builtinShortcuts('/feeds')).toEqual([
+      { id: ALL_SHORTCUT_ID, label: 'All feeds', icon: 'rss', wql: '' },
     ])
   })
 
@@ -146,12 +144,12 @@ describe('routeWqlShortcuts — validation on read', () => {
   it('drops unsafe route-action targets — not paths or protocol-relative off-site navigations', () => {
     const backend = new InMemoryBackend()
     const store = storeOn(backend)
-    store.set('/collections', [
+    store.set('/feeds', [
       { id: 'a', label: 'Protocol-relative', icon: 'rss', wql: '', to: '//evil.example' },
       { id: 'b', label: 'Not a path', icon: 'rss', wql: '', to: 'https://evil.example' },
       { id: 'c', label: 'Feeds ok', icon: 'rss', wql: '', to: '/feeds' },
     ])
-    expect(readRouteShortcuts('/collections', store).map(s => s.id)).toEqual(['c'])
+    expect(readRouteShortcuts('/feeds', store).map(s => s.id)).toEqual(['c'])
   })
 
   it('a non-array or unparseable payload reads as empty, never throws', () => {
@@ -231,7 +229,9 @@ describe('routeWqlShortcuts — permutation-insensitive full-query matching', ()
   })
 
   it('route actions match by pathname; the Main-contract example round-trips', () => {
-    const feeds = builtinShortcuts('/collections').find(s => s.to)!
+    // The built-in Feeds route action is gone (the /feeds zone landing is the
+    // link); stored route-action rows still match by pathname.
+    const feeds: WqlShortcut = { id: 'feeds', label: 'Feeds', icon: 'rss', wql: '', to: '/feeds' }
     expect(shortcutMatches(feeds, { ...CTX, pathname: '/feeds' })).toBe(true)
     expect(shortcutMatches(feeds, { ...CTX, pathname: '/feed/abc' })).toBe(false)
     expect(shortcutMatches(feeds, { ...CTX, pathname: '/journal' })).toBe(false)

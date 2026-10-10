@@ -94,7 +94,6 @@ describe('resolveRouteView — named routes', () => {
     const cases = [
       ['/', 'Home'],
       ['/feeds', 'Feeds'],
-      ['/collections', 'Collections'],
     ] as const
     for (const [path, name] of cases) {
       const view = resolveRouteView(path, NO_PARAMS, makeDeps())
@@ -211,8 +210,9 @@ describe('resolveRouteView — collection index nav', () => {
 })
 
 describe('resolveRouteView — stream list routes', () => {
-  it('/journal, /collections, /feeds, /efforts, /results, and /results/segments map directly to library page', () => {
-    for (const route of ['/journal', '/collections', '/feeds', '/efforts', '/results', '/results/segments', '/results/res-42']) {
+  it('/journal, /feeds, /efforts, /results, and /results/segments map directly to library page', () => {
+    // Bare /collections is no longer a view — the router redirects it to /feeds.
+    for (const route of ['/journal', '/feeds', '/efforts', '/results', '/results/segments', '/results/res-42']) {
       const view = resolveRouteView(route, NO_PARAMS, makeDeps())
       expect(view.page).toBe('library')
       expect(view.shell).toEqual({ wrap: 'bare' })
@@ -220,7 +220,7 @@ describe('resolveRouteView — stream list routes', () => {
   })
 
   it('classifies bare routes → bare shell', () => {
-    expect(resolveRouteView('/collections', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
+    expect(resolveRouteView('/feeds', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).page).toBe('library')
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).workout.name).toBe('Efforts')
     expect(resolveRouteView('/effort/squat', NO_PARAMS, makeDeps()).page).toBe('effortDetail')

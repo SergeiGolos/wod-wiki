@@ -57,8 +57,6 @@ export interface WqlShortcut {
 
 /** Built-in landing link id — overridden in storage once customized. */
 export const ALL_SHORTCUT_ID = 'all'
-/** Built-in Feeds route-action id (Collections zone). */
-export const FEEDS_ID = 'feeds'
 
 export const SHORTCUT_ICONS: Record<string, LucideIcon> = {
   bookmark: Bookmark,
@@ -94,7 +92,7 @@ export function defaultLandingShortcut(label: string, icon: string): WqlShortcut
 
 const LANDING_LABELS: Record<string, string> = {
   '/journal': 'All entries',
-  '/collections': 'All collections',
+  '/feeds': 'All feeds',
   '/playgrounds': 'All playgrounds',
   '/efforts': 'All Efforts',
   '/sessions': 'All Sessions',
@@ -102,26 +100,16 @@ const LANDING_LABELS: Record<string, string> = {
 
 const LANDING_ICONS: Record<string, string> = {
   '/journal': 'calendar',
-  '/collections': 'folder',
+  '/feeds': 'rss',
   '/playgrounds': 'flask-conical',
   '/efforts': 'dumbbell',
   '/sessions': 'clipboard-list',
 }
 
-/** Route actions per zone (the Feeds link lives in the Collections panel). */
-const ROUTE_ACTIONS: Record<string, { id: string; label: string; icon: string; to: string }> = {
-  '/collections': { id: FEEDS_ID, label: 'Feeds', icon: 'rss', to: '/feeds' },
-}
-
-/** The built-in links for a route: the landing plus the zone's route
- *  action if any. */
+/** The built-in links for a route: the landing link. */
 export function builtinShortcuts(routeId: string): WqlShortcut[] {
   const id = normalizeRouteId(routeId)
-  const action = ROUTE_ACTIONS[id]
-  return [
-    defaultLandingShortcut(LANDING_LABELS[id] ?? 'Landing link', LANDING_ICONS[id] ?? 'bookmark'),
-    ...(action ? [{ ...action, wql: '' }] : []),
-  ]
+  return [defaultLandingShortcut(LANDING_LABELS[id] ?? 'Landing link', LANDING_ICONS[id] ?? 'bookmark')]
 }
 
 function normalizeRouteId(routeId: string): string {

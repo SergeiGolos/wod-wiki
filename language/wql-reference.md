@@ -58,7 +58,7 @@ find:segment{effort:snatch} by {effort} in lb       ← grouped rows, converted 
 Any find query accepts presentation pipes:
 
 ```wql
-find:note{source:collections} | order by title | limit 50
+find:note{source:feeds} | order by title | limit 50
 find:block{effort:back*} last 8w | limit 20
 find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | limit 5
 ```
@@ -99,11 +99,11 @@ Filters are comma-separated within curly braces `{key:value}`:
 | `origin` | Producer provenance | `{origin:user}`, `{origin:runtime}` |
 | `tags` | Tag label | `{tags:pr}`, `{tags:benchmark}` |
 | `<tagType>` | Any registered dynamic tag type | `{equipment:barbell}`, `{category:girl}` |
-| `source` | Where a note lives | `{source:journal}`, `{source:collections}` |
+| `source` | Where a note lives | `{source:journal}`, `{source:feeds}` |
 | `plane` | Output type on sessions | `{plane:segment}`, `{!plane:compiler}` |
 | `result` / `block` / `note` | Session scope | `{result:r1}`, `{note:n1}` |
 
-`source:` accepts exactly `journal | collections | feeds | guides | playground`. Page-ness is expressed with `type:`.
+`source:` accepts exactly `journal | feeds | guides | playground | dashboards | efforts`. Page-ness is expressed with `type:`.
 
 ### Filter Modifiers
 * **OR**: Use pipe `|` (`{effort:fran|helen}`).
@@ -154,6 +154,7 @@ find:segment{effort:fran} last 26w | select date, elapsed | order by elapsed | l
 * `rows:all{…}` / `rows:<plane>{…}` — removed; use `find:session{…}` (add `plane:<plane>` for plane narrowing).
 * `rows:segment{…}` unscoped — removed; use `find:segment{…}`.
 * `rows:event{…}` — removed; use `find:event{…}`.
-* `find:page` — removed; page-ness is `type:` (e.g. `find:note{type:collection}`).
+* `find:page` — removed; page-ness is `type:` (e.g. `find:note{type:feed}`).
 * `source:page` / `source:pages` / `source:all` — removed; omit `source:` for all sources.
+* `source:collections` / `in collections` — retired; the benchmark library is `source:feeds` / `in feeds` (storage keeps `collection:`-prefixed sourceIds; pin one catalog with `catalog:<id>`).
 * `.rollup(1d)` / `.rollup(1w)` — removed; use `by {day}` / `by {week}`.

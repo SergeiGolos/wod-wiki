@@ -7,7 +7,7 @@
  * in the Library page, not the row.
  */
 import { useNavigate, Link } from 'react-router-dom'
-import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell, Rss, LayoutDashboard, Wrench, FlaskConical, BookOpen } from 'lucide-react'
+import { FileTextIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon, Activity, Trophy, Layers, Dumbbell, Rss, LayoutDashboard, Wrench, FlaskConical, BookOpen } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
 import { entryOpenHref, entryCompareHref, entryCanAddToToday, entryCollectionFeedHref } from '../../lib/entryActions'
 import { entryCanRun } from '../../lib/entryRun'
@@ -41,7 +41,7 @@ export interface LibraryRowProps {
 
 const KIND_ICON: Record<Entry['kind'], React.FC<{ className?: string }>> = {
   note: FileTextIcon,
-  session: FolderIcon,
+  session: Rss,
   post: CalendarIcon,
   effort: Dumbbell,
   result: Trophy,
@@ -168,7 +168,7 @@ export function LibraryRow({
                 to={openHref}
                 data-testid="library-row-details-link"
                 className="text-[9px] font-bold tracking-wide text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted border border-border rounded-full px-2 py-0.5 transition-colors"
-                title="View collection details"
+                title="View catalog details"
               >
                 Details
               </Link>
@@ -176,7 +176,7 @@ export function LibraryRow({
                 to={feedHref}
                 data-testid="library-row-feed-link"
                 className="text-[9px] font-bold tracking-wide text-primary/80 hover:text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-full px-2 py-0.5 transition-colors"
-                title="View collection feed"
+                title="View feed"
               >
                 Feed
               </Link>

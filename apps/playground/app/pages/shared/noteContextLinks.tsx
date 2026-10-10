@@ -66,7 +66,7 @@ const MAX_RELATED = 8
 
 // ── Source-aware ownership ───────────────────────────────────────────────────
 
-export type NoteZone = 'journal' | 'collections' | 'playgrounds' | 'efforts' | null
+export type NoteZone = 'journal' | 'feeds' | 'playgrounds' | 'efforts' | null
 
 export interface NoteOwnership {
   /** L1 zone id to light on the canonical /notes route (guarded against the tree). */
@@ -117,14 +117,14 @@ export function noteOwnership(entry: Pick<HistoryEntry, 'id' | 'type' | 'sourceI
       // and only ever match the feed listing page, never this item).
       const [, feedSlug, feedDate, feedItem] = id.split('/')
       return {
-        zone: 'collections',
+        zone: 'feeds',
         up: feedSlug ? { id: feedSlug, title: feedSlug, to: feedDetailPath(feedSlug) } : null,
         stamps: feedSlug && feedDate && feedItem ? [`/feeds/${feedSlug}/${feedDate}/${feedItem}`] : [],
       }
     }
     if (ref.category) {
       return {
-        zone: 'collections',
+        zone: 'feeds',
         up: { id: ref.category, title: ref.category, to: collectionPath(ref.category) },
         stamps: [workoutPath(ref.category, ref.id)],
       }

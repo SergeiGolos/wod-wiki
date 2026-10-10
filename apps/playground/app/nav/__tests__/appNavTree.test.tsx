@@ -23,7 +23,7 @@ describe('appNavTree - Flattened listing zones', () => {
     cleanup()
   })
 
-  it('flattens Library into Journal, Collections, Playgrounds L1 rows with no Library row', () => {
+  it('flattens Library into Journal, Feeds, Playgrounds L1 rows with no Library row', () => {
     const tree = buildAppNavTree(() => {})
     const l1 = tree.filter(item => item.level === 1).map(item => item.id)
 
@@ -31,7 +31,7 @@ describe('appNavTree - Flattened listing zones', () => {
       'home',
       'journal',
       'catalogs',
-      'collections',
+      'feeds',
       'playgrounds',
       'dashboards',
       'efforts',
@@ -42,18 +42,17 @@ describe('appNavTree - Flattened listing zones', () => {
     expect(tree.find(item => item.id === 'library')).toBeUndefined()
   })
 
-  it('folds Feeds under Collections and lights Collections for feed routes', () => {
+  it('lights Feeds for feed routes and catalog item routes', () => {
     const tree = buildAppNavTree(() => {})
-    const collections = tree.find(item => item.id === 'collections')!
+    const feeds = tree.find(item => item.id === 'feeds')!
 
-    // The Feeds row itself renders in the zone's conditions panel (see the
-    // NavSidebar smoke below); the tree-level contract is the activation.
-    expect(collections.isActive!(mockLocation('/collections'))).toBe(true)
-    expect(collections.isActive!(mockLocation('/c/dan-john'))).toBe(true)
-    expect(collections.isActive!(mockLocation('/feeds'))).toBe(true)
-    expect(collections.isActive!(mockLocation('/feed/routines'))).toBe(true)
-    expect(collections.isActive!(mockLocation('/journal'))).toBe(false)
-    expect(collections.isActive!(mockLocation('/playgrounds'))).toBe(false)
+    // The listing itself is /feeds (the renamed collections surface); the
+    // /c/:slug catalog landing and item routes light the same zone.
+    expect(feeds.isActive!(mockLocation('/feeds'))).toBe(true)
+    expect(feeds.isActive!(mockLocation('/feed/routines'))).toBe(true)
+    expect(feeds.isActive!(mockLocation('/c/dan-john'))).toBe(true)
+    expect(feeds.isActive!(mockLocation('/journal'))).toBe(false)
+    expect(feeds.isActive!(mockLocation('/playgrounds'))).toBe(false)
 
     const journal = tree.find(item => item.id === 'journal')!
     const playgrounds = tree.find(item => item.id === 'playgrounds')!
@@ -85,18 +84,17 @@ describe('appNavTree - Flattened listing zones', () => {
     expect(allRow).not.toBeNull()
   })
 
-  it('renders the Collections conditions panel rows in NavSidebar on /collections', () => {
+  it('renders the Feeds conditions panel rows in NavSidebar on /feeds', () => {
     render(
-      <MemoryRouter initialEntries={['/collections']}>
+      <MemoryRouter initialEntries={['/feeds']}>
         <NavProvider tree={appNavTree}>
           <NavSidebar />
         </NavProvider>
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByText('All collections').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Feeds').length).toBeGreaterThan(0)
-    expect(screen.queryAllByText('Library')).toHaveLength(0)
+    expect(screen.getAllByText('All feeds').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Catalog crosswalk').length).toBeGreaterThan(0)
   })
 })
 
@@ -293,7 +291,7 @@ describe('appNavTree - L2 notable buttons and Catalogs', () => {
     expect(home.children?.find(i => i.id === 'guide-/guide/start')).toBeDefined()
   })
 
-  it('defines Catalogs on L1 above Collections doing :catalog search', () => {
+  it('defines Catalogs on L1 above Feeds doing :catalog search', () => {
     const tree = buildAppNavTree(() => {})
     const catalogs = tree.find(i => i.id === 'catalogs')!
     expect(catalogs).toBeDefined()
@@ -301,7 +299,7 @@ describe('appNavTree - L2 notable buttons and Catalogs', () => {
     expect(catalogs.action).toEqual({ type: 'route', to: ROUTE_PATTERNS.catalogs })
   })
 
-  it('renders notable create button on Journal, Collections, Playgrounds, Efforts L2 panels', () => {
+  it('renders notable create button on Journal, Feeds, Playgrounds, Efforts L2 panels', () => {
     const tree = buildAppNavTree(() => {})
     const journal = tree.find(i => i.id === 'journal')!
     expect(journal.panel).toBeDefined()
@@ -318,7 +316,7 @@ describe('appNavTree - L2 notable buttons and Catalogs', () => {
     cleanup()
 
     render(
-      <MemoryRouter initialEntries={['/collections']}>
+      <MemoryRouter initialEntries={['/feeds']}>
         <NavProvider tree={tree}>
           <NavSidebar />
         </NavProvider>

@@ -13,7 +13,6 @@ import { resolveRouteView, type RouteViewDeps } from './routeView'
 import {
   JOURNAL_STREAM_PROFILE,
   CATALOGS_STREAM_PROFILE,
-  COLLECTIONS_STREAM_PROFILE,
   FEEDS_STREAM_PROFILE,
   EFFORTS_STREAM_PROFILE,
   resolveStreamProfile,
@@ -40,13 +39,6 @@ describe('Direct route mounting classification (routeView)', () => {
     expect(v2.page).toBe('library')
     expect(v2.workout.name).toBe('Journal')
     expect(v2.shell).toEqual({ wrap: 'bare' })
-  })
-
-  it('classifies /collections directly to library with Collections title', () => {
-    const v = resolveRouteView('/collections', NO_PARAMS, makeDeps())
-    expect(v.page).toBe('library')
-    expect(v.workout.name).toBe('Collections')
-    expect(v.shell).toEqual({ wrap: 'bare' })
   })
 
   it('classifies /feeds directly to library with Feeds title', () => {
@@ -76,14 +68,13 @@ describe('Route-aware stream profile resolution', () => {
       expect(journalDefault.window).toEqual({ kind: 'relative', size: 4, unit: 'w' })
     }
 
-    expect(resolveStreamProfile('/collections')).toBe(COLLECTIONS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/collections').defaultWql).toBe(':collection{} by {tag}')
-
+    // Bare /collections is a redirect route now — no stream profile of its
+    // own; the renamed listing resolves under /feeds.
     expect(resolveStreamProfile('/catalogs')).toBe(CATALOGS_STREAM_PROFILE)
     expect(resolveStreamProfile('/catalogs').defaultWql).toBe(':catalog{} by {tag}')
 
     expect(resolveStreamProfile('/feeds')).toBe(FEEDS_STREAM_PROFILE)
-    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':collection{} last 2w')
+    expect(resolveStreamProfile('/feeds').defaultWql).toBe(':feed{} last 2w')
 
     expect(resolveStreamProfile('/efforts')).toBe(EFFORTS_STREAM_PROFILE)
     expect(resolveStreamProfile('/efforts').defaultWql).toBe(':effort')
@@ -98,26 +89,28 @@ describe('Legacy parameter migration across unified stream routes', () => {
     expect(legacy.toQuery(new URLSearchParams('text=snatch'))).toBe(':journal{text:snatch} last 2w')
   })
 
-  it('migrates legacy bookmarks on /collections into canonical WQL queries', () => {
-    const legacy = COLLECTIONS_STREAM_PROFILE.legacy!
+  it('migrates legacy bookmarks on /feeds into canonical WQL queries', () => {
+    // The renamed collections listing keeps the catalog-flavored legacy
+    // mapping (scope feeds → `:catalog` head).
+    const legacy = FEEDS_STREAM_PROFILE.legacy!
     expect(legacy.toQuery(new URLSearchParams('text=fran'))).toBe(':catalog{text:fran} last 2w')
     expect(legacy.toQuery(new URLSearchParams('timePreset=all'))).toBe(':catalog')
   })
 
-  it('migrates legacy bookmarks on /feeds into canonical WQL queries', () => {
+  it('migrates legacy unscoped bookmarks on /feeds without source narrowing', () => {
     const legacy = FEEDS_STREAM_PROFILE.legacy!
-    // The feeds scope is excised: the migrated query is an unscoped recent
-    // note listing. Semantic check — window only, no source narrowing.
+    // No tri-state params: the default scope applies. Semantic check on the
+    // scoped form — one positive source filter, feeds scope, 2-week window.
     const migrated = parseQuery(legacy.toQuery(new URLSearchParams('s=2026-07-12')) ?? '')
     expect(isFindQuery(migrated)).toBe(true)
     if (isFindQuery(migrated)) {
-      expect(migrated.filters.filter((f) => f.key === 'source')).toHaveLength(0)
+      expect(migrated.filters.filter((f) => f.key === 'source' && f.values.some((v) => v.value === 'feeds'))).toHaveLength(1)
       expect(migrated.window).toEqual({ kind: 'relative', size: 2, unit: 'w' })
     }
   })
 
-  it('migrates legacy tri-state parameters on /collections', () => {
-    const legacy = COLLECTIONS_STREAM_PROFILE.legacy!
+  it('migrates legacy tri-state parameters on /feeds', () => {
+    const legacy = FEEDS_STREAM_PROFILE.legacy!
     expect(legacy.toQuery(new URLSearchParams('note=on&session=hide&post=hide'))).toBe(':journal last 2w')
     expect(legacy.toQuery(new URLSearchParams('note=hide&session=on&post=hide'))).toBe(':catalog last 2w')
     // post=on mapped to the now-excised feeds scope: unscoped, same window.

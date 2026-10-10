@@ -25,7 +25,6 @@ import { StickyGroupHeader } from '@/panels/page-shells'
 import {
   CalendarIcon,
   FileTextIcon,
-  FolderIcon,
   PencilLineIcon,
   PlayIcon,
   Activity,
@@ -47,7 +46,7 @@ import type { BatchedItems } from '../../hooks/useBatchedItems'
 
 const KIND_ICON: Record<Entry['kind'], React.FC<{ className?: string }>> = {
   note: FileTextIcon,
-  session: FolderIcon,
+  session: Rss,
   post: FileTextIcon,
   effort: Dumbbell,
   result: Trophy,

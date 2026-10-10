@@ -78,11 +78,11 @@ export type WqlDomainPredicate =
   | { field: 'text'; value: string }
   | { field: 'date'; start: number; end: number; endExclusive?: boolean }
   | { field: 'page'; value: boolean }
-  /** The :note default page-exclusion stage (notes plan only). `collections`
-   *  = an authored collection source clause rides along: true drops literal
+  /** The :note default page-exclusion stage (notes plan only). `feeds`
+   *  = an authored feed source clause rides along: true drops literal
    *  type 'page' rows; false drops isPage rows (page-like kinds or page:/
    *  guides: source prefixes on non-note kinds). */
-  | { field: 'defaultNotes'; collections: boolean }
+  | { field: 'defaultNotes'; feeds: boolean }
   | { field: 'sourceFence' };
 
 /** Server order clause — structural mirror of the storage wire's

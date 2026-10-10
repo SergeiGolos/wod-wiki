@@ -69,16 +69,16 @@ describe('queryService with the seeded corpus', () => {
   });
 
 
-  it('discovers collections when querying scope collections', async () => {
-    const query = parseFindQuery(':note in collections');
+  it('discovers the collection corpus when querying scope feeds', async () => {
+    const query = parseFindQuery(':note in feeds');
     const result = await queryService.runFind(query);
     expect(result.notes.length).toBeGreaterThan(0);
     expect(result.notes.every((n) => n.sourceId?.startsWith('collection:'))).toBe(true);
     expect(result.notes.some((n) => n.catalog === 'crossfit-girls')).toBe(true);
   });
 
-  it('rejects the excised feeds source scope', () => {
-    const query = parseQuery(':note in feeds');
+  it('rejects the retired collections source scope', () => {
+    const query = parseQuery(':note in collections');
     expect(query.error).toBeDefined();
   });
 

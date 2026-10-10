@@ -68,14 +68,15 @@ export const GROUP_BY_FAVORITE_OPTIONS: readonly { id: string; label: string }[]
 
 /**
  * Narrow one-time id migration for persisted favorites (work item 3): the old
- * plural-noun type vocabulary maps onto canonical singular targets. Storage
- * locations (journal/collections/feeds/playground) are already canonical and
- * pass through unchanged.
+ * plural-noun type vocabulary maps onto canonical singular targets, and the
+ * retired `collections` storage scope maps onto `feeds` (collections→feeds
+ * rename; storage identities keep their `collection:` prefixes).
  */
 const LEGACY_TYPE_OPTION_IDS: Record<string, string> = {
   notes: 'note',
   blocks: 'block',
   efforts: 'effort',
+  collections: 'feeds',
 }
 
 function getRouteWqlStorageId(routeId: string): string {
@@ -128,6 +129,23 @@ function migrateFavoriteIds(
 const LEGACY_STORAGE_ALIASES: Record<string, string> = {
   '/sessions': '/results',
   '/dashboards': '/dashboard',
+  '/feeds': '/collections',
+}
+
+/**
+ * One-time hard-break migration for the collections→feeds rename: stored
+ * default WQL written in the retired grammar rewrites to the feeds forms.
+ * The `:collection`/`:collections` heads become `:feed`/`:feeds`,
+ * `source:collections` becomes `source:feeds`, `type:collection` becomes
+ * `type:feed`. Storage-identity spellings pass through untouched — a
+ * `collection:`-prefixed source id keeps its prefix (`:collection:` is
+ * never followed by a head boundary), and `:catalog`/`catalog:` stay.
+ */
+function migrateLegacyStoredWql(wql: string): string {
+  return wql
+    .replace(/^:(collections?)(?![\w:])/, (head) => (head === ':collections' ? ':feeds' : ':feed'))
+    .replace(/(^|[{,\s])source:collections(?![\w:])/g, '$1source:feeds')
+    .replace(/(^|[{,\s])type:collection(?![\w:])/g, '$1type:feed')
 }
 
 export function readRouteWqlConfig(routeId: string, store: LocalStore = routeWqlStore): RouteWqlConfig {
@@ -148,7 +166,7 @@ export function readRouteWqlConfig(routeId: string, store: LocalStore = routeWql
   return {
     defaultWql:
       typeof parsed.defaultWql === 'string' && parsed.defaultWql.trim().length > 0
-        ? parsed.defaultWql.trim()
+        ? migrateLegacyStoredWql(parsed.defaultWql.trim())
         : undefined,
     typeOptions: migratedType?.options,
     groupByOptions: migratedGroup?.options,

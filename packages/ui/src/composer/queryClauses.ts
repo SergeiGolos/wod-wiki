@@ -98,7 +98,7 @@ export const TARGET_OPTIONS = WQL_FIND_TARGETS.map((t) => ({
   value: t,
   label: t.charAt(0).toUpperCase() + t.slice(1),
   description: {
-    note: 'Find notes across journal, collections and playground',
+    note: 'Find notes across journal, feeds and playground',
     block: 'Find fenced workout/dashboard regions',
     effort: 'Find registered movements and benchmarks',
     session: 'Find completed workout sessions',
@@ -114,7 +114,7 @@ export const SOURCE_OPTIONS = WQL_SOURCE_VALUES.map((s) => ({
   label: s.charAt(0).toUpperCase() + s.slice(1),
   description: {
     journal: 'Daily journal notes',
-    collections: 'Curated collection notes',
+    feeds: 'Curated feed notes',
     guides: 'Static guide pages',
     playground: 'Playground scratch pages',
     dashboards: 'Dashboard notes',
@@ -187,7 +187,7 @@ export const CLEAR_ONLY_TYPES: Record<string, true> = { source: true, time: true
 export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   kind:      { label: 'Kind',       inputType: 'radio',    placeholder: 'find, measure…',              placeholderText: 'Find | Measure',         icon: '🧭', description: 'Find things or measure numbers' },
   target:    { label: 'Find',       inputType: 'select',   placeholder: 'note, block, effort…',        placeholderText: ': [target]',             icon: '🎯', description: 'What to find — singular', prefix: ':' },
-  source:    { label: 'Where stored', inputType: 'select', placeholder: 'journal, collections…',       placeholderText: 'source: [scope]',        icon: '🌐', description: 'Storage scope — all sources means no scope', prefix: 'source:' },
+  source:    { label: 'Where stored', inputType: 'select', placeholder: 'journal, feeds…',          placeholderText: 'source: [scope]',        icon: '🌐', description: 'Storage scope — all sources means no scope', prefix: 'source:' },
   text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              placeholderText: 'text: [query]',           icon: '🔍', description: 'Raw text substring search', prefix: 'text:' },
   catalog:   { label: 'Catalog',    inputType: 'select',   placeholder: 'Pick catalog...',            placeholderText: 'catalog: [id]',          icon: '📁', description: 'Filter by static catalog', prefix: 'catalog:' },
   tag:       { label: 'Tag',        inputType: 'select',   placeholder: 'Pick tag...',                placeholderText: 'tags: [tag]',            icon: '🏷', description: 'Filter by note/workout tags', prefix: 'tags:' },

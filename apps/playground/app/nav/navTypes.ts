@@ -51,7 +51,7 @@ export interface JournalFilterState {
 }
 
 export interface SearchFilterState {
-  scope: 'all' | 'collections' | 'notes' | 'results'
+  scope: 'all' | 'feeds' | 'notes' | 'results'
 }
 
 // ─── Global nav state ─────────────────────────────────────────────────────────

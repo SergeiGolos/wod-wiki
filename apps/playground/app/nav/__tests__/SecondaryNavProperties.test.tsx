@@ -12,7 +12,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
 
 import { publishStreamResults } from '../../views/stream/streamResults'
-import { COLLECTIONS_STREAM_PROFILE } from '../../views/stream/streamProfile'
+import { FEEDS_STREAM_PROFILE } from '../../views/stream/streamProfile'
 import type { Entry } from '../../lib/entryMapper'
 import type { StreamNavControls } from '../NavContext'
 
@@ -31,7 +31,7 @@ const ENTRIES: Entry[] = [
   entry({ id: 'n1', noteId: 'n1', noteType: 'note', title: 'Alpha', tags: ['strength'] }),
 ]
 
-const DEFAULT_Q = COLLECTIONS_STREAM_PROFILE.defaultWql
+const DEFAULT_Q = FEEDS_STREAM_PROFILE.defaultWql
 
 function controls(over: Partial<StreamNavControls> = {}): StreamNavControls {
   return {
@@ -51,7 +51,7 @@ function controls(over: Partial<StreamNavControls> = {}): StreamNavControls {
   }
 }
 
-function renderRail(at = '/collections', streamControls?: StreamNavControls | null) {
+function renderRail(at = '/feeds', streamControls?: StreamNavControls | null) {
   return render(
     <MemoryRouter initialEntries={[at]}>
       <NuqsAdapter>
@@ -84,8 +84,8 @@ afterEach(() => cleanup())
 
 describe('SecondaryNav view controls on stream routes', () => {
   it('renders view controls — and never where-filters, even with published results', () => {
-    renderRail('/collections', controls())
-    publishStreamResults({ pathname: '/collections', query: DEFAULT_Q, entries: ENTRIES })
+    renderRail('/feeds', controls())
+    publishStreamResults({ pathname: '/feeds', query: DEFAULT_Q, entries: ENTRIES })
 
     expect(screen.getByTestId('l3-stream-controls')).toBeTruthy()
     expect(screen.getByText('Date window')).toBeTruthy()
@@ -103,7 +103,7 @@ describe('SecondaryNav view controls on stream routes', () => {
   it('drives layout and field visibility through the published controls', () => {
     const onLayoutChange = mock(() => {})
     const onToggleField = mock(() => {})
-    renderRail('/collections', controls({ onLayoutChange, onToggleField }))
+    renderRail('/feeds', controls({ onLayoutChange, onToggleField }))
 
     // Layout mirrors the published settings and forwards picks.
     expect(screen.getByTestId('l3-layout-cards').getAttribute('aria-pressed')).toBe('true')
@@ -120,7 +120,7 @@ describe('SecondaryNav view controls on stream routes', () => {
   })
 
   it('renders nothing when the route publishes no controls and no page index', () => {
-    const { container } = renderRail('/collections', undefined)
+    const { container } = renderRail('/feeds', undefined)
     expect(container.firstChild).toBeNull()
   })
 })

@@ -285,7 +285,7 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: ({ name }) => playgroundPath(name),
   },
-  // /workout/:category/:name  →  /collections/:category/:name
+  // /workout/:category/:name  →  /c/:category/:name
   {
     match: (p) => {
       const m = p.match(/^\/workout\/([^/]+)\/([^/]+)$/);
@@ -298,6 +298,15 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
   {
     match: (p) => {
       if (p !== '/feed' && p !== '/feed/') return false;
+      return {};
+    },
+    to: () => '/feeds',
+  },
+  // /collections  →  /feeds (the renamed collections listing). Item paths
+  // (/collections/:slug[/:target]) keep their CollectionItemRedirect routes.
+  {
+    match: (p) => {
+      if (p !== '/collections' && p !== '/collections/') return false;
       return {};
     },
     to: () => '/feeds',

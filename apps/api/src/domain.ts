@@ -443,9 +443,9 @@ function parsePredicate(v: unknown, plan: Plan): DomainPredicate {
   }
   if (field === 'defaultNotes') {
     if (plan === 'blocks') throw bad('predicate defaultNotes does not apply to the blocks plan');
-    if (!onlyKeys(obj, ['field', 'collections'])) throw bad('predicate defaultNotes accepts only {field, collections}');
-    if (typeof obj.collections !== 'boolean') throw bad('predicate defaultNotes.collections must be boolean');
-    return { field: 'defaultNotes', collections: obj.collections };
+    if (!onlyKeys(obj, ['field', 'feeds'])) throw bad('predicate defaultNotes accepts only {field, feeds}');
+    if (typeof obj.feeds !== 'boolean') throw bad('predicate defaultNotes.feeds must be boolean');
+    return { field: 'defaultNotes', feeds: obj.feeds };
   }
   throw bad(`unknown predicate field: ${field}`);
 }
@@ -547,14 +547,15 @@ class Sql {
 
 /** WQL source domain — mirrors WQL_SOURCE_VALUES; the non-shape kinds
  * (dashboards/efforts) are exact sourceId literals, journal is materialized. */
-const SOURCE_ALL_KINDS = ['journal', 'collections', 'guides', 'playground', 'dashboards', 'efforts'];
+const SOURCE_ALL_KINDS = ['journal', 'feeds', 'guides', 'playground', 'dashboards', 'efforts'];
 
 function sourceKindSql(ctx: Sql, kind: string, sid: string, typeExpr: string | null, journalCol: string): string {
   switch (kind) {
     case 'journal':
       return `(${journalCol} = 1)`;
-    case 'collection':
-    case 'collections':
+    case 'feed':
+    case 'feeds':
+      // Storage identities keep the collection:/page:collection: prefixes.
       return `(substr(${sid}, 1, 11) = 'collection:' OR substr(${sid}, 1, 16) = 'page:collection:')`;
     case 'page':
     case 'pages':
@@ -642,11 +643,11 @@ function predicateSql(ctx: Sql, p: DomainPredicate, plan: Plan): string {
       return `(${sid} IS NULL OR ${sid} = '' OR ${all})`;
     }
     case 'defaultNotes':
-      return p.collections
+      return p.feeds
         ? `(n."note_type" IS NULL OR n."note_type" <> 'page')`
         : `(n."note_type" = 'note' OR (substr(COALESCE(n."source_id", ''), 1, 5) <> 'page:' ` +
             `AND substr(COALESCE(n."source_id", ''), 1, 7) <> 'guides:' ` +
-            `AND COALESCE(n."note_type", '') NOT IN ('collection','syntax','behavior','analytics','dashboard','home','page')))`;
+            `AND COALESCE(n."note_type", '') NOT IN ('feed','syntax','behavior','analytics','dashboard','home','page')))`;
   }
 }
 

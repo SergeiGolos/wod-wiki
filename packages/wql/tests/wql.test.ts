@@ -165,11 +165,11 @@ describe('parseQuery — colon source heads', () => {
     });
     expect(journal.sourceScope).toBeUndefined();
 
-    const collection = _parseQuery(':collection{effort:snatch}');
-    if (!isFindQuery(collection)) throw new Error('expected find query');
-    expect(collection.target).toBe('note');
-    expect(collection.filters).toContainEqual({
-      key: 'source', negate: false, values: [{ value: 'collections', wildcard: false }],
+    const feed = _parseQuery(':feed{effort:snatch}');
+    if (!isFindQuery(feed)) throw new Error('expected find query');
+    expect(feed.target).toBe('note');
+    expect(feed.filters).toContainEqual({
+      key: 'source', negate: false, values: [{ value: 'feeds', wildcard: false }],
     });
   });
 
@@ -292,12 +292,12 @@ describe('parseQuery — colon source heads', () => {
   });
 
   it('rewrites comma-separated bare values into one OR filter', () => {
-    const parsed = _parseQuery(':note{source:journal,collection} by {date}');
+    const parsed = _parseQuery(':note{source:journal,feeds} by {date}');
     if (!isFindQuery(parsed)) throw new Error('expected find query');
     expect(parsed.filters).toEqual([
       { key: 'source', negate: false, values: [
         { value: 'journal', wildcard: false },
-        { value: 'collection', wildcard: false },
+        { value: 'feeds', wildcard: false },
       ] },
     ]);
     expect(parsed.groupBy).toEqual(['date']);
@@ -327,8 +327,8 @@ describe('parseQuery — colon source heads', () => {
   });
 });
 
-// ── Retired find: + feeds ────────────────────────────────────────────
-describe('find: retirement and feed excision', () => {
+// ── Retired find: + collections ─────────────────────────────────────
+describe('find: retirement and feed scope', () => {
   it('find: primary is a retired-error naming the colon spelling', () => {
     const parsed = _parseQuery('find:note{tags:pr}');
     expect(parsed.family).toBe('find');
@@ -337,11 +337,14 @@ describe('find: retirement and feed excision', () => {
     expect(_parseQuery('find:').error).toContain('retired');
   });
 
-  it('rejects feed source values with a clear diagnostic', () => {
-    expect(_parseQuery(':note{source:feed}').error).toContain('feed');
-    expect(_parseQuery(':note{source:feeds}').error).toContain('feed');
-    expect(_parseQuery(':note{source:feed:crossfit-programming}').error).toContain('feed');
-    expect(_parseQuery(':note{source:"feed:crossfit-programming/2026-01-12"}').error).toContain('feed');
+  it('accepts feed source values — scope feeds selects the collection corpus', () => {
+    expect(_parseQuery(':note{source:feed}').error).toBeUndefined();
+    expect(_parseQuery(':note{source:feeds}').error).toBeUndefined();
+  });
+
+  it('rejects feed:<id> literal sources (unknown, not retired)', () => {
+    expect(_parseQuery(':note{source:feed:crossfit-programming}').error).toContain('Unknown source');
+    expect(_parseQuery(':note{source:"feed:crossfit-programming/2026-01-12"}').error).toContain('Unknown source');
   });
 
   it('keeps guides as an explicit source value', () => {
@@ -770,7 +773,7 @@ describe('de-overload in with compat normalizer (C2)', () => {
   it('rejects unknown source: filter values with clear error', () => {
     const parsed = _parseQuery(':note{source:invalid_scope}');
     expect(parsed.error).toContain('Unknown source "invalid_scope"');
-    expect(parsed.error).toContain('Try: journal, collections, guides, playground');
+    expect(parsed.error).toContain('Try: journal, feeds, guides, playground');
   });
 
   it('rejects unknown legacy in <scope> values with clear error', () => {
@@ -778,11 +781,18 @@ describe('de-overload in with compat normalizer (C2)', () => {
     expect(parsed.error).toContain('Unknown source "invalid_scope"');
   });
   it('accepts all canonical source values and catalog prefixes', () => {
-    for (const src of ['journal', 'collections', 'playground', 'guides', 'collection']) {
+    for (const src of ['journal', 'feeds', 'playground', 'guides', 'feed']) {
       const p = _parseQuery(`:note{source:${src}}`);
       expect(p.error).toBeUndefined();
     }
     expect(_parseQuery(':note{source:collection:crossfit-girls}').error).toBeUndefined();
+  });
+
+  it('retires the collections spellings with a rename hint', () => {
+    expect(_parseQuery(':note{source:collections}').error).toContain('source:collections is retired');
+    expect(_parseQuery(':note{source:collections}').error).toContain('source:feeds');
+    expect(_parseQuery(':note{source:collection}').error).toContain('retired');
+    expect(_parseQuery(':note in collections').error).toContain('retired');
   });
 
   it('in means units on aggregates without triggering scope normalization', () => {

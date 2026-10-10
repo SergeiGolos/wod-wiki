@@ -109,11 +109,11 @@ pipeline:
   - set-source: wql-presets/source-journal.md
 ```
 
-The `source:` filter names where content lives — five values, plural:
+The `source:` filter names where content lives — plural values:
 
-`journal` (your notes) · `collections` (catalog sessions) · `feeds` (dated posts) · `guides` · `playground`
+`journal` (your notes) · `feeds` (catalog sessions) · `guides` · `playground` (plus `dashboards`, `efforts`)
 
-Omitting `source:` searches **all** of them — there is no `source:all` (the parser refuses it). Pin one catalog with an id: `collection:crossfit-girls`. The singular spellings (`source:collection`) still parse as legacy, but write plural.
+Omitting `source:` searches **all** of them — there is no `source:all` (the parser refuses it). Pin one catalog with an id: `catalog:crossfit-girls`. The old `source:collections` spelling is retired — the parser errors; write `feeds` (storage keeps `collection:`-prefixed sourceIds).
 
 Journal scope includes user-created clones whose `sourceId` points to the original note UUID or legacy `journal/YYYY-MM-DD` ID. That backlink does not turn a clone into imported content. Seeded guides, catalog notes, dashboards, efforts, and equipment remain excluded.
 
@@ -152,7 +152,7 @@ pipeline:
 ```
 
 ```query
-:block{text:fran,source:collections}
+:block{text:fran,source:feeds}
 ```
 
 Targets: `:note` (whole notes), `:block` (addressable fenced blocks), `:effort` (registry entries, filterable by `effort`, `discipline`, `intensity`, `origin`, `text`), plus the advanced `:session`, `:segment`, `:event` for recorded results and raw rows. Content-only keys (`type`, `text`, `has`, `source`, `catalog`) are category errors on aggregates.

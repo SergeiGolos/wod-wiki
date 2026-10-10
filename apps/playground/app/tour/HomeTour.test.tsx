@@ -432,7 +432,7 @@ describe('HomeTour', () => {
     window.localStorage.clear()
   })
 
-  it('renders the jump section with feeds, collections, and journal exits', async () => {
+  it('renders the jump section with both feeds boxes and journal exits', async () => {
     await renderHomeTour()
     const jump = await screen.findByTestId('tour-jump-section')
     expect(jump).toBeTruthy()
@@ -441,7 +441,7 @@ describe('HomeTour', () => {
     expect(feedsLink.getAttribute('href')).toBe('/feeds')
 
     const libraryLink = within(jump).getByTestId('jump-library')
-    expect(libraryLink.getAttribute('href')).toBe('/collections')
+    expect(libraryLink.getAttribute('href')).toBe('/feeds')
 
     expect(within(jump).getByTestId('jump-new-note')).toBeTruthy()
   })

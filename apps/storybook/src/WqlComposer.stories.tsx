@@ -233,7 +233,7 @@ export const AnalyticsComposition: Story = {
 
 /** Canonical Where-stored scopes (WQL_SOURCE_VALUES); "all" is no scope
  *  filter at all — the bare `:note` head. */
-const LIBRARY_SCOPES = ['journal', 'collections', 'feeds'] as const;
+const LIBRARY_SCOPES = ['journal', 'feeds', 'guides'] as const;
 type LibraryScope = (typeof LIBRARY_SCOPES)[number] | 'all';
 
 /**

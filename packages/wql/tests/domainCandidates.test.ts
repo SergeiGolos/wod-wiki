@@ -27,7 +27,7 @@ const userNotes: Note[] = [
   { id: 'n1', title: 'one', createdAt: T0, type: 'note' },
   { id: 'n2', title: 'two', createdAt: T0 + 1, type: 'note' },
   { id: 'npage', title: 'guide', createdAt: T0 + 2, type: 'page', sourceId: 'guides:my-guide' },
-  { id: 'scol', title: 'cats', createdAt: T0 + 3, type: 'collection', sourceId: 'page:collection:cats', catalog: 'cats' },
+  { id: 'scol', title: 'cats', createdAt: T0 + 3, type: 'feed', sourceId: 'page:collection:cats', catalog: 'cats' },
 ] as Note[];
 
 const staticNotes: Note[] = [
@@ -45,7 +45,7 @@ const blocks: BlockIndexRow[] = [
 type AnyRow = Note | BlockIndexRow;
 
 /** Page-like kinds — the isPage composite's type half. */
-const PAGE_LIKE = ['collection', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'];
+const PAGE_LIKE = ['feed', 'syntax', 'behavior', 'analytics', 'dashboard', 'home', 'page'];
 
 function isPageRow(row: AnyRow): boolean {
   if ('dataType' in row) return false;
@@ -62,7 +62,7 @@ function predicateHit(row: AnyRow, p: WqlDomainPredicate): boolean {
     case 'source':
       return values.some((k) => sourceMatches(row, k));
     case 'defaultNotes':
-      return p.collections ? row.type !== 'page' : !isPageRow(row);
+      return p.feeds ? row.type !== 'page' : !isPageRow(row);
     case 'text': {
       // Wire text = case-insensitive substring on the plane's text column.
       const needle = p.value.toLowerCase();
@@ -171,7 +171,7 @@ describe('domain candidate reads — parity with the whole-store path', () => {
       { id: 'c-user', title: 'bench', type: 'note', sourceId: 'journal', createdAt: T0 },
     ];
     const parsed = { ...find('note', [{ key: 'text', negate: false, values: [val('bench')] }], { limit: 1 }),
-      sourceScope: ['journal', 'collections', 'playground'] };
+      sourceScope: ['journal', 'feeds', 'playground'] };
     const plain = new QueryService({ noteStore: makeNoteStore(rows) });
     const domain = new QueryService({ noteStore: makeNoteStore(rows, makeDomainRead(rows, [])) });
     const result = await outcome(domain, parsed);
@@ -319,17 +319,17 @@ describe('domain candidate reads — parity with the whole-store path', () => {
     expect((await outcome(domain.service, parsed)).stages.matched).toBe(1);
   });
 
-  it('source:collections compiles into selection and counts before filters', async () => {
+  it('source:feeds compiles into selection and counts before filters', async () => {
     const plain = makeService(false);
     const domain = makeService(true);
     const parsed = find('block', [
-      { key: 'source', negate: false, values: [val('collections')] },
+      { key: 'source', negate: false, values: [val('feeds')] },
       { key: 'type', negate: false, values: [val('wod')] },
     ]);
     expect(await outcome(domain.service, parsed)).toEqual(await outcome(plain.service, parsed));
     expect(domain.captured[0]).toMatchObject({
       plan: 'blocks',
-      selection: [{ field: 'source', values: ['collections'] }, { field: 'sourceFence' }],
+      selection: [{ field: 'source', values: ['feeds'] }, { field: 'sourceFence' }],
       filters: [{ field: 'type', values: ['wod'] }],
     });
   });

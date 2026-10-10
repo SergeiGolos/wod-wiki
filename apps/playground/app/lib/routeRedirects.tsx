@@ -52,6 +52,13 @@ export function CollectionItemRedirect(): ReactNode {
   return <Navigate to={{ pathname: workoutPath(slug!, decodeURIComponent(target)), search }} replace />
 }
 
+/** Redirect the bare /collections listing → /feeds (the renamed listing).
+ *  Item paths keep their own {@link CollectionItemRedirect} routes. */
+export function CollectionsRedirect(): ReactNode {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/feeds', search }} replace />
+}
+
 /** Redirect /effort/:slug → /e/:slug */
 export function EffortRedirect(): ReactNode {
   const { slug } = useParams<{ slug: string }>()
