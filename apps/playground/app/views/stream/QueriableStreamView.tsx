@@ -826,7 +826,7 @@ export function QueriableStreamView({
       {/* Read-only view of the collection readme note */}
       {readmeContent && (
         <div
-          className="border-b border-border/60 bg-card/20 px-6 py-4 max-h-80 overflow-y-auto"
+          className="border-b border-border/60 bg-card/20 px-6 py-4"
           data-testid="collection-readme-note"
         >
           <CanvasProse prose={readmeContent} />
